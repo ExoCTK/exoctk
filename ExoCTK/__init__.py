@@ -1,7 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """
-This is an Astropy affiliated package.
+The Exoplanet Characterization Tool Kit is a collection of packages used to reduce and analyze observations of transiting exoplanets
 """
 
 # Affiliated packages may add whatever they like to this file, but
