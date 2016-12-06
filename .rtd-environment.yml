@@ -1,4 +1,4 @@
-name: package-template
+name: ExoCTK
 
 channels:
     - astropy
