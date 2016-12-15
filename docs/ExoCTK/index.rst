@@ -8,3 +8,5 @@ Reference/API
 =============
 
 .. automodapi:: ExoCTK
+.. automodapi:: ExoCTK.limb_dark
+.. automodapi:: ExoCTK.retrievals
