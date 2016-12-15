@@ -22,9 +22,9 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
     
     Returns
     -------
-    ldc, mu0, r_eff: np.nddarray
-        The limb darkening coefficients, mu values, and effective radii
-        calculated from the input core.ModelGrid
+    list
+        The list of limb darkening coefficients, mu values, and effective 
+        radii calculated from the input core.ModelGrid
     
     """
     #Initialize coefficient grid

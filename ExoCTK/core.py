@@ -10,6 +10,19 @@ class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
     grid of model spectra and its references
+    
+    Attributes
+    ----------
+    path: str
+        The path to the directory of FITS files used to create the ModelGrid
+    refs: list, str
+        The references for the data contained in the ModelGrid
+    wavelength_range: array-like
+        The lower and upper inclusive bounds of the ModelGrid wavelength
+        in microns
+    data: astropy.table.Table
+        The table of parameters for the ModelGrid
+    
     """
     
     def __init__(self, spec_files, bibcode='2013A&A...553A...6H'):
@@ -21,7 +34,7 @@ class ModelGrid(object):
         ----------
         spec_files: str
             The path plus wildcard filename for the FITS files of spectra
-        bibcode: str, array-like
+        bibcode: str, array-like (optional)
             The bibcode or list of bibcodes for this data set
         """
         self.path = os.path.dirname(spec_files)+'/'
@@ -62,9 +75,6 @@ class ModelGrid(object):
         wavelength_range: array-like
             The lower and upper inclusive bounds for the wavelength (microns)
     
-        Example
-        -------
-        ModelGrid.trim([2300,2800], [4.5,6], [-0.5,0.5], [1.1,1.7])
         """
         # Make a copy of the grid
         grid = self.data.copy()
@@ -102,12 +112,14 @@ class ModelGrid(object):
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
         verbose: bool
-            Print some information about the extracted spectrum
+            Print some information about the spectrum
         
         Returns
         -------
-        spectrum: np.ndarray
-            An array of the wavelength and flux
+        list
+            A list of arrays of the wavelength, flux, and 
+            mu values and the effective radius for the given model
+        
         """
         # Get the filepath
         filepath = self.path+str(self.data[[(self.data['Teff']==2300)&
@@ -149,6 +161,15 @@ class References(object):
     """
     Creates and manages a References object to track references 
     within an ExoCTK user session
+    
+    Attributes
+    ----------
+    bibfile: str
+        The path to the bibtex file from which the references will be read
+    bibtex: dict
+        The dictionary of bibtex entries
+    refs: list
+        The list of bibcodes saved during the user session
     """
     def __init__(self, bibfile):
         """
