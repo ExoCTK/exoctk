@@ -108,9 +108,9 @@ def ldfunc(mu, coeffs, order=2):
         return 1.-coeffs[0]*(1.-mu)-coeffs[1]*(1.-mu)^2
     
     elif order==4:
-        return 1. - coeffs[0]*(1.-mu^0.5) 
-                  - coeffs[1]*(1.-mu) 
-                  - coeffs[2]*(1.-mu^1.5) 
+        return 1. - coeffs[0]*(1.-mu^0.5)\
+                  - coeffs[1]*(1.-mu)    \
+                  - coeffs[2]*(1.-mu^1.5)\
                   - coeffs[3]*(1.-mu^2)
                   
     else:
