@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
+"""
+A module for classes and functions used across all ExoCTK subpackages
+"""
 from glob import glob
 from astropy.io import fits
 import astropy.table as at

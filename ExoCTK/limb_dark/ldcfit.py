@@ -1,10 +1,13 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
+"""
+A module to calculate limb darkening coefficients from a grid of model spectra
+"""
 import numpy as np
         
 def calculate_ldc(model_grid, orders, mu_min=0.02):
     """
-    This function calculates the limb darkening coefficients for a given 
+    Calculates the limb darkening coefficients for a given 
     grid of synthetic spectra
     
     Reference for limb-darkening laws:
@@ -56,7 +59,7 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
         ld = mean_i/mean_i[center_i]
         
         # Rescale mu values. Spherical Phoenix models extend beyond limb
-        muz = np.interp(mu, ld, 0,01)
+        muz = np.interp(mu, ld, 0.01)
         mu = (mu-muz)/(1-muz)
         mu0[t_idx,g_idx,m_idx] = muz
         
@@ -71,7 +74,7 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
         # Need to write mpfitfun in Python!
         # ===================================================================
         err = 1.
-        ldc0 = replicate(1d0,npar) # ?????????????????????
+        #ldc0 = replicate(1d0,npar) # ?????????????????????
         if orders==2:
             ldc[:,t_idx,g_idx,m_idx] = mpfitfun('ld2func',mu,ld,err,ldc0)
         elif orders==4:
