@@ -74,7 +74,7 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
         # Need to write mpfitfun in Python!
         # ===================================================================
         err = 1.
-        #ldc0 = replicate(1d0,npar) # ?????????????????????
+        #ldc0 = replicate(1.,npar) # ?????????????????????
         if orders==2:
             ldc[:,t_idx,g_idx,m_idx] = mpfitfun('ld2func',mu,ld,err,ldc0)
         elif orders==4:
@@ -85,4 +85,33 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
         
     return ldc, mu0, r_eff
     
+def ldfunc(mu, coeffs, order=2):
+    """
+    Define the 2nd or 4th order function to fit to the limb darkening profile
     
+    Parameters
+    ----------
+    mu: float
+        The mu value for the limb darkening function
+    coeffs: array-like
+        The polynomial coefficients for the function
+    order: int
+        The order of the polynomial, must be 2 or 4
+    
+    Returns
+    -------
+    float
+        The value of the evaluated function with the given mu value and
+        coefficients
+    """
+    if order==2:    
+        return 1.-coeffs[0]*(1.-mu)-coeffs[1]*(1.-mu)^2
+    
+    elif order==4:
+        return 1. - coeffs[0]*(1.-mu^0.5) 
+                  - coeffs[1]*(1.-mu) 
+                  - coeffs[2]*(1.-mu^1.5) 
+                  - coeffs[3]*(1.-mu^2)
+                  
+    else:
+        return
