@@ -4,6 +4,7 @@
 A module to calculate limb darkening coefficients from a grid of model spectra
 """
 import numpy as np
+from scipy.optimize import curve_fit
         
 def calculate_ldc(model_grid, orders, mu_min=0.02):
     """
@@ -67,47 +68,20 @@ def calculate_ldc(model_grid, orders, mu_min=0.02):
         imu = np.where(mu>mu_min)
         mu, ld = mu[imu], ld[imu]
         
-        # Fit limb darkening to get limb darkening coefficients (LDCs)
-        err = 1.
-        ldc0 = np.ones(orders)
+        # Define the fitting function given the number of orders
         if orders==2:
-            ldc[:,t_idx,g_idx,m_idx] = mpfitfun('ld2func',mu,ld,err,ldc0)
+            def ldfunc(m, c1, c2):
+                return 1. - c1*(1.-m) - c2*(1.-m)**2
         elif orders==4:
-            ldc[:,t_idx,g_idx,m_idx] = mpfitfun('ld4func',mu,ld,err,ldc0)
+            def ldfunc(m, c1, c2, c3, c4):
+                return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
+                          - c3*(1.-m**1.5) - c4*(1.-m**2)
         else:
            print('Order number must be 2 or 4.')
            return
         
+        # Fit limb darkening to get limb darkening coefficients (LDCs)
+        ldc[:,t_idx,g_idx,m_idx] = curve_fit(ldfunc, mu, ld, method='lm')[0]
+        
     return ldc, mu0, r_eff
     
-def ldfunc(mu, coeffs, order=2):
-    """
-    Define the 2nd or 4th order function to fit to the limb darkening profile
-    
-    Parameters
-    ----------
-    mu: float
-        The mu value for the limb darkening function
-    coeffs: array-like
-        The polynomial coefficients for the function
-    order: int
-        The order of the polynomial, must be 2 or 4
-    
-    Returns
-    -------
-    float
-        The value of the evaluated function with the given mu value and
-        coefficients
-    """
-    if order==2:    
-        return 1. - coeffs[0]*(1.-mu)\
-                  - coeffs[1]*(1.-mu)^2
-    
-    elif order==4:
-        return 1. - coeffs[0]*(1.-mu^0.5)\
-                  - coeffs[1]*(1.-mu)    \
-                  - coeffs[2]*(1.-mu^1.5)\
-                  - coeffs[3]*(1.-mu^2)
-                  
-    else:
-        return
