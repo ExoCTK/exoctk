@@ -5,11 +5,13 @@ A module to calculate limb darkening coefficients from a grid of model spectra
 """
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.interpolate import RegularGridInterpolator
 
 def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     """
-    Calculates the limb darkening coefficients for a given 
-    synthetic spectrum
+    Calculates the limb darkening coefficients for a given synthetic spectrum.
+    If the model grid does not contain a spectrum of the given parameters, the
+    grid is interpolated to those parameters.
     
     Reference for limb-darkening laws:
         http://www.astro.ex.ac.uk/people/sing/David_Sing/Limb_Darkening.html
@@ -38,23 +40,6 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
         input core.ModelGrid 
     
     """
-    # Retrieve the wavelength, flux, mu, and effective radius
-    wave, flux, mu, radius = model_grid.get(teff, logg, FeH)
-    
-    # Calculate mean intensity vs. mu
-    mean_i = np.mean(flux, axis=1)
-    
-    # Calculate limb darkening, I[mu]/I[1] vs. mu
-    ld = mean_i/mean_i[np.where(mu==1)]
-    
-    # Rescale mu values. Spherical Phoenix models extend beyond limb
-    muz = np.interp(0.01, ld, mu)
-    mu = (mu-muz)/(1-muz)
-    
-    # Trim to useful mu range
-    imu = np.where(mu>mu_min)
-    mu, ld = mu[imu], ld[imu]
-    
     # Define the fitting function given the number of orders
     if orders==2:
         def ldfunc(m, c1, c2):
@@ -66,9 +51,64 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     else:
        print('Order number must be 2 or 4.')
        return
+       
+    # See if the model with the desired parameters is on the grid
+    in_grid = model_grid.data[[(model_grid.data['Teff']==teff)&
+                               (model_grid.data['logg']==logg)&
+                               (model_grid.data['FeH']==FeH)]]\
+                               in model_grid.data
+                               
+    # If a model with the given parameters exists, calculate it
+    if in_grid:
+        
+        # Retrieve the wavelength, flux, mu, and effective radius
+        wave, flux, mu, radius = model_grid.get(teff, logg, FeH)
     
-    # Fit limb darkening to get limb darkening coefficients (LDCs)
-    coeffs = curve_fit(ldfunc, mu, ld, method='lm')[0]
+        # Calculate mean intensity vs. mu
+        mean_i = np.mean(flux, axis=1)
+    
+        # Calculate limb darkening, I[mu]/I[1] vs. mu
+        ld = mean_i/mean_i[np.where(mu==1)]
+    
+        # Rescale mu values. Spherical Phoenix models extend beyond limb
+        muz = np.interp(0.01, ld, mu)
+        mu = (mu-muz)/(1-muz)
+    
+        # Trim to useful mu range
+        imu = np.where(mu>mu_min)
+        mu, ld = mu[imu], ld[imu]
+    
+        # Fit limb darkening to get limb darkening coefficients (LDCs)
+        coeffs = curve_fit(ldfunc, mu, ld, method='lm')[0]
+    
+    # If a model with the given parameters doesn't exist, 
+    # calculate ALL grid values and interpolate
+    else:
+        
+        # Print that it has to calculate
+        print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
+              ' model not in grid. Calculating...')
+        
+        # Get values for the entire model grid
+        coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, orders, 
+                                               mu_min=mu_min)
+                                               
+        # Cretae a grid of the parameter values to interpolate over
+        params = [np.array(np.unique(model_grid.data[p])) 
+                  for p in ['Teff','logg','FeH']]
+        
+        # Interpolate mu value
+        interp_muz = RegularGridInterpolator(params, mu_grid)
+        muz = interp_muz(np.array([teff,logg,FeH]))
+        
+        # Interpolate effective radius value
+        interp_r = RegularGridInterpolator(params, r_grid)
+        radius = interp_r(np.array([teff,logg,FeH]))
+        
+        # Interpolate coefficients
+        #interp_coeff = RegularGridInterpolator(params, coeff_grid)
+        #coeffs = interp_coeff(np.array([teff,logg,FeH]))
+        coeffs = 0
     
     return coeffs, muz, radius
     
