@@ -99,20 +99,18 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
         
         # Interpolate mu value
         interp_muz = RegularGridInterpolator(params, mu_grid)
-        muz = interp_muz(np.array([teff,logg,FeH]))
+        muz, = interp_muz(np.array([teff,logg,FeH]))
         
         # Interpolate effective radius value
         interp_r = RegularGridInterpolator(params, r_grid)
-        radius = interp_r(np.array([teff,logg,FeH]))
+        radius, = interp_r(np.array([teff,logg,FeH]))
         
         # Interpolate coefficients
-        # =========================================================
-        # Not sure how to do this. Interpolate coefficients separately 
-        # as a quick and dirty solution?
-        # =========================================================        
-        #interp_coeff = RegularGridInterpolator(params, coeff_grid)
-        #coeffs = interp_coeff(np.array([teff,logg,FeH]))
-        coeffs = 0
+        coeffs = []
+        for c_grid in coeff_grid:
+            interp_coeff = RegularGridInterpolator(params, c_grid)
+            coeffs.append(interp_coeff(np.array([teff,logg,FeH])))
+        coeffs = np.array(coeffs).flatten()
     
     return coeffs, muz, radius
     
