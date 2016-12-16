@@ -153,7 +153,7 @@ class ModelGrid(object):
         raw_wave = (w0 + dw*np.arange(len(raw_flux[0])))/1E4
         
         # Trim the wavelength and flux arrays
-        idx = np.where(np.logical_and(raw_wave>=self.wavelength_range[0],
+        idx, = np.where(np.logical_and(raw_wave>=self.wavelength_range[0],
                                       raw_wave<=self.wavelength_range[1]))
         flux = raw_flux[:,idx]
         wave = raw_wave[idx]
