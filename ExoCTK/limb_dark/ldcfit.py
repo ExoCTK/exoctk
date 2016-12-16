@@ -106,6 +106,10 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
         radius = interp_r(np.array([teff,logg,FeH]))
         
         # Interpolate coefficients
+        # =========================================================
+        # Not sure how to do this. Interpolate coefficients separately 
+        # as a quick and dirty solution?
+        # =========================================================        
         #interp_coeff = RegularGridInterpolator(params, coeff_grid)
         #coeffs = interp_coeff(np.array([teff,logg,FeH]))
         coeffs = 0
