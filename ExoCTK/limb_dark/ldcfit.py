@@ -41,10 +41,15 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     
     """
     # Define the fitting function given the number of orders
+    # ==============================================================
+    # Do what BATMAN does! Include all profile functions from BATMAN
+    # ==============================================================
     if orders==2:
+        # Quadratic function
         def ldfunc(m, c1, c2):
             return 1. - c1*(1.-m) - c2*(1.-m)**2
     elif orders==4:
+        # Four parameter non-linear function
         def ldfunc(m, c1, c2, c3, c4):
             return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
                       - c3*(1.-m**1.5) - c4*(1.-m**2)
@@ -62,7 +67,11 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     if in_grid:
         
         # Retrieve the wavelength, flux, mu, and effective radius
-        wave, flux, mu, radius = model_grid.get(teff, logg, FeH)
+        spec_dict = model_grid.get(teff, logg, FeH)
+        wave = spec_dict.get('wave')
+        flux = spec_dict.get('flux')
+        mu = spec_dict.get('mu')
+        radius = spec_dict.get('r_eff')
     
         # Calculate mean intensity vs. mu
         mean_i = np.mean(flux, axis=1)
@@ -162,4 +171,5 @@ def ldc_grid(model_grid, orders, mu_min=0.02):
         r_grid[t_idx,g_idx,m_idx] = radius
         
     return coeff_grid, mu_grid, r_grid
+    # Write to FITS by default!
     

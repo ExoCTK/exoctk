@@ -157,7 +157,7 @@ class ModelGrid(object):
         
     def customize(self, teff_range=(0,1E4), logg_range=(0,6), 
                   FeH_range=(-3,3), wavelength_range=(0,40), 
-                  bins=''):
+                  n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
         surface gravity, and metallicity. Also sets the wavelength range
@@ -183,7 +183,7 @@ class ModelGrid(object):
         # Make a copy of the grid
         grid = self.data.copy()
         self.wavelength_range = wavelength_range
-        self.n_bins = n_bins
+        self.n_bins = n_bins or self.n_bins
         
         # Filter grid by given parameters
         self.data = grid[[(grid['Teff']>=teff_range[0])&
