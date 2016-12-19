@@ -23,12 +23,16 @@ class ModelGrid(object):
     wavelength_range: array-like
         The lower and upper inclusive bounds of the ModelGrid wavelength
         in microns
+    n_bins: int
+        The number of bins for the ModelGrid wavelength array
     data: astropy.table.Table
         The table of parameters for the ModelGrid
     
     """
-    
-    def __init__(self, spec_files, bibcode='2013A&A...553A...6H'):
+    def __init__(self, spec_files, bibcode='2013A&A...553A...6H',
+                 names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
+                       'FeH':'PHXM_H', 'mass':'PHXMASS',
+                       'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -39,67 +43,54 @@ class ModelGrid(object):
             The path plus wildcard filename for the FITS files of spectra
         bibcode: str, array-like (optional)
             The bibcode or list of bibcodes for this data set
+        names: dict (optional)
+            A dictionary to rename the table columns. The Phoenix
+            model keywords are given as an example
         """
         self.path = os.path.dirname(spec_files)+'/'
         self.refs = bibcode
         self.wavelength_range = (0,1E10)
+        self.n_bins = 1E10
         
         # Get list of spectral intensity files
         files = glob(spec_files)
         if not files:
             print('No files match',spec_files,'.')
             return
-    
-        # Parse the filenames and make a table for the grid
-        t = [int(f.split('/')[-1][3:8]) for f in files]
-        g = [float(f.split('/')[-1][9:13]) for f in files]
-        m = [float(f.split('/')[-1][13:17]) for f in files]
-        f = [f.split('/')[-1] for f in files]
-        self.data = at.Table([t,g,m,f], 
-                             names=['Teff','logg','FeH','filename'])
         
-    def trim(self, teff_range=(2300,2800), logg_range=(4.5,6), 
-             FeH_range=(-0.5,0.5), wavelength_range=(1.1,1.7)):
-        """
-        Trims the model grid by the given ranges in effective temperature,
-        surface gravity, metallicity, and wavelength
-    
-        Parameters
-        ----------
-        teff_range: array-like
-            The lower and upper inclusive bounds for the effective
-            temperature (K)
-        logg_range: array-like
-            The lower and upper inclusive bounds for the logarithm of the
-            surface gravity (dex)
-        FeH_range: array-like
-            The lower and upper inclusive bounds for the logarithm of the
-            ratio of the metallicity and solar metallicity (dex)
-        wavelength_range: array-like
-            The lower and upper inclusive bounds for the wavelength (microns)
-    
-        """
-        # Make a copy of the grid
-        grid = self.data.copy()
-        self.wavelength_range = wavelength_range
+        # Parse the headers
+        vals, dtypes = [], []
+        for f in files:
+            header = fits.getheader(f)
+            keys = np.array(header.cards).T[0]
+            dtypes = [type(i[1]) for i in header.cards]
+            v = [header.get(k) for k in keys]
+            vals.append(list(v))
+            
+        # Fix data types and make the table
+        dtypes = [str if d==bool else d for d in dtypes]
+        table = at.Table(np.array(vals), names=keys, dtype=dtypes)
         
-        # Filter grid by given parameters
-        self.data = grid[[(grid['Teff']>=teff_range[0])&
-                          (grid['Teff']<=teff_range[1])&
-                          (grid['logg']>=logg_range[0])&
-                          (grid['logg']<=logg_range[1])&
-                          (grid['FeH']>=FeH_range[0])&
-                          (grid['FeH']<=FeH_range[1])]]
-    
-        # Print a summary of the returned grid
-        print('{}/{}'.format(len(self.data),len(grid)),
-              'spectra in parameter range',
-              'Teff:', teff_range, ', logg:',logg_range,
-              ', FeH:', FeH_range, ', wavelength:', wavelength_range)
+        # Add the filenames
+        table['filename'] = [f.split('/')[-1] for f in files]
         
-        # Clear the grid copy from memory
-        del grid
-              
+        # Rename any columns
+        for new,old in names.items():
+            try:
+                table.rename_column(old, new)
+            except:
+                print('No column named',old)
+        
+        # Remove columns where the values are all the same
+        # and store value as attribute instead
+        for n in table.colnames:
+            val = table[n][0]
+            if list(table[n]).count(val) == len(table[n]):
+                setattr(self, n, val)
+                table.remove_column(n)
+        
+        self.data = table
+        
     def get(self, teff, logg, FeH, verbose=False):
         """
         Retrieve the wavelength, flux, and effective radius 
@@ -124,33 +115,24 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         
         """
-        # Get the filepath
-        filepath = self.path+str(self.data[[(self.data['Teff']==2300)&
-                                (self.data['logg']==5.0)&
-                                (self.data['FeH']==0.5)]]
-                                ['filename'][0])
-                                
-        # Open the FITS file
-        HDU = fits.open(filepath)
-        if verbose:
-            HDU.info()
-            
-        # Get the flux and mu arrays
-        raw_flux = HDU[0].data
-        mu = HDU[1].data
+        # Get the row index and filepath
+        try: 
+            row, = np.where((self.data['Teff']==teff)
+                          & (self.data['logg']==logg)
+                          & (self.data['FeH']==FeH))[0]
+        except ValueError:
+            print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
+                  ' model not in grid.')
+            return
+        filepath = self.path+str(self.data[row]['filename'])
         
-        # Extract starting wavelength, wavelength increment, and
-        # effective radius [cm] from FITS header
-        w0 = HDU[0].header.get('CRVAL1')
-        dw = HDU[0].header.get('CDELT1')
-        radius = HDU[0].header.get('PHXREFF')
+        # Get the flux, mu, and abundance arrays
+        raw_flux = fits.getdata(filepath, 0)
+        mu = fits.getdata(filepath, 1)
+        #abund = fits.getdata(filepath, 2)
         
-        # Close the FITS file
-        HDU.close()
-        
-        # Construct full wavelength scale and convert
-        # from Angstroms to microns
-        raw_wave = (w0 + dw*np.arange(len(raw_flux[0])))/1E4
+        # Construct full wavelength scale and convert to microns
+        raw_wave = (self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0])))/1E4
         
         # Trim the wavelength and flux arrays
         idx, = np.where(np.logical_and(raw_wave>=self.wavelength_range[0],
@@ -158,8 +140,69 @@ class ModelGrid(object):
         flux = raw_flux[:,idx]
         wave = raw_wave[idx]
         
-        return wave, flux, mu, radius
-
+        # Make a dictionary of parameters
+        # This should really be a core.Spectrum() object!
+        spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
+        spec_dict['wave'] = wave
+        
+        # Bin the spectrum if necessary
+        if self.n_bins>0 and self.n_bins<len(wave):
+            pass
+            
+        spec_dict['flux'] = flux
+        spec_dict['mu'] = mu
+        #spec_dict['abund'] = abund
+        
+        return spec_dict
+        
+    def customize(self, teff_range=(0,1E4), logg_range=(0,6), 
+                  FeH_range=(-3,3), wavelength_range=(0,40), 
+                  bins=''):
+        """
+        Trims the model grid by the given ranges in effective temperature,
+        surface gravity, and metallicity. Also sets the wavelength range
+        and number of bins for retrieved model spectra.
+        
+        Parameters
+        ----------
+        teff_range: array-like
+            The lower and upper inclusive bounds for the effective
+            temperature (K)
+        logg_range: array-like
+            The lower and upper inclusive bounds for the logarithm of the
+            surface gravity (dex)
+        FeH_range: array-like
+            The lower and upper inclusive bounds for the logarithm of the
+            ratio of the metallicity and solar metallicity (dex)
+        wavelength_range: array-like
+            The lower and upper inclusive bounds for the wavelength (microns)
+        n_bins: int
+            The number of bins for the wavelength axis
+        
+        """
+        # Make a copy of the grid
+        grid = self.data.copy()
+        self.wavelength_range = wavelength_range
+        self.n_bins = n_bins
+        
+        # Filter grid by given parameters
+        self.data = grid[[(grid['Teff']>=teff_range[0])&
+                          (grid['Teff']<=teff_range[1])&
+                          (grid['logg']>=logg_range[0])&
+                          (grid['logg']<=logg_range[1])&
+                          (grid['FeH']>=FeH_range[0])&
+                          (grid['FeH']<=FeH_range[1])]]
+        
+        # Print a summary of the returned grid
+        print('{}/{}'.format(len(self.data),len(grid)),
+              'spectra in parameter range',
+              'Teff:', teff_range, ', logg:',logg_range,
+              ', FeH:', FeH_range, ', wavelength:', wavelength_range)
+        
+        # Clear the grid copy from memory
+        del grid
+              
+              
 class References(object):
     """
     Creates and manages a References object to track references 
@@ -178,12 +221,12 @@ class References(object):
         """
         Initializes an empty References object which points to a
         .bib file
-    
+        
         Parameters
         ----------
         bibfile: str
           The path to the bibtex file from which the references will be read
-    
+        
         """
         # Attributes for the filepath, file contents, and references
         self.bibfile = bibfile
