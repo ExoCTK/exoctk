@@ -327,8 +327,7 @@ def writeFITS(filename, extensions, headers=()):
     hdulist = fits.HDUList([prihdu])
     
     # Write the header to the PRIMARY HDU
-    for hdr in headers:
-        hdulist['PRIMARY'].header.extend(hdr[0].cards, end=True)
+    hdulist['PRIMARY'].header.extend(headers, end=True)
     
     # Write the data to the HDU
     for k,v in extensions.items():

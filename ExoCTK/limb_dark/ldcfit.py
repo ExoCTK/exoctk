@@ -5,7 +5,8 @@ A module to calculate limb darkening coefficients from a grid of model spectra
 """
 import numpy as np
 import inspect
-from ExoCTK.ExoCTK import core
+import datetime
+from ExoCTK import core
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
 
@@ -240,11 +241,30 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
     # Write the results to file
     if write_to:
         
+        # Collect keys for the header
+        hdr = []
+        date = str(datetime.datetime.now())
+
+        # From this calculation
+        hdr.append(('PROFILE', profile, 'The limb darkening profile used'))
+        hdr.append(('DATE', date, 'The data the file was generated'))
+
+        # ...and from the ModelGrid() object
+        for k,v in model_grid.__dict__.items():
+            if isinstance(v, (list,str,int,float,tuple)):
+                if isinstance(v, (list,tuple)):
+                    v = repr(v)
+                hdr.append((k.upper()[:8], v, 'core.ModelGrid() attribute'))
+        
         # FITS file format
         if write_to.endswith('.fits'):
+            
+            # Create the extensions
             extensions = {k:v for k,v in zip(['COEFFS','MU','RADII'],
                                              [coeff_grid, mu_grid,r_grid])}
-            core.writeFITS(write_to, extensions, headers=())
+            
+            # Write the FITS file
+            core.writeFITS(write_to, extensions, headers=hdr)
     
         # ASCII? Numpy? JSON?
         else:
