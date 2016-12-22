@@ -277,12 +277,12 @@ class References(object):
             The unique compact identifier for the reference to be removed
         
         """
-        # Check that the bibcode is i the bibtex file
+        # Check that the bibcode is in the bibtex file
         if bibcode in self.bibtex:
             self.refs = [r for r in self.refs if r!=bibcode]
             print(bibcode,'removed from list of references.')
         
-        # Suggest adding it to the bibfile
+        # Nothing to remove!
         else:
             print(bibcode,'not in bibfile at',self.bibfile)
                 

@@ -7,7 +7,72 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
 
-def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
+def ld_profile(name='quadratic'):
+    """
+    Define the function to fit the limb darkening profile
+    
+    Reference:
+        https://www.cfa.harvard.edu/~lkreidberg/batman/tutorial.html#limb-darkening-options
+        
+    Parameters
+    ----------
+    name: str
+        The name of the limb darkening profile function to use, 
+        including 'uniform', 'linear', 'quadratic', 'square-root', 
+        'logarithmic', 'exponential', and 'nonlinear'
+        
+    Returns
+    -------
+    function
+        The corresponding function for the given profile
+        
+    """
+    # Supported profiles a la BATMAN
+    names = ['uniform','linear','quadratic','square-root',
+             'logarithmic','exponential','nonlinear']
+    
+    # Check that the profile is supported
+    if name in names:
+
+        # Uniform
+        if name=='uniform':
+            def profile(m):
+                return 1.
+            
+        # Linear
+        if name=='linear':
+            def profile(m, c1):
+                return 1. - c1*(1.-m)
+        
+        # Quadratic
+        if name=='quadratic':
+            def profile(m, c1, c2):
+                return 1. - c1*(1.-m) - c2*(1.-m)**2
+            
+        # Square-root
+        if name=='square-root':
+            def profile(m, c1, c2):
+                return 1. - c1*(1.-m) - c2*m*log(m)
+            
+        # Exponential
+        if name=='exponential':
+            def profile(m, c1, c2):
+                return 1. - c1*(1.-m) - c2/(1.-e**m)
+        
+        # Nonlinear
+        if name=='nonlinear':
+            def profile(m, c1, c2, c3, c4):
+                return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
+                          - c3*(1.-m**1.5) - c4*(1.-m**2)
+        
+        return profile
+        
+    else:
+        print(name,'is not a supported profile. Try',names)
+        return
+        
+
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -27,8 +92,10 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     model_grid: core.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
         be calculated 
-    orders: int
-        The polynomial order, i.e. the number of coefficients
+    profile: str
+        The name of the limb darkening profile function to use, 
+        including 'uniform', 'linear', 'quadratic', 'square-root', 
+        'logarithmic', 'exponential', and 'nonlinear'
     mu_min: float
         The minimum mu value to consider
     
@@ -40,23 +107,9 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
         input core.ModelGrid 
     
     """
-    # Define the fitting function given the number of orders
-    # ==============================================================
-    # Do what BATMAN does! Include all profile functions from BATMAN
-    # ==============================================================
-    if orders==2:
-        # Quadratic function
-        def ldfunc(m, c1, c2):
-            return 1. - c1*(1.-m) - c2*(1.-m)**2
-    elif orders==4:
-        # Four parameter non-linear function
-        def ldfunc(m, c1, c2, c3, c4):
-            return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
-                      - c3*(1.-m**1.5) - c4*(1.-m**2)
-    else:
-       print('Order number must be 2 or 4.')
-       return
-       
+    # Define the limb darkening profile function
+    ldfunc = ld_profile(profile)
+    
     # See if the model with the desired parameters is on the grid
     in_grid = model_grid.data[[(model_grid.data['Teff']==teff)&
                                (model_grid.data['logg']==logg)&
@@ -124,7 +177,7 @@ def ldc(teff, logg, FeH, model_grid, orders, mu_min=0.02):
     return coeffs, muz, radius
     
         
-def ldc_grid(model_grid, orders, mu_min=0.02):
+def ldc_grid(model_grid, profile, mu_min=0.02):
     """
     Calculates the limb darkening coefficients for a given 
     grid of synthetic spectra
@@ -134,8 +187,10 @@ def ldc_grid(model_grid, orders, mu_min=0.02):
     model_grid: core.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
         be calculated 
-    orders: int
-        The polynomial order, i.e. the number of coefficients
+    profile: str
+        The name of the limb darkening profile function to use, 
+        including 'uniform', 'linear', 'quadratic', 'square-root', 
+        'logarithmic', 'exponential', and 'nonlinear'
     mu_min: float
         The minimum mu value to consider
     
@@ -163,7 +218,7 @@ def ldc_grid(model_grid, orders, mu_min=0.02):
                                zip([T,G,M],[t,g,m])]
                                
         # Fit limb darkening to get limb darkening coefficients (LDCs)
-        coeffs, muz, radius = ldc(t, g, m, model_grid, orders, mu_min)
+        coeffs, muz, radius = ldc(t, g, m, model_grid, profile, mu_min)
         
         # Add the coefficients, mu values and effective radius to grids
         coeff_grid[:,t_idx,g_idx,m_idx] = coeffs
