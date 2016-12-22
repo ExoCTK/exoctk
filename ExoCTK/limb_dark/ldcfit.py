@@ -159,7 +159,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02):
                   ' model not in grid. Calculating...')
 
             # Get values for the entire model grid
-            coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, orders, 
+            coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, profile, 
                                                    mu_min=mu_min)
 
             # Cretae a grid of the parameter values to interpolate over
