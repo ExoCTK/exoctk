@@ -304,3 +304,39 @@ class References(object):
         for bibcode in self.refs:
             with open(bibfile, 'a') as bib:
                 bib.write(self.bibtex[bibcode])
+
+def writeFITS(filename, extensions, headers=()):
+    '''
+    Write some data to a new FITS file
+    
+    Parameters
+    ----------
+    filename: str
+        The filename of the output FITS file
+    extensions: dict
+        The extension name and associated data to include
+        in the file
+    headers: array-like
+        The (keyword,value,comment) groups for the PRIMARY
+        header extension
+        
+    '''
+    # Write the arrays to a FITS file
+    prihdu = fits.PrimaryHDU()
+    prihdu.name = 'PRIMARY'
+    hdulist = fits.HDUList([prihdu])
+    
+    # Write the header to the PRIMARY HDU
+    for hdr in headers:
+        hdulist['PRIMARY'].header.extend(hdr[0].cards, end=True)
+    
+    # Write the data to the HDU
+    for k,v in extensions.items():
+        hdulist.append(fits.ImageHDU(data=v, name=k))
+
+    # Write the file
+    hdulist.writeto(filename, clobber=True)
+    hdulist.close()
+    
+    # Insert END card to prevent header error
+    #hdulist[0].header.tofile(filename, endcard=True, clobber=True)
