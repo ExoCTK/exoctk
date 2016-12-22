@@ -56,11 +56,12 @@ class ModelGrid(object):
         # Create some attributes
         self.path = os.path.dirname(spec_files)+'/'
         self.refs = bibcode
-        self.wavelength_range = (0,1E10)
+        self.wavelength_range = (0,40)
         self.n_bins = 1E10
         
         # Get list of spectral intensity files
         files = glob(spec_files)
+        filenames = []
         if not files:
             print('No files match',spec_files,'.')
             return
@@ -68,21 +69,23 @@ class ModelGrid(object):
         # Parse the FITS headers
         vals, dtypes = [], []
         for f in files:
-            try:
-                header = fits.getheader(f)
-                keys = np.array(header.cards).T[0]
-                dtypes = [type(i[1]) for i in header.cards]
-                v = [header.get(k) for k in keys]
-                vals.append(list(v))
-            except:
-                print(f,'could not be read into the model grid.')
+            if f.endswith('.fits'):
+                try:
+                    header = fits.getheader(f)
+                    keys = np.array(header.cards).T[0]
+                    dtypes = [type(i[1]) for i in header.cards]
+                    v = [header.get(k) for k in keys]
+                    vals.append(list(v))
+                    filenames.append(f.split('/')[-1])
+                except:
+                    print(f,'could not be read into the model grid.')
             
         # Fix data types and make the table
         dtypes = [str if d==bool else d for d in dtypes]
         table = at.Table(np.array(vals), names=keys, dtype=dtypes)
         
-        # Add the filenames
-        table['filename'] = [f.split('/')[-1] for f in files]
+        # Add the filenames as a column
+        table['filename'] = filenames
         
         # Rename any columns
         for new,old in names.items():
@@ -197,12 +200,12 @@ class ModelGrid(object):
         self.n_bins = n_bins or self.n_bins
         
         # Filter grid by given parameters
-        self.data = grid[[(grid['Teff']>=teff_range[0])&
-                          (grid['Teff']<=teff_range[1])&
-                          (grid['logg']>=logg_range[0])&
-                          (grid['logg']<=logg_range[1])&
-                          (grid['FeH']>=FeH_range[0])&
-                          (grid['FeH']<=FeH_range[1])]]
+        self.data = grid[[(grid['Teff']>=teff_range[0])
+                         & (grid['Teff']<=teff_range[1])
+                         & (grid['logg']>=logg_range[0])
+                         & (grid['logg']<=logg_range[1])
+                         & (grid['FeH']>=FeH_range[0])
+                         & (grid['FeH']<=FeH_range[1])]]
         
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data),len(grid)),
