@@ -40,7 +40,8 @@ class ModelGrid(object):
         Parameters
         ----------
         spec_files: str
-            The path plus wildcard filename for the FITS files of spectra
+            The path to the directory of FITS files of spectra,
+            which may include a filename with a wildcard caharacter
         bibcode: str, array-like (optional)
             The bibcode or list of bibcodes for this data set
         names: dict (optional)
@@ -67,11 +68,14 @@ class ModelGrid(object):
         # Parse the FITS headers
         vals, dtypes = [], []
         for f in files:
-            header = fits.getheader(f)
-            keys = np.array(header.cards).T[0]
-            dtypes = [type(i[1]) for i in header.cards]
-            v = [header.get(k) for k in keys]
-            vals.append(list(v))
+            try:
+                header = fits.getheader(f)
+                keys = np.array(header.cards).T[0]
+                dtypes = [type(i[1]) for i in header.cards]
+                v = [header.get(k) for k in keys]
+                vals.append(list(v))
+            except:
+                print(f,'could not be read into the model grid.')
             
         # Fix data types and make the table
         dtypes = [str if d==bool else d for d in dtypes]
