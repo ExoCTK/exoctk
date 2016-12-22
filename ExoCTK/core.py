@@ -47,6 +47,12 @@ class ModelGrid(object):
             A dictionary to rename the table columns. The Phoenix
             model keywords are given as an example
         """
+        # Make sure we can use glob if a directory 
+        # is given without a wildcard
+        if '*' not in spec_files:
+            spec_files += '*'
+        
+        # Create some attributes
         self.path = os.path.dirname(spec_files)+'/'
         self.refs = bibcode
         self.wavelength_range = (0,1E10)
@@ -58,7 +64,7 @@ class ModelGrid(object):
             print('No files match',spec_files,'.')
             return
         
-        # Parse the headers
+        # Parse the FITS headers
         vals, dtypes = [], []
         for f in files:
             header = fits.getheader(f)
@@ -89,6 +95,7 @@ class ModelGrid(object):
                 setattr(self, n, val)
                 table.remove_column(n)
         
+        # Store the table in the data attribute
         self.data = table
         
     def get(self, teff, logg, FeH, verbose=False):
@@ -243,7 +250,7 @@ class References(object):
             The unique compact identifier for the reference to be added
         
         """
-        # Check that the bibcode is i the bibtex file
+        # Check that the bibcode is in the bibtex file
         if bibcode in self.bibtex:
             self.refs += bibcode
             print(bibcode,'added to list of references.')
