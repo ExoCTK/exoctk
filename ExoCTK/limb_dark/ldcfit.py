@@ -6,10 +6,19 @@ A module to calculate limb darkening coefficients from a grid of model spectra
 import numpy as np
 import inspect
 import datetime
-from ExoCTK import core
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import rc
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
+try:
+    from ExoCTK import core
+except ImportError:
+    from ExoCTK.ExoCTK import core
 
+rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+rc('text', usetex=True)
+    
 def ld_profile(name='quadratic'):
     """
     Define the function to fit the limb darkening profile
@@ -75,7 +84,7 @@ def ld_profile(name='quadratic'):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02):
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -101,6 +110,9 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02):
         'logarithmic', 'exponential', and 'nonlinear'
     mu_min: float
         The minimum mu value to consider
+    plot: bool, matplotlib.figure.Figure
+        Plot mu vs. limb darkening for this model in an existing
+        figure or in a new figure
     
     Returns
     -------
@@ -118,72 +130,117 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02):
         
     else:
     
-        # See if the model with the desired parameters is on the grid
-        in_grid = model_grid.data[[(model_grid.data['Teff']==teff)&
-                                   (model_grid.data['logg']==logg)&
-                                   (model_grid.data['FeH']==FeH)]]\
-                                   in model_grid.data
+        # See if the model with the desired parameters is witin the grid
+        in_grid = all([(teff>=model_grid.Teff_rng[0])&
+                       (teff<=model_grid.Teff_rng[1])&
+                       (logg>=model_grid.logg_rng[0])&
+                       (logg<=model_grid.logg_rng[1])&
+                       (FeH>=model_grid.FeH_rng[0])&
+                       (FeH<=model_grid.FeH_rng[1])])
 
-        # If a model with the given parameters exists, calculate it
+        # Caluclate if the parameters are within the grid
         if in_grid:
+            
+            # See if the model with the desired parameters is a true grid point
+            on_grid = model_grid.data[[(model_grid.data['Teff']==teff)&
+                                       (model_grid.data['logg']==logg)&
+                                       (model_grid.data['FeH']==FeH)]]\
+                                       in model_grid.data
+        
+            # If a model is a true grid point, just calculate it
+            if on_grid:
 
-            # Retrieve the wavelength, flux, mu, and effective radius
-            spec_dict = model_grid.get(teff, logg, FeH)
-            wave = spec_dict.get('wave')
-            flux = spec_dict.get('flux')
-            mu = spec_dict.get('mu')
-            radius = spec_dict.get('r_eff')
+                # Retrieve the wavelength, flux, mu, and effective radius
+                spec_dict = model_grid.get(teff, logg, FeH)
+                wave = spec_dict.get('wave')
+                flux = spec_dict.get('flux')
+                mu = spec_dict.get('mu')
+                radius = spec_dict.get('r_eff')
 
-            # Calculate mean intensity vs. mu
-            mean_i = np.mean(flux, axis=1)
+                # Calculate mean intensity vs. mu
+                mean_i = np.mean(flux, axis=1)
 
-            # Calculate limb darkening, I[mu]/I[1] vs. mu
-            ld = mean_i/mean_i[np.where(mu==1)]
+                # Calculate limb darkening, I[mu]/I[1] vs. mu
+                ld = mean_i/mean_i[np.where(mu==1)]
 
-            # Rescale mu values. Spherical Phoenix models extend beyond limb
-            muz = np.interp(0.01, ld, mu)
-            mu = (mu-muz)/(1-muz)
+                # Rescale mu values. Spherical Phoenix models extend beyond limb
+                muz = np.interp(0.01, ld, mu)
+                mu = (mu-muz)/(1-muz)
 
-            # Trim to useful mu range
-            imu = np.where(mu>mu_min)
-            mu, ld = mu[imu], ld[imu]
+                # Trim to useful mu range
+                imu = np.where(mu>mu_min)
+                mu, ld = mu[imu], ld[imu]
 
-            # Fit limb darkening to get limb darkening coefficients (LDCs)
-            coeffs = curve_fit(ldfunc, mu, ld, method='lm')[0]
+                # Fit limb darkening to get limb darkening coefficients (LDCs)
+                coeffs = curve_fit(ldfunc, mu, ld, method='lm')[0]
 
-        # If a model with the given parameters doesn't exist, 
-        # calculate ALL grid values and interpolate
+            # If a model with the given parameters is not a true grid point 
+            # but is within the grid range, calculate ALL grid values 
+            # and interpolate
+            else:
+
+                # Print that it has to calculate
+                print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
+                      ' model not in grid. Calculating...')
+
+                # Get values for the entire model grid
+                coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, profile, 
+                                                       mu_min=mu_min)
+
+                # Cretae a grid of the parameter values to interpolate over
+                params = [np.array(np.unique(model_grid.data[p])) 
+                          for p in ['Teff','logg','FeH']]
+
+                # Interpolate mu value
+                interp_muz = RegularGridInterpolator(params, mu_grid)
+                muz, = interp_muz(np.array([teff,logg,FeH]))
+
+                # Interpolate effective radius value
+                interp_r = RegularGridInterpolator(params, r_grid)
+                radius, = interp_r(np.array([teff,logg,FeH]))
+
+                # Interpolate coefficients
+                coeffs = []
+                for c_grid in coeff_grid:
+                    interp_coeff = RegularGridInterpolator(params, c_grid)
+                    coeffs.append(interp_coeff(np.array([teff,logg,FeH])))
+                coeffs = np.array(coeffs).flatten()
+
+            if plot:
+
+                # Make a new figure if necessary
+                if not isinstance(plot, plt.Figure):
+                    fig = plt.figure()
+                    plt.xlabel(r'$\mu$')
+                    plt.ylabel('Limb Darkening')
+                    plt.title('{} Profile'.format(profile.title()))
+
+                # Evaluate the limb darkening profile
+                mu_vals = np.linspace(0, 1, 50)
+                ld_vals = ldfunc(mu_vals, *coeffs)
+
+                # Draw the curve
+                label = '{}, {}, {}'.format(teff, logg, FeH)
+                p = plt.plot(mu_vals, ld_vals, label=label)
+
+                # Plot the single value
+                ld_val = ldfunc(muz, *coeffs)
+                plt.plot(muz, ld_val, c=p[0].get_color(), ls='none', marker='o')
+
+                # Write legend
+                if not isinstance(plot, plt.Figure):
+                    plt.legend(loc=0, frameon=False)
+
+            return coeffs, muz, radius
+
+        # If the desired params are not within the grid bounds, return
         else:
-
-            # Print that it has to calculate
+            # Print that it cannot calculate
             print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
-                  ' model not in grid. Calculating...')
+                  ' model not within grid bounds', model_grid.Teff_rng,
+                  model_grid.logg_rng, model_grid.FeH_rng)
 
-            # Get values for the entire model grid
-            coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, profile, 
-                                                   mu_min=mu_min)
-
-            # Cretae a grid of the parameter values to interpolate over
-            params = [np.array(np.unique(model_grid.data[p])) 
-                      for p in ['Teff','logg','FeH']]
-
-            # Interpolate mu value
-            interp_muz = RegularGridInterpolator(params, mu_grid)
-            muz, = interp_muz(np.array([teff,logg,FeH]))
-
-            # Interpolate effective radius value
-            interp_r = RegularGridInterpolator(params, r_grid)
-            radius, = interp_r(np.array([teff,logg,FeH]))
-
-            # Interpolate coefficients
-            coeffs = []
-            for c_grid in coeff_grid:
-                interp_coeff = RegularGridInterpolator(params, c_grid)
-                coeffs.append(interp_coeff(np.array([teff,logg,FeH])))
-            coeffs = np.array(coeffs).flatten()
-
-        return coeffs, muz, radius
-    
+            return    
         
 def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
     """

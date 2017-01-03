@@ -20,9 +20,14 @@ class ModelGrid(object):
         The path to the directory of FITS files used to create the ModelGrid
     refs: list, str
         The references for the data contained in the ModelGrid
-    wavelength_range: array-like
-        The lower and upper inclusive bounds of the ModelGrid wavelength
-        in microns
+    teff_rng: tuple
+        The range of effective temperatures [K]
+    logg_rng: tuple
+        The range of surface gravities [dex]
+    FeH_rng: tuple
+        The range of metalicities [dex]
+    wave_rng: array-like
+        The wavelength range of the models [um]
     n_bins: int
         The number of bins for the ModelGrid wavelength array
     data: astropy.table.Table
@@ -56,7 +61,7 @@ class ModelGrid(object):
         # Create some attributes
         self.path = os.path.dirname(spec_files)+'/'
         self.refs = bibcode
-        self.wavelength_range = (0,40)
+        self.wave_rng = (0,40)
         self.n_bins = 1E10
         
         # Get list of spectral intensity files
@@ -105,14 +110,19 @@ class ModelGrid(object):
         # Store the table in the data attribute
         self.data = table
         
-    def get(self, teff, logg, FeH, verbose=False):
+        # Store the parameter ranges
+        self.Teff_rng = (min(table['Teff']),max(table['Teff']))
+        self.logg_rng = (min(table['logg']),max(table['logg']))
+        self.FeH_rng = (min(table['FeH']),max(table['FeH']))
+        
+    def get(self, Teff, logg, FeH, verbose=False):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
         
         Parameters
         ----------
-        teff: int
+        Teff: int
             The effective temperature (K)
         logg: float
             The logarithm of the surface gravity (dex)
@@ -131,11 +141,11 @@ class ModelGrid(object):
         """
         # Get the row index and filepath
         try: 
-            row, = np.where((self.data['Teff']==teff)
+            row, = np.where((self.data['Teff']==Teff)
                           & (self.data['logg']==logg)
                           & (self.data['FeH']==FeH))[0]
         except ValueError:
-            print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
+            print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
                   ' model not in grid.')
             return
         filepath = self.path+str(self.data[row]['filename'])
@@ -149,8 +159,8 @@ class ModelGrid(object):
         raw_wave = (self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0])))/1E4
         
         # Trim the wavelength and flux arrays
-        idx, = np.where(np.logical_and(raw_wave>=self.wavelength_range[0],
-                                      raw_wave<=self.wavelength_range[1]))
+        idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
+                                      raw_wave<=self.wave_rng[1]))
         flux = raw_flux[:,idx]
         wave = raw_wave[idx]
         
@@ -169,8 +179,8 @@ class ModelGrid(object):
         
         return spec_dict
         
-    def customize(self, teff_range=(0,1E4), logg_range=(0,6), 
-                  FeH_range=(-3,3), wavelength_range=(0,40), 
+    def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
+                  FeH_rng=(-3,3), wave_rng=(0,40), 
                   n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
@@ -179,16 +189,16 @@ class ModelGrid(object):
         
         Parameters
         ----------
-        teff_range: array-like
+        Teff_rng: array-like
             The lower and upper inclusive bounds for the effective
             temperature (K)
-        logg_range: array-like
+        logg_rng: array-like
             The lower and upper inclusive bounds for the logarithm of the
             surface gravity (dex)
-        FeH_range: array-like
+        FeH_rng: array-like
             The lower and upper inclusive bounds for the logarithm of the
             ratio of the metallicity and solar metallicity (dex)
-        wavelength_range: array-like
+        wave_rng: array-like
             The lower and upper inclusive bounds for the wavelength (microns)
         n_bins: int
             The number of bins for the wavelength axis
@@ -196,22 +206,22 @@ class ModelGrid(object):
         """
         # Make a copy of the grid
         grid = self.data.copy()
-        self.wavelength_range = wavelength_range
+        self.wave_rng = wave_rng
         self.n_bins = n_bins or self.n_bins
         
         # Filter grid by given parameters
-        self.data = grid[[(grid['Teff']>=teff_range[0])
-                         & (grid['Teff']<=teff_range[1])
-                         & (grid['logg']>=logg_range[0])
-                         & (grid['logg']<=logg_range[1])
-                         & (grid['FeH']>=FeH_range[0])
-                         & (grid['FeH']<=FeH_range[1])]]
+        self.data = grid[[(grid['Teff']>=Teff_rng[0])
+                         & (grid['Teff']<=Teff_rng[1])
+                         & (grid['logg']>=logg_rng[0])
+                         & (grid['logg']<=logg_rng[1])
+                         & (grid['FeH']>=FeH_rng[0])
+                         & (grid['FeH']<=FeH_rng[1])]]
         
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data),len(grid)),
               'spectra in parameter range',
-              'Teff:', teff_range, ', logg:',logg_range,
-              ', FeH:', FeH_range, ', wavelength:', wavelength_range)
+              'Teff:', Teff_rng, ', logg:',logg_rng,
+              ', FeH:', FeH_rng, ', wavelength:', wave_rng)
         
         # Clear the grid copy from memory
         del grid
