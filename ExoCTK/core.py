@@ -8,7 +8,6 @@ from astropy.io import fits
 from pysynphot import spectrum, observation
 import astropy.table as at
 import astropy.io.votable as vo
-
 import numpy as np
 import urllib
 import os
@@ -124,7 +123,7 @@ class Filter(object):
         Parameters
         ----------
         spectrum: array-like
-            The wavelength and flux of the spectrum to
+            The wavelength [um] and flux of the spectrum to
             be convolved
             
         Returns
@@ -383,7 +382,7 @@ def rebin_spec(spec, wavnew):
     filt = spectrum.ArraySpectralElement(spec[0], np.ones(len(spec[0])))
 
     # Bin the flux
-    binned = observation.Observation(Flx, filt, binset=wavnew, force='taper').binflux
+    binned = observation.Observation(flx, filt, binset=wavnew, force='taper').binflux
     
     return binned
             
