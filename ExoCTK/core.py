@@ -13,15 +13,33 @@ import os
 
 class Filter(object):
     """
-    Creates a Filters object to store photometric filter profiles
+    Creates a Filter object to store a photometric filter profile
+    and metadata
     
     Attributes
     ----------
+    params: dict
+        The metadata for the bandpass
+    path: str
+        The absolute filepath for the bandpass data
+    refs: list, str
+        The references for the bandpass data
+    rsr: np.ndarray
+        The wavelength and relative spectral response (RSR) arrays
+        for the given bandpass
     
     """
     def __init__(self, band, filter_directory='./ExoCTK/filters/'):
         """
-        Creates a list of all the filters in the filter_directory
+        Loads the bandpass data into the Filter object
+        
+        Parameters
+        ----------
+        band: str
+            The bandpass filename (e.g. 2MASS.J)
+        filter_directory: str
+            The directory containing the filter files
+            
         """        
         # Get list of filters
         filters = glob(filter_directory+'*')
