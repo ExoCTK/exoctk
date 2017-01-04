@@ -6,9 +6,73 @@ A module for classes and functions used across all ExoCTK subpackages
 from glob import glob
 from astropy.io import fits
 import astropy.table as at
+import astropy.io.votable as vo
 import numpy as np
+import urllib
 import os
 
+class Filter(object):
+    """
+    Creates a Filters object to store photometric filter profiles
+    
+    Attributes
+    ----------
+    
+    """
+    def __init__(self, band, filter_directory='./ExoCTK/filters/'):
+        """
+        Creates a list of all the filters in the filter_directory
+        """        
+        # Get list of filters
+        filters = glob(filter_directory+'*')
+        filepath = filter_directory+band
+        
+        # If the filter is missing, ask what to do
+        if filter_directory+band not in filters:
+        
+            print('No filters match',filter_directory+band)
+            dl = input('Would you like me to download it? [y/n] ')
+            
+            if dl.lower()=='y':
+                
+                # Prompt for new filter
+                print('\nA full list of available filters from the\n'\
+                      'SVO Filter Profile Service can be found at\n'\
+                      'http://svo2.cab.inta-csic.es/theory/fps3/\n')
+                band = input('Enter the band name to retrieve (e.g. 2MASS/2MASS.J): ')
+                
+                # Download the XML (VOTable) file
+                baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
+                filepath = filter_directory+os.path.basename(band)
+                _ = urllib.request.urlretrieve(baseURL+band, filepath)
+            
+        # Try to read filter info
+        try:
+
+            # Parse the XML file
+            vot = vo.parse_single_table(filepath).to_table()
+            self.rsr = np.array([list(i) for i in np.array(vot)]).T
+
+            # Print the new filepath
+            print('Band stored as',filepath)
+            
+            # Create some attributes
+            self.path = filepath
+            self.refs = []
+
+            # Convert to microns
+            self.rsr *= np.array([[0.0001],[1.]])
+
+        # If empty, delete XML file
+        except:
+
+            print('No filter named',band)
+            if os.path.isfile(filepath):
+                os.remove(filepath)
+
+            return
+        
+                 
 class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
@@ -34,7 +98,7 @@ class ModelGrid(object):
         The table of parameters for the ModelGrid
     
     """
-    def __init__(self, spec_files, bibcode='2013A&A...553A...6H',
+    def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
                  names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
                        'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
@@ -44,7 +108,7 @@ class ModelGrid(object):
     
         Parameters
         ----------
-        spec_files: str
+        model_directory: str
             The path to the directory of FITS files of spectra,
             which may include a filename with a wildcard caharacter
         bibcode: str, array-like (optional)
@@ -55,20 +119,20 @@ class ModelGrid(object):
         """
         # Make sure we can use glob if a directory 
         # is given without a wildcard
-        if '*' not in spec_files:
-            spec_files += '*'
+        if '*' not in model_directory:
+            model_directory += '*'
         
         # Create some attributes
-        self.path = os.path.dirname(spec_files)+'/'
+        self.path = os.path.dirname(model_directory)+'/'
         self.refs = bibcode
         self.wave_rng = (0,40)
         self.n_bins = 1E10
         
         # Get list of spectral intensity files
-        files = glob(spec_files)
+        files = glob(model_directory)
         filenames = []
         if not files:
-            print('No files match',spec_files,'.')
+            print('No files match',model_directory,'.')
             return
         
         # Parse the FITS headers

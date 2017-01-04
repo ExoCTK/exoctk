@@ -242,7 +242,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False):
 
             return    
         
-def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
+def ldc_grid(model_grid, profile, write_to='', mu_min=0.02, plot=False):
     """
     Calculates the limb darkening coefficients for a given 
     grid of synthetic spectra
@@ -260,7 +260,10 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
         The path and filename to write the results to
     mu_min: float
         The minimum mu value to consider
-    
+    plot: bool, matplotlib.figure.Figure
+        Plot mu vs. limb darkening for this model in an existing
+        figure or in a new figure
+        
     Returns
     -------
     list
@@ -277,6 +280,24 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
     mu_grid = np.zeros((len(T),len(G),len(M)))
     r_grid = np.zeros((len(T),len(G),len(M)))
     
+    if plot:
+        
+        # If a figure is not passed, make one
+        if not isinstance(plot, plt.Figure):
+            fig = plt.figure()
+            plt.xlabel(r'$\mu$')
+            plt.ylabel('Limb Darkening')
+            plt.title('{} Profile'.format(profile.title()))
+        
+        # If a figure is passed, proceed
+        else:
+            fig = plot
+    
+    else:
+        
+        # No figures for me, thank you!
+        fig = None
+    
     # Iterate through spectra files and populate grids
     for f in model_grid.data:
         
@@ -288,12 +309,17 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02):
                                zip([T,G,M],[t,g,m])]
                                
         # Fit limb darkening to get limb darkening coefficients (LDCs)
-        coeffs, muz, radius = ldc(t, g, m, model_grid, profile, mu_min)
+        coeffs, muz, radius = ldc(t, g, m, model_grid, profile, 
+                                  mu_min, plot=fig)
         
         # Add the coefficients, mu values and effective radius to grids
         coeff_grid[:,t_idx,g_idx,m_idx] = coeffs
         mu_grid[t_idx,g_idx,m_idx] = muz
-        r_grid[t_idx,g_idx,m_idx] = radius
+        r_grid[t_idx,g_idx,m_idx] = radius 
+        
+    # Write legend
+    if plot and not isinstance(plot, plt.Figure):
+        plt.legend(loc=0, frameon=False)
     
     # Write the results to file
     if write_to:
