@@ -5,8 +5,10 @@ A module for classes and functions used across all ExoCTK subpackages
 """
 from glob import glob
 from astropy.io import fits
+from pysynphot import spectrum, observation
 import astropy.table as at
 import astropy.io.votable as vo
+
 import numpy as np
 import urllib
 import os
@@ -114,6 +116,24 @@ class Filter(object):
                 os.remove(filepath)
 
             return
+        
+    def convolve(self, spectrum):
+        """
+        Convolve a spectrum with the filter RSR
+        
+        Parameters
+        ----------
+        spectrum: array-like
+            The wavelength and flux of the spectrum to
+            be convolved
+            
+        Returns
+        -------
+        np.ndarray
+            The convolved spectrum
+            
+        """
+        # 
         
                  
 class ModelGrid(object):
@@ -333,7 +353,34 @@ class ModelGrid(object):
         # Clear the grid copy from memory
         del grid
               
-              
+
+def rebin_spec(spec, wavnew):
+    """
+    Rebin a spectrum to a new wavelength array while preserving 
+    the total flux
+    
+    Parameters
+    ----------
+    spec: array-like
+        The wavelength and flux to be binned
+    wavenew: array-like
+        The new wavelength array
+        
+    Returns
+    -------
+    np.ndarray
+        The rebinned flux
+    
+    """
+    # Put arrays into spectrum objects
+    flx = spectrum.ArraySourceSpectrum(wave=spec[0], flux=spec[1])
+    filt = spectrum.ArraySpectralElement(spec[0], np.ones(len(spec[0])))
+
+    # Bin the flux
+    binned = observation.Observation(Flx, filt, binset=wavnew, force='taper').binflux
+    
+    return binned
+            
 class References(object):
     """
     Creates and manages a References object to track references 
