@@ -28,7 +28,7 @@ class Filter(object):
         filepath = filter_directory+band
         
         # If the filter is missing, ask what to do
-        if filter_directory+band not in filters:
+        if filepath not in filters:
         
             print('No filters match',filter_directory+band)
             dl = input('Would you like me to download it? [y/n] ')
@@ -45,23 +45,48 @@ class Filter(object):
                 baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
                 filepath = filter_directory+os.path.basename(band)
                 _ = urllib.request.urlretrieve(baseURL+band, filepath)
+                
+                # Print the new filepath
+                print('Band stored as',filepath)
             
         # Try to read filter info
         try:
 
             # Parse the XML file
-            vot = vo.parse_single_table(filepath).to_table()
-            self.rsr = np.array([list(i) for i in np.array(vot)]).T
-
-            # Print the new filepath
-            print('Band stored as',filepath)
+            vot = vo.parse_single_table(filepath)
+            self.rsr = np.array([list(i) for i in vot.array]).T
+            
+            # Convert to microns
+            self.rsr *= np.array([[0.0001],[1.]])
+            
+            # Store PARAM dict as attribute
+            self.params = {}
+            params = [str(p).split() for p in vot.params]
+            
+            for p in params:
+                
+                # Extract the key/value pairs
+                key = p[1].split('"')[1]
+                val = p[-1].split('"')[1]
+                
+                # Do some formatting
+                if p[2].split('"')[1]=='float'\
+                or p[3].split('"')[1]=='float':
+                    val = float(val)
+                
+                else:
+                    val = val.replace('b&apos;','')\
+                             .replace('&apos','')\
+                             .replace('&amp;','&')\
+                             .strip(';')
+                
+                # Garbage
+                if key!='Description':
+                    self.params[key] = val
             
             # Create some attributes
             self.path = filepath
             self.refs = []
-
-            # Convert to microns
-            self.rsr *= np.array([[0.0001],[1.]])
 
         # If empty, delete XML file
         except:
