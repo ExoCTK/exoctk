@@ -133,7 +133,13 @@ class Filter(object):
             The convolved spectrum
             
         """
-        # 
+        # Rebin the input spectrum to the filter wavelength array
+        flx = rebin_spec(spectrum, self.rsr[0])
+        
+        # Convolve the RSR and spectrum
+        flx *= self.rsr[1]
+        
+        return flx
         
                  
 class ModelGrid(object):
