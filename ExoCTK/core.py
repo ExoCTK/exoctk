@@ -70,7 +70,7 @@ class Filter(object):
             
         # Try to read filter info
         try:
-
+            
             # Parse the XML file
             vot = vo.parse_single_table(filepath)
             self.rsr = np.array([list(i) for i in vot.array]).T
@@ -106,14 +106,14 @@ class Filter(object):
             # Create some attributes
             self.path = filepath
             self.refs = []
-
+            
         # If empty, delete XML file
         except:
-
+            
             print('No filter named',band)
             if os.path.isfile(filepath):
                 os.remove(filepath)
-
+                
             return
         
     def convolve(self, spectrum):
@@ -139,8 +139,8 @@ class Filter(object):
         flx *= self.rsr[1]
         
         return flx
-        
-                 
+
+
 class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
@@ -380,12 +380,13 @@ def rebin_spec(spec, wavnew):
     # Put arrays into spectrum objects
     flx = spectrum.ArraySourceSpectrum(wave=spec[0], flux=spec[1])
     filt = spectrum.ArraySpectralElement(spec[0], np.ones(len(spec[0])))
-
+    
     # Bin the flux
     binned = observation.Observation(flx, filt, binset=wavnew, force='taper').binflux
     
     return binned
-            
+
+
 class References(object):
     """
     Creates and manages a References object to track references 
@@ -501,7 +502,7 @@ def writeFITS(filename, extensions, headers=()):
     # Write the data to the HDU
     for k,v in extensions.items():
         hdulist.append(fits.ImageHDU(data=v, name=k))
-
+        
     # Write the file
     hdulist.writeto(filename, clobber=True)
     hdulist.close()

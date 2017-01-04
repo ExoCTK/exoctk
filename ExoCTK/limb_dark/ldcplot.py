@@ -8,11 +8,34 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import os
 from astropy.io import fits
+try:
+    from ExoCTK import core
+    from ExoCTK.limb_dark import ldcfit
+except ImportError:
+    from ExoCTK.ExoCTK import core
+    from ExoCTK.ExoCTK.limb_dark import ldcfit
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
-#params = [np.unique(model_grid.data[p]) for p in ['Teff','logg','FeH']]
+def test_plot():
+    """
+    Reproduce Jeff's plot from the TRAPPIST-1 paper
+    """
+    spec_files = '/Users/jfilippazzo/Documents/Modules/limb_dark_jeff/limb/specint/'
+    G = core.ModelGrid(spec_files, 'foobar')
+    G.customize(Teff_rng=(2500,2600), logg_rng=(5,5.5), FeH_rng=(-0.5,0.5),  wave_rng=(1.1,1.7))
+    
+    _ = ldcfit.ldc(2600,5.5,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'b'})
+    _ = ldcfit.ldc(2600,5.5,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'b'})
+    _ = ldcfit.ldc(2600,5.,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'g'})
+    _ = ldcfit.ldc(2600,5.,0,G,'quadratic', plot=plt.gcf(), **{'ls':'--', 'c':'g'})
+    _ = ldcfit.ldc(2500,5.,0,G,'quadratic', plot=plt.gcf(), **{'ls':'--', 'c':'m'})
+    _ = ldcfit.ldc(2500,5.,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'m'})
+    _ = ldcfit.ldc(2500,5.5,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'r'})
+    _ = ldcfit.ldc(2500,5.5,0,G,'quadratic', plot=plt.gcf(), **{'ls':'--', 'c':'r'})
+    _ = ldcfit.ldc(2550,5.22,0,G,'quadratic', plot=plt.gcf(), **{'ls':'--', 'c':'k', 'lw':3})
+    _ = ldcfit.ldc(2550,5.22,0,G,'nonlinear', plot=plt.gcf(), **{'ls':'-', 'c':'k', 'lw':3})
 
 def ld_v_mu(data, params):
     """
