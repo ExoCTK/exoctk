@@ -253,7 +253,30 @@ class ExoTransmit(object):
         self.chemistry = ["CH4", "CO2", "CO", "H2O", "NH3", "O2", "O3", "C2H2", "C2H4", "C2H6", "H2CO", "H2S", "HCl", 
         "HCN", "HF", "MgH", "N2", "NO", "NO2", "OCS", "OH", "PH3", "SH", "SiH", "SiO", "SO2", "TiO", "VO", "Na", "K", 
         "Scattering", "Collision Induced Absorption"]
-        self.fileArray = [os.path.join(os.path.dirname(__file__), "data/T_P/t_p_800K.dat"), 
+
+    def __str__(self):
+        parts = []
+        parts.append("n_tau = {}".format(self.n_tau))
+        parts.append("n_temp = {}".format(self.n_temp))
+        parts.append("T_low = {}".format(self.T_low))
+        parts.append("T_high = {}".format(self.T_high))
+        parts.append("n_pressure = {}".format(self.n_pressure))
+        parts.append("P_low = {}".format(self.P_low))
+        parts.append("P_high = {}".format(self.P_high))
+        parts.append("threshold = {}".format(self.threshold))
+        parts.append("rayleigh = {}".format(self.rayleigh))
+        parts.append("n_lambda = {}".format(self.n_lambda))
+        parts.append("g = {}".format(self.g))
+        parts.append("R_planet = {}".format(self.R_planet))
+        parts.append("R_star = {}".format(self.R_star))
+        parts.append("tpfname = {}".format(self.tpfname))
+        parts.append("eosfname = {}".format(self.eosfname))
+        parts.append("chemistry = {}".format(self.chemistry))
+
+        return '\n'.join(parts)
+
+    def __call__(self):
+        fileArray = [os.path.join(os.path.dirname(__file__), "data/T_P/t_p_800K.dat"), 
             os.path.join(os.path.dirname(__file__), "data/EOS/eos_0p1Xsolar_cond.dat"),
             os.path.join(os.path.dirname(__file__), "data/Spectra/test3.dat"),
             os.path.join(os.path.dirname(__file__), "data/Opac/opacCH4.dat"),
@@ -288,12 +311,11 @@ class ExoTransmit(object):
             os.path.join(os.path.dirname(__file__), "data/Opac/opacK.dat"),
             os.path.join(os.path.dirname(__file__), "data/Opac/opacCIA.dat"),
             os.path.join(os.path.dirname(__file__), "data")]
-
-    def __call__(self):
+            
         spec = get_spectrum(n_tau=self.n_tau, n_temp=self.n_temp, T_low=self.T_low, T_high=self.T_high, 
             n_pressure=self.n_pressure, P_low=self.P_low, P_high=self.P_high, threshold=self.threshold, 
             rayleigh=self.rayleigh, n_lambda=self.n_lambda, g=self.g, R_planet=self.R_planet, R_star=self.R_star, 
-            tpfname=self.tpfname, eosfname=self.eosfname, file_array=self.fileArray, chemistry=self.chemistry)
+            tpfname=self.tpfname, eosfname=self.eosfname, file_array=fileArray, chemistry=self.chemistry)
         return spec
 
 def test():
