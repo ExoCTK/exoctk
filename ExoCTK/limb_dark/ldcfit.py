@@ -84,7 +84,8 @@ def ld_profile(name='quadratic'):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False, **kwargs):
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, bandpass='', 
+        plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -110,6 +111,9 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False, **kwargs)
         'logarithmic', 'exponential', and 'nonlinear'
     mu_min: float
         The minimum mu value to consider
+    bandpass: core.Filter() (optional)
+        The photometric filter through which the limb darkening
+        is to be calculated
     plot: bool, matplotlib.figure.Figure
         Plot mu vs. limb darkening for this model in an existing
         figure or in a new figure
@@ -157,6 +161,11 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False, **kwargs)
                 mu = spec_dict.get('mu')
                 radius = spec_dict.get('r_eff')
                 
+                # Apply the filter if any
+                if isinstance(bandpass, core.Filter):
+                    flux = bandpass.convolve([wave,flux])
+                    wave = bandpass.rsr[0]
+
                 # Calculate mean intensity vs. mu
                 mean_i = np.mean(flux, axis=1)
                 
@@ -211,8 +220,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, plot=False, **kwargs)
                 if not isinstance(plot, plt.Figure):
                     fig = plt.figure()
                     plt.xlabel(r'$\mu$')
-                    plt.ylabel('Limb Darkening')
-                    plt.title('{} Profile'.format(profile.title()))
+                    plt.ylabel(r'$I(\mu)/I(\mu =0)$')
                     
                 # Evaluate the limb darkening profile
                 mu_vals = np.linspace(0, 1, 100)
@@ -289,8 +297,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02, plot=False, **kwargs
         if not isinstance(plot, plt.Figure):
             fig = plt.figure()
             plt.xlabel(r'$\mu$')
-            plt.ylabel('Limb Darkening')
-            plt.title('{} Profile'.format(profile.title()))
+            plt.ylabel(r'$I(\mu)/I(\mu =0)$')
         
         # If a figure is passed, proceed
         else:

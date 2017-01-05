@@ -6,11 +6,19 @@ A module for classes and functions used across all ExoCTK subpackages
 from glob import glob
 from astropy.io import fits
 from pysynphot import spectrum, observation
+from astropy.utils.exceptions import AstropyWarning
 import astropy.table as at
 import astropy.io.votable as vo
+import warnings
 import numpy as np
 import urllib
 import os
+try:
+    from ExoCTK import version
+except ImportError:
+    from ExoCTK.ExoCTK import version
+    
+warnings.simplefilter('ignore', category=AstropyWarning)
 
 class Filter(object):
     """
@@ -30,7 +38,7 @@ class Filter(object):
         for the given bandpass
     
     """
-    def __init__(self, band, filter_directory='./ExoCTK/filters/'):
+    def __init__(self, band, filter_directory=os.path.dirname(version.__file__)+'/filters/'):
         """
         Loads the bandpass data into the Filter object
         
@@ -132,13 +140,27 @@ class Filter(object):
             The convolved spectrum
             
         """
-        # Rebin the input spectrum to the filter wavelength array
-        flx = rebin_spec(spectrum, self.rsr[0])
+        # Make into iterable arrays
+        wav, flx = [np.asarray(i) for i in spectrum]
+        dims = list(flx.shape)
+        if len(dims)==1:
+            flx = np.expand_dims(flx, axis=0)
+            
+        # Make binned flux array
+        bin_dims = dims[:-1]+[len(self.rsr[0])]
+        binned = np.zeros(bin_dims)
+        
+        # Rebin the input spectra to the filter wavelength array
+        for n,f in enumerate(flx):
+            binned[n] = rebin_spec([wav, f], self.rsr[0])
         
         # Convolve the RSR and spectrum
-        flx *= self.rsr[1]
+        binned *= self.rsr[1]
         
-        return flx
+        # Restore original shape
+        binned = binned.reshape(bin_dims)
+        
+        return binned
 
 
 class ModelGrid(object):
