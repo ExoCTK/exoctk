@@ -105,7 +105,7 @@ cdef extern from "readopactable.c":
 cdef extern from "main_transmission.c":
     void transmission(vars variables, double* wavelength, double* flux)
 
-def make_chem_selection(chem):
+def _make_chem_selection(chem):
     """
     Create the a boolean chemSelection array in the order Exo_Transmit expects.
 
@@ -204,7 +204,7 @@ def _get_spectrum(n_tau=334, n_temp=30, T_low=100.0, T_high=3000.0, n_pressure=1
     variables.R_PLANET = R_planet
     variables.R_STAR = R_star
 
-    chemselection = make_chem_selection(chemistry).data
+    chemselection = _make_chem_selection(chemistry).data
     variables.chemselection = chemselection 
 
     cdef bytes b_tpfname = tpfname.encode()
@@ -254,12 +254,19 @@ class ExoTransmit(object):
         Initializes the ExoTransmit object with some default parameters.
 
         threshold = 0.0
+
         rayleigh = 1.0
+        
         g = 9.8
+        
         R_planet = 6.40e6
+        
         R_star = 7.00e8
+        
         tpfname = ExoCTK.pal.__file__/data/T_P/t_p_800K.dat
+        
         tpfname = ExoCTK.pal.__file__/data/EOS/eos_0p1XSolar_cond.dat
+        
         chemistry = ["CH4", "CO2", "CO", "H2O", "NH3", "O2", "O3", "C2H2", "C2H4", "C2H6", "H2CO", "H2S", "HCl", 
         "HCN", "HF", "MgH", "N2", "NO", "NO2", "OCS", "OH", "PH3", "SH", "SiH", "SiO", "SO2", "TiO", "VO", "Na", "K", 
         "Scattering", "Collision Induced Absorption"]
