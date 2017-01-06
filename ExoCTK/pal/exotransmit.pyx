@@ -1,3 +1,8 @@
+"""
+This module provides a wrapper for the Exo_Transmit C code which 
+generates transmission spectra to study exoplanet atmospheres.
+"""
+
 import os
 
 import numpy as np
@@ -100,11 +105,20 @@ cdef extern from "readopactable.c":
 cdef extern from "main_transmission.c":
     void transmission(vars variables, double* wavelength, double* flux)
 
-chem = ["CO2", "CO", "H2O", "NH3", "O2", "O3", "C2H2", "C2H4", "C2H6", "H2CO", 
-"H2S", "HCl", "HCN", "HF", "MgH", "N2", "NO", "NO2", "OCS", "OH", "PH3", "SH", "SiH", 
-"SiO", "SO2", "TiO", "VO", "Na", "K", "Scattering", "Collision Induced Absorption"]
-
 def make_chem_selection(chem):
+    """
+    Create the a boolean chemSelection array in the order Exo_Transmit expects.
+
+    Parameters
+    ----------
+    chem: list
+        A list of strings specifying species/phenomena to be included in opacity calcuation
+
+    Returns
+    -------
+    array
+        int array specifying chemistry selection in the correct order 
+    """
     cdef np.ndarray[long, ndim=1] chemselection = np.zeros(32, dtype=long)
 
     chemselection[0]  = "CH4" in chem  
@@ -142,57 +156,35 @@ def make_chem_selection(chem):
     return chemselection 
 
 cdef char ** to_cstring_array(list_str):
+    """
+    Convert a Python list of strings to a C char** array points.
+
+    Parameters
+    ----------
+    list_str: list
+        list containing strings
+
+    Returns
+    -------
+    char**
+        pointer to a 2d char array
+    """
     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
     b_list = [s.encode() for s in list_str]
     for i in range(len(list_str)):
         b_entry = b_list[i]
         ret[i] = b_entry
-    # ret[0] = b'/Users/mhill/Git/Exo_Transmit-master/EOS/t_p_800K.dat'
+
     return ret
 
-def order_opac(list):
-    opac = {}
-    opac["CH4"] = "/Opac/opacCH4.dat"
-    opac["C2H2"] = "/Opac/opacC2H2.dat"
-    opac["C2H4"] = "/Opac/opacC2H4.dat"
-    opac["C2H6"] = "/Opac/opacC2H6.dat"
-    opac["CO"] = "/Opac/opacCO.dat"
-    opac["CO2"] = "/Opac/opacCO2.dat"
-    opac["H2CO"] = "/Opac/opacH2CO.dat"
-    opac["H2O"] = "/Opac/opacH2O.dat"
-    opac["H2S"] = "/Opac/opacH2S.dat"
-    opac["HCN"] = "/Opac/opacHCN.dat"
-    opac["HCl"] = "/Opac/opacHCl.dat"
-    opac["HF"] = "/Opac/opacHF.dat"
-    opac["MgH"] = "/Opac/opacMgH.dat"
-    opac["N2"] = "/Opac/opacN2.dat"
-    opac["NH3"] = "/Opac/opacNH3.dat"
-    opac["NO"] = "/Opac/opacNO.dat"
-    opac["NO2"] = "/Opac/opacNO2.dat"
-    opac["O2"] = "/Opac/opacO2.dat"
-    opac["O3"] = "/Opac/opacO3.dat"
-    opac["OCS"] = "/Opac/opacOCS.dat"
-    opac["OH"] = "/Opac/opacOH.dat"
-    opac["PH3"] = "/Opac/opacPH3.dat"
-    opac["SH"] = "/Opac/opacSH.dat"
-    opac["SO2"] = "/Opac/opacSO2.dat"
-    opac["SiH"] = "/Opac/opacSiH.dat"
-    opac["SiO"] = "/Opac/opacSiO.dat"
-    opac["TiO"] = "/Opac/opacTiO.dat"
-    opac["VO"] = "/Opac/opacVO.dat"
-    opac["Na"] = "/Opac/opacNa.dat"
-    opac["K"] = "/Opac/opacK.dat"
-    opac["CIA"] = "/Opac/opacCIA.dat"
-
-
-def get_spectrum(n_tau=334, n_temp=30, T_low=100.0, T_high=3000.0, n_pressure=13, P_low=1.0e-4, 
+def _get_spectrum(n_tau=334, n_temp=30, T_low=100.0, T_high=3000.0, n_pressure=13, P_low=1.0e-4, 
     P_high=1.0e8, threshold=0.0, rayleigh=1.0, n_lambda=7454, g=9.8, R_planet=6.40e+6, R_star=7.00e+8, 
     tpfname='T_P/t_p_800K.dat', eosfname='EOS/eos_1Xsolar_cond.dat', file_array=None,
     chemistry=["CH4", "CO2", "CO", "H2O", "NH3", "O2", "O3", "C2H2", "C2H4", "C2H6", "H2CO", "H2S", "HCl", 
     "HCN", "HF", "MgH", "N2", "NO", "NO2", "OCS", "OH", "PH3", "SH", "SiH", "SiO", "SO2", "TiO", "VO", 
     "Na", "K", "Scattering", "Collision Induced Absorption"]):
     """
-    Run ExoTransmit main to produce a transmission spectrum
+    Run ExoTransmit main to produce a transmission spectrum.
     """
     cdef vars variables
     variables.NTAU = n_tau
@@ -233,18 +225,47 @@ def get_spectrum(n_tau=334, n_temp=30, T_low=100.0, T_high=3000.0, n_pressure=13
     return wavelength, flux
 
 class ExoTransmit(object):
+    """
+    Creates an object for running ExoTransmit.
+
+    Attributes
+    ----------
+
+    tpfname: str
+        Temperature-pressure data file path
+    eosfname: str
+        Chemistry (gas abundance) data file path
+    g: float
+        Planet surface gravity [m / s^2]
+    R_planet: float
+        Planet radius [m]
+    R_star: float
+        Steller radius [m]
+    chemistry: list
+        List of species/phenomenon to take into account when calculating opacity.
+    rayleigh: float
+        Rayleigh scattering augmentation factor
+    threshold: float
+        Pressure [Pa] of the top of an optically thick cloud deck.
+    """
 
     def __init__(self):
-        self.n_tau = 334
-        self.n_temp = 30
-        self.T_low = 100.0
-        self.T_high = 3000.0
-        self.n_pressure = 13
-        self.P_low = 1.0e-4
-        self.P_high = 1.0e8
+        """
+        Initializes the ExoTransmit object with some default parameters.
+
+        threshold = 0.0
+        rayleigh = 1.0
+        g = 9.8
+        R_planet = 6.40e6
+        R_star = 7.00e8
+        tpfname = ExoCTK.pal.__file__/data/T_P/t_p_800K.dat
+        tpfname = ExoCTK.pal.__file__/data/EOS/eos_0p1XSolar_cond.dat
+        chemistry = ["CH4", "CO2", "CO", "H2O", "NH3", "O2", "O3", "C2H2", "C2H4", "C2H6", "H2CO", "H2S", "HCl", 
+        "HCN", "HF", "MgH", "N2", "NO", "NO2", "OCS", "OH", "PH3", "SH", "SiH", "SiO", "SO2", "TiO", "VO", "Na", "K", 
+        "Scattering", "Collision Induced Absorption"]
+        """
         self.threshold = 0.0
         self.rayleigh = 1.0
-        self.n_lambda = 7454
         self.g = 9.8
         self.R_planet = 6.40e6
         self.R_star = 7.00e8
@@ -256,26 +277,32 @@ class ExoTransmit(object):
 
     def __str__(self):
         parts = []
-        parts.append("n_tau = {}".format(self.n_tau))
-        parts.append("n_temp = {}".format(self.n_temp))
-        parts.append("T_low = {}".format(self.T_low))
-        parts.append("T_high = {}".format(self.T_high))
-        parts.append("n_pressure = {}".format(self.n_pressure))
-        parts.append("P_low = {}".format(self.P_low))
-        parts.append("P_high = {}".format(self.P_high))
-        parts.append("threshold = {}".format(self.threshold))
-        parts.append("rayleigh = {}".format(self.rayleigh))
-        parts.append("n_lambda = {}".format(self.n_lambda))
+        parts.append("tpfname = {}".format(self.tpfname))
+        parts.append("eosfname = {}".format(self.eosfname))
         parts.append("g = {}".format(self.g))
         parts.append("R_planet = {}".format(self.R_planet))
         parts.append("R_star = {}".format(self.R_star))
-        parts.append("tpfname = {}".format(self.tpfname))
-        parts.append("eosfname = {}".format(self.eosfname))
         parts.append("chemistry = {}".format(self.chemistry))
+        parts.append("threshold = {}".format(self.threshold))
+        parts.append("rayleigh = {}".format(self.rayleigh))
 
         return '\n'.join(parts)
 
     def __call__(self):
+        """
+        Generate a transmission spectrum.
+
+        Parameters should be set by modifying the ExoTransmit object attributes.
+
+        Returns
+        -------
+        wavelength: array
+            The spectrum wavelengths [m]
+        transmission: array
+            The transmission [percent]
+        """
+
+        # fileArray expected by Exo_Transmit including opacity tables. ORDER MATTERS!
         fileArray = [os.path.join(os.path.dirname(__file__), "data/T_P/t_p_800K.dat"), 
             os.path.join(os.path.dirname(__file__), "data/EOS/eos_0p1Xsolar_cond.dat"),
             os.path.join(os.path.dirname(__file__), "data/Spectra/test3.dat"),
@@ -311,13 +338,23 @@ class ExoTransmit(object):
             os.path.join(os.path.dirname(__file__), "data/Opac/opacK.dat"),
             os.path.join(os.path.dirname(__file__), "data/Opac/opacCIA.dat"),
             os.path.join(os.path.dirname(__file__), "data")]
-            
-        spec = get_spectrum(n_tau=self.n_tau, n_temp=self.n_temp, T_low=self.T_low, T_high=self.T_high, 
-            n_pressure=self.n_pressure, P_low=self.P_low, P_high=self.P_high, threshold=self.threshold, 
-            rayleigh=self.rayleigh, n_lambda=self.n_lambda, g=self.g, R_planet=self.R_planet, R_star=self.R_star, 
+        
+        # Would be specified in OtherInput.in not meant to be specified by user
+        n_tau = 334
+        n_temp = 30
+        T_low = 100.0
+        T_high = 3000.0
+        n_pressure = 13
+        P_low = 1.0e-4
+        P_high = 1.0e8
+        n_lambda = 7454
+        
+        # Call the C code
+        spec = _get_spectrum(n_tau=n_tau, n_temp=n_temp, T_low=T_low, T_high=T_high, 
+            n_pressure=n_pressure, P_low=P_low, P_high=P_high, threshold=self.threshold, 
+            rayleigh=self.rayleigh, n_lambda=n_lambda, g=self.g, R_planet=self.R_planet, R_star=self.R_star, 
             tpfname=self.tpfname, eosfname=self.eosfname, file_array=fileArray, chemistry=self.chemistry)
+
         return spec
 
-def test():
-    pass
 
