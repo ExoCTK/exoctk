@@ -268,6 +268,9 @@ class ModelGrid(object):
         self.Teff_rng = (min(table['Teff']),max(table['Teff']))
         self.logg_rng = (min(table['logg']),max(table['logg']))
         self.FeH_rng = (min(table['FeH']),max(table['FeH']))
+        self.Teff_vals = np.unique(table['Teff'])
+        self.logg_vals = np.unique(table['logg'])
+        self.FeH_vals = np.unique(table['FeH'])
         
     def get(self, Teff, logg, FeH, verbose=False):
         """
@@ -334,8 +337,7 @@ class ModelGrid(object):
         return spec_dict
         
     def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
-                  FeH_rng=(-3,3), wave_rng=(0,40), 
-                  n_bins=''):
+                  FeH_rng=(-3,3), wave_rng=(0,40), n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
         surface gravity, and metallicity. Also sets the wavelength range
@@ -370,6 +372,14 @@ class ModelGrid(object):
                          & (grid['logg']<=logg_rng[1])
                          & (grid['FeH']>=FeH_rng[0])
                          & (grid['FeH']<=FeH_rng[1])]]
+        
+        # Update the attributes
+        self.Teff_rng = (min(self.data['Teff']),max(self.data['Teff']))
+        self.logg_rng = (min(self.data['logg']),max(self.data['logg']))
+        self.FeH_rng = (min(self.data['FeH']),max(self.data['FeH']))
+        self.Teff_vals = np.unique(self.data['Teff'])
+        self.logg_vals = np.unique(self.data['logg'])
+        self.FeH_vals = np.unique(self.data['FeH'])
         
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data),len(grid)),

@@ -84,7 +84,7 @@ def ld_profile(name='quadratic'):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, bandpass='', 
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='', 
         plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
@@ -175,6 +175,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, bandpass='',
                 # Rescale mu values. Spherical Phoenix models extend beyond limb
                 muz = np.interp(0.01, ld, mu)
                 mu = (mu-muz)/(1-muz)
+                mu_raw = mu.copy()
                 
                 # Trim to useful mu range
                 imu = np.where(mu>mu_min)
@@ -195,51 +196,78 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, bandpass='',
                 # Get values for the entire model grid
                 coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, profile, mu_min=mu_min)
                                                        
-                # Create a grid of the parameter values to interpolate over
-                params = [np.array(np.unique(model_grid.data[p])) 
-                          for p in ['Teff','logg','FeH']]
+                # Create a grid of the parameter values to interpolate over,
+                # eliminating parameters that can't be interpolated
+                params, values = [], []
+                for p,v in zip([model_grid.Teff_vals, 
+                                model_grid.logg_vals,
+                                model_grid.FeH_vals],
+                               [teff, logg, FeH]):
+                    if len(p)>1:
+                        params.append(p)
+                        values.append(v)
                           
                 # Interpolate mu value
                 interp_muz = RegularGridInterpolator(params, mu_grid)
-                muz, = interp_muz(np.array([teff,logg,FeH]))
+                muz, = interp_muz(np.array(values))
                 
                 # Interpolate effective radius value
                 interp_r = RegularGridInterpolator(params, r_grid)
-                radius, = interp_r(np.array([teff,logg,FeH]))
+                radius, = interp_r(np.array(values))
                 
                 # Interpolate coefficients
                 coeffs = []
                 for c_grid in coeff_grid:
                     interp_coeff = RegularGridInterpolator(params, c_grid)
-                    coeffs.append(interp_coeff(np.array([teff,logg,FeH])))
+                    coeffs.append(interp_coeff(np.array(values)))
                 coeffs = np.array(coeffs).flatten()
                 
             if plot:
                 
                 # Make a new figure if necessary
                 if not isinstance(plot, plt.Figure):
-                    fig = plt.figure()
+                    fig = plt.figure(figsize=(10,4))
+                    ax = plt.subplot()
                     plt.xlabel(r'$\mu$')
                     plt.ylabel(r'$I(\mu)/I(\mu =0)$')
                     
+                    # Print the calculation parameters
+                    info = r'${}-{}$ $\mu m$'.format(*model_grid.wave_rng)
+                    if isinstance(bandpass, core.Filter):
+                        info = bandpass.params['filterID']
+                    info += '\n'
+                    info += ', '.join([r'$c_{}={:.2f}$'.format(n+1,c) 
+                                       for n,c in enumerate(coeffs)])
+                    ax.text(0.95, 0.1, info, ha='right', transform=ax.transAxes,
+                            linespacing=2)
+                    
+                    
                 # Evaluate the limb darkening profile
-                mu_vals = np.linspace(0, 1, 100)
+                mu_vals = np.linspace(0, 1, 1000)
                 ld_vals = ldfunc(mu_vals, *coeffs)
                 
                 # Draw the curve
                 label = '{}, {}, {}'.format(teff, logg, FeH)
                 p = plt.plot(mu_vals, ld_vals, label=label, **kwargs)
+                color = p[0].get_color()
                 
-                # Plot the single value
-                ld_val = ldfunc(muz, *coeffs)
-                plt.plot(muz, ld_val, c=p[0].get_color(), ls='none', marker='o')
+                # Plot the mu_values
+                try:
+                    ld_raw = np.mean(flux, axis=1)/np.mean(flux, axis=1)[np.where(mu_raw==1)]
+                    plt.plot(mu_raw, ld_raw, c=color, ls='None', marker='o',
+                             markeredgecolor=color, markerfacecolor='None')
+                except:
+                    pass
                 
                 # New figure stuff
                 if not isinstance(plot, plt.Figure):
                     
                     # Plot the minimum mu cutoff and legend
                     plt.axvline(x=mu_min, c='0.5', ls=':', label=r'$\mu$ cutoff')
-                    plt.legend(loc=0, frameon=False)
+                    plt.legend(loc=2, frameon=False)
+                
+                plt.xlim(0,1)
+                plt.ylim(0,1)
                     
             return coeffs, muz, radius
             
@@ -253,7 +281,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.02, bandpass='',
             return
 
 
-def ldc_grid(model_grid, profile, write_to='', mu_min=0.02, plot=False, **kwargs):
+def ldc_grid(model_grid, profile, write_to='', mu_min=0.05, plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given 
     grid of synthetic spectra
@@ -286,7 +314,9 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.02, plot=False, **kwargs
     C = inspect.getargspec(ld_profile(profile)).args
     
     # Initialize limb darkening coefficient, mu, and effecive radius grids
-    T, G, M = [np.unique(model_grid.data[p]) for p in ['Teff','logg','FeH']]
+    T = model_grid.Teff_vals
+    G = model_grid.logg_vals
+    M = model_grid.FeH_vals
     coeff_grid = np.zeros((len(C)-1,len(T),len(G),len(M)))
     mu_grid = np.zeros((len(T),len(G),len(M)))
     r_grid = np.zeros((len(T),len(G),len(M)))
