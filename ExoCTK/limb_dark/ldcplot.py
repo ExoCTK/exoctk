@@ -92,7 +92,7 @@ def ldc_v_wavelength(model_grid, wave_ranges, profile, **kwargs):
         c_grid, m_grid, r_grid = ldcfit.ldc_grid(grid, profile)
         
         # Calculate mean and store
-        m = calculate_coeff_means_somehow
+        #m = calculate_coeff_means_somehow
         means.append(m)
         wavelength.append(w)
         unc.append(w_unc)
