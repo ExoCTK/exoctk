@@ -5,4 +5,4 @@ def get_extensions():
                      include_dirs=['numpy', 'ExoCTK/pal/include'])]
 
 def get_package_data():
-    return {'ExoCTK.pal': ['data/Opac/*', 'data/EOS/*', 'data/T_P/*']}
+    return {'ExoCTK.pal': ['data/Opac/*', 'data/EOS/*', 'data/T_P/*', 'include/*']}
