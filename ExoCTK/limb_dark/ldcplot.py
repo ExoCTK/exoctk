@@ -53,7 +53,8 @@ def ld_v_mu(model_grid, compare, profiles=('quadratic','nonlinear'), **kwargs):
     
     # Plot the interpolated comparison
     for p,ls in zip(profiles,['-','--',':','-.']):
-        _ = ldcfit.ldc(*compare, grid, p, plot=plt.gcf(), **{'ls':ls, 'c':'k', 'lw':3})
+        t, g, m = compare
+        _ = ldcfit.ldc(t, g, m, grid, p, plot=plt.gcf(), **{'ls':ls, 'c':'k', 'lw':3})
     
     # Delete the copy
     del grid
