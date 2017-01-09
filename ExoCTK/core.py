@@ -13,10 +13,7 @@ import warnings
 import numpy as np
 import urllib
 import os
-try:
-    from ExoCTK import version
-except ImportError:
-    from ExoCTK.ExoCTK import version
+from . import version
     
 warnings.simplefilter('ignore', category=AstropyWarning)
 
