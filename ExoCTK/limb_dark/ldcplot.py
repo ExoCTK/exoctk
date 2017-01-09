@@ -10,12 +10,8 @@ from matplotlib import rc, cm
 import os
 import copy
 from astropy.io import fits
-try:
-    from ExoCTK import core
-    from ExoCTK.limb_dark import ldcfit
-except ImportError:
-    from ExoCTK.ExoCTK import core
-    from ExoCTK.ExoCTK.limb_dark import ldcfit
+from .. import core
+from . import ldcfit
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -73,6 +69,8 @@ def ldc_v_wavelength(model_grid, wave_ranges, profile, **kwargs):
     plt.xlabel('Wavelength')
     plt.ylabel('Coefficients')
     
+    # Make containers (Not sure what to plot here!)
+    c_grid, m_grid, r_grid = [], [], []
     means, wavelength, unc = [], [], []
     
     # Calculate the grid in the given wavelength ranges
@@ -86,7 +84,7 @@ def ldc_v_wavelength(model_grid, wave_ranges, profile, **kwargs):
         # input object in the Python session
         grid = copy.copy(model_grid)
         
-        # Get wavelength segment
+        # Apply wavelength segment to model grid
         grid.customize(wave_rng=wr)
         
         # Calculate the coefficients

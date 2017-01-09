@@ -11,10 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
-try:
-    from ExoCTK import core
-except ImportError:
-    from ExoCTK.ExoCTK import core
+from .. import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -174,7 +171,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
                 
                 # Rescale mu values. Spherical Phoenix models extend beyond limb
                 muz = np.interp(0.01, ld, mu)
-                mu = (mu-muz)/(1-muz)
+                #mu = (mu-muz)/(1-muz) # This makes negative mu values!
                 mu_raw = mu.copy()
                 
                 # Trim to useful mu range
