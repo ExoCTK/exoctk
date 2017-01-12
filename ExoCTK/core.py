@@ -13,7 +13,6 @@ import warnings
 import numpy as np
 import urllib
 import os
-from . import version
     
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -35,7 +34,7 @@ class Filter(object):
         for the given bandpass
     
     """
-    def __init__(self, band, filter_directory=os.path.dirname(version.__file__)+'/filters/'):
+    def __init__(self, band, filter_directory='filters/'):
         """
         Loads the bandpass data into the Filter object
         
