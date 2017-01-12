@@ -9,11 +9,11 @@ from pysynphot import spectrum, observation
 from astropy.utils.exceptions import AstropyWarning
 import astropy.table as at
 import astropy.io.votable as vo
+import matplotlib.pyplot as plt
 import warnings
 import numpy as np
 import urllib
 import os
-from . import version
     
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -35,7 +35,7 @@ class Filter(object):
         for the given bandpass
     
     """
-    def __init__(self, band, filter_directory=os.path.dirname(version.__file__)+'/filters/'):
+    def __init__(self, band, filter_directory='filters/'):
         """
         Loads the bandpass data into the Filter object
         
@@ -503,6 +503,68 @@ class References(object):
         for bibcode in self.refs:
             with open(bibfile, 'a') as bib:
                 bib.write(self.bibtex[bibcode])
+
+def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True, 
+              fontsize=22, figsize=(15, 7), **kwargs):
+    """
+    Creates subplots with given number or *rows* and *columns*.
+    
+    Parameters
+    ----------
+    rows: int
+        The number of rows in the figure
+    columns: int
+        The number of columns in the figure
+    ylabel: str, list
+        The shared y-label or list of y-labels for each column
+    xlabel: str, list
+        The shared y-label or list of y-labels for each column
+    sharey: bool
+        Same y-axis limits
+    sharex: bool
+        Same x-axis limits
+    fontsize: int
+        The fontsize to use throughout the figure
+    figsize: tuple, list
+        The (x,y) dimenstions of the figure
+    
+    Returns
+    -------
+    list
+        A list of the figure and axes objects for the current figure
+    """
+    # Initialize the plot
+    fig, axes = plt.subplots(rows, columns, sharey=sharey, sharex=sharex, figsize=figsize)
+    plt.rc('text', usetex=True)
+    plt.rc('font', size=fontsize)
+    
+    # Set the y-label(s)
+    if ylabel:
+        if isinstance(ylabel, str):
+            fig.text(0.04, 0.5, ylabel, ha='center', va='center', rotation='vertical', **kwargs)
+        else:
+            if columns > 1:
+                axes[0].set_ylabel(ylabel, fontsize=fontsize, labelpad=fontsize)
+            else:
+                for a, l in zip(axes, ylabel):
+                    a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
+    
+    # Set the x-label(s)
+    if xlabel:
+        if isinstance(xlabel, str):
+            fig.text(0.5, 0.04, xlabel, ha='center', va='center', fontsize=fontsize)
+        else:
+            if rows > 1:
+                axes[0].set_ylabel(ylabel, fontsize=fontsize, labelpad=fontsize)
+            else:
+                for a, l in zip(axes, xlabel):
+                    a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
+    
+    # Plot formatting
+    plt.subplots_adjust(right=0.96, top=0.96, bottom=0.15, left=0.12, hspace=0, wspace=0)
+    fig.canvas.draw()
+    
+    return [fig] + list(axes)
 
 def writeFITS(filename, extensions, headers=()):
     '''

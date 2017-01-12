@@ -67,7 +67,6 @@ def ldc_v_wavelength(model_grid, wave_ranges, profile, **kwargs):
     # Draw plot
     fig = plt.figure()
     plt.xlabel('Wavelength')
-    plt.ylabel('Coefficients')
     
     # Make containers (Not sure what to plot here!)
     c_grid, m_grid, r_grid = [], [], []
@@ -100,7 +99,10 @@ def ldc_v_wavelength(model_grid, wave_ranges, profile, **kwargs):
         plt.plot(wavelength, coeffs)
         
         del grid
-        
+    
+    # Plot formatting
+    plt.ylabel('Coefficients')
+    
     # Plot the mean
     plt.errorbar(wavelength, means, xerr=unc, c='k')
     
