@@ -532,6 +532,11 @@ def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True,
     -------
     list
         A list of the figure and axes objects for the current figure
+    
+    Example
+    -------
+    >>> fig, (ax11, ax12, ax13), (ax21, ax22, ax23) = multiplot(2, 3)
+    >>> ax11.plot(x, y, label='Row 1, Col 1 Plot')
     """
     # Initialize the plot
     fig, axes = plt.subplots(rows, columns, sharey=sharey, sharex=sharex, figsize=figsize)
