@@ -505,7 +505,7 @@ class References(object):
                 bib.write(self.bibtex[bibcode])
 
 def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True, 
-              fontsize=22, figsize=(15, 7), **kwargs):
+              fontsize=20, figsize=(15, 7), title='', **kwargs):
     """
     Creates subplots with given number or *rows* and *columns*.
     
@@ -527,7 +527,8 @@ def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True,
         The fontsize to use throughout the figure
     figsize: tuple, list
         The (x,y) dimenstions of the figure
-    
+    title: str
+        The title of the figure
     Returns
     -------
     list
@@ -546,27 +547,30 @@ def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True,
     # Set the y-label(s)
     if ylabel:
         if isinstance(ylabel, str):
-            fig.text(0.04, 0.5, ylabel, ha='center', va='center', rotation='vertical', **kwargs)
+            fig.text(0.04, 0.54, ylabel, ha='center', va='center', rotation='vertical', **kwargs)
         else:
             if columns > 1:
-                axes[0].set_ylabel(ylabel, fontsize=fontsize, labelpad=fontsize)
+                for a, l in zip(axes, ylabel):
+                    a[0].set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
             else:
                 for a, l in zip(axes, ylabel):
-                    a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
+                    a.set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
     
     # Set the x-label(s)
     if xlabel:
         if isinstance(xlabel, str):
-            fig.text(0.5, 0.04, xlabel, ha='center', va='center', fontsize=fontsize)
+            fig.text(0.54, 0.04, xlabel, ha='center', va='center', **kwargs)
         else:
             if rows > 1:
-                axes[0].set_ylabel(ylabel, fontsize=fontsize, labelpad=fontsize)
+                for a, l in zip(axes, xlabel):
+                    a[0].set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
             else:
                 for a, l in zip(axes, xlabel):
                     a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
     
     # Plot formatting
-    plt.subplots_adjust(right=0.96, top=0.96, bottom=0.15, left=0.12, hspace=0, wspace=0)
+    plt.suptitle(title)
+    plt.subplots_adjust(right=0.96, top=0.93 if title else 0.96, bottom=0.15, left=0.12, hspace=0, wspace=0)
     fig.canvas.draw()
     
     return [fig] + list(axes)
