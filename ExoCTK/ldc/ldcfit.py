@@ -171,9 +171,9 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
                 
                 # Rescale mu values. Spherical Phoenix models extend beyond limb
                 muz = np.interp(0.01, ld, mu)
-                mu_raw = mu.copy()
                 mu = (mu-muz)/(1-muz)
-                mu = mu[mu>0]
+                #mu = mu[mu>0]
+                mu_raw = mu.copy()
                 
                 # Trim to useful mu range
                 imu = np.where(mu>mu_min)
