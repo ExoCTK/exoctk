@@ -1,3 +1,7 @@
+from . import ctran
+from .thermo import *
+
+import os
 import math
 import numpy as np
 import scipy as sp
@@ -10,11 +14,10 @@ from scipy import ndimage
 import pdb
 from matplotlib.pyplot import *
 import datetime
-import ctran
-from thermo import *
 from pickle import *
 from numba import jit
 
+DATA_DIR = os.path.dirname(__file__)
 #Computing transmission spectrum----------------------
 #uses correlated-K treatment of opacities
 @jit
@@ -273,64 +276,72 @@ def tophatfold(lam, flux, fwhm):
 def xsects():
     ### Read in CK arrays
     # H2H2
-    file='abscoeff/CKarrH2H2_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    if sys.version_info.major >= 3:
+        def load_pickle(file):
+            # Python 3 tries to encode with ascii by default
+            return load(file, encoding='bytes')
+    else:
+        def load_pickle(file):
+            return load(file)
+
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrH2H2_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrH2H2=10**(kcoeff-4.)
     # H2He
-    file='abscoeff/CKarrH2He_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrH2He_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrH2He=10**(kcoeff-4.)
     # H2O
-    file='abscoeff/CKarrH2O_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrH2O_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrH2O=10**(kcoeff-4.)
     # CH4
-    file='abscoeff/CKarrCH4_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrCH4_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrCH4=10**(kcoeff-4.)
     # CO
-    file='abscoeff/CKarrCO_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrCO_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrCO=10**(kcoeff-4.)
     # CO2
-    file='abscoeff/CKarrCO2_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrCO2_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrCO2=10**(kcoeff-4.)
     # NH3
-    file='abscoeff/CKarrNH3_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrNH3_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrNH3=10.**(kcoeff-4.)
     # Na
-    file='abscoeff/CKarrNa_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrNa_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrNa=10.**(kcoeff-4.)
     # K
-    file='abscoeff/CKarrK_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrK_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrK=10.**(kcoeff-4.)
     # TiO
-    file='abscoeff/CKarrTiO_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrTiO_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrTiO=10.**(kcoeff-4.)
     # VO
-    file='abscoeff/CKarrVO_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrVO_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrVO=10.**(kcoeff-4.)
     # C2H2
-    file='abscoeff/CKarrC2H2_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrC2H2_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrC2H2=10.**(kcoeff-4.)
     # HCN
-    file='abscoeff/CKarrHCN_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrHCN_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrHCN=10.**(kcoeff-4.)
     # H2S
-    file='abscoeff/CKarrH2S_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrH2S_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrH2S=10.**(kcoeff-4.)
     # FeH
-    file='abscoeff/CKarrFeH_R100_900_16500.pic'
-    P,T,wno,kcoeff,g,wts = load(open(file,'rb'))
+    file = os.path.join(DATA_DIR, 'abscoeff/CKarrFeH_R100_900_16500.pic')
+    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
     xsecarrFeH=10.**(kcoeff-4.)
     #pdb.set_trace()
     #semilogy(1E4/wno, xsecarrCH4[10,10,:,10])

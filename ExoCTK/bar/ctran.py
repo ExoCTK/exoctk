@@ -1,6 +1,7 @@
-import _tran_module
+from . import _tran_module
 import numpy as np
 import pdb
+
 def CalculateTau(Xsects, RXsects, Z, P, T, Fractions, r0):
     '''
     Returns array of optical lengths at each level and wavenumber.
