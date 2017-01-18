@@ -1,4 +1,4 @@
-from fm import *
+from .fm import *
 import pickle
 from joblib import Parallel,delayed
 
