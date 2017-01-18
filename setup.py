@@ -118,3 +118,6 @@ setup(name=PACKAGENAME,
       entry_points=entry_points,
       **package_info
 )
+
+os.system('python ExoCTK/bar/setup.py build_ext')
+os.system('./ExoCTK/bar/include/compile_cea_64bit.com')

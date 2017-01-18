@@ -375,9 +375,9 @@ def instrument_non_uniform_tophat(wlgrid,wno, Fp):
     delta[szmod-1]=delta[szmod-2] 
     #pdb.set_trace()
     for i in range(szmod-1):
-	i=i+1
-	loc=np.where((1E4/wno >= wlgrid[i]-0.5*delta[i-1]) & (1E4/wno < wlgrid[i]+0.5*delta[i]))
-	Fint[i]=np.mean(Fp[loc])
+        i=i+1
+        loc=np.where((1E4/wno >= wlgrid[i]-0.5*delta[i-1]) & (1E4/wno < wlgrid[i]+0.5*delta[i]))
+        Fint[i]=np.mean(Fp[loc])
 
     loc=np.where((1E4/wno > wlgrid[0]-0.5*delta[0]) & (1E4/wno < wlgrid[0]+0.5*delta[0]))
     Fint[0]=np.mean(Fp[loc])

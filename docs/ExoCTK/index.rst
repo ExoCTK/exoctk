@@ -8,7 +8,7 @@ Modules
 =======
 
 .. automodapi:: ExoCTK.core
-.. automodapi:: ExoCTK.limb_dark.ldcfit
-.. automodapi:: ExoCTK.limb_dark.ldcplot
-.. automodapi:: ExoCTK.retrievals
+.. automodapi:: ExoCTK.ldc.ldcfit
+.. automodapi:: ExoCTK.ldc.ldcplot
+.. automodapi:: ExoCTK.bar.make_spec
 .. automodapi:: ExoCTK.pal.exotransmit

@@ -84,19 +84,19 @@ fxarr=Parallel(n_jobs=5)(delayed(fx)(x[:,i],gas_scale) for i in range(NN))
 #
 wnocrop=fxarr[0][1]
 for i in range(NN):
-	print i
-	y_mod=fxarr[i][0]
-   	P,T, H2Oarr, CH4arr, COarr,CO2arr, NH3arr, N2arr, H2Sarr, HCNarr, C2H2arr, C2H6arr, H2arr, Naarr, Karr=fxarr[i][2]
-	y_mod_arr=np.concatenate([y_mod_arr,y_mod])
-	Parr=np.concatenate([Parr,P])
-	Tarr=np.concatenate([Tarr,T])
-	H2O=np.concatenate([H2O,H2Oarr])
-	CH4=np.concatenate([CH4,CH4arr])
-	CO=np.concatenate([CO,COarr])
-	CO2=np.concatenate([CO2,CO2arr])
-	NH3=np.concatenate([NH3,NH3arr])
-        HCN=np.concatenate([HCN,HCNarr])
-        C2H2=np.concatenate([C2H2,C2H2arr])
+    print(i)
+    y_mod=fxarr[i][0]
+    P,T, H2Oarr, CH4arr, COarr,CO2arr, NH3arr, N2arr, H2Sarr, HCNarr, C2H2arr, C2H6arr, H2arr, Naarr, Karr=fxarr[i][2]
+    y_mod_arr=np.concatenate([y_mod_arr,y_mod])
+    Parr=np.concatenate([Parr,P])
+    Tarr=np.concatenate([Tarr,T])
+    H2O=np.concatenate([H2O,H2Oarr])
+    CH4=np.concatenate([CH4,CH4arr])
+    CO=np.concatenate([CO,COarr])
+    CO2=np.concatenate([CO2,CO2arr])
+    NH3=np.concatenate([NH3,NH3arr])
+    HCN=np.concatenate([HCN,HCNarr])
+    C2H2=np.concatenate([C2H2,C2H2arr])
 
 
 y_mod_arr=y_mod_arr.reshape(NN,wlgrid.shape[0])

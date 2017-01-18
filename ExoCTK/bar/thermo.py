@@ -87,12 +87,12 @@ def thermo(M, CtoO, T, P,name):
 	#creating run file
 	run=open('run_'+name+'.inp','w+')
 	run.writelines('cea2_'+name)
-        run.close()
+	run.close()
 
 	#creating executable
 	exe=open('run_'+name+'.com','w+')
 	exe.writelines('./cea2.x < '+'run_'+name+'.inp')
-        exe.close()
+	exe.close()
 
 	os.system('chmod +x '+'run_'+name+'.com')
 
@@ -264,7 +264,7 @@ def thermo(M, CtoO, T, P,name):
 			if sub in line:
 				mmw=float(line[13:])
 		MMWarr[i]=mmw
-            
+
 	os.system('rm *'+name+'*')
 
 	return H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr,H2arr, Hearr,MMWarr

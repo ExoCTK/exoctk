@@ -14,21 +14,21 @@ if not os.path.exists("chains"): os.mkdir("chains")
 #cube[0] will equal -6+12.*0, or -6. When cube[0]=1, then the transformed cube[0]
 #will be -6+12*1, or 6.
 def prior(cube, ndim, nparams):
-	#TP profile params
-        cube[0]=300+2700*cube[0] #Irradiation Temp (linear)   --  300-3000 K
-        cube[1]=-3+3*cube[1] #TP profile grey IR opacity (log) -- 1E-3 - 0 cm2/g (Freedman+2014)
-        cube[2]=-3+4*cube[2] #vis/IR opacity (log) -- 1E-3 to 10
-	#Composition parameters
-        cube[3]=-2+5*cube[3] #metallicity x solar (log), 0=solar, 1=10x, -1=0.1x etc.--0.01 - 1000 x solar
-        cube[4]=-2+4*cube[4] #C/O (log)-- -0.26 = solar (C/O=0.55)  0.01 - 100  
-	cube[5]=1.5-8*cube[5] #carbon qunech pressure (log) 30bars - 0.3 ubar 
-	cube[6]=1.5-8*cube[6] #nitrogen qunech pressure (log) 30bars - 0.3 ubar
-	#Generic Mie Cloud params
-	cube[7]=-2+6*cube[7] #Ray Haze Amplitude
-	cube[8]=4*cube[8] #ray haze amp
-	cube[9]=-7+9.5*cube[9]  #logPc
-	#10 bar radius scaling
-	cube[10]=0.5+1.*cube[10] #xRp
+    #TP profile params
+    cube[0]=300+2700*cube[0] #Irradiation Temp (linear)   --  300-3000 K
+    cube[1]=-3+3*cube[1] #TP profile grey IR opacity (log) -- 1E-3 - 0 cm2/g (Freedman+2014)
+    cube[2]=-3+4*cube[2] #vis/IR opacity (log) -- 1E-3 to 10
+    #Composition parameters
+    cube[3]=-2+5*cube[3] #metallicity x solar (log), 0=solar, 1=10x, -1=0.1x etc.--0.01 - 1000 x solar
+    cube[4]=-2+4*cube[4] #C/O (log)-- -0.26 = solar (C/O=0.55)  0.01 - 100  
+    cube[5]=1.5-8*cube[5] #carbon qunech pressure (log) 30bars - 0.3 ubar 
+    cube[6]=1.5-8*cube[6] #nitrogen qunech pressure (log) 30bars - 0.3 ubar
+    #Generic Mie Cloud params
+    cube[7]=-2+6*cube[7] #Ray Haze Amplitude
+    cube[8]=4*cube[8] #ray haze amp
+    cube[9]=-7+9.5*cube[9]  #logPc
+    #10 bar radius scaling
+    cube[10]=0.5+1.*cube[10] #xRp
 
 #loglikelihood
 def loglike(cube, ndim, nparams):
