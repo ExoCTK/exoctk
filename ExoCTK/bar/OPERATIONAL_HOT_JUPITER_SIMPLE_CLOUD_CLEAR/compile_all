@@ -1,0 +1,12 @@
+rm cea2.x
+rm *.so
+chmod +x compile_cea_64bit.com
+./compile_cea_64bit.com
+python setup.py build_ext --inplace
+
+
+
+
+
+
+

@@ -1,0 +1,20 @@
+reac      name C(g)   moles=2.415e-04  C 1
+          name O(g)   moles=4.392e-04  O 1
+          name H(g)   moles=9.257e-01  H 1
+          name N(g)   moles=6.259e-05  N 1
+          name S(g)   moles=1.428e-05  S 1
+          name He(g)  moles=7.344e-02  He 1
+          name Na(g)  moles=1.846e-06  Na 1
+          name K(g)   moles=1.185e-07  K 1
+          name Fe(g)  moles=2.690e-05  Fe 1
+          name Ti(g)  moles=7.770e-08  Ti 1
+          name V(g)   moles=9.257e-09  V 1
+          name P(g)   moles=2.688e-07  P 1
+
+prob      tp  p,bar=.1000  case=1
+          t,k= 500.0
+
+
+output    trace=1e-99
+
+end
