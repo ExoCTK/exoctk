@@ -3,6 +3,7 @@
 *.a
 *.o
 *.so
+*.x
 
 # Directories
 __pycache__
