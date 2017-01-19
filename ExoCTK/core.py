@@ -7,6 +7,9 @@ from glob import glob
 from astropy.io import fits
 from pysynphot import spectrum, observation
 from astropy.utils.exceptions import AstropyWarning
+from bibtexparser.bwriter import BibTexWriter
+from bibtexparser.bibdatabase import BibDatabase
+import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
 import matplotlib.pyplot as plt
@@ -425,12 +428,15 @@ class References(object):
     ----------
     bibfile: str
         The path to the bibtex file from which the references will be read
-    bibtex: dict
-        The dictionary of bibtex entries
     refs: list
         The list of bibcodes saved during the user session
+    database: bibtexparser.bibdatabase.BibDatabase object
+        The database of parsed bibtex entries
+    bibcodes: list
+        The list of all bibcodes in the database
+        
     """
-    def __init__(self, bibfile):
+    def __init__(self, bibfile='data/bibtex.bib'):
         """
         Initializes an empty References object which points to a
         .bib file
@@ -441,11 +447,18 @@ class References(object):
           The path to the bibtex file from which the references will be read
         
         """
-        # Attributes for the filepath, file contents, and references
+        # Attributes for the filepath and references
         self.bibfile = bibfile
-        self.bibtex = pickle.load(open(bibfile, 'rb'))
         self.refs = []
-
+        
+        # Load the bibtex into a database
+        bf = open(bibfile)
+        self.database = bt.load(bf)
+        bf.close()
+        
+        # The list of all bibcodes in the bibfile
+        self.bibcodes = [i['ID'] for i in self.database.entries]
+        
     def add(self, bibcode):
         """
         Adds a bibcode to the References object
@@ -457,14 +470,14 @@ class References(object):
         
         """
         # Check that the bibcode is in the bibtex file
-        if bibcode in self.bibtex:
-            self.refs += bibcode
+        if bibcode in self.bibcodes:
+            self.refs += [bibcode]
             print(bibcode,'added to list of references.')
         
         # Suggest adding it to the bibfile
         else:
             print(bibcode,'not in bibfile at',self.bibfile)
-            print('Add the bibtex entry to',self.bibfile,'and try agin.')
+            print('Add the bibtex entry to the file and try agin.')
             
     def remove(self, bibcode):
         """
@@ -477,7 +490,7 @@ class References(object):
         
         """
         # Check that the bibcode is in the bibtex file
-        if bibcode in self.bibtex:
+        if bibcode in self.bibcodes:
             self.refs = [r for r in self.refs if r!=bibcode]
             print(bibcode,'removed from list of references.')
         
@@ -498,11 +511,17 @@ class References(object):
         """
         # Use existing .bib file or create new one
         bibfile = filepath if filepath.endswith('.bib') else filepath+'biblio.bib'
+
+        # Create a new database instance
+        final = BibDatabase()
         
-        # Iterate through the references and write the relevant bibtex to file
-        for bibcode in self.refs:
-            with open(bibfile, 'a') as bib:
-                bib.write(self.bibtex[bibcode])
+        # Get the relevant bibtex entries
+        final.entries = [d for d in self.database.entries 
+                         if d['ID'] in list(set(self.refs))]
+        
+        # Write the bibtex to file
+        with open(bibfile, 'w') as out:
+            out.write(BibTexWriter().write(final))
 
 def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True, 
               fontsize=20, figsize=(15, 7), title='', **kwargs):
