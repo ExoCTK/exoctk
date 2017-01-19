@@ -7,8 +7,6 @@ from glob import glob
 from astropy.io import fits
 from pysynphot import spectrum, observation
 from astropy.utils.exceptions import AstropyWarning
-from bibtexparser.bwriter import BibTexWriter
-from bibtexparser.bibdatabase import BibDatabase
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
@@ -71,7 +69,9 @@ class Filter(object):
                 # Download the XML (VOTable) file
                 baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
                 filepath = filter_directory+os.path.basename(band)
-                _ = urllib.request.urlretrieve(baseURL+band, filepath)
+                f = open(filepath, 'w')
+                _ = urllib.request.urlretrieve(baseURL+band, f)
+                f.close()
                 
                 # Print the new filepath
                 print('Band stored as',filepath)
@@ -513,7 +513,7 @@ class References(object):
         bibfile = filepath if filepath.endswith('.bib') else filepath+'biblio.bib'
 
         # Create a new database instance
-        final = BibDatabase()
+        final = bt.bibdatabase.BibDatabase()
         
         # Get the relevant bibtex entries
         final.entries = [d for d in self.database.entries 
@@ -521,7 +521,7 @@ class References(object):
         
         # Write the bibtex to file
         with open(bibfile, 'w') as out:
-            out.write(BibTexWriter().write(final))
+            out.write(bt.bwriter.BibTexWriter().write(final))
 
 def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True, 
               fontsize=20, figsize=(15, 7), title='', **kwargs):
