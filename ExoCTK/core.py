@@ -438,7 +438,7 @@ class References(object):
         The list of all bibcodes in the database
         
     """
-    def __init__(self, bibfile='data/bibtex.bib'):
+    def __init__(self, bibfile=''):
         """
         Initializes an empty References object which points to a
         .bib file
@@ -449,6 +449,8 @@ class References(object):
           The path to the bibtex file from which the references will be read
         
         """
+        bibfile = bibfile or pkg_resources.resource_filename('ExoCTK', 'data/bibtex.bib')
+        
         # Attributes for the filepath and references
         self.bibfile = bibfile
         self.refs = []
