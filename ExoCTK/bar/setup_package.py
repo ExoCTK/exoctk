@@ -5,4 +5,4 @@ def get_extensions():
                      include_dirs=['numpy', 'ExoCTK/bar/include'])]
 
 def get_package_data():
-    return {'ExoCTK.bar': ['data/*', 'abscoeff/*', 'OPERATIONAL_HOT_JUPITER_SIMPLE_CLOUD_CLEAR/*', 'include/*']}
+    return {'ExoCTK.bar': ['data/*', 'abscoeff/*', 'chains/*', 'include/*']}
