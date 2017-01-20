@@ -15,5 +15,5 @@ if not _ASTROPY_SETUP_:
     from .core import *
 
 from . import ldc
-from . import bar
+# from . import bar
 from . import pal

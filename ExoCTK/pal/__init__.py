@@ -1,4 +1,4 @@
 """
-Package to generate spectrum forward models
+Package to generate spectroscopic forward models
 """
-from . import exotransmit
+#from . import exotransmit
