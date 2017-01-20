@@ -11,11 +11,13 @@ import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
 import matplotlib.pyplot as plt
+import pkg_resources
 import warnings
 import numpy as np
 import urllib
 import os
-    
+
+package_directory = os.path.dirname(os.path.abspath(__file__))
 warnings.simplefilter('ignore', category=AstropyWarning)
 
 class Filter(object):
@@ -36,7 +38,7 @@ class Filter(object):
         for the given bandpass
     
     """
-    def __init__(self, band, filter_directory='filters/'):
+    def __init__(self, band, filter_directory=''):
         """
         Loads the bandpass data into the Filter object
         
@@ -47,15 +49,17 @@ class Filter(object):
         filter_directory: str
             The directory containing the filter files
             
-        """        
+        """
         # Get list of filters
-        filters = glob(filter_directory+'*')
-        filepath = filter_directory+band
+        filterdir = filter_directory or \
+                    pkg_resources.resource_filename('ExoCTK', 'data/filters/')
+        filters = glob(filterdir+'*')
+        filepath = filterdir+band
         
         # If the filter is missing, ask what to do
         if filepath not in filters:
         
-            print('No filters match',filter_directory+band)
+            print('No filters match',filepath)
             dl = input('Would you like me to download it? [y/n] ')
             
             if dl.lower()=='y':
@@ -68,10 +72,8 @@ class Filter(object):
                 
                 # Download the XML (VOTable) file
                 baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
-                filepath = filter_directory+os.path.basename(band)
-                f = open(filepath, 'w')
-                _ = urllib.request.urlretrieve(baseURL+band, f)
-                f.close()
+                filepath = filterdir+os.path.basename(band)
+                _ = urllib.request.urlretrieve(baseURL+band, filepath)
                 
                 # Print the new filepath
                 print('Band stored as',filepath)
