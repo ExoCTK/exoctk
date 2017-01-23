@@ -17,7 +17,6 @@ import numpy as np
 import urllib
 import os
 
-package_directory = os.path.dirname(os.path.abspath(__file__))
 warnings.simplefilter('ignore', category=AstropyWarning)
 
 class Filter(object):
@@ -164,7 +163,6 @@ class Filter(object):
         
         return binned
 
-
 class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
@@ -216,9 +214,21 @@ class ModelGrid(object):
         
         # Create some attributes
         self.path = os.path.dirname(model_directory)+'/'
-        self.refs = bibcode
+        self.refs = ''
         self.wave_rng = (0,40)
         self.n_bins = 1E10
+        
+        # Save the refs to a References() object
+        if bibcode:
+            if isinstance(bibcode, (list,tuple)):
+                pass
+            elif bibcode and isinstance(bibcode, str):
+                bibcode = [bibcode]
+            else:
+                pass
+            
+            self.refs = bibcode
+            _check_for_ref_object()
         
         # Get list of spectral intensity files
         files = glob(model_directory)

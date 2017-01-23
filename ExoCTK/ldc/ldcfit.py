@@ -38,7 +38,7 @@ def ld_profile(name='quadratic'):
     """
     # Supported profiles a la BATMAN
     names = ['uniform','linear','quadratic','square-root',
-             'logarithmic','exponential','nonlinear']
+             'logarithmic','exponential','3-parameter','nonlinear']
     
     # Check that the profile is supported
     if name in names:
@@ -61,12 +61,22 @@ def ld_profile(name='quadratic'):
         # Square-root
         if name=='square-root':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*m*log(m)
+                return 1. - c1*(1.-m) - c2*(1.-np.sqrt(m))
+        
+        # Logarithmic
+        if name=='logarithmic':
+            def profile(m, c1, c2):
+                return 1. - c1*(1.-m) - c2*m*(1.-log(m))
             
         # Exponential
         if name=='exponential':
             def profile(m, c1, c2):
                 return 1. - c1*(1.-m) - c2/(1.-e**m)
+        
+        # 3-parameter
+        if name=='3-parameter':
+            def profile(m, c1, c2, c3):
+                return 1. − c1*(1.-m) − c2*(1.−m**1.5) − c3*(1.-m**2)
         
         # Nonlinear
         if name=='nonlinear':
