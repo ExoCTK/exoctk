@@ -29,7 +29,9 @@ class Filter(object):
     params: dict
         The metadata for the bandpass
     path: str
-        The absolute filepath for the bandpass data
+        The absolute filepath for the bandpass data, an ASCII file with
+        a wavelength column in Angstroms and a response column of values 
+        ranging from 0 to 1
     refs: list, str
         The references for the bandpass data
     rsr: np.ndarray
