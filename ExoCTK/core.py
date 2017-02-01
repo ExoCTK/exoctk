@@ -228,7 +228,7 @@ class ModelGrid(object):
                 pass
             
             self.refs = bibcode
-            _check_for_ref_object()
+            # _check_for_ref_object()
         
         # Get list of spectral intensity files
         files = glob(model_directory)
