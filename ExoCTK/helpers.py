@@ -14,7 +14,7 @@ def convert_ATLAS9(filepath, destination=''):
         The destination for the split files
     """
     # Open the fits file
-    HDU = fits.open('/Users/jfilippazzo/Desktop/ckp00_3500.fits')
+    HDU = fits.open(filepath)
     D = HDU[1].data
     primary = HDU[0].header
     hdr = HDU[1].header
@@ -43,7 +43,7 @@ def convert_ATLAS9(filepath, destination=''):
         
         # Write the new file
         filename = 'ATLAS9_{}_{}_{}.fits'.format(teff,int(logg*10),int(feh*10))
-        new_hdu.writeto(destination+filename, overwrite=True)
+        fits.writeto(destination+filename, new_hdu, overwrite=True)
     
     # Close the file
     HDU.close()
