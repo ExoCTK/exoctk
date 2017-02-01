@@ -28,7 +28,7 @@ def ld_profile(name='quadratic'):
     name: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', and 'nonlinear'
+        'logarithmic', 'exponential', '3-parameter', and 'nonlinear'
         
     Returns
     -------
