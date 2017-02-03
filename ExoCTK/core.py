@@ -329,10 +329,10 @@ class ModelGrid(object):
         # Construct full wavelength scale and convert to microns
         try:
             # Try to get data from WAVELENGTH extension...
-            raw_wave = fits.getdata(filepath, ext_name='WAVELENGTH')
+            raw_wave = np.array(fits.getdata(filepath, ext_name='WAVELENGTH')).squeeze()
         except:
             # ...or try to generate it
-            raw_wave = (self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0])))
+            raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
         
         # Convert from A to um
         raw_wave *= 1E-4
