@@ -327,10 +327,10 @@ class ModelGrid(object):
         #abund = fits.getdata(filepath, 2)
         
         # Construct full wavelength scale and convert to microns
-        try:
+        if self.CRVAL1=='-':
             # Try to get data from WAVELENGTH extension...
-            raw_wave = np.array(fits.getdata(filepath, ext_name='WAVELENGTH')).squeeze()
-        except:
+            raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
+        else:
             # ...or try to generate it
             raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
         
@@ -411,7 +411,14 @@ class ModelGrid(object):
         
         # Clear the grid copy from memory
         del grid
-              
+        
+    def info(self):
+        """
+        Print the ModelGrid attributes
+        """
+        for n,v in vars(G).items():
+            if type(v) in [int, bytes, bool, str, float, tuple, list]:
+                print('{}: {}'.format(n,v))
 
 def rebin_spec(spec, wavnew):
     """
