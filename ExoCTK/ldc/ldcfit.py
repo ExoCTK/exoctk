@@ -76,7 +76,7 @@ def ld_profile(name='quadratic'):
         # 3-parameter
         if name=='3-parameter':
             def profile(m, c1, c2, c3):
-                return 1. − c1*(1.-m) − c2*(1.−m**1.5) − c3*(1.-m**2)
+                return 1. -  c1*(1.-m) - c2*(1.-m**1.5) - c3*(1.-m**2)
         
         # Nonlinear
         if name=='nonlinear':
