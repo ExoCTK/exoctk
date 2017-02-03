@@ -327,7 +327,15 @@ class ModelGrid(object):
         #abund = fits.getdata(filepath, 2)
         
         # Construct full wavelength scale and convert to microns
-        raw_wave = (self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0])))/1E4
+        try:
+            # Try to get data from WAVELENGTH extension...
+            raw_wave = fits.getdata(filepath, ext_name='WAVELENGTH')
+        except:
+            # ...or try to generate it
+            raw_wave = (self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0])))
+        
+        # Convert from A to um
+        raw_wave *= 1E-4
         
         # Trim the wavelength and flux arrays
         idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
