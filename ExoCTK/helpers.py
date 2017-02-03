@@ -33,12 +33,12 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
     for n,idx in enumerate(start):
         
         # Get the parameters
-        h = L[idx].strip()
-        teff = int(h.split()[1].split('.')[0])
-        logg = float(h.split()[3][:3])
+        h = L[idx].strip().split()
+        teff = int(h[1].split('.')[0])
+        logg = float(h[3][:3])
+        vturb = float(h[8])
+        xlen = float(h[11])
         feh = 0.
-        logg_txt = str(abs(int(logg*10.))).zfill(2)
-        feh_txt = '{}{}'.format('m' if feh<0 else 'p', str(abs(int(feh*10.))).zfill(2))
         
         # Parse the data
         try:
@@ -64,15 +64,32 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
         wave = np.array(data['wl'])*10.
 
         # Copy the old HDU list
+        logg_txt = str(abs(int(logg*10.))).zfill(2)
+        feh_txt = '{}{}'.format('m' if feh<0 else 'p', str(abs(int(feh*10.))).zfill(2))
         new_file = destination+'ATLAS9_{}_{}_{}.fits'.format(teff,logg_txt,feh_txt)
         HDU = fits.open(template)
         
         # Write the new data
         HDU[0].data = data_cube
         HDU[1].data = mu
+        
+        # Write the new key/values
         HDU[0].header['PHXTEFF'] = teff
         HDU[0].header['PHXLOGG'] = logg
         HDU[0].header['PHXM_H'] = feh
+        HDU[0].header['PHXXI_L'] = vturb
+        HDU[0].header['PHXXI_M'] = vturb
+        HDU[0].header['PHXXI_N'] = vturb        
+        HDU[0].header['PHXEOS'] = 'ATLAS9'
+        HDU[0].header['PHXMXLEN'] = xlen
+        HDU[0].header['PHXREFF'] = '-'
+        HDU[0].header['PHXBUILD'] = '-'
+        HDU[0].header['PHXVER'] = '-'
+        HDU[0].header['DATE'] = '-'
+        HDU[0].header['PHXMASS'] = '-'
+        HDU[0].header['PHXLUM'] = '-'
+        HDU[0].header['CRVAL1'] = '-'
+        HDU[0].header['CDELT1'] = '-'
 
         # Create a WAVELENGTH extension
         ext = fits.ImageHDU(wave)

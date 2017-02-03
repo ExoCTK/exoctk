@@ -247,8 +247,7 @@ class ModelGrid(object):
                     header = fits.getheader(f)
                     keys = np.array(header.cards).T[0]
                     dtypes = [type(i[1]) for i in header.cards]
-                    v = [header.get(k) for k in keys]
-                    vals.append(list(v))
+                    vals.append([header.get(k) for k in keys])
                     filenames.append(f.split('/')[-1])
                 except:
                     print(f,'could not be read into the model grid.')
@@ -271,7 +270,8 @@ class ModelGrid(object):
         # and store value as attribute instead
         for n in table.colnames:
             val = table[n][0]
-            if list(table[n]).count(val) == len(table[n]):
+            if list(table[n]).count(val) == len(table[n])\
+            and n not in ['Teff','logg','FeH']:
                 setattr(self, n, val)
                 table.remove_column(n)
         
