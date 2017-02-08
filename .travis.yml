@@ -21,7 +21,7 @@ addons:
             - dvipng
             - gcc
             - python-scipy
-            # - python-pysynphot
+            - pysynphot
 
 env:
     global:
