@@ -1,4 +1,6 @@
-![ExoCTK Logo](/ExoCTK/data/images/ExoCTK_logo.png "ExoCTK Logo")
+.. image:: /ExoCTK/data/images/ExoCTK_logo.png
+    :alt: ExoCTK Logo
+    :scale: 50%
 
 |build-status| |docs|
 
@@ -22,7 +24,9 @@ Limb Darkening Calculator (LDC)
 -------------------------------
 LDC calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
-![LDC demo](/ExoCTK/data/images/LDC_demo.png "LDC Demo")
+.. image:: /ExoCTK/data/images/LDC_demo.png
+    :alt: LDC Demo
+    :scale: 100%
 
 IFS exoplanet spectra extraction (IFS)
 --------------------------------------
@@ -40,13 +44,18 @@ Planetary atmospheres libraries and tools (PAL)
 -----------------------------------------------
 PAL contains a robust set of molecular and atomic cross-section tables relevant to giant exoplanet atmospheres. It can also generate K-Coefficents on arbitrary wavelength grids and generate arbitrary exoplanet transmission spectra.
 
-![PAL demo](/ExoCTK/data/images/PAL_demo.png "PAL Demo")
+.. image:: /ExoCTK/data/images/PAL_demo.png
+    :alt: PAL Demo
+    :scale: 100%
 
 Transit Observation Tools (TOT)
 -------------------------------
 TOT is a transiting exoplanet noise simulator. The current implementation scales the measured flux, variance, and exposure time values from previously-observed systems, computes the expected rms per spectrophotometric channel, and estimates the transit/eclipse depth error based on the anticipated number of valid in- and out-of-transit data points. The uncertainty estimates depend on the orbital properties of the system, instrument configuration, and observation duration.
 
-![TOT demo](/ExoCTK/data/images/TOT_demo.png "TOT Demo")
+.. image:: /ExoCTK/data/images/TOT_demo.png
+    :alt: TOT Demo
+    :scale: 100%
+)
 
 
 .. |build-status| image:: https://img.shields.io/travis/rtfd/readthedocs.org.svg?style=flat
