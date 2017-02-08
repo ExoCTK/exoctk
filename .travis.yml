@@ -6,7 +6,7 @@ python:
     - 3.5
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
-sudo: false
+sudo: True
 
 # The apt packages below are needed for sphinx builds. A full list of packages
 # that can be included can be found here:
@@ -36,6 +36,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_DEPENDENCIES='Cython'
+        - CONDA_ALL_DEPENDENCIES='Cython jinja2 scipy h5py matplotlib pyyaml scikit-image pandas pytz beautifulsoup4 ipython mpmath'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
