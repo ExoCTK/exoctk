@@ -1,3 +1,6 @@
+ExoCTK
+======
+
 .. image:: /ExoCTK/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
 
