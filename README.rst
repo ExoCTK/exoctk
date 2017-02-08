@@ -30,8 +30,8 @@ Atmospheric forward models (AFM)
 --------------------------------
 AFM provides a database of generic exoplanet atmospheric models similar to the ATLAS and Phoenix databases for stellar atmospheres.  The centrally located, well documented, and uniformly formatted grid of models will be used to plan exoplanet observations with JWST, WFIRST, and beyond.
 
-Bayesian Atmospheric Retrievals
--------------------------------
+Bayesian Atmospheric Retrievals (BAR)
+-------------------------------------
 BAR estimates parameter uncertainties, such as molecular abundances and thermal structures.
 
 Planetary atmospheres libraries and tools (PAL)
