@@ -127,13 +127,15 @@ install:
     # environment. In some cases, ci-helpers may not offer enough flexibility
     # in how to install a package, in which case you can have additional
     # commands in the install: section below.
-
+    - pip install git+https://github.com/scipy/scipy.git
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
 
 before_install:    
     # Forcing scipy dependencies to be include
-    - pip install svn+http://svn.scipy.org/svn/scipy/trunk
+    - sudo apt-get install libblas-dev
+    - sudo apt-get install liblapack-dev
+    - sudo apt-get install gfortran
 
     # As described above, using ci-helpers, you should be able to set up an
     # environment with dependencies installed using conda and pip, but in some
