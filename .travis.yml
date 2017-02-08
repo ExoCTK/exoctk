@@ -129,9 +129,9 @@ install:
 
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
-    
+
+before_install:    
     # Forcing scipy dependencies to be include
-    - pip install scipy
     - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
 
     # As described above, using ci-helpers, you should be able to set up an
