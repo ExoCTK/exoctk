@@ -23,9 +23,11 @@ Limb Darkening Calculator (LDC)
 -------------------------------
 LDC calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
-.. image:: /ExoCTK/data/images/LDC_demo.png
+.. figure:: /ExoCTK/data/images/LDC_demo.png
     :alt: LDC Demo
     :scale: 100%
+    
+    Caption!
 
 IFS exoplanet spectra extraction (IFS)
 --------------------------------------
