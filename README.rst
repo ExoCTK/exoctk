@@ -18,8 +18,8 @@ Transit light-­curve fitting tools (TLC)
 ---------------------------------------
 TLC fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
 
-Limb Darkening Calculator
--------------------------
+Limb Darkening Calculator (LDC)
+-------------------------------
 LDC calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 IFS exoplanet spectra extraction (IFS)
