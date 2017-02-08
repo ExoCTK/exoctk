@@ -21,7 +21,7 @@ addons:
             - dvipng
             - gcc
             - python-scipy
-            - python-pysynphot
+            # - python-pysynphot
 
 env:
     global:
@@ -132,7 +132,7 @@ install:
 
     - pip install --upgrade pip 
     - brew install gcc
-    - pip install git+https://github.com/spacetelescope/pysynphot.git@0.9.8.5
+    - pip install git+https://github.com/spacetelescope/pysynphot.git
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
 
