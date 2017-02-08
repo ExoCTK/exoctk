@@ -1,7 +1,7 @@
 language: python
 
 python:
-    - 2.7
+    # - 2.7
     - 3.4
     - 3.5
 
@@ -62,21 +62,21 @@ matrix:
     include:
 
         # Do a coverage test in Python 2.
-        - python: 2.7
-          env: SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build warnings - we do this first because it
-        # may run for a long time
-        - python: 2.7
-          env: SETUP_CMD='build_sphinx -w'
-
-        # Try Astropy development version
-        - python: 2.7
-          env: ASTROPY_VERSION=development
+        # - python: 2.7
+        #   env: SETUP_CMD='test --coverage'
+        #
+        # # Check for sphinx doc build warnings - we do this first because it
+        # # may run for a long time
+        # - python: 2.7
+        #   env: SETUP_CMD='build_sphinx -w'
+        #
+        # # Try Astropy development version
+        # - python: 2.7
+        #   env: ASTROPY_VERSION=development
         - python: 3.5
           env: ASTROPY_VERSION=development
-        - python: 2.7
-          env: ASTROPY_VERSION=lts
+        # - python: 2.7
+        #   env: ASTROPY_VERSION=lts
         - python: 3.5
           env: ASTROPY_VERSION=lts
 
@@ -91,14 +91,14 @@ matrix:
           env: SETUP_CMD='test' NUMPY_VERSION=1.9
 
         # Try older numpy versions
-        - python: 2.7
-          env: NUMPY_VERSION=1.10
-        - python: 2.7
-          env: NUMPY_VERSION=1.9
-        - python: 2.7
-          env: NUMPY_VERSION=1.8
-        - python: 2.7
-          env: NUMPY_VERSION=1.7
+        # - python: 2.7
+        #   env: NUMPY_VERSION=1.10
+        # - python: 2.7
+        #   env: NUMPY_VERSION=1.9
+        # - python: 2.7
+        #   env: NUMPY_VERSION=1.8
+        # - python: 2.7
+        #   env: NUMPY_VERSION=1.7
 
         # Try numpy pre-release
         - python: 3.5
@@ -129,6 +129,10 @@ install:
 
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
+    
+    # Forcing scipy dependencies to be include
+    - pip install scipy
+    - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
 
     # As described above, using ci-helpers, you should be able to set up an
     # environment with dependencies installed using conda and pip, but in some
