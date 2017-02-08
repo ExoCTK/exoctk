@@ -9,6 +9,7 @@ dependencies:
     - matplotlib
     - numpy
     - scipy
-
+    - pysynphot
+    
 #   - pip:
 #       - dependency_from_pip
