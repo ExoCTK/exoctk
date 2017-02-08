@@ -136,6 +136,7 @@ before_install:
     - sudo apt-get install libblas-dev
     - sudo apt-get install liblapack-dev
     - sudo apt-get install gfortran
+    - pip install git+https://github.com/scipy/scipy.git
 
     # As described above, using ci-helpers, you should be able to set up an
     # environment with dependencies installed using conda and pip, but in some
