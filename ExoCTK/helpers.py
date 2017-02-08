@@ -21,7 +21,7 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
         The path to the FITS template file to use
     """        
     # Get all the data
-    L = open('/Users/jfilippazzo/Desktop/im25k2new.pck').readlines()
+    L = open(filepath).readlines()
     
     # Get the indexes of each log(g) chunk
     start = []
