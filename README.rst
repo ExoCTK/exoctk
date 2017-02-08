@@ -1,5 +1,5 @@
-Exoplanet Characterization Tool Kit
-===================================
+![ExoCTK Logo](/ExoCTK/data/images/ExoCTK_logo.png "ExoCTK Logo")
+
 |build-status| |docs|
 
 Introduction
