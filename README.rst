@@ -1,4 +1,4 @@
-![ExoCTK Logo](/ExoCTK/data/images/ExoCTK_logo.png "ExoCTK Logo")
+![ExoCTK Logo](/ExoCTK/data/images/ExoCTK_logo.gif "ExoCTK Logo")
 
 |build-status| |docs|
 
