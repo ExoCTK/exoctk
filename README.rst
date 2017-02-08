@@ -1,6 +1,6 @@
 .. image:: /ExoCTK/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
-    :width: 400px
+    :width: 300 px
 
 |build-status| |docs|
 
@@ -55,7 +55,6 @@ TOT is a transiting exoplanet noise simulator. The current implementation scales
 .. image:: /ExoCTK/data/images/TOT_demo.png
     :alt: TOT Demo
     :scale: 100%
-)
 
 
 .. |build-status| image:: https://img.shields.io/travis/rtfd/readthedocs.org.svg?style=flat
