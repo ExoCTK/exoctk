@@ -1,7 +1,7 @@
 language: python
 
 python:
-    # - 2.7
+    - 2.7
     - 3.4
     - 3.5
 
@@ -19,6 +19,7 @@ addons:
             - graphviz
             - texlive-latex-extra
             - dvipng
+            - python-scipy
 
 env:
     global:
@@ -36,7 +37,6 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_DEPENDENCIES='Cython'
-        - CONDA_ALL_DEPENDENCIES='Cython jinja2 scipy h5py matplotlib pyyaml scikit-image pandas pytz beautifulsoup4 ipython mpmath'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
@@ -63,21 +63,21 @@ matrix:
     include:
 
         # Do a coverage test in Python 2.
-        # - python: 2.7
-        #   env: SETUP_CMD='test --coverage'
-        #
-        # # Check for sphinx doc build warnings - we do this first because it
-        # # may run for a long time
-        # - python: 2.7
-        #   env: SETUP_CMD='build_sphinx -w'
-        #
-        # # Try Astropy development version
-        # - python: 2.7
-        #   env: ASTROPY_VERSION=development
+        - python: 2.7
+          env: SETUP_CMD='test --coverage'
+
+        # Check for sphinx doc build warnings - we do this first because it
+        # may run for a long time
+        - python: 2.7
+          env: SETUP_CMD='build_sphinx -w'
+
+        # Try Astropy development version
+        - python: 2.7
+          env: ASTROPY_VERSION=development
         - python: 3.5
           env: ASTROPY_VERSION=development
-        # - python: 2.7
-        #   env: ASTROPY_VERSION=lts
+        - python: 2.7
+          env: ASTROPY_VERSION=lts
         - python: 3.5
           env: ASTROPY_VERSION=lts
 
@@ -92,14 +92,14 @@ matrix:
           env: SETUP_CMD='test' NUMPY_VERSION=1.9
 
         # Try older numpy versions
-        # - python: 2.7
-        #   env: NUMPY_VERSION=1.10
-        # - python: 2.7
-        #   env: NUMPY_VERSION=1.9
-        # - python: 2.7
-        #   env: NUMPY_VERSION=1.8
-        # - python: 2.7
-        #   env: NUMPY_VERSION=1.7
+        - python: 2.7
+          env: NUMPY_VERSION=1.10
+        - python: 2.7
+          env: NUMPY_VERSION=1.9
+        - python: 2.7
+          env: NUMPY_VERSION=1.8
+        - python: 2.7
+          env: NUMPY_VERSION=1.7
 
         # Try numpy pre-release
         - python: 3.5
@@ -127,15 +127,9 @@ install:
     # environment. In some cases, ci-helpers may not offer enough flexibility
     # in how to install a package, in which case you can have additional
     # commands in the install: section below.
-    - pip install --user numpy scipy matplotlib ipython jupyter pandas sympy nose
+
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
-
-before_install:    
-    # Forcing scipy dependencies to be include
-    - apt-get install libblas-dev
-    - apt-get install liblapack-dev
-    - apt-get install gfortran
 
     # As described above, using ci-helpers, you should be able to set up an
     # environment with dependencies installed using conda and pip, but in some
