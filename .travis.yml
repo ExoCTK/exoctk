@@ -132,7 +132,7 @@ install:
 
     - pip install --upgrade pip 
     - brew install gcc
-    - pip install pysynphot
+    - pip install git+https://github.com/spacetelescope/pysynphot.git@0.9.8.5
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
 
