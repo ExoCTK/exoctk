@@ -1,6 +1,6 @@
 .. image:: /ExoCTK/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
-    :scale: 20%
+    :width: 50%
 
 |build-status| |docs|
 
