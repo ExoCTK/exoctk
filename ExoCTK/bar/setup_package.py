@@ -5,4 +5,5 @@ def get_extensions():
                      include_dirs=['numpy', 'ExoCTK/bar/include'])]
 
 def get_package_data():
-    return {'ExoCTK.bar': ['data/*', 'abscoeff/*', 'chains/*', 'include/*']}
+    # return {'ExoCTK.bar': ['data/*', 'abscoeff/*', 'chains/*', 'include/*']}
+    return {'ExoCTK.bar': ['chains/*', 'include/*']}
