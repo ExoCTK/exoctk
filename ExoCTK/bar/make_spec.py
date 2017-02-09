@@ -1,9 +1,12 @@
 from .fm import *
 import pickle
 from matplotlib.ticker import FormatStrFormatter
+from ..helpers import external_files
+
+DATA_DIR = external_files()
 
 def spectrum(Rp= 1.93, Rstar=1.2, Mp=0.5, Tirr=1700, logKir=-1.5, logg1=-1, logMet=0., logCtoO=-0.26, 
-             logPQC=-5, logPQN=-5, RayAmp=-5., RaySlp=4., logPc=1.5, plot=True):
+             logPQC=-5, logPQN=-5, RayAmp=-5., RaySlp=4., logPc=1.5, plot=True, path=DATA_DIR):
     """
     Description...
     
@@ -40,6 +43,8 @@ def spectrum(Rp= 1.93, Rstar=1.2, Mp=0.5, Tirr=1700, logKir=-1.5, logg1=-1, logM
         log of the hard gray cloud top pressure
     plot: bool
         Plot the PT profiles
+    path: str
+        The path to the K-coefficient pickle files
     
     """
     #seting up input state vector. Must be in this order as indicies are hard wired in fx inside fm
@@ -54,7 +59,7 @@ def spectrum(Rp= 1.93, Rstar=1.2, Mp=0.5, Tirr=1700, logKir=-1.5, logg1=-1, logM
     gas_scale = np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.]) #can be made free params if desired (won't affect mmw)
     
     # Return model spectrum, wavenumber grid, and vertical abundance profiles from chemistry
-    y_mod, wnocrop, atm = fx(x,gas_scale)
+    y_mod, wnocrop, atm = fx(x, gas_scale, path)
     
     # Read in from noise model here
     err = np.zeros(len(wnocrop))

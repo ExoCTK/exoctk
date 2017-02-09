@@ -5,7 +5,6 @@ import os
 import math
 import numpy as np
 import scipy as sp
-from ..helpers import external_files
 from array import *
 from scipy import interpolate
 from scipy import signal
@@ -18,7 +17,6 @@ import datetime
 from pickle import *
 from numba import jit
 
-DATA_DIR = external_files()
 #Computing transmission spectrum----------------------
 #uses correlated-K treatment of opacities
 @jit
@@ -67,7 +65,9 @@ def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Contin
             trans[v,i]=transfull
     return trans
 
-def tran(T, P, mmw,Ps,Pc,alphaH2O,alphaCH4,alphaCO,alphaCO2,alphaNH3,alphaNaK,alphaTiO,alphaVO, alphaC2H2, alphaHCN, alphaH2S,alphaFeH,fH2,fHe,amp,power,M,Rstar,Rp,wnomin,wnomax):
+def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alphaNaK, alphaTiO,
+         alphaVO, alphaC2H2, alphaHCN, alphaH2S, alphaFeH, fH2, fHe, amp, power, M, Rstar, Rp, 
+         wnomin, wnomax, path):
     #print "Starting tran at ", datetime.datetime.now().time()
 
     #Convert parameters to proper units
@@ -98,12 +98,13 @@ def tran(T, P, mmw,Ps,Pc,alphaH2O,alphaCH4,alphaCO,alphaCO2,alphaNH3,alphaNaK,al
     Frac_Cont = np.array([fH2,fHe,fH2*0.+1.])  #continuum mole fraction profiles
     #Load measured cross-sectional values and their corresponding
     #T,P,and wno grids on which they were measured
-    Pgrid = restore.xsects[0]
-    Tgrid = restore.xsects[1]
-    wno = restore.xsects[2]
-    gord=restore.xsects[3]
-    wts=restore.xsects[4]
-    xsecarr = restore.xsects[5]
+    Pgrid, Tgrid, wno, gord, wts, xsecarr = xsects(path)
+    # Pgrid = restore.xsects[0]
+    # Tgrid = restore.xsects[1]
+    # wno = restore.xsects[2]
+    # gord=restore.xsects[3]
+    # wts=restore.xsects[4]
+    # xsecarr = restore.xsects[5]
     
     #Calculate Temperature, Pressure and Height grids on which
     #transmissivity will be computed
@@ -274,7 +275,7 @@ def tophatfold(lam, flux, fwhm):
 #*******************************************************************
 
 
-def xsects():
+def xsects(path):
     ### Read in CK arrays
     # H2H2
     if sys.version_info.major >= 3:
@@ -285,87 +286,33 @@ def xsects():
         def load_pickle(file):
             return load(file)
 
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrH2H2_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrH2H2=10**(kcoeff-4.)
-    # H2He
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrH2He_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrH2He=10**(kcoeff-4.)
-    # H2O
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrH2O_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrH2O=10**(kcoeff-4.)
-    # CH4
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrCH4_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrCH4=10**(kcoeff-4.)
-    # CO
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrCO_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrCO=10**(kcoeff-4.)
-    # CO2
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrCO2_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrCO2=10**(kcoeff-4.)
-    # NH3
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrNH3_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrNH3=10.**(kcoeff-4.)
-    # Na
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrNa_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrNa=10.**(kcoeff-4.)
-    # K
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrK_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrK=10.**(kcoeff-4.)
-    # TiO
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrTiO_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrTiO=10.**(kcoeff-4.)
-    # VO
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrVO_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrVO=10.**(kcoeff-4.)
-    # C2H2
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrC2H2_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrC2H2=10.**(kcoeff-4.)
-    # HCN
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrHCN_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrHCN=10.**(kcoeff-4.)
-    # H2S
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrH2S_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrH2S=10.**(kcoeff-4.)
-    # FeH
-    file = os.path.join(DATA_DIR, 'BAR/abscoeff/CKarrFeH_R100_900_16500.pic')
-    P,T,wno,kcoeff,g,wts = load_pickle(open(file,'rb'))
-    xsecarrFeH=10.**(kcoeff-4.)
-    #pdb.set_trace()
-    #semilogy(1E4/wno, xsecarrCH4[10,10,:,10])
+    CK = ['H2H2', 'H2He', 'H2O', 'CH4', 'CO', 'CO2', 'NH3', 'Na', 
+          'K', 'TiO', 'VO', 'C2H2', 'HCN', 'H2S', 'FeH']
 
+    CKarrs = []
+    for species in CK:
+        file = '{}CKarr{}_R100_900_16500.pic'.format(path,species)
+        P, T, wno, kcoeff, g, wts = load_pickle(open(file,'rb'))
+        CKarrs.append(10**(kcoeff-4.))
+        
     
-    xsecarr = np.log10(np.array([xsecarrH2H2,xsecarrH2He, xsecarrH2O, xsecarrCH4, xsecarrCO,xsecarrCO2,xsecarrNH3,xsecarrNa, xsecarrK, xsecarrTiO, xsecarrVO, xsecarrC2H2,xsecarrHCN,xsecarrH2S,xsecarrFeH]))
-    return P,T,wno,g,wts,xsecarr
+    return P, T, wno, g, wts, np.log10(np.array(CKarrs))
 
 
 
-#**************************************************************
-# FILE: restore.py
+# #**************************************************************
+# # FILE: restore.py
+# #
+# # DESCRIPTION: This class calls the function xsects(), thus
+# # loading the x-sections as global variables.
+# #
+# # USAGE: >>> from restore import restore
+# #        >>> Pgrid = restore.xsects[0]
+# #
+# #**************************************************************
 #
-# DESCRIPTION: This class calls the function xsects(), thus 
-# loading the x-sections as global variables.
-#
-# USAGE: >>> from restore import restore
-#        >>> Pgrid = restore.xsects[0]
-#
-#**************************************************************
-
-class restore():
-    xsects = xsects()
+# class restore():
+#     xsects = xsects()
 
 
 #**************************************************************************
@@ -458,7 +405,7 @@ def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
 # 
 # USAGE: 
 #**************************************************************************
-def fx(x, gas_scale):
+def fx(x, gas_scale, path):
     print(x)
     #print "Entering Fx ", datetime.datetime.now().time()
     #  0    1        2       3     4          5           6          7     8    9       10        11           12        
@@ -581,7 +528,9 @@ def fx(x, gas_scale):
     Qc=0.
     Rc=0.
     #computing transmission spectrum
-    spec = tran(T,P,mmw, Pref,Pc, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr+Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,FeHarr,H2arr,Hearr,RayAmp,RaySlp, M, Rstar, Rp,wnomin,wnomax)
+    spec = tran(T, P, mmw, Pref, Pc, H2Oarr, CH4arr, COarr, CO2arr, NH3arr, Naarr+Karr, TiOarr, 
+                VOarr, C2H2arr, HCNarr, H2Sarr, FeHarr, H2arr, Hearr, RayAmp, RaySlp, M, Rstar, 
+                Rp, wnomin, wnomax, path)
     wnocrop = spec[0]
     F = spec[1]
     #print "Exiting Fx ", datetime.datetime.now().time()
