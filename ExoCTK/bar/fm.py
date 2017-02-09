@@ -5,6 +5,7 @@ import os
 import math
 import numpy as np
 import scipy as sp
+from .. import version
 from array import *
 from scipy import interpolate
 from scipy import signal
@@ -17,7 +18,7 @@ import datetime
 from pickle import *
 from numba import jit
 
-DATA_DIR = os.path.dirname(__file__)
+DATA_DIR = version.external_files()
 #Computing transmission spectrum----------------------
 #uses correlated-K treatment of opacities
 @jit
