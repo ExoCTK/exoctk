@@ -7,6 +7,22 @@ from pkg_resources import resource_filename
 import numpy as np
 import os
 
+def external_files():
+    """
+    A snippet to propagate the external files directory
+    to the submodules
+    """
+    try:
+        from ConfigParser import ConfigParser
+    except ImportError:
+        from configparser import ConfigParser
+
+    conf = ConfigParser()
+    conf.read(['../setup.cfg'])
+    metadata = dict(conf.items('metadata'))
+
+    return metadata.get('external_files')
+
 def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK', 'data/ModelGrid_tmp.fits')):
     """
     Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
