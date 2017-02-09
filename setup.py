@@ -36,6 +36,7 @@ AUTHOR = metadata.get('author', '')
 AUTHOR_EMAIL = metadata.get('author_email', '')
 LICENSE = metadata.get('license', 'unknown')
 URL = metadata.get('url', 'http://astropy.org')
+EXTERNAL_FILES = metadata.get('external_files')
 
 # Get the long description from the package's docstring
 __import__(PACKAGENAME)
@@ -76,7 +77,7 @@ package_info = get_package_info()
 
 # Add the project-global data
 package_info['package_data'].setdefault(PACKAGENAME, [])
-package_info['package_data'][PACKAGENAME].append('data/*')
+# package_info['package_data'][PACKAGENAME].append('data/*')
 
 # Define entry points for command-line scripts
 entry_points = {'console_scripts': []}
@@ -97,6 +98,16 @@ for root, dirs, files in os.walk(PACKAGENAME):
                 os.path.join(
                     os.path.relpath(root, PACKAGENAME), filename))
 package_info['package_data'][PACKAGENAME].extend(c_files)
+
+# Add external files
+ext_files = []
+for root, dirs, files in os.walk(EXTERNAL_FILES):
+    for filename in files:
+        if filename.endswith('.dat') or filename.endswith('.in'):
+            ext_files.append(
+                os.path.join(
+                    os.path.relpath(root, EXTERNAL_FILES), filename))
+package_info['package_data'][PACKAGENAME].extend(ext_files)
 
 # Note that requires and provides should not be included in the call to
 # ``setup``, since these are now deprecated. See this link for more details:

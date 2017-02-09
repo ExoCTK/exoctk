@@ -394,7 +394,19 @@ class ModelGrid(object):
                          & (grid['logg']<=logg_rng[1])
                          & (grid['FeH']>=FeH_rng[0])
                          & (grid['FeH']<=FeH_rng[1])]]
+                         
+        # Print a summary of the returned grid
+        print('{}/{}'.format(len(self.data),len(grid)),
+              'spectra in parameter range',
+              'Teff:', Teff_rng, ', logg:',logg_rng,
+              ', FeH:', FeH_rng, ', wavelength:', wave_rng)
         
+        # Do nothing if he cut leaves the grid empty
+        if len(self.data)==0:
+            self.data = grid
+            print('The given parameter ranges would leave 0 models in the grid.')
+            print('The model grid has not been updated. Please try again.')
+            
         # Update the attributes
         self.Teff_rng = (min(self.data['Teff']),max(self.data['Teff']))
         self.logg_rng = (min(self.data['logg']),max(self.data['logg']))
@@ -402,12 +414,6 @@ class ModelGrid(object):
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
-        
-        # Print a summary of the returned grid
-        print('{}/{}'.format(len(self.data),len(grid)),
-              'spectra in parameter range',
-              'Teff:', Teff_rng, ', logg:',logg_rng,
-              ', FeH:', FeH_rng, ', wavelength:', wave_rng)
         
         # Clear the grid copy from memory
         del grid
