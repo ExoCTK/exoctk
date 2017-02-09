@@ -103,9 +103,7 @@ package_info['package_data'][PACKAGENAME].extend(c_files)
 ext_files = []
 for root, dirs, files in os.walk(EXTERNAL_FILES):
     for filename in files:
-        if filename.endswith('.dat')\
-        or filename.endswith('.in')\
-        or filename.endswith('.pic'):
+        if filename.endswith('.dat') or filename.endswith('.in') or filename.endswith('.pic'):
             ext_files.append(
                 os.path.join(
                     os.path.relpath(root, EXTERNAL_FILES), filename))

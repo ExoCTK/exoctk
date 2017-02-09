@@ -1,5 +1,6 @@
 # Compiled files
 *.py[cod]
+*.pyc
 *.a
 *.o
 *.so
