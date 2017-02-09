@@ -8,7 +8,7 @@ from scipy import signal
 from scipy import special
 from scipy import interp
 from scipy import ndimage
-from scipy.io.idl import readsav #USAGE: >>> readsave('file.save')
+#from scipy.io.idl import readsav #USAGE: >>> readsave('file.save')
 import pdb
 from matplotlib.pyplot import *
 import datetime
