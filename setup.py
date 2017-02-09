@@ -8,6 +8,8 @@ import sys
 import ah_bootstrap
 from setuptools import setup
 
+os.system('pip install pysynphot')
+
 #A dirty hack to get around some early import/configurations ambiguities
 if sys.version_info[0] >= 3:
     import builtins
