@@ -9,6 +9,7 @@ dependencies:
     - matplotlib
     - numpy
     - scipy
+    - numba
 
 #   - pip:
 #       - dependency_from_pip
