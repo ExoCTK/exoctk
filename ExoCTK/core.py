@@ -26,8 +26,6 @@ class Filter(object):
     
     Attributes
     ----------
-    params: dict
-        The metadata for the bandpass
     path: str
         The absolute filepath for the bandpass data, an ASCII file with
         a wavelength column in Angstroms and a response column of values 
@@ -36,7 +34,54 @@ class Filter(object):
         The references for the bandpass data
     rsr: np.ndarray
         The wavelength and relative spectral response (RSR) arrays
-        for the given bandpass
+    Band: str
+        The band name
+    CalibrationReference: str
+        The paper detailing the calibration
+    FWHM:float
+        The FWHM for the filter
+    Facility: str
+        The telescope facility
+    FilterProfileService: str
+        The SVO source
+    MagSys: str
+        The magnitude system
+    PhotCalID: str
+        The calibration standard
+    PhotSystem: str
+        The photometric system
+    ProfileReference: str
+        The SVO reference
+    WavelengthCen: float
+        The center wavelength
+    WavelengthEff: float
+        The effective wavelength
+    WavelengthMax: float
+        The maximum wavelength
+    WavelengthMean: float
+        The mean wavelength
+    WavelengthMin: float
+        The minimum wavelength
+    WavelengthPeak: float
+        The peak wavelength
+    WavelengthPhot: float
+        The photon distribution based effective wavelength
+    WavelengthPivot: float
+        The wavelength pivot
+    WavelengthUCD: str
+        The SVO wavelength unit
+    WavelengthUnit: str
+        The wavelength unit
+    WidthEff: float
+        The effective width
+    ZeroPoint: float
+        The value of the zero point flux
+    ZeroPointType: str
+        The system of the zero point
+    ZeroPointUnit: str
+        The units of the zero point
+    filterID: str
+        The SVO filter ID
     
     """
     def __init__(self, band, filter_directory=''):
@@ -89,11 +134,8 @@ class Filter(object):
             # Convert to microns
             self.rsr *= np.array([[0.0001],[1.]])
             
-            # Store PARAM dict as attribute
-            self.params = {}
-            params = [str(p).split() for p in vot.params]
-            
-            for p in params:
+            # Parse the filter metadata
+            for p in [str(p).split() for p in vot.params]:
                 
                 # Extract the key/value pairs
                 key = p[1].split('"')[1]
@@ -110,9 +152,9 @@ class Filter(object):
                              .replace('&amp;','&')\
                              .strip(';')
                 
-                # Garbage
+                # Set the attribute
                 if key!='Description':
-                    self.params[key] = val
+                    setattr(self, key, val)
             
             # Create some attributes
             self.path = filepath
