@@ -242,7 +242,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
                     # Print the calculation parameters
                     info = r'${}-{}$ $\mu m$'.format(*model_grid.wave_rng)
                     if isinstance(bandpass, core.Filter):
-                        info = bandpass.params['filterID']
+                        info = bandpass.filterID
                     info += '\n'
                     info += ', '.join([r'$c_{}={:.2f}$'.format(n+1,c) 
                                        for n,c in enumerate(coeffs)])
