@@ -1,4 +1,4 @@
-
+from .. import core
 import numpy as np
 import os, json
 import pickle as pkl
@@ -586,8 +586,7 @@ def plot_PlanSpec(specfile, w_unit, disperser, deptherr, nchan, smooth=None, lab
     
     # Smooth model spectrum (optional)
     if smooth != None:
-        import smooth as sm
-        mspec = sm.smooth(mspec, smooth)
+        mspec = core.smooth(mspec, smooth)
     
     # Determine disperser wavelength boundaries
     if disperser == 'g141':
