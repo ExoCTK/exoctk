@@ -624,4 +624,4 @@ def plot_PlanSpec(specfile, w_unit, disperser, deptherr, nchan, smooth=None, lab
     plt.ylabel("Depth (ppm)",size=12)
     plt.tight_layout()
     
-    return
+    return binspec
