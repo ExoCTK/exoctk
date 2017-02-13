@@ -15,13 +15,14 @@ class SetDefaultModes():
     """
 
     def __init__(self, inst):
-        self.instrument = inst[0:inst.find(' ')].lower()
-        self.config = inst[inst.find(' ')+1:len(inst)].lower()   
+        inst, mode = inst.lower().split(' ')
+        self.instrument = inst
+        self.config = mode
     
     def pick(self): 
         try: 
             return getattr(self, self.instrument)()
-        except: 
+        except IOError: 
             print("INVALID INSTRUMENT NAME")
             return 
                                    
