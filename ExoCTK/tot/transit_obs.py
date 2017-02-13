@@ -1,4 +1,4 @@
-from .. import core
+from ExoCTK import core
 import numpy as np
 import os, json
 import pickle as pkl
@@ -28,7 +28,7 @@ class SetDefaultModes():
                                    
     def wfc3(self):
         #wfc3_input
-        with open(os.path.join(os.path.dirname(__file__), "reference",
+        with open(os.path.join(os.path.dirname(__file__), "data",
                                "wfc3_input.json")) as data_file:
             pandeia_data = json.load(data_file)
             pandeia_data["configuration"]["instrument"]["disperser"] = self.config

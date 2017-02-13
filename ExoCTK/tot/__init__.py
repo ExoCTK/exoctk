@@ -1,4 +1,4 @@
 """
-Package to generate limb darkening coefficients from a grid of model spectra
+Package to calculate the optimal time for transiting exoplanet observations
 """
-from . import HST_TExoNS
+from . import transit_obs

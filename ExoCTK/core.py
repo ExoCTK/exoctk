@@ -525,7 +525,8 @@ class References(object):
           The path to the bibtex file from which the references will be read
         
         """
-        bibfile = bibfile or pkg_resources.resource_filename('ExoCTK', 'data/bibtex.bib')
+        bibfile = bibfile or \
+            pkg_resources.resource_filename('ExoCTK', 'data/core/bibtex.bib')
         
         # Attributes for the filepath and references
         self.bibfile = bibfile
