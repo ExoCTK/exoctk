@@ -526,7 +526,7 @@ def calc_StartWindow(eventType, rms, ptsOrbit, numOrbits, depth, inc, aRs, perio
     
     plt.figure(None, figsize=(12,4))
     plt.clf()
-    a=plt.subplot(121)
+    a=plt.subplot(211)
     a.yaxis.set_major_formatter(plt.matplotlib.ticker.FormatStrFormatter('%.4f'))
     plt.title('Earliest Start Phase', size=12)
     plt.errorbar(obsphase1, obstr1, rms, fmt='go')
@@ -535,7 +535,7 @@ def calc_StartWindow(eventType, rms, ptsOrbit, numOrbits, depth, inc, aRs, perio
     xlim1   = plt.xlim()
     plt.ylabel("Normalized Flux", size=12)
     plt.xlabel("Orbital Phase", size=12)
-    b=plt.subplot(122)
+    b=plt.subplot(212)
     b.yaxis.set_major_formatter(plt.matplotlib.ticker.FormatStrFormatter('%.4f'))
     plt.title('Latest Start Phase', size=12)
     plt.errorbar(obsphase2, obstr2, rms, fmt='ro')
