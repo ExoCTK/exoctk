@@ -2,6 +2,7 @@ from ExoCTK import core
 import numpy as np
 import os, json
 import pickle as pkl
+import pkg_resources
 
 class SetDefaultModes():
     """
@@ -22,14 +23,14 @@ class SetDefaultModes():
     def pick(self): 
         try: 
             return getattr(self, self.instrument)()
-        except IOError: 
+        except: 
             print("INVALID INSTRUMENT NAME")
             return 
                                    
     def wfc3(self):
         #wfc3_input
-        with open(os.path.join(os.path.dirname(__file__), "data",
-                               "wfc3_input.json")) as data_file:
+        json_file = pkg_resources.resource_filename('ExoCTK', 'data/tot/wfc3_input.json')
+        with open(json_file) as data_file:
             pandeia_data = json.load(data_file)
             pandeia_data["configuration"]["instrument"]["disperser"] = self.config
         return pandeia_data
