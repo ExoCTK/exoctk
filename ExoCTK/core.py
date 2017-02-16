@@ -472,9 +472,15 @@ class ModelGrid(object):
         """
         Print the ModelGrid attributes
         """
-        for n,v in vars(G).items():
+        for n,v in vars(self).items():
             if type(v) in [int, bytes, bool, str, float, tuple, list]:
                 print('{}: {}'.format(n,v))
+                
+    def reset(self):
+        """
+        Reset the current grid to the original state
+        """
+        self = self.__init__(self.path)
 
 def rebin_spec(spec, wavnew):
     """
