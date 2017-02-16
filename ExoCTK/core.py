@@ -104,6 +104,10 @@ class Filter(object):
         
         # If the filter is missing, ask what to do
         if filepath not in filters:
+            
+            print('Current filters:',
+                  ', '.join([os.path.basename(f) for f in filters]),
+                  '\n')
         
             print('No filters match',filepath)
             dl = input('Would you like me to download it? [y/n] ')
@@ -158,7 +162,10 @@ class Filter(object):
             
             # Create some attributes
             self.path = filepath
-            self.refs = [self.CalibrationReference.split('=')[-1]]
+            try:
+                self.refs = [self.CalibrationReference.split('=')[-1]]
+            except:
+                self.refs = []
             
         # If empty, delete XML file
         except:
