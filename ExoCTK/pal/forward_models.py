@@ -272,8 +272,9 @@ class LineForwardModel(object):
     Forward model as calculated by Mike Line's CHIMERA code.
     """
 
-    def __init__(self, abscoeff_dir):
+    def __init__(self, abscoeff_dir, cea_path=None):
         self.abscoeff_dir = abscoeff_dir
+        self.cea_path = cea_path
 
 
     def __call__(self, Rp=1.359, Rstar=1.155, Mp=0.690, Tirr=1200., logKir=-1.5,
@@ -337,7 +338,7 @@ class LineForwardModel(object):
          1.])  # can be made free params if desired (won't affect mmw)
 
         # Return model spectrum, wavenumber grid, and vertical abundance profiles from chemistry
-        transmission, wnocrop, atm = chimera.fm.fx(x, gas_scale, self.abscoeff_dir)
+        transmission, wnocrop, atm = chimera.fm.fx(x, gas_scale, self.abscoeff_dir, self.cea_path)
         return 1e4/wnocrop, transmission
 
 

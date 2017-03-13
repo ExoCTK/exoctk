@@ -5,4 +5,4 @@ def get_extensions():
                      include_dirs=['numpy', 'ExoCTK/pal/chimera/include'])]
 
 def get_package_data():
-    return {'ExoCTK.pal.chimera': ['include/*']}
+    return {'ExoCTK.pal.chimera': ['include/*', 'data/*']}

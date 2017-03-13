@@ -2,6 +2,7 @@ from . import ctran
 from .thermo import *
 
 # import os
+import sys
 import math
 import numpy as np
 import scipy as sp
@@ -405,7 +406,34 @@ def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
 # 
 # USAGE: 
 #**************************************************************************
-def fx(x, gas_scale, path):
+def fx(x, gas_scale, path, cea_path=None):
+    """
+    Forward model--takes in state vector and returns the binned model points to
+    compare directly to data.
+
+    Be sure to change planet parameters when going to a new planet!
+
+    Parameters
+    ----------
+    x: np.ndarray
+        State vector [Tiso, logKir,logg1, logMet, logCtoO, logPQCarbon,
+        logPQNitrogen, Rp, Rstar, M, RayAmp, RaySlp, logPc]
+    gas_scale: np.ndarray
+        Scaling factors for each gas
+    path: str
+        Path to cross-section files
+
+    Returns
+    -------
+    transmission: np.ndarray
+        The spectrum
+    wavenumber: np.ndarray
+        The wavenumber bins
+    chemarray: np.ndarray
+        The TP-abundance profile for each chemical species.
+
+
+    """
     print(x)
     #print "Entering Fx ", datetime.datetime.now().time()
     #  0    1        2       3     4          5           6          7     8    9       10        11           12        
@@ -439,33 +467,36 @@ def fx(x, gas_scale, path):
     kv=10.**(logg1+logKir)
     kth=10.**logKir
     tp=TP(Tiso, 100,g0 , kv, kv, kth, 0.5)
-    T = interp(logP,np.log10(tp[1]),tp[0])
-    #making courser chemistry grid
-    Pchem=np.append(P[::4],P[-1])
-    Tchem=np.append(T[::4],T[-1])
-    H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr, C2H2arr, C2H6arr, Naarr, 	Karr, TiOarr, VOarr, 	 FeHarr, Harr,H2arr,   		Hearr, MMWarr=thermo(Met, CtoO, Tchem, Pchem,'foo_'+str(random()))
-    
-    # Interoplating back to full grid
-    H2Oarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2Oarr))*gas_scale[0]
-    CH4arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(CH4arr))*gas_scale[1]
-    COarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(COarr))*gas_scale[2]
-    CO2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(CO2arr))*gas_scale[3]
-    NH3arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(NH3arr))*gas_scale[4]
-    N2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(N2arr))*gas_scale[5]
-    HCNarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(HCNarr))*gas_scale[6]
-    H2Sarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2Sarr))*gas_scale[7]
-    PH3arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(PH3arr))*gas_scale[8]
-    C2H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(C2H2arr))*gas_scale[9]
-    C2H6arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(C2H6arr))*gas_scale[10]
-    Naarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Naarr))*gas_scale[11]
-    Karr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Karr))*gas_scale[12]
-    TiOarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(TiOarr))*gas_scale[13]
-    VOarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(VOarr))*gas_scale[14]
-    FeHarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(FeHarr))*gas_scale[15]
-    Harr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Harr))*gas_scale[16]
-    H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2arr))*gas_scale[17]
-    Hearr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Hearr))*gas_scale[18]
-    MMWarr = interp(np.log10(P),np.log10(Pchem), MMWarr)
+
+    if cea_path is not None:
+        T = interp(logP,np.log10(tp[1]),tp[0])
+        #making courser chemistry grid
+        Pchem=np.append(P[::4],P[-1])
+        Tchem=np.append(T[::4],T[-1])
+        H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr, PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr, H2arr, Hearr, MMWarr=thermo(Met, CtoO, Tchem, Pchem,'foo_'+str(random()), cea_path)
+
+        # Interoplating back to full grid
+        H2Oarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2Oarr))*gas_scale[0]
+        CH4arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(CH4arr))*gas_scale[1]
+        COarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(COarr))*gas_scale[2]
+        CO2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(CO2arr))*gas_scale[3]
+        NH3arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(NH3arr))*gas_scale[4]
+        N2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(N2arr))*gas_scale[5]
+        HCNarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(HCNarr))*gas_scale[6]
+        H2Sarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2Sarr))*gas_scale[7]
+        PH3arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(PH3arr))*gas_scale[8]
+        C2H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(C2H2arr))*gas_scale[9]
+        C2H6arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(C2H6arr))*gas_scale[10]
+        Naarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Naarr))*gas_scale[11]
+        Karr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Karr))*gas_scale[12]
+        TiOarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(TiOarr))*gas_scale[13]
+        VOarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(VOarr))*gas_scale[14]
+        FeHarr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(FeHarr))*gas_scale[15]
+        Harr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Harr))*gas_scale[16]
+        H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2arr))*gas_scale[17]
+        Hearr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Hearr))*gas_scale[18]
+        MMWarr = interp(np.log10(P),np.log10(Pchem), MMWarr)
+
     
     #poor mans rain-out
     #TiO/VO rainout hack
@@ -503,21 +534,9 @@ def fx(x, gas_scale, path):
     NH3arr[loc]=NH3arr[loc][-1]
     N2arr[loc]=N2arr[loc][-1]
 
-    '''
-    semilogy(CH4arr, P,label='CH4')
-    semilogx(COarr, P,label='CO')
-    semilogx(NH3arr, P,label='NH3')
-    semilogx(N2arr, P,label='N2')
-    axis([1E-8,1,10,1E-6])
-    xlabel('Mixing Ratio')
-    ylabel('Pressure [bar]')
-    legend()
-    savefig('Equilibrium.pdf',fmt='pdf')
-    close()
-    '''
     mmw = MMWarr
 
-    #wavenumber range oever which to compute spectrum (min 500, max 30000)
+    #wavenumber range over which to compute spectrum (min 500, max 30000)
     wnomin =910#6000
     wnomax =15500. #9800.
 
