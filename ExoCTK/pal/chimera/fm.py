@@ -18,10 +18,28 @@ from scipy import ndimage
 from pickle import *
 from numba import jit
 
-#Computing transmission spectrum----------------------
-#uses correlated-K treatment of opacities
 @jit
 def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Continuum, xsecContinuum):
+    """
+    Calculate transmission with correlated-k method.
+
+    Parameters
+    ----------
+    kcoeffs
+    Z
+    Pavg
+    Tavg
+    Fractions
+    r0
+    gord
+    wts
+    Fractions_Continuum
+    xsecContinuum
+
+    Returns
+    -------
+
+    """
     ngas=Fractions.shape[0]
     nlevels=len(Z)
     nwno=kcoeffs.shape[1]
@@ -69,6 +87,43 @@ def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Contin
 def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alphaNaK, alphaTiO,
          alphaVO, alphaC2H2, alphaHCN, alphaH2S, alphaFeH, fH2, fHe, amp, power, M, Rstar, Rp, 
          wnomin, wnomax, path):
+    """
+    Calculate the transmission.
+
+    Parameters
+    ----------
+    T
+    P
+    mmw
+    Ps
+    Pc
+    alphaH2O
+    alphaCH4
+    alphaCO
+    alphaCO2
+    alphaNH3
+    alphaNaK
+    alphaTiO
+    alphaVO
+    alphaC2H2
+    alphaHCN
+    alphaH2S
+    alphaFeH
+    fH2
+    fHe
+    amp
+    power
+    M
+    Rstar
+    Rp
+    wnomin
+    wnomax
+    path
+
+    Returns
+    -------
+
+    """
     #print "Starting tran at ", datetime.datetime.now().time()
 
     #Convert parameters to proper units
@@ -94,7 +149,7 @@ def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alp
     fNa=fNaK
     fK=fNa*0.05625
     
-    Fractions = np.array([fH2,fHe,fH2O, fCH4, fCO, fCO2, fNH3,fNa,fK,fTiO,fVO,fC2H2,fHCN,fH2S,fFeH])  #gas mole fraction profiles
+    Fractions = np.array([fH2*fH2,fHe*fH2,fH2O, fCH4, fCO, fCO2, fNH3,fNa,fK,fTiO,fVO,fC2H2,fHCN,fH2S,fFeH])  #gas mole fraction profiles
                         #H2Ray, HeRay  Ray General,
     Frac_Cont = np.array([fH2,fHe,fH2*0.+1.])  #continuum mole fraction profiles
     #Load measured cross-sectional values and their corresponding
@@ -187,98 +242,33 @@ def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alp
     F=((r0+np.min(Z[:-1]))/(Rstar*6.955E8))**2+2./(Rstar*6.955E8)**2.*np.dot((1.-t),(r0+Z)*dZ)
     #print "Ending Tran at ", datetime.datetime.now().time()
     return wnocrop, F, Z#, TauOne
-#**************************************************************
-#**************************************************************
-# FILE: gaussfold.py --> re-write of IDL gaussfold.pro
-#
-# DESCRIPTION: Convolves a spectrum with a gaussian kernel
-# INPUTS:
-#	-lam: input wavelength array in any units
-#	-flux: flux array on the lam grid
-#	-FWHM: FWHM of the gaussian to convovle with
-#
-# OUTPUT
-#	-fluxfold: convolved flux array with same dimensions as lam,flux
-# USAGE: >>> array=gaussfold(lam,flux,FWHM)
-#        >>> MAKE SURE lam is in ascending order because of 
-#	     pythons dumb ascending order rule in interpolation
-#
-#**************************************************************
-def gaussfold(lam, flux, fwhm):
-    lammin=min(lam)
-    lammax=max(lam)
-    dlambda=fwhm/17.
-    interlam=np.arange(lammin,lammax,dlambda)
-    interflux=interp(interlam,lam,flux)
-    fwhm_pix=fwhm/dlambda
-    window=math.floor(17*fwhm_pix)
-
-    #constructing a normalized gaussian who's width is FWHM
-    std=0.5*fwhm_pix/math.sqrt(2*math.log(2))
-    gauss1=sp.signal.gaussian(window,std=std)
-    gauss=gauss1/np.trapz(gauss1)
-
-
-    #convovle flux array with gaussian
-    fold=np.convolve(interflux,gauss,mode='same')
-    
-    #interpolate back to original grid
-    fluxfold=interp(lam,interlam,fold)
-    #pdb.set_trace()
-    return fluxfold
-
-#********************************************************************************
-#**************************************************************
-# FILE: tophatfold.py --> re-write of IDL tophatfold.pro
-#
-# DESCRIPTION: Convolves a spectrum with a tophat kernel
-# INPUTS:
-#	-lam: input wavelength array in any units
-#	-flux: flux array on the lam grid
-#	-FWHM: FWHM of the tophat to convovle with
-#
-# OUTPUT
-#	-fluxfold: convolved flux array with same dimensions as lam,flux
-# USAGE: >>> array=tophatfold(lam,flux,FWHM)
-#        >>> MAKE SURE lam is in ascending order because of 
-#	     pythons dumb ascending order rule in interpolation
-#
-#**************************************************************
-
-def tophatfold(lam, flux, fwhm):
-    lammin=min(lam)
-    lammax=max(lam)
-    dlambda=fwhm/17.
-    interlam=np.arange(lammin,lammax,dlambda)
-    interflux=interp(interlam,lam,flux)
-
-    #convovle flux array with gaussian--use smooth
-    fold=sp.ndimage.filters.uniform_filter(interflux,size=17)
-
-    #interpolate back to original grid
-    fluxfold=interp(lam,interlam,fold)
-
-    return fluxfold
-#*******************************************************************
-# FILE: xsects.py
-#
-# DESCRIPTION: This function returns Richard Freedman's cross-sections
-# after "restoring" the IDL save files. 
-#
-# USAGE: >>> from xsects import xsects
-#        >>> xarr = xsects()
-#        >>> P = xarr[0]
-#        >>> ...
-#        >>> xsecarrH2S = xarr[10]
-#
-# RETURNS: (pressure pts, temp points, wavenum points, cross section arrs...
-#    cross section arrs: [pressure][temp][wavenum]
-#*******************************************************************
 
 
 def xsects(path):
-    ### Read in CK arrays
-    # H2H2
+    """
+    Read in cross-section arrays
+
+    Parameters
+    ----------
+    path: str
+        Path to directory with cross-section files
+
+    Returns
+    -------
+    P: np.array
+        Pressure points
+    T: np.ndarray
+        Temperature points
+    wno: np.ndarray
+        Wavenumber points
+    g: np.ndarray
+        g
+    wts: np.ndarray
+        wts
+    chemarray: np.ndarray
+        cross-sections
+    """
+
     if sys.version_info.major >= 3:
         def load_pickle(file):
             # Python 3 tries to encode with ascii by default
@@ -300,69 +290,28 @@ def xsects(path):
     return P, T, wno, g, wts, np.log10(np.array(CKarrs))
 
 
-
-# #**************************************************************
-# # FILE: restore.py
-# #
-# # DESCRIPTION: This class calls the function xsects(), thus
-# # loading the x-sections as global variables.
-# #
-# # USAGE: >>> from restore import restore
-# #        >>> Pgrid = restore.xsects[0]
-# #
-# #**************************************************************
-#
-# class restore():
-#     xsects = xsects()
-
-
-#**************************************************************************
-# FILE:instrument_3.py
-# 
-# DESCRIPTION: This function takes in a temperature (T) and a 
-# wavelength grid (wl) and returns a blackbody flux grid.
-#This is for a NON-UNIFORM wlgrid ugh... 
-#
-# USAGE: 1. Import function ---- '>>> from blackbody import blackbody'
-#        2. Call blackbody.py -- '>>> B = blackbody(T,wl)'
-#**************************************************************************
-def instrument_non_uniform_tophat(wlgrid,wno, Fp):
-    szmod=wlgrid.shape[0]
-
-    delta=np.zeros(szmod)
-    Fint=np.zeros(szmod)
-    delta[0:-1]=wlgrid[1:]-wlgrid[:-1]  
-    delta[szmod-1]=delta[szmod-2] 
-    #pdb.set_trace()
-    for i in range(szmod-1):
-        i=i+1
-        loc=np.where((1E4/wno >= wlgrid[i]-0.5*delta[i-1]) & (1E4/wno < wlgrid[i]+0.5*delta[i]))
-        Fint[i]=np.mean(Fp[loc])
-
-    loc=np.where((1E4/wno > wlgrid[0]-0.5*delta[0]) & (1E4/wno < wlgrid[0]+0.5*delta[0]))
-    Fint[0]=np.mean(Fp[loc])
-    
-    return Fint, Fp
-#**************************************************************************
-
-
-# FILE: TP.py
-#
-# DESCRIPTION: This function takes stellar, planetary, and atmospheric parameters 
-# and returns the temperature-pressure profile.
-#
-# CALLING SEQUENCE: >>> tp = TP(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9])
-#
-# NOTE: run '$ module load python' before running '$ python'
-#
-# Test: >>> x = [0.93,0.598,4400,0.01424,100,10.**3.7,10.**(-2.-2.),10.**(-1-2),10.**(-2),1.]
-#       >>> from TP import TP
-#       >>> tp = TP(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9])
-#       >>> T = tp[0]
-#       >>> P = tp[1]
-#********************************************************************************
-
 def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
+    """
+    This function takes stellar, planetary, and atmospheric parameters and
+    returns the temperature-pressure profile.
+
+    Parameters
+    ----------
+    Teq
+    Teeff
+    g00
+    kv1
+    kv2
+    kth
+    alpha
+
+    Returns
+    -------
+    T: np.ndarray
+        The Temperature in Kelvin
+    P: np.ndarray
+        The Pressure in bar
+    """
     
     
     Teff = Teeff
@@ -394,18 +343,6 @@ def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
     return T, P
 
 
-#**************************************************************************
-
-
-
-# FILE:fx.py
-# 
-# DESCRIPTION: Forward model--takes in state vector and
-# returns the binned model points to compare directly to data
-# Be sure to change planet parameters when going to a new planet!
-# 
-# USAGE: 
-#**************************************************************************
 def fx(x, gas_scale, path, cea_path=None):
     """
     Forward model--takes in state vector and returns the binned model points to
@@ -422,6 +359,8 @@ def fx(x, gas_scale, path, cea_path=None):
         Scaling factors for each gas
     path: str
         Path to cross-section files
+    cea_path: str
+        Path to a CEA executable to compute abundances on the fly
 
     Returns
     -------
@@ -434,7 +373,6 @@ def fx(x, gas_scale, path, cea_path=None):
 
 
     """
-    print(x)
     #print "Entering Fx ", datetime.datetime.now().time()
     #  0    1        2       3     4          5           6          7     8    9       10        11           12        
     #Tiso, logKir,logg1, logMet, logCtoO, logPQCarbon,logPQNitrogen, Rp, Rstar, M,   RayAmp    RaySlp        logPc
