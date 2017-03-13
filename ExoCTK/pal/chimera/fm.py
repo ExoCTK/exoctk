@@ -4,6 +4,7 @@ from .thermo import *
 # import os
 import sys
 import math
+from astropy.io import fits
 import numpy as np
 import scipy as sp
 # from array import *
@@ -11,6 +12,7 @@ import scipy as sp
 from scipy import signal
 from scipy import special
 from scipy import interp
+from scipy.interpolate import interpn
 from scipy import ndimage
 # import pdb
 # from matplotlib.pyplot import *
@@ -343,7 +345,7 @@ def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
     return T, P
 
 
-def fx(x, gas_scale, path, cea_path=None):
+def fx(x, gas_scale, xsects_path, cea_path=None, abund_path=None):
     """
     Forward model--takes in state vector and returns the binned model points to
     compare directly to data.
@@ -405,12 +407,12 @@ def fx(x, gas_scale, path, cea_path=None):
     kv=10.**(logg1+logKir)
     kth=10.**logKir
     tp=TP(Tiso, 100,g0 , kv, kv, kth, 0.5)
+    T = interp(logP, np.log10(tp[1]), tp[0])
+    Pchem = np.append(P[::4], P[-1])
+    Tchem = np.append(T[::4], T[-1])
 
     if cea_path is not None:
-        T = interp(logP,np.log10(tp[1]),tp[0])
         #making courser chemistry grid
-        Pchem=np.append(P[::4],P[-1])
-        Tchem=np.append(T[::4],T[-1])
         H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr, PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr, H2arr, Hearr, MMWarr=thermo(Met, CtoO, Tchem, Pchem,'foo_'+str(random()), cea_path)
 
         # Interoplating back to full grid
@@ -434,8 +436,80 @@ def fx(x, gas_scale, path, cea_path=None):
         H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2arr))*gas_scale[17]
         Hearr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Hearr))*gas_scale[18]
         MMWarr = interp(np.log10(P),np.log10(Pchem), MMWarr)
+        print(MMWarr.shape)
 
-    
+    elif abund_path is not None:
+        pts = np.zeros((T.shape[0], 4))
+        pts[:,0] += Met
+        pts[:,1] += CtoO
+        pts[:,2] = P
+        pts[:,3] = T
+        print(pts)
+        hdul = fits.open(abund_path)
+        H2Oarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['H2O'].data, pts) * gas_scale[0]
+        CH4arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['CH4'].data, pts) * gas_scale[1]
+        COarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['CO'].data, pts) * gas_scale[2]
+        CO2arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['CO2'].data, pts) * gas_scale[3]
+        NH3arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['NH3'].data, pts) * gas_scale[4]
+        N2arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['N2'].data, pts) * gas_scale[5]
+        HCNarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['HCN'].data, pts)*gas_scale[6]
+        H2Sarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['H2S'].data, pts)*gas_scale[7]
+        PH3arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['PH3'].data, pts)*gas_scale[8]
+        C2H2arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['C2H2'].data, pts) * gas_scale[9]
+        C2H6arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['C2H6'].data, pts) * gas_scale[10]
+        Naarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['Na'].data, pts) * gas_scale[11]
+        Karr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['K'].data, pts) * gas_scale[12]
+        TiOarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['TiO'].data, pts) * gas_scale[13]
+        VOarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['VO'].data, pts) * gas_scale[14]
+        FeHarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['FeH'].data, pts) * gas_scale[15]
+        Harr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['H'].data, pts)*gas_scale[16]
+        H2arr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['H2'].data, pts) * gas_scale[17]
+        Hearr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['He'].data, pts) * gas_scale[18]
+        MMWarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
+                          hdul['P_grid'].data, hdul['T_grid'].data),
+                         hdul['MMW'].data, pts)
+
+    else:
+        raise ValueError('must specify either cea_path or abund_path')
+
     #poor mans rain-out
     #TiO/VO rainout hack
     if np.min(TiOarr) < 1E-12:
@@ -487,7 +561,7 @@ def fx(x, gas_scale, path, cea_path=None):
     #computing transmission spectrum
     spec = tran(T, P, mmw, Pref, Pc, H2Oarr, CH4arr, COarr, CO2arr, NH3arr, Naarr+Karr, TiOarr, 
                 VOarr, C2H2arr, HCNarr, H2Sarr, FeHarr, H2arr, Hearr, RayAmp, RaySlp, M, Rstar, 
-                Rp, wnomin, wnomax, path)
+                Rp, wnomin, wnomax, xsects_path)
     wnocrop = spec[0]
     F = spec[1]
     #print "Exiting Fx ", datetime.datetime.now().time()
