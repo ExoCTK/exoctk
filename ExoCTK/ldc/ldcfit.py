@@ -184,13 +184,13 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, bandpas
                 # Calculate limb darkening, I[mu]/I[1] vs. mu
                 ld = mean_i/mean_i[np.where(mu==1)]
                 
-                # Rescale mu values. Spherical Phoenix models extend beyond limb
+                # Rescale mu values to make f(mu=0)=ld_min
+                # for the case where spherical models extend beyond limb
                 muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
                 mu = (mu-muz)/(1-muz)
-                #mu = mu[mu>0]
-                mu_raw = mu.copy()
                 
                 # Trim to useful mu range
+                mu_raw = mu.copy()
                 imu = np.where(mu>mu_min)
                 mu, ld = mu[imu], ld[imu]
                 
