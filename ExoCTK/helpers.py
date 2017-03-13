@@ -27,6 +27,8 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
     """
     Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
     
+    ACES models are in [erg/s/cm2/cm] whereas ATLAS9 models are in [erg/cm2/s/hz/ster]
+    
     Parameters
     ----------
     filepath: str

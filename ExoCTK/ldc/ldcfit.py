@@ -11,7 +11,10 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
-from .. import core
+try:
+    from .. import core
+except:
+    from ExoCTK import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -91,7 +94,7 @@ def ld_profile(name='quadratic'):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='', 
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, bandpass='', 
         plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
@@ -118,6 +121,8 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
         'logarithmic', 'exponential', and 'nonlinear'
     mu_min: float
         The minimum mu value to consider
+    ld_min: float
+        The minimum limb darkening value to consider
     bandpass: core.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
@@ -180,7 +185,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
                 ld = mean_i/mean_i[np.where(mu==1)]
                 
                 # Rescale mu values. Spherical Phoenix models extend beyond limb
-                muz = np.interp(0.01, ld, mu)
+                muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
                 mu = (mu-muz)/(1-muz)
                 #mu = mu[mu>0]
                 mu_raw = mu.copy()
