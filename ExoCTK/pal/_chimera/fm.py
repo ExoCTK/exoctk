@@ -88,7 +88,7 @@ def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Contin
 
 def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alphaNaK, alphaTiO,
          alphaVO, alphaC2H2, alphaHCN, alphaH2S, alphaFeH, fH2, fHe, amp, power, M, Rstar, Rp, 
-         wnomin, wnomax, path):
+         wnomin, wnomax, Pgrid, Tgrid, wno, gord, wts, xsecarr):
     """
     Calculate the transmission.
 
@@ -156,7 +156,7 @@ def tran(T, P, mmw, Ps, Pc, alphaH2O, alphaCH4, alphaCO, alphaCO2, alphaNH3, alp
     Frac_Cont = np.array([fH2,fHe,fH2*0.+1.])  #continuum mole fraction profiles
     #Load measured cross-sectional values and their corresponding
     #T,P,and wno grids on which they were measured
-    Pgrid, Tgrid, wno, gord, wts, xsecarr = xsects(path)
+     # = xsects(path)
     # Pgrid = restore.xsects[0]
     # Tgrid = restore.xsects[1]
     # wno = restore.xsects[2]
@@ -267,7 +267,7 @@ def xsects(path):
         g
     wts: np.ndarray
         wts
-    chemarray: np.ndarray
+    xsecarr: np.ndarray
         cross-sections
     """
 
@@ -345,7 +345,7 @@ def TP(Teq, Teeff, g00, kv1, kv2, kth, alpha):
     return T, P
 
 
-def fx(x, gas_scale, xsects_path, cea_path=None, abund_path=None):
+def fx(x, gas_scale, Pgrid, Tgrid, wno, gord, wts, xsecarr, cea_path=None, abund_path=None):
     """
     Forward model--takes in state vector and returns the binned model points to
     compare directly to data.
@@ -561,7 +561,7 @@ def fx(x, gas_scale, xsects_path, cea_path=None, abund_path=None):
     #computing transmission spectrum
     spec = tran(T, P, mmw, Pref, Pc, H2Oarr, CH4arr, COarr, CO2arr, NH3arr, Naarr+Karr, TiOarr, 
                 VOarr, C2H2arr, HCNarr, H2Sarr, FeHarr, H2arr, Hearr, RayAmp, RaySlp, M, Rstar, 
-                Rp, wnomin, wnomax, xsects_path)
+                Rp, wnomin, wnomax, Pgrid, Tgrid, wno, gord, wts, xsecarr)
     wnocrop = spec[0]
     F = spec[1]
     #print "Exiting Fx ", datetime.datetime.now().time()
