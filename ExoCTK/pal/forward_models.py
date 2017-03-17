@@ -1,10 +1,10 @@
 """
 Module providing interfaces to atmospheric forward model generators.
 """
-from . import chimera
+from . import _chimera
 
 import numpy as np
-from scipy.optimize import least_squares
+from scipy.optimize import minimize
 
 class LineForwardModel(object):
     """
@@ -91,7 +91,7 @@ class LineForwardModel(object):
          1.])  # can be made free params if desired (won't affect mmw)
 
         # Return model spectrum, wavenumber grid, and vertical abundance profiles from chemistry
-        transmission, wnocrop, atm = chimera.fm.fx(x, gas_scale, self.abscoeff_dir, cea_path=self.cea_path, abund_path=self.abund_path)
+        transmission, wnocrop, atm = _chimera.fm.fx(x, gas_scale, self.abscoeff_dir, cea_path=self.cea_path, abund_path=self.abund_path)
         return 1e4/wnocrop, transmission
 
     def loglikelihood(self, p, y_meas, err):
@@ -112,7 +112,7 @@ class LineForwardModel(object):
         loglikelihood: float
 
         """
-        _, y_meas = self.__call__(*p)
+        _, y_mod = self.__call__(*p)
         lnlike = -0.5 * np.sum((y_meas - y_mod) ** 2 / err ** 2)
         return lnlike
 
@@ -138,5 +138,5 @@ class LineForwardModel(object):
             p_init = [1.359, 1.155, 0.690, 1200., -1.5, -1, 0., -0.26, -5,
                   -5, 0., 4., 1.5]
 
-        result = least_squares(self.loglikelihood, p_init, args=(y_meas, err))
-        return result.x
+        result = minimize(lambda p: -self.loglikelihood(p, y_meas, err), p_init)
+        return result
