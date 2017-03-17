@@ -4,7 +4,7 @@ Module providing interfaces to atmospheric forward model generators.
 from . import _chimera
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import least_squares
 
 class LineForwardModel(object):
     """
@@ -28,6 +28,7 @@ class LineForwardModel(object):
         self.abscoeff_dir = abscoeff_dir
         self.cea_path = cea_path
         self.abund_path = abund_path
+        self.Pgrid, self.Tgrid, self.wno, self.gord, self.wts, self.xsecarr = _chimera.fm.xsects(self.abscoeff_dir)
 
 
     def __call__(self, Rp=1.359, Rstar=1.155, Mp=0.690, Tirr=1200., logKir=-1.5,
@@ -90,13 +91,19 @@ class LineForwardModel(object):
         [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
          1.])  # can be made free params if desired (won't affect mmw)
 
-        # Return model spectrum, wavenumber grid, and vertical abundance profiles from chemistry
-        transmission, wnocrop, atm = _chimera.fm.fx(x, gas_scale, self.abscoeff_dir, cea_path=self.cea_path, abund_path=self.abund_path)
+        # Return model spectrum, wavenumber grid, and vertical abundance
+        # profiles from chemistry
+        transmission, wnocrop, atm = _chimera.fm.fx(x, gas_scale, self.Pgrid,
+                                                    self.Tgrid, self.wno,
+                                                    self.gord, self.wts,
+                                                    self.xsecarr,
+                                                    cea_path=self.cea_path,
+                                                    abund_path=self.abund_path)
         return 1e4/wnocrop, transmission
 
-    def loglikelihood(self, p, y_meas, err):
+    def residuals(self, p, y_meas, err):
         """
-        the Log-likelihood a forward model describes the data.
+        the residuals between a forward model and some observed data.
 
         Parameters
         ----------
@@ -113,8 +120,8 @@ class LineForwardModel(object):
 
         """
         _, y_mod = self.__call__(*p)
-        lnlike = -0.5 * np.sum((y_meas - y_mod) ** 2 / err ** 2)
-        return lnlike
+        res = (y_meas - y_mod) / err
+        return res
 
     def fit(self, y_meas, err, p_init=None):
         """
@@ -138,5 +145,6 @@ class LineForwardModel(object):
             p_init = [1.359, 1.155, 0.690, 1200., -1.5, -1, 0., -0.26, -5,
                   -5, 0., 4., 1.5]
 
-        result = minimize(lambda p: -self.loglikelihood(p, y_meas, err), p_init)
+        # Minimizing so need the negative log-likelihood
+        result = least_squares(self.residuals, p_init, args=(y_meas, err))
         return result
