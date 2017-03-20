@@ -25,14 +25,15 @@ env:
         # The following versions are the 'default' for tests, unless
         # overidden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
+        - MAIN_CMD='python setup.py'
         - ASTROPY_VERSION=stable
         - SETUP_CMD='test'
-        - PIP_DEPENDENCIES='sphinx_automodapi sphinx_rtd_theme bibtexparser'
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
         - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot'
+        - PIP_DEPENDENCIES='sphinx_automodapi sphinx_rtd_theme bibtexparser'
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='install'
