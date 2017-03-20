@@ -19,9 +19,6 @@ addons:
             - graphviz
             - texlive-latex-extra
             - dvipng
-            - gcc
-            - python-scipy
-            - pysynphot
 
 env:
     global:
@@ -38,14 +35,14 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='Cython'
+        - CONDA_DEPENDENCIES='numpy scipy cython numba pysynphot matplotlib astropy'
 
         # Conda packages for affiliated packages are hosted in channel
         # "astropy" while builds for astropy LTS with recent numpy versions
         # are in astropy-ci-extras. If your package uses either of these,
         # add the channels to CONDA_CHANNELS along with any other channels
         # you want to use.
-        - CONDA_CHANNELS='astropy-ci-extras astropy'
+        - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras astropy'
 
         # If there are matplotlib or other GUI tests, uncomment the following
         # line to use the X virtual framebuffer.
@@ -118,7 +115,7 @@ matrix:
           env: MAIN_CMD='pycodestyle ExoCTK --count' SETUP_CMD=''
 
 before_install:
-    - git clone git://github.com/spacetelescope/pysynphot.git
+    # - git clone git://github.com/spacetelescope/pysynphot.git
 
 install:
 
@@ -134,9 +131,6 @@ install:
     # commands in the install: section below.
 
     - pip install --upgrade pip 
-    - brew install gcc
-    - brew install llvm
-    - conda install numba
     - git clone git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
 
