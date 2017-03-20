@@ -90,9 +90,10 @@ def ld_profile(name='quadratic', latex=False):
                           - c3*(1.-m**1.5) - c4*(1.-m**2)
         
         if latex:
-            profile = inspect.getsource(profile).replace('\n','').replace('\\','')
-                      .split('return ')[1].replace('**','^')
-                      .replace('m','\mu').replace(' ','')
+            profile = inspect.getsource(profile).replace('\n','')
+            profile = profile.replace('\\','').split('return ')[1]
+            profile = profile.replace('**','^').replace('m','\mu')
+            profile = profile.replace(' ','')
         
         return profile
         
@@ -101,8 +102,8 @@ def ld_profile(name='quadratic', latex=False):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, bandpass='', 
-        plot=False, **kwargs):
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, 
+        bandpass='', plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
