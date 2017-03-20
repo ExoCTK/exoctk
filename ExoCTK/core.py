@@ -97,16 +97,14 @@ class Filter(object):
             
         """
         # Get list of filters
-        filterdir = filter_directory or \
-                    pkg_resources.resource_filename('ExoCTK', 'data/filters/')
-        filters = glob(filterdir+'*')
-        filepath = filterdir+band
+        filters = filter_list(filter_directory) if filter_directory else filter_list()
+        filepath = filters['path']+band
         
         # If the filter is missing, ask what to do
-        if filepath not in filters:
+        if filepath not in filters['files']:
             
             print('Current filters:',
-                  ', '.join([os.path.basename(f) for f in filters]),
+                  ', '.join(filters['bands']),
                   '\n')
         
             print('No filters match',filepath)
@@ -122,7 +120,7 @@ class Filter(object):
                 
                 # Download the XML (VOTable) file
                 baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
-                filepath = filterdir+os.path.basename(band)
+                filepath = filter_directory+os.path.basename(band)
                 _ = urllib.request.urlretrieve(baseURL+band, filepath)
                 
                 # Print the new filepath
@@ -213,7 +211,35 @@ class Filter(object):
         binned = binned.reshape(bin_dims)
         
         return binned
+    
+    def info(self):
+        """
+        Print a table of info about the current filter
+        """
+        # Get the info from the class 
+        info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, (int,float,str,bytes))]
         
+        # Print a nice table
+        at.Table(np.asarray(info).reshape(len(info),2), names=['Attributes','Values']).pprint(max_width=500, align=['>','<'])
+        
+def filter_list(filter_directory=pkg_resources.resource_filename('ExoCTK', 'data/filters/')):
+    """
+    Get a list of the available filters
+    
+    Parameters
+    ----------
+    filter_directory: str
+        The directory containing the filter relative spectral response curves
+    
+    Returns
+    -------
+    list
+        The list of band names
+    """
+    files = glob(filter_directory+'*')
+    bands = [os.path.basename(b) for b in files]
+    
+    return {'files':files, 'bands':bands, 'path':filter_directory}
 
 class ModelGrid(object):
     """

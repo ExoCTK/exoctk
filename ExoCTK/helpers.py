@@ -27,6 +27,8 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
     """
     Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
     
+    ACES models are in [erg/s/cm2/cm] whereas ATLAS9 models are in [erg/cm2/s/hz/ster]
+    
     Parameters
     ----------
     filepath: str
@@ -42,7 +44,7 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
     # Get the indexes of each log(g) chunk
     start = []
     for idx,l in enumerate(L):
-        if l.startswith('EFF'):
+        if l.startswith('TEFF'):
             start.append(idx)
     
     # Break up into chunks
@@ -65,13 +67,17 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
         
         # Fix column spacing
         for n,l in enumerate(data):
-            data[n] = l[:18]+' '+' '.join([l[idx:idx+6] for idx in np.arange(18,len(l),6)])
-            
+            data[n] = l[:19]+' '+' '.join([l[idx:idx+6] for idx in np.arange(19,len(l),6)])
+        
+        # Get cols and data
         cols = ['wl']+L[idx+2].strip().split()
         data = ascii.read(data, names=cols)
 
         # Put intensity array for each mu value in a cube
         data_cube = np.array([data[cols][n] for n in cols[1:]])[::-1]
+        
+        # Convert the flux values
+        data_cube[:-1] *= data_cube[-1]/100000.
 
         # mu values
         mu = list(map(float,cols[1:]))[::-1]
@@ -116,3 +122,4 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
         fits.HDUList(HDU).writeto(new_file, clobber=True)
         
         HDU.close()
+

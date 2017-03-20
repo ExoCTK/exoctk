@@ -11,12 +11,15 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
-from .. import core
+try:
+    from .. import core
+except:
+    from ExoCTK import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
     
-def ld_profile(name='quadratic'):
+def ld_profile(name='quadratic', latex=False):
     """
     Define the function to fit the limb darkening profile
     
@@ -28,17 +31,19 @@ def ld_profile(name='quadratic'):
     name: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', '3-parameter', and 'nonlinear'
+        'logarithmic', 'exponential', '3-parameter', and '4-parameter'
+    latex: bool
+        Return the function as a LaTeX formatted string
         
     Returns
     -------
-    function
+    function, str
         The corresponding function for the given profile
         
     """
     # Supported profiles a la BATMAN
     names = ['uniform','linear','quadratic','square-root',
-             'logarithmic','exponential','3-parameter','nonlinear']
+             'logarithmic','exponential','3-parameter','4-parameter']
     
     # Check that the profile is supported
     if name in names:
@@ -78,11 +83,17 @@ def ld_profile(name='quadratic'):
             def profile(m, c1, c2, c3):
                 return 1. -  c1*(1.-m) - c2*(1.-m**1.5) - c3*(1.-m**2)
         
-        # Nonlinear
-        if name=='nonlinear':
+        # 4-parameter
+        if name=='4-parameter':
             def profile(m, c1, c2, c3, c4):
                 return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
                           - c3*(1.-m**1.5) - c4*(1.-m**2)
+        
+        if latex:
+            profile = inspect.getsource(profile).replace('\n','')
+            profile = profile.replace('\\','').split('return ')[1]
+            profile = profile.replace('**','^').replace('m','\mu')
+            profile = profile.replace(' ','')
         
         return profile
         
@@ -91,8 +102,8 @@ def ld_profile(name='quadratic'):
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='', 
-        plot=False, **kwargs):
+def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, 
+        bandpass='', plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -115,9 +126,11 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
     profile: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', and 'nonlinear'
+        'logarithmic', 'exponential', and '4-parameter'
     mu_min: float
         The minimum mu value to consider
+    ld_min: float
+        The minimum limb darkening value to consider
     bandpass: core.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
@@ -179,13 +192,13 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, bandpass='',
                 # Calculate limb darkening, I[mu]/I[1] vs. mu
                 ld = mean_i/mean_i[np.where(mu==1)]
                 
-                # Rescale mu values. Spherical Phoenix models extend beyond limb
-                muz = np.interp(0.01, ld, mu)
+                # Rescale mu values to make f(mu=0)=ld_min
+                # for the case where spherical models extend beyond limb
+                muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
                 mu = (mu-muz)/(1-muz)
-                #mu = mu[mu>0]
-                mu_raw = mu.copy()
                 
                 # Trim to useful mu range
+                mu_raw = mu.copy()
                 imu = np.where(mu>mu_min)
                 mu, ld = mu[imu], ld[imu]
                 
@@ -302,7 +315,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05, plot=False, **kwargs
     profile: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', and 'nonlinear'
+        'logarithmic', 'exponential', and '4-parameter'
     write_to: str
         The path and filename to write the results to
     mu_min: float
