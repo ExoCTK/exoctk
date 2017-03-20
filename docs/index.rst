@@ -1,11 +1,28 @@
-***********************************
-Exoplanet Characterization Tool Kit
-***********************************
+.. raw:: html
 
-This is the documentation for the Exoplanet Characterization Tool Kit.
+    <style media="screen" type="text/css">
+      h1 { display:none; }
+    </style>
+.. image:: ../ExoCTK/data/images/ExoCTK_logo.png
 
-Modules
-=======
+############################
+ExoCTK Package Documentation
+############################
+
+Welcome to the ExoCTK documentation! The Exoplanet Characterization Toolkit (ExoCTK) is an open-source, modular data
+analysis package focused primarily on atmospheric characterization of exoplanets.
+
+******************
+User Documentation
+******************
+
+**Limb Darkening Calculator (LDC)**
+
+.. toctree::
+   :maxdepth: 1
+
+   ldc/ldcfit/index
+   ldc/ldcplot/index
 
 **Planetary Atmospheres Libraries and Tools (PAL)**
 
@@ -14,7 +31,9 @@ Modules
 
    pal/forward_models
 
-.. automodapi:: ExoCTK.core
-.. automodapi:: ExoCTK.ldc.ldcfit
-.. automodapi:: ExoCTK.ldc.ldcplot
-.. automodapi:: ExoCTK.pal.exotransmit
+**Nuts and bolts of ExoCTK**
+
+.. toctree::
+   :maxdepth: 1
+
+   core/index
