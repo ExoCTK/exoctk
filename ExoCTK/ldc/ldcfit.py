@@ -71,12 +71,12 @@ def ld_profile(name='quadratic', latex=False):
         # Logarithmic
         if name=='logarithmic':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*m*(1.-log(m))
+                return 1. - c1*(1.-m) - c2*m*(1.-np.log(m))
             
         # Exponential
         if name=='exponential':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2/(1.-e**m)
+                return 1. - c1*(1.-m) - c2/(1.-np.e**m)
         
         # 3-parameter
         if name=='3-parameter':
@@ -93,7 +93,7 @@ def ld_profile(name='quadratic', latex=False):
             profile = inspect.getsource(profile).replace('\n','')
             profile = profile.replace('\\','').split('return ')[1]
             profile = profile.replace('**','^').replace('m','\mu')
-            profile = profile.replace(' ','')
+            profile = profile.replace(' ','').replace('np.','\\')
         
         return profile
         
