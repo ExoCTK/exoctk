@@ -126,7 +126,7 @@ class LineForwardModel(object):
     def fit(self, y_meas, err, p_init=None):
         """
         Calculate the Maximum Likelihood Estimate model for an observed spectrum
-        using the Levenberg–Marquardt algorithm.
+        using the Levenberg-Marquardt algorithm.
 
         Parameters
         ----------
