@@ -19,7 +19,7 @@ except:
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
     
-def ld_profile(name='quadratic'):
+def ld_profile(name='quadratic', latex=False):
     """
     Define the function to fit the limb darkening profile
     
@@ -31,17 +31,19 @@ def ld_profile(name='quadratic'):
     name: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', '3-parameter', and 'nonlinear'
+        'logarithmic', 'exponential', '3-parameter', and '4-parameter'
+    latex: bool
+        Return the function as a LaTeX formatted string
         
     Returns
     -------
-    function
+    function, str
         The corresponding function for the given profile
         
     """
     # Supported profiles a la BATMAN
     names = ['uniform','linear','quadratic','square-root',
-             'logarithmic','exponential','3-parameter','nonlinear']
+             'logarithmic','exponential','3-parameter','4-parameter']
     
     # Check that the profile is supported
     if name in names:
@@ -81,11 +83,16 @@ def ld_profile(name='quadratic'):
             def profile(m, c1, c2, c3):
                 return 1. -  c1*(1.-m) - c2*(1.-m**1.5) - c3*(1.-m**2)
         
-        # Nonlinear
-        if name=='nonlinear':
+        # 4-parameter
+        if name=='4-parameter':
             def profile(m, c1, c2, c3, c4):
                 return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
                           - c3*(1.-m**1.5) - c4*(1.-m**2)
+        
+        if latex:
+            profile = inspect.getsource(profile).replace('\n','').replace('\\','')
+                      .split('return ')[1].replace('**','^')
+                      .replace('m','\mu').replace(' ','')
         
         return profile
         
@@ -118,7 +125,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, bandpas
     profile: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', and 'nonlinear'
+        'logarithmic', 'exponential', and '4-parameter'
     mu_min: float
         The minimum mu value to consider
     ld_min: float
@@ -307,7 +314,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05, plot=False, **kwargs
     profile: str
         The name of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
-        'logarithmic', 'exponential', and 'nonlinear'
+        'logarithmic', 'exponential', and '4-parameter'
     write_to: str
         The path and filename to write the results to
     mu_min: float
