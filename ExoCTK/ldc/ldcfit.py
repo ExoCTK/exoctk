@@ -18,7 +18,7 @@ except:
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
-    
+   
 def ld_profile(name='quadratic', latex=False):
     """
     Define the function to fit the limb darkening profile
@@ -71,12 +71,12 @@ def ld_profile(name='quadratic', latex=False):
         # Logarithmic
         if name=='logarithmic':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*m*(1.-log(m))
+                return 1. - c1*(1.-m) - c2*m*(1.-np.log(m))
             
         # Exponential
         if name=='exponential':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2/(1.-e**m)
+                return 1. - c1*(1.-m) - c2/(1.-np.e**m)
         
         # 3-parameter
         if name=='3-parameter':
@@ -92,8 +92,10 @@ def ld_profile(name='quadratic', latex=False):
         if latex:
             profile = inspect.getsource(profile).replace('\n','')
             profile = profile.replace('\\','').split('return ')[1]
-            profile = profile.replace('**','^').replace('m','\mu')
-            profile = profile.replace(' ','')
+            
+            for i,j in [('**','^'),('m','\mu'),(' ',''),('np.','\\'),
+                        ('0.5','{0.5}'),('1.5','{1.5}')]:
+                profile = profile.replace(i,j)
         
         return profile
         
