@@ -69,4 +69,4 @@ TOT is a transiting exoplanet noise simulator. The current implementation scales
 .. |docs| image:: https://readthedocs.org/projects/docs/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
-    :target: http://exoctk.readthedocs.io/en/latest/index.html
+    :target: http://exoctk.readthedocs.io/en/latest/
