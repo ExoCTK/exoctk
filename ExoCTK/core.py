@@ -5,7 +5,6 @@ A module for classes and functions used across all ExoCTK subpackages
 """
 from glob import glob
 from astropy.io import fits
-from pysynphot import spectrum, observation
 from astropy.utils.exceptions import AstropyWarning
 import bibtexparser as bt
 import astropy.table as at
@@ -508,7 +507,7 @@ class ModelGrid(object):
         """
         self = self.__init__(self.path)
 
-def rebin_spec(spec, wavnew):
+def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     """
     Rebin a spectrum to a new wavelength array while preserving 
     the total flux
@@ -526,15 +525,32 @@ def rebin_spec(spec, wavnew):
         The rebinned flux
     
     """
-    # Put arrays into spectrum objects
-    flx = spectrum.ArraySourceSpectrum(wave=spec[0], flux=spec[1])
-    filt = spectrum.ArraySpectralElement(spec[0], np.ones(len(spec[0])))
-    
-    # Bin the flux
-    binned = observation.Observation(flx, filt, binset=wavnew, force='taper').binflux
-    
-    return binned
+    wave, flux = spec
+    nlam = len(wave)
+    x0 = np.arange(nlam, dtype=float)
+    x0int = np.arange((nlam-1.)*oversamp + 1., dtype=float)/oversamp
+    w0int = np.interp(x0int, x0, wave)
+    spec0int = np.interp(w0int, wave, flux)/oversamp
 
+    # Set up the bin edges for down-binning
+    maxdiffw1 = np.diff(wavnew).max()
+    w1bins = np.concatenate(([wavnew[0]-maxdiffw1], .5*(wavnew[1::]+wavnew[0:-1]), [wavnew[-1]+maxdiffw1]))
+    
+    # Bin down the interpolated spectrum:
+    w1bins = np.sort(w1bins)
+    nbins = len(w1bins)-1
+    specnew = np.zeros(nbins)
+    inds2 = [[w0int.searchsorted(w1bins[ii], side='left'), w0int.searchsorted(w1bins[ii+1], side='left')] for ii in range(nbins)]
+
+    for ii in range(nbins):
+        specnew[ii] = np.sum(spec0int[inds2[ii][0]:inds2[ii][1]])
+    
+    if plot:
+        plt.figure()
+        plt.plot(wave, flux, c='b')    
+        plt.plot(wavnew, specnew, c='r')
+        
+    return specnew
 
 class References(object):
     """
