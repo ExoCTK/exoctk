@@ -14,6 +14,6 @@ from ._astropy_init import *
 if not _ASTROPY_SETUP_:
     from .core import *
     from . import ldc
-    from . import pal
+    # from . import pal
     from . import tot
 # from . import bar

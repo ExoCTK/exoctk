@@ -9,13 +9,68 @@ import numpy as np
 import os
 import copy
 import inspect
+from bokeh.plotting import figure
 from matplotlib import rc, cm
 from astropy.io import fits
-from .. import core
-from . import ldcfit
+try:
+    from .. import core
+except:
+    from ExoCTK import core
+try:
+    from . import ldcfit
+except:
+    from ExoCTK.ldc import ldcfit
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
+
+def ld_plot(coeffs, ldfunc, fig=None, params=[], **kwargs):
+    """
+    Make a LD plot in Bokeh
+    
+    Parameters
+    ----------
+    
+    """
+    # Evaluate the limb darkening profile
+    mu_vals = np.linspace(0, 1, 1000)
+    ld_vals = ldfunc(mu_vals, *coeffs)
+    
+    # Plot stuff
+    label = ', '.join(map(str,params))
+    
+    if not fig or fig==True:
+        
+        fig = plt.figure(figsize=(10,4))
+        
+    # Is it a matplotlib plot?
+    if isinstance(fig, matplotlib.figure.Figure):
+        
+        # Make axes
+        ax = fig.add_subplot(111)
+        
+        # Draw the curve
+        p = ax.plot(mu_vals, ld_vals, label=label, **kwargs)
+        color = p[0].get_color()
+        
+        # Plot the mu_values
+        # try:
+        #     ld_raw = np.mean(flux, axis=1)/np.mean(flux, axis=1)[np.where(mu_raw==1)]
+        #     ld_err = np.std(flux, axis=1)/np.std(flux, axis=1)[np.where(mu_raw==1)]
+        #     ax.errorbar(mu_raw, ld_raw, yerr=ld_err, c=color, ls='None', marker='o',
+        #              markeredgecolor=color, markerfacecolor='None')
+        #
+        # except:
+        #     pass
+        
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+    
+    # Otherwise it mush be bokeh!
+    else:
+        
+        fig.line(mu_vals, ld_vals, legend=label)
+        
 
 def ld_v_mu(model_grid, compare, profiles=('quadratic','nonlinear'), **kwargs):
     """

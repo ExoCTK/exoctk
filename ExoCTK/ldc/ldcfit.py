@@ -12,6 +12,10 @@ from matplotlib import rc
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
 try:
+    from . import ldcplot as lp
+except:
+    import ldcplot as lp
+try:
     from .. import core
 except:
     from ExoCTK import core
@@ -136,7 +140,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
     bandpass: core.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
-    plot: bool, matplotlib.figure.Figure
+    plot: bool, matplotlib.figure.Figure, bokeh.plotting.figure.Figure
         Plot mu vs. limb darkening for this model in an existing
         figure or in a new figure
     
@@ -247,50 +251,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
                 
             if plot:
                 
-                # Make a new figure if necessary
-                if not isinstance(plot, plt.Figure):
-                    fig = plt.figure(figsize=(10,4))
-                    ax = plt.subplot()
-                    plt.xlabel(r'$\mu$')
-                    plt.ylabel(r'$I(\mu)/I(\mu =0)$')
-                    
-                    # Print the calculation parameters
-                    info = r'${}-{}$ $\mu m$'.format(*model_grid.wave_rng)
-                    if isinstance(bandpass, core.Filter):
-                        info = bandpass.filterID
-                    info += '\n'
-                    info += ', '.join([r'$c_{}={:.2f}$'.format(n+1,c) 
-                                       for n,c in enumerate(coeffs)])
-                    ax.text(0.95, 0.1, info, ha='right', transform=ax.transAxes,
-                            linespacing=2)
-                    
-                    
-                # Evaluate the limb darkening profile
-                mu_vals = np.linspace(0, 1, 1000)
-                ld_vals = ldfunc(mu_vals, *coeffs)
-                
-                # Draw the curve
-                label = '{}, {}, {}'.format(teff, logg, FeH)
-                p = plt.plot(mu_vals, ld_vals, label=label, **kwargs)
-                color = p[0].get_color()
-                
-                # Plot the mu_values
-                try:
-                    ld_raw = np.mean(flux, axis=1)/np.mean(flux, axis=1)[np.where(mu_raw==1)]
-                    plt.plot(mu_raw, ld_raw, c=color, ls='None', marker='o',
-                             markeredgecolor=color, markerfacecolor='None')
-                except:
-                    pass
-                
-                # New figure stuff
-                if not isinstance(plot, plt.Figure):
-                    
-                    # Plot the minimum mu cutoff and legend
-                    plt.axvline(x=mu_min, c='0.5', ls=':', label=r'$\mu$ cutoff')
-                    plt.legend(loc=2, frameon=False)
-                
-                plt.xlim(0,1)
-                plt.ylim(0,1)
+                lp.ld_plot(coeffs, ldfunc, fig=plot)
                     
             return coeffs, muz, radius
             
@@ -302,7 +263,6 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
                   model_grid.logg_rng, model_grid.FeH_rng)
                   
             return
-
 
 def ldc_grid(model_grid, profile, write_to='', mu_min=0.05, plot=False, **kwargs):
     """
