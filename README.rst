@@ -61,7 +61,7 @@ TOT is a transiting exoplanet noise simulator. The current implementation scales
     :scale: 100%
     :align: center
 
-.. |build-status| image:: https://img.shields.io/travis/rtfd/readthedocs.org.svg?style=flat
+.. |build-status| image:: https://travis-ci.org/ExoCTK/ExoCTK.svg?branch=master
     :alt: build status
     :scale: 100%
     :target: https://travis-ci.org/ExoCTK/ExoCTK
