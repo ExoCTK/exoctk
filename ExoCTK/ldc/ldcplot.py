@@ -9,7 +9,8 @@ import numpy as np
 import os
 import copy
 import inspect
-from bokeh.plotting import figure
+from bokeh.plotting import figure, show
+from bokeh.models import Span
 from matplotlib import rc, cm
 from astropy.io import fits
 try:
@@ -24,53 +25,87 @@ except:
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
-def ld_plot(coeffs, ldfunc, fig=None, params=[], **kwargs):
+def ld_plot(profiles, grid_point, fig=None, 
+            colors='blue', **kwargs):
     """
-    Make a LD plot in Bokeh
+    Make a LD plot in Bokeh or Matplotlib
     
     Parameters
     ----------
-    
+    profiles: str, list
+        The limb darkening profiles to use
+    grid_point: dict
+        The model data for the grid point
     """
-    # Evaluate the limb darkening profile
-    mu_vals = np.linspace(0, 1, 1000)
-    ld_vals = ldfunc(mu_vals, *coeffs)
-    
-    # Plot stuff
-    label = ', '.join(map(str,params))
-    
+    # Make a figure 
     if not fig or fig==True:
-        
-        fig = plt.figure(figsize=(10,4))
-        
+        fig = plt.gcf()
+    
+    # Get actual data points
+    flux = grid_point['flux']
+    mu = grid_point['mu']
+    mu_min = grid_point['mu_min']
+    
+    # Scale the raw data
+    mu_vals = np.linspace(0, 1, 1000)
+    scale = 1./np.mean(flux, axis=1)[np.where(mu==1)]
+    ld_raw = np.mean(flux, axis=1)*scale
+    
     # Is it a matplotlib plot?
     if isinstance(fig, matplotlib.figure.Figure):
-        
+    
         # Make axes
         ax = fig.add_subplot(111)
         
-        # Draw the curve
-        p = ax.plot(mu_vals, ld_vals, label=label, **kwargs)
-        color = p[0].get_color()
-        
-        # Plot the mu_values
-        # try:
-        #     ld_raw = np.mean(flux, axis=1)/np.mean(flux, axis=1)[np.where(mu_raw==1)]
-        #     ld_err = np.std(flux, axis=1)/np.std(flux, axis=1)[np.where(mu_raw==1)]
-        #     ax.errorbar(mu_raw, ld_raw, yerr=ld_err, c=color, ls='None', marker='o',
-        #              markeredgecolor=color, markerfacecolor='None')
-        #
-        # except:
-        #     pass
-        
-        plt.xlim(0,1)
-        plt.ylim(0,1)
+        # Plot the fitted points
+        ax.errorbar(mu, ld_raw, c='k', ls='None', marker='o',
+                     markeredgecolor='k', markerfacecolor='None')
+                     
+        # Plot the mu cutoff
+        ax.axvline(mu_min, color='0.5', ls=':')
     
     # Otherwise it mush be bokeh!
     else:
+        # Plot the fitted points
+        fig.circle(mu, ld_raw, fill_color='blue')
         
-        fig.line(mu_vals, ld_vals, legend=label)
+        # Plot the mu cutoff
+        vline = Span(location=mu_min, dimension='height', line_color='0.5', line_width=2)
+        fig.renderers.extend([vline])
+    
+    # Make profile list
+    if isinstance(profiles, str):
+        profiles = [profiles]
+    if isinstance(colors, str):
+        colors = [colors]
+    
+    for color,profile in zip(colors,profiles):
+        # Get the LD function for the given profile
+        ldfunc = ldcfit.ld_profile(profile)
+        coeffs = grid_point[profile]['coeffs']
+        err = grid_point[profile]['err']
+    
+        # Evaluate the limb darkening profile fit
+        ld_vals = ldfunc(mu_vals, *coeffs)
+        dn_err = ldfunc(mu_vals, *coeffs-err)
+        up_err = ldfunc(mu_vals, *coeffs+err)
         
+        # Add fits to matplotlib
+        if isinstance(fig, matplotlib.figure.Figure):
+        
+            # Draw the curve and error
+            p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
+            ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
+            ax.set_ylim(0,1)
+            ax.set_xlim(0,1)
+    
+        # Or to bokeh!
+        else:
+            # Draw the curve and error
+            fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
+            vals = np.append(mu_vals, mu_vals[::-1])
+            errs = np.append(dn_err, up_err[::-1])
+            fig.patch(vals, errs, color=color, fill_alpha=0.2)
 
 def ld_v_mu(model_grid, compare, profiles=('quadratic','nonlinear'), **kwargs):
     """

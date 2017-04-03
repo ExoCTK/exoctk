@@ -6,6 +6,7 @@ A module for classes and functions used across all ExoCTK subpackages
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
+from scipy.interpolate import Rbf
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
@@ -294,6 +295,7 @@ class ModelGrid(object):
         self.refs = ''
         self.wave_rng = (0,40)
         self.n_bins = 1E10
+        self.array = ''
         
         # Save the refs to a References() object
         if bibcode:
@@ -361,7 +363,7 @@ class ModelGrid(object):
         self.logg_vals = np.unique(table['logg'])
         self.FeH_vals = np.unique(table['FeH'])
         
-    def get(self, Teff, logg, FeH, verbose=False):
+    def get(self, Teff, logg, FeH):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
@@ -375,63 +377,171 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
-        verbose: bool
-            Print some information about the spectrum
         
         Returns
         -------
-        list
-            A list of arrays of the wavelength, flux, and 
+        dict
+            A dictionary of arrays of the wavelength, flux, and 
             mu values and the effective radius for the given model
         
         """
-        # Get the row index and filepath
-        try: 
-            row, = np.where((self.data['Teff']==Teff)
-                          & (self.data['logg']==logg)
-                          & (self.data['FeH']==FeH))[0]
-        except ValueError:
+        # See if the model with the desired parameters is witin the grid
+        in_grid = all([(Teff>=self.Teff_rng[0])&
+                       (Teff<=self.Teff_rng[1])&
+                       (logg>=self.logg_rng[0])&
+                       (logg<=self.logg_rng[1])&
+                       (FeH>=self.FeH_rng[0])&
+                       (FeH<=self.FeH_rng[1])])
+        
+        if in_grid:
+            
+            # See if the model with the desired parameters is a true grid point
+            on_grid = self.data[[(self.data['Teff']==Teff)&
+                                 (self.data['logg']==logg)&
+                                 (self.data['FeH']==FeH)]]\
+                                 in self.data
+            
+            # Grab the data if the point is on the grid
+            if on_grid:
+                
+                # Get the row index and filepath
+                row, = np.where((self.data['Teff']==Teff)
+                              & (self.data['logg']==logg)
+                              & (self.data['FeH']==FeH))[0]
+
+                filepath = self.path+str(self.data[row]['filename'])
+
+                # Get the flux, mu, and abundance arrays
+                raw_flux = fits.getdata(filepath, 0)
+                mu = fits.getdata(filepath, 1)
+                #abund = fits.getdata(filepath, 2)
+
+                # Construct full wavelength scale and convert to microns
+                if self.CRVAL1=='-':
+                    # Try to get data from WAVELENGTH extension...
+                    raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
+                else:
+                    # ...or try to generate it
+                    raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
+            
+                # Convert from A to um
+                raw_wave *= 1E-4
+
+                # Trim the wavelength and flux arrays
+                idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
+                                              raw_wave<=self.wave_rng[1]))
+                flux = raw_flux[:,idx]
+                wave = raw_wave[idx]
+
+                # Make a dictionary of parameters
+                # This should really be a core.Spectrum() object!
+                spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
+                spec_dict['wave'] = wave
+
+                # Bin the spectrum if necessary
+                if self.n_bins>0 and self.n_bins<len(wave):
+                    pass
+
+                spec_dict['flux'] = flux
+                spec_dict['mu'] = mu
+                #spec_dict['abund'] = abund
+                
+            # If not on the grid, interpolate to it
+            else:
+                # Call grid_interp method
+                spec_dict = self.grid_interp(Teff, logg, FeH)
+
+            return spec_dict
+        
+        else:
             print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
                   ' model not in grid.')
             return
-        filepath = self.path+str(self.data[row]['filename'])
+    
+    def grid_interp(self, Teff, logg, FeH):
+        """
+        Interpolate the grid to the desired parameters
         
-        # Get the flux, mu, and abundance arrays
-        raw_flux = fits.getdata(filepath, 0)
-        mu = fits.getdata(filepath, 1)
-        #abund = fits.getdata(filepath, 2)
+        Parameters
+        ----------
+        Teff: int
+            The effective temperature (K)
+        logg: float
+            The logarithm of the surface gravity (dex)
+        FeH: float
+            The logarithm of the ratio of the metallicity 
+            and solar metallicity (dex)
         
-        # Construct full wavelength scale and convert to microns
-        if self.CRVAL1=='-':
-            # Try to get data from WAVELENGTH extension...
-            raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
-        else:
-            # ...or try to generate it
-            raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
-        
-        # Convert from A to um
-        raw_wave *= 1E-4
-        
-        # Trim the wavelength and flux arrays
-        idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
-                                      raw_wave<=self.wave_rng[1]))
-        flux = raw_flux[:,idx]
-        wave = raw_wave[idx]
-        
-        # Make a dictionary of parameters
-        # This should really be a core.Spectrum() object!
-        spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
-        spec_dict['wave'] = wave
-        
-        # Bin the spectrum if necessary
-        if self.n_bins>0 and self.n_bins<len(wave):
-            pass
+        Returns
+        -------
+        dict
+            A dictionary of arrays of the wavelength, flux, and 
+            mu values and the effective radius for the given model
+        """
+        # Load the fluxes
+        if isinstance(self.array,str):
+            print('Loading flux into table...')
+            self.load_flux()
             
-        spec_dict['flux'] = flux
-        spec_dict['mu'] = mu
-        #spec_dict['abund'] = abund
+        # Get an array of flux values for a given wavelength
+        flux = self.array
         
-        return spec_dict
+        # Interpolate using a radial basis function (no n-D spline interpolation though!)
+        # rbfi = Rbf(self.Teff_vals, self.logg_vals, self.FeH_vals,
+        #            flux, function='cubic')
+        # new_flux = rbfi(np.array([Teff]), np.array([logg]), np.array([FeH]))
+        new_flux = None
+        # Interpolate mu value
+        #interp_flux = CubicSpline(params, flux_grid)
+        #muz, = interp_muz(np.array(values))
+        
+        mu = None
+        r_eff = None
+        
+        grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
+                      'mu': mu, 'r_eff': r_eff,
+                      'flux':new_flux, 'wave':self.wavelength}
+    
+        return grid_point
+    
+    def load_flux(self):
+        """
+        Retrieve the flux arrays for all models 
+        and load into the ModelGrid.array attribute
+        with shape (Teff, logg, FeH, mu, wavelength)
+        """
+        if isinstance(self.array,str):
+            
+            # Get array dimensions
+            T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
+            
+            # Iterate through rows
+            for nt,teff in enumerate(T):
+                for ng,logg in enumerate(G):
+                    for nm,feh in enumerate(M):
+                    
+                        try:
+                            
+                            # Retrieve flux using the `get()` method
+                            spec_dict = self.get(teff, logg, feh)
+                            flux = spec_dict['flux']
+                            
+                            # Create array if necessary
+                            if isinstance(self.array,str):
+                                self.array = np.zeros([len(T),len(G),len(M)]+list(flux.shape))
+                                
+                            # Add flux to the array
+                            self.array[nt,ng,nm] = flux
+                            
+                            # Get the wavelength array
+                            self.wavelength = spec_dict['wave']
+                            
+                            # Garbage collection
+                            del spec_dict, flux
+                            
+                        except: pass
+        else:
+            print('Fluxes already loaded. Call as `self.array`.')
         
     def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
                   FeH_rng=(-3,3), wave_rng=(0,40), n_bins=''):
@@ -843,3 +953,25 @@ def medfilt(x, window_len):
         y[:-j,-(i+1)] = s[j:]
         y[-j:,-(i+1)] = s[-1]
     return np.median(y[window_len-1:-window_len+1], axis=1)
+
+def find_closest(A, a, n=1):
+    """
+    Find the n-neighboring elements of a given value in an array
+        
+    Parameters
+    ----------
+    A: array-like
+        The array to search
+    a: float, int
+        The value to search for
+    n: int
+        The number of values to the left and right of 'a'
+    Returns
+    -------
+    tuple
+        The n-values to the left and right of 'a' in 'A'
+    """
+    A = np.asarray(A)
+    idx = np.clip(A.searchsorted(a), 1, len(A)-1)
+    return A[max(0,idx-n):min(idx+n,len(A))]
+    
