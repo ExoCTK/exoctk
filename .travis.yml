@@ -2,7 +2,7 @@ language: c
 
 os:
     - linux
-    - osx
+#    - osx
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -36,17 +36,17 @@ env:
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='install'
-        - PYTHON_VERSION=2.7 SETUP_CMD='test'
-        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
-        - PYTHON_VERSION=3.5 SETUP_CMD='install'
-        - PYTHON_VERSION=3.5 SETUP_CMD='test'
-        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
+#        - PYTHON_VERSION=2.7 SETUP_CMD='test'
+#        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
+#        - PYTHON_VERSION=3.5 SETUP_CMD='install'
+#        - PYTHON_VERSION=3.5 SETUP_CMD='test'
+#        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 
 matrix:
     include:
         # Do a coverage test in Python 2.
-        - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
+#        - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
 
         # Check for sphinx doc build - we do this first because it
         # may run for a long time allow warning because they seem
@@ -54,9 +54,9 @@ matrix:
         - env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx'
 
         # Try Astropy development version
-        - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development
-
-        - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development
+#        - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development
+#
+#        - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development
 
 before_install:
     # - git clone git://github.com/spacetelescope/pysynphot.git
