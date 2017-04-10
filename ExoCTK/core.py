@@ -387,11 +387,11 @@ class ModelGrid(object):
         """
         # See if the model with the desired parameters is witin the grid
         in_grid = all([(Teff>=self.Teff_rng[0])&
-                       (Teff<=self.Teff_rng[1])&
+                       (Teff<=self.Teff_rng[-1])&
                        (logg>=self.logg_rng[0])&
-                       (logg<=self.logg_rng[1])&
+                       (logg<=self.logg_rng[-1])&
                        (FeH>=self.FeH_rng[0])&
-                       (FeH<=self.FeH_rng[1])])
+                       (FeH<=self.FeH_rng[-1])])
         
         if in_grid:
             
@@ -972,8 +972,10 @@ def find_closest(axes, points, n=1, values=False):
         The n-values to the left and right of 'points' in 'axes'
     """
     results = []
-    if not isinstance(axes,list):
-        axes = list(axes)
+    if not isinstance(axes, list):
+        axes = [axes]
+    if isinstance(points, (int,float)):
+        points = [points]
         
     for i,(axis,point) in enumerate(zip(axes,points)):
         if point>=min(axis) and point<=max(axis):
