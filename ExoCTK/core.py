@@ -6,7 +6,7 @@ A module for classes and functions used across all ExoCTK subpackages
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
-from scipy.interpolate import Rbf
+from scipy.interpolate import splmake, spleval
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
@@ -483,14 +483,52 @@ class ModelGrid(object):
             print('Loading flux into table...')
             self.load_flux()
             
-        # Get an array of flux values for a given wavelength
-        flux = self.array
         
-        # Interpolate using a radial basis function (no n-D spline interpolation though!)
-        # rbfi = Rbf(self.Teff_vals, self.logg_vals, self.FeH_vals,
-        #            flux, function='cubic')
-        # new_flux = rbfi(np.array([Teff]), np.array([logg]), np.array([FeH]))
+        # Interpolate in 2D
+        # from scipy.interpolate import RectBivariateSpline
+        # fluxes = self.array[]
+        # RectBivariateSpline(self.Teff_vals, self.logg_vals, )
+        flux = self.array.copy()
+        
+        # Get the neighbors of the given parameters
+        nb = find_closest([self.Teff_vals,self.logg_vals,self.FeH_vals], [Teff,logg,FeH])
+        # Trim the array to just have the nearest neighbors
+        # flux = flux[idx[0]][:,idx[1]][:,:,idx[2]]
+        
+        # Teff spline
+        F = []
+        i = slice(10000,10050)
+        
+        for idx in [0,1]:
+            ti, gi, mi = [i[idx] for i in nb]
+            for c,v,tx,ty in zip(['b','g','r'],[Teff,logg,FeH],[self.Teff_vals,self.logg_vals,self.FeH_vals],[flux[:,gi,mi,0,i],flux[ti,:,mi,0,i],flux[ti,gi,:,0,i]]):
+                ty = np.mean(ty, axis=-1)
+                tspl = splmake(tx, ty, order=3)
+                xt = np.arange(min(tx),max(tx),10)
+                f = spleval(tspl, np.array([v]))
+                plt.plot(xt, spleval(tspl, xt))
+                plt.plot(tx, ty, ls='none', marker='o', color=c)
+                plt.axhline(f, c=c)
+                plt.axvline(v, c=c)
+                F.append(f)
+            
+        # Get average
+        f = np.mean(F)
+        fu = np.std(F)
+        plt.axhline(f, color='c')
+        plt.fill_between([-10,3000], [f-fu]*2, [f+fu]*2, color='c', alpha=0.1)
+
+        # gx = self.logg_vals
+        # gy = flux[0,:,0,0,10000]
+        # plt.plot(gx, gy, ls='none', marker='o', color='r')
+        #
+        # mx = self.FeH_vals
+        # my = flux[0,0,:,0,10000]
+        # plt.plot(mx, my, ls='none', marker='o', color='g')
+
+
         new_flux = None
+        
         # Interpolate mu value
         #interp_flux = CubicSpline(params, flux_grid)
         #muz, = interp_muz(np.array(values))
@@ -954,24 +992,40 @@ def medfilt(x, window_len):
         y[-j:,-(i+1)] = s[-1]
     return np.median(y[window_len-1:-window_len+1], axis=1)
 
-def find_closest(A, a, n=1):
+def find_closest(axes, points, n=1, values=False):
     """
     Find the n-neighboring elements of a given value in an array
         
     Parameters
     ----------
-    A: array-like
-        The array to search
-    a: float, int
-        The value to search for
+    axes: list, np.array
+        The array(s) to search
+    points: array-like, float
+        The point(s) to search for
     n: int
-        The number of values to the left and right of 'a'
+        The number of values to the left and right of the points
     Returns
     -------
-    tuple
-        The n-values to the left and right of 'a' in 'A'
+    np.ndarray
+        The n-values to the left and right of 'points' in 'axes'
     """
-    A = np.asarray(A)
-    idx = np.clip(A.searchsorted(a), 1, len(A)-1)
-    return A[max(0,idx-n):min(idx+n,len(A))]
-    
+    results = []
+    if not isinstance(axes,list):
+        axes = list(axes)
+        
+    for i,(axis,point) in enumerate(zip(axes,points)):
+        if point>=min(axis) and point<=max(axis):
+            axis = np.asarray(axis)
+            idx = np.clip(axis.searchsorted(point), 1, len(axis)-1)
+        
+            if values:
+                result = axis[max(0,idx-n):min(idx+n,len(axis))]
+            else:
+                result = np.arange(0,len(axis))[max(0,idx-n):min(idx+n,len(axis))].astype(int)
+                
+            results.append(result)
+        else:
+            print('Point {} outside grid.'.format(point))
+            return
+
+    return results
