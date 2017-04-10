@@ -954,24 +954,40 @@ def medfilt(x, window_len):
         y[-j:,-(i+1)] = s[-1]
     return np.median(y[window_len-1:-window_len+1], axis=1)
 
-def find_closest(A, a, n=1):
+def find_closest(axes, points, n=1, values=False):
     """
     Find the n-neighboring elements of a given value in an array
         
     Parameters
     ----------
-    A: array-like
-        The array to search
-    a: float, int
-        The value to search for
+    axes: list, np.array
+        The array(s) to search
+    points: array-like, float
+        The point(s) to search for
     n: int
-        The number of values to the left and right of 'a'
+        The number of values to the left and right of the points
     Returns
     -------
-    tuple
-        The n-values to the left and right of 'a' in 'A'
+    np.ndarray
+        The n-values to the left and right of 'points' in 'axes'
     """
-    A = np.asarray(A)
-    idx = np.clip(A.searchsorted(a), 1, len(A)-1)
-    return A[max(0,idx-n):min(idx+n,len(A))]
-    
+    results = []
+    if not isinstance(axes,list):
+        axes = list(axes)
+        
+    for i,(axis,point) in enumerate(zip(axes,points)):
+        if point>=min(axis) and point<=max(axis):
+            axis = np.asarray(axis)
+            idx = np.clip(axis.searchsorted(point), 1, len(axis)-1)
+        
+            if values:
+                result = axis[max(0,idx-n):min(idx+n,len(axis))]
+            else:
+                result = np.arange(0,len(axis))[max(0,idx-n):min(idx+n,len(axis))].astype(int)
+                
+            results.append(result)
+        else:
+            print('Point {} outside grid.'.format(point))
+            return
+
+    return results
