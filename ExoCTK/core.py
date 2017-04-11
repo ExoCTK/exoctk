@@ -16,6 +16,8 @@ import warnings
 import numpy as np
 import urllib
 import os
+import time
+from scipy.interpolate import RegularGridInterpolator
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -458,7 +460,7 @@ class ModelGrid(object):
                   ' model not in grid.')
             return
     
-    def grid_interp(self, Teff, logg, FeH):
+    def grid_interp(self, Teff, logg, FeH, plot=False):
         """
         Interpolate the grid to the desired parameters
         
@@ -483,40 +485,65 @@ class ModelGrid(object):
             print('Loading flux into table...')
             self.load_flux()
             
-        
-        # Interpolate in 2D
-        # from scipy.interpolate import RectBivariateSpline
-        # fluxes = self.array[]
-        # RectBivariateSpline(self.Teff_vals, self.logg_vals, )
+        # Get the flux array
         flux = self.array.copy()
         
-        # Get the neighbors of the given parameters
-        nb = find_closest([self.Teff_vals,self.logg_vals,self.FeH_vals], [Teff,logg,FeH])
-        # Trim the array to just have the nearest neighbors
-        # flux = flux[idx[0]][:,idx[1]][:,:,idx[2]]
+        # Get the 
+        params, values = [], []
+        for p,v in zip([self.Teff_vals,
+                        self.logg_vals,
+                        self.FeH_vals],
+                       [Teff, logg, FeH]):
+            if len(p)>1:
+                params.append(p)
+                values.append(v)
+
+        # Interpolate flux values at each wavelength
+        new_flux = np.zeros(flux.shape[-1])
+        start = time.time()
+        for lam in range(len(new_flux)):
+            interp_f = RegularGridInterpolator(params, flux[:,:,:,0,lam])
+            f, = interp_f(np.array(values))
+            new_flux[lam] = f
+
+        end = time.time()
+        tot_time = end - start
+        print('Run time in seconds: ', tot_time)
         
-        # Teff spline
-        F = []
-        i = slice(10000,10050)
+        if plot:
+            plt.loglog(self.wavelength, F, c='k', lw=2, label='{}/{}/{}'.format(*values))
+            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),(1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0], label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            plt.legend(loc=0)
+
+        # # See if it worked by plotting the 8 neighboring flux points
+        # plt.figure()
+        # plt.plot()
         
-        for idx in [0,1]:
-            ti, gi, mi = [i[idx] for i in nb]
-            for c,v,tx,ty in zip(['b','g','r'],[Teff,logg,FeH],[self.Teff_vals,self.logg_vals,self.FeH_vals],[flux[:,gi,mi,0,i],flux[ti,:,mi,0,i],flux[ti,gi,:,0,i]]):
-                ty = np.mean(ty, axis=-1)
-                tspl = splmake(tx, ty, order=3)
-                xt = np.arange(min(tx),max(tx),10)
-                f = spleval(tspl, np.array([v]))
-                plt.plot(xt, spleval(tspl, xt))
-                plt.plot(tx, ty, ls='none', marker='o', color=c)
-                plt.axhline(f, c=c)
-                plt.axvline(v, c=c)
-                F.append(f)
+        
+        
+        # for idx in [0,1]:
+        #     ti, gi, mi = [i[idx] for i in nb]
+        #     for c,v,x,y in zip(['b','g','r'],[Teff,logg,FeH],[self.Teff_vals,self.logg_vals,self.FeH_vals],[flux[:,gi,mi,0,i],flux[ti,:,mi,0,i],flux[ti,gi,:,0,i]]):
+        #         # y = np.mean(ty, axis=-1)
+        #
+        #         # Get the spline fit in the
+        #         spl = splmake(x, y, order=3)
+        #         X = np.arange(min(x), max(x), 10)
+        #         f = spleval(spl, np.array([v]))
+        #         Y = spleval(spl, X)
+        #         plt.plot(X, Y, color=c)
+        #         plt.plot(x, y, ls='none', marker='o', color=c)
+        #         plt.plot([v], [f], ls='none', marker='o', color='c')
+        #         plt.axhline(f, c=c)
+        #         plt.axvline(v, c=c)
+        #         F.append(f)
             
         # Get average
-        f = np.mean(F)
-        fu = np.std(F)
-        plt.axhline(f, color='c')
-        plt.fill_between([-10,3000], [f-fu]*2, [f+fu]*2, color='c', alpha=0.1)
+        # f = np.mean(F)
+        # fu = np.std(F)
+        # plt.axhline(f, color='c')
+        # plt.fill_between([-10,3000], [f-fu]*2, [f+fu]*2, color='c', alpha=0.1)
 
         # gx = self.logg_vals
         # gy = flux[0,:,0,0,10000]
@@ -525,9 +552,6 @@ class ModelGrid(object):
         # mx = self.FeH_vals
         # my = flux[0,0,:,0,10000]
         # plt.plot(mx, my, ls='none', marker='o', color='g')
-
-
-        new_flux = None
         
         # Interpolate mu value
         #interp_flux = CubicSpline(params, flux_grid)
