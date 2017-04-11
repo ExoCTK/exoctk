@@ -7,6 +7,9 @@ from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
 from scipy.interpolate import splmake, spleval
+from scipy.interpolate import RegularGridInterpolator
+from functools import partial
+import multiprocessing
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
@@ -17,7 +20,6 @@ import numpy as np
 import urllib
 import os
 import time
-from scipy.interpolate import RegularGridInterpolator
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -243,6 +245,39 @@ def filter_list(filter_directory=pkg_resources.resource_filename('ExoCTK', 'data
     
     return {'files':files, 'bands':bands, 'path':filter_directory}
 
+def interp_flux(mu, flux, params, values):
+    """
+    Interpolate a cube of synthetic spectra for a
+    given index of mu
+    
+    Parameters
+    ----------
+    mu: int
+        The index of the (Teff, logg, FeH, *mu*, wavelength)
+        data cube to interpolate
+    flux: np.ndarray
+        The 5D data array
+    params: list
+        A list of each free parameter range
+    values: list
+        A list of each free parameter values
+    
+    Returns
+    -------
+    np.array
+        The array of new flux values
+    """
+    # Iterate over each wavelength (-1 index of flux array)
+    l = flux.shape[-1]
+    flx = np.zeros(l)
+    for lam in range(l):
+        interp_f = RegularGridInterpolator(params, flux[:,:,:,mu,lam])
+        f, = interp_f(values)
+        
+        flx[lam] = f
+    
+    return flx
+
 class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
@@ -424,7 +459,8 @@ class ModelGrid(object):
                     raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
                 else:
                     # ...or try to generate it
-                    raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
+                    l = len(raw_flux[0])
+                    raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
             
                 # Convert from A to um
                 raw_wave *= 1E-4
@@ -473,6 +509,9 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
+        plot: bool
+            Plot the interpolated spectrum along
+            with the 8 neighboring grid spectra
         
         Returns
         -------
@@ -488,78 +527,47 @@ class ModelGrid(object):
         # Get the flux array
         flux = self.array.copy()
         
-        # Get the 
+        # Get the interpolable parameters
         params, values = [], []
-        for p,v in zip([self.Teff_vals,
-                        self.logg_vals,
-                        self.FeH_vals],
+        for p,v in zip([self.Teff_vals, self.logg_vals, self.FeH_vals],
                        [Teff, logg, FeH]):
             if len(p)>1:
                 params.append(p)
                 values.append(v)
-
+        values = np.asarray(values)
+        
         # Interpolate flux values at each wavelength
-        new_flux = np.zeros(flux.shape[-1])
+        # using a pool for multiple processes
+        processes = 8
+        mu_index = range(new_flux.shape[0])
         start = time.time()
-        for lam in range(len(new_flux)):
-            interp_f = RegularGridInterpolator(params, flux[:,:,:,0,lam])
-            f, = interp_f(np.array(values))
-            new_flux[lam] = f
-
-        end = time.time()
-        tot_time = end - start
-        print('Run time in seconds: ', tot_time)
+        pool = multiprocessing.Pool(processes)
+        func = partial(interp_flux, flux=flux, params=params, values=values)
+        new_flux = pool.map(func, mu_index)
+        pool.close()
+        pool.join()
+        
+        # Clean up and time of execution
+        new_flux = np.asarray(new_flux)
+        print('Run time in seconds: ', time.time()-start)
         
         if plot:
-            plt.loglog(self.wavelength, F, c='k', lw=2, label='{}/{}/{}'.format(*values))
+            # Plot the interpolated spectrum
+            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label='{}/{}/{}'.format(*values))
+            
+            # Plot the 8 neighboring spectra
             for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),(1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
                 plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0], label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
-            plt.legend(loc=0)
-
-        # # See if it worked by plotting the 8 neighboring flux points
-        # plt.figure()
-        # plt.plot()
-        
-        
-        
-        # for idx in [0,1]:
-        #     ti, gi, mi = [i[idx] for i in nb]
-        #     for c,v,x,y in zip(['b','g','r'],[Teff,logg,FeH],[self.Teff_vals,self.logg_vals,self.FeH_vals],[flux[:,gi,mi,0,i],flux[ti,:,mi,0,i],flux[ti,gi,:,0,i]]):
-        #         # y = np.mean(ty, axis=-1)
-        #
-        #         # Get the spline fit in the
-        #         spl = splmake(x, y, order=3)
-        #         X = np.arange(min(x), max(x), 10)
-        #         f = spleval(spl, np.array([v]))
-        #         Y = spleval(spl, X)
-        #         plt.plot(X, Y, color=c)
-        #         plt.plot(x, y, ls='none', marker='o', color=c)
-        #         plt.plot([v], [f], ls='none', marker='o', color='c')
-        #         plt.axhline(f, c=c)
-        #         plt.axvline(v, c=c)
-        #         F.append(f)
             
-        # Get average
-        # f = np.mean(F)
-        # fu = np.std(F)
-        # plt.axhline(f, color='c')
-        # plt.fill_between([-10,3000], [f-fu]*2, [f+fu]*2, color='c', alpha=0.1)
-
-        # gx = self.logg_vals
-        # gy = flux[0,:,0,0,10000]
-        # plt.plot(gx, gy, ls='none', marker='o', color='r')
-        #
-        # mx = self.FeH_vals
-        # my = flux[0,0,:,0,10000]
-        # plt.plot(mx, my, ls='none', marker='o', color='g')
+            plt.legend(loc=0)
         
-        # Interpolate mu value
-        #interp_flux = CubicSpline(params, flux_grid)
-        #muz, = interp_muz(np.array(values))
-        
+        # # Interpolate mu value
+        # interp_flux = RegularGridInterpolator(params, flux_grid)
+        # muz, = interp_muz(np.array(values))
         mu = None
         r_eff = None
         
+        # Make a dictionary to return
         grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
                       'mu': mu, 'r_eff': r_eff,
                       'flux':new_flux, 'wave':self.wavelength}
@@ -719,8 +727,8 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     
     if plot:
         plt.figure()
-        plt.plot(wave, flux, c='b')    
-        plt.plot(wavnew, specnew, c='r')
+        plt.loglog(wave, flux, c='b')    
+        plt.loglog(wavnew, specnew, c='r')
         
     return specnew
 
@@ -997,16 +1005,31 @@ def smooth(x,window_len=10,window='hanning'):
     return y[window_len-1:-window_len+1]
 
 def medfilt(x, window_len):
-    """Apply a length-k median filter to a 1D array x.
-    Boundaries are extended by repeating endpoints.
     """
-    assert x.ndim == 1, "Input must be one-dimensional."
+    Apply a length-k median filter to a 1D array x.
+    Boundaries are extended by repeating endpoints.
+    
+    Parameters
+    ----------
+    x: np.array
+        The 1D array to smooth
+    window_len: int
+        The size of the smoothing window
+    
+    Returns
+    -------
+    np.ndarray
+        The smoothed 1D array
+    """
+    # assert x.ndim == 1, "Input must be one-dimensional."
     if window_len % 2 == 0:
         print("Median filter length ("+str(window_len)+") must be odd. Adding 1.")
         window_len += 1
-    k2 = (window_len - 1) // 2
-    s=np.r_[2*np.median(x[0:window_len/5])-x[window_len:1:-1],x,2*np.median(x[-window_len/5:])-x[-1:-window_len:-1]]
-    y = np.zeros ((len (s), window_len), dtype=s.dtype)
+    window_len = int(window_len)
+    k2 = int((window_len - 1)//2)
+    s = np.r_[2*np.median(x[0:int(window_len/5)])-x[window_len:1:-1],x,2*np.median(x[int(-window_len/5):])-x[-1:-window_len:-1]]
+    y = np.zeros((len(s), window_len), dtype=s.dtype)
+    
     y[:,k2] = s
     for i in range (k2):
         j = k2 - i
