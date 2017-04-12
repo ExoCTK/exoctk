@@ -183,21 +183,24 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
         mu_raw = mu.copy()
         imu = np.where(mu>mu_min)
         mu, ld = mu[imu], ld[imu]
-            
+        
+        # Iterate through the requested profiles
+        if isinstance(profiles, str):
+            profiles = [profiles]
         for profile in profiles:
                         
             # Define the limb darkening profile function
             ldfunc = ld_profile(profile)
-    
+            
             if not ldfunc:
                 return
-        
+                
             else:
                 
                 # Make dict for profile
                 grid_point[profile] = {}
                 
-                # Fit limb darkening to get limb darkening coefficients (LDCs)
+                # Fit limb darkening to get limb darkening coefficients
                 coeffs, cov = curve_fit(ldfunc, mu, ld, method='lm')
                 
                 # Add coeffs and errors to the dictionary

@@ -332,7 +332,9 @@ class ModelGrid(object):
         self.refs = ''
         self.wave_rng = (0,40)
         self.n_bins = 1E10
-        self.array = ''
+        self.flux = ''
+        self.r_eff = ''
+        self.mu = ''
         
         # Save the refs to a References() object
         if bibcode:
@@ -400,7 +402,7 @@ class ModelGrid(object):
         self.logg_vals = np.unique(table['logg'])
         self.FeH_vals = np.unique(table['FeH'])
         
-    def get(self, Teff, logg, FeH):
+    def get(self, Teff, logg, FeH, interp=True):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
@@ -414,6 +416,8 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
+        interp: bool
+            Interpolate the model if possible
         
         Returns
         -------
@@ -487,7 +491,10 @@ class ModelGrid(object):
             # If not on the grid, interpolate to it
             else:
                 # Call grid_interp method
-                spec_dict = self.grid_interp(Teff, logg, FeH)
+                if interp:
+                    spec_dict = self.grid_interp(Teff, logg, FeH)
+                else:
+                    return
 
             return spec_dict
         
@@ -520,12 +527,12 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         """
         # Load the fluxes
-        if isinstance(self.array,str):
+        if isinstance(self.flux,str):
             print('Loading flux into table...')
             self.load_flux()
             
         # Get the flux array
-        flux = self.array.copy()
+        flux = self.flux.copy()
         
         # Get the interpolable parameters
         params, values = [], []
@@ -535,11 +542,13 @@ class ModelGrid(object):
                 params.append(p)
                 values.append(v)
         values = np.asarray(values)
+        label = l = '{}/{}/{}'.format(*values)
         
         # Interpolate flux values at each wavelength
         # using a pool for multiple processes
+        print('Interpolating grid point [{}]...'.format(label))
         processes = 8
-        mu_index = range(new_flux.shape[0])
+        mu_index = range(flux.shape[-2])
         start = time.time()
         pool = multiprocessing.Pool(processes)
         func = partial(interp_flux, flux=flux, params=params, values=values)
@@ -553,19 +562,23 @@ class ModelGrid(object):
         
         if plot:
             # Plot the interpolated spectrum
-            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label='{}/{}/{}'.format(*values))
+            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
             
             # Plot the 8 neighboring spectra
-            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),(1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
-                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0], label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
+                          (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
+                           label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
             
             plt.legend(loc=0)
         
-        # # Interpolate mu value
-        # interp_flux = RegularGridInterpolator(params, flux_grid)
-        # muz, = interp_muz(np.array(values))
-        mu = None
-        r_eff = None
+        # Interpolate mu value
+        interp_mu = RegularGridInterpolator(params, self.mu)
+        mu, = interp_mu(np.array(values))
+        
+        # Interpolate r_eff value
+        interp_r = RegularGridInterpolator(params, self.r_eff)
+        r_eff, = interp_r(np.array(values))
         
         # Make a dictionary to return
         grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
@@ -580,10 +593,11 @@ class ModelGrid(object):
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
-        if isinstance(self.array,str):
+        if isinstance(self.flux,str):
             
             # Get array dimensions
             T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
+            shp = [len(T),len(G),len(M)]
             
             # Iterate through rows
             for nt,teff in enumerate(T):
@@ -593,25 +607,31 @@ class ModelGrid(object):
                         try:
                             
                             # Retrieve flux using the `get()` method
-                            spec_dict = self.get(teff, logg, feh)
-                            flux = spec_dict['flux']
+                            d = self.get(teff, logg, feh, interp=False)
                             
-                            # Create array if necessary
-                            if isinstance(self.array,str):
-                                self.array = np.zeros([len(T),len(G),len(M)]+list(flux.shape))
-                                
-                            # Add flux to the array
-                            self.array[nt,ng,nm] = flux
+                            if d:
+                                # Make sure arrays exist
+                                if isinstance(self.flux,str):
+                                    self.flux = np.zeros(shp+list(d['flux'].shape))
+                                if isinstance(self.r_eff,str):
+                                    self.r_eff = np.zeros(shp)
+                                if isinstance(self.mu,str):
+                                    self.mu = np.zeros(shp+list(d['mu'].shape))
                             
-                            # Get the wavelength array
-                            self.wavelength = spec_dict['wave']
+                                # Add data to respective arrays
+                                self.flux[nt,ng,nm] = d['flux']
+                                self.r_eff[nt,ng,nm] = d['r_eff']
+                                self.mu[nt,ng,nm] = d['mu']
                             
-                            # Garbage collection
-                            del spec_dict, flux
+                                # Get the wavelength array
+                                self.wavelength = d['wave']
+                            
+                                # Garbage collection
+                                del d
                             
                         except: pass
         else:
-            print('Fluxes already loaded. Call as `self.array`.')
+            print('Data already loaded.')
         
     def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
                   FeH_rng=(-3,3), wave_rng=(0,40), n_bins=''):
