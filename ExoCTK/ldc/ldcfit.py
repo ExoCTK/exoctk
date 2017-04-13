@@ -10,15 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
-from scipy.interpolate import RegularGridInterpolator
-try:
-    from . import ldcplot as lp
-except:
-    import ldcplot as lp
-try:
-    from .. import core
-except:
-    from ExoCTK import core
+from . import ldcplot as lp
+from .. import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -104,11 +97,11 @@ def ld_profile(name='quadratic', latex=False):
         return profile
         
     else:
-        print(name,'is not a supported profile. Try',names)
+        print("'{}' is not a supported profile. Try".format(name),names)
         return
         
 
-def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001, 
+def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001, 
         bandpass='', plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
@@ -120,7 +113,7 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
     
     Parameters
     ----------
-    teff: int
+    Teff: int
         The effective temperature of the model
     logg: float
         The logarithm of the surface gravity
@@ -129,8 +122,8 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
     model_grid: core.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
         be calculated 
-    profile: str
-        The name of the limb darkening profile function to use, 
+    profiles: str, list
+        The name(s) of the limb darkening profile function to use, 
         including 'uniform', 'linear', 'quadratic', 'square-root', 
         'logarithmic', 'exponential', and '4-parameter'
     mu_min: float
@@ -151,118 +144,84 @@ def ldc(teff, logg, FeH, model_grid, profile, mu_min=0.05, ld_min=0.001,
         radius calculated from the model of the given parameters from the
         input core.ModelGrid 
     
-    """
-    # Define the limb darkening profile function
-    ldfunc = ld_profile(profile)
+    """              
+    # Get the model, interpolating if necessary
+    grid_point = model_grid.get(Teff, logg, FeH)
     
-    if not ldfunc:
-        return
-        
-    else:
-    
-        # See if the model with the desired parameters is witin the grid
-        in_grid = all([(teff>=model_grid.Teff_rng[0])&
-                       (teff<=model_grid.Teff_rng[1])&
-                       (logg>=model_grid.logg_rng[0])&
-                       (logg<=model_grid.logg_rng[1])&
-                       (FeH>=model_grid.FeH_rng[0])&
-                       (FeH<=model_grid.FeH_rng[1])])
-                       
-        # Caluclate if the parameters are within the grid
-        if in_grid:
+    # If the model exists, continue
+    if grid_point:
             
-            # See if the model with the desired parameters is a true grid point
-            on_grid = model_grid.data[[(model_grid.data['Teff']==teff)&
-                                       (model_grid.data['logg']==logg)&
-                                       (model_grid.data['FeH']==FeH)]]\
-                                       in model_grid.data
-                                       
-            # If a model is a true grid point, just calculate it
-            if on_grid:
-                
-                # Retrieve the wavelength, flux, mu, and effective radius
-                spec_dict = model_grid.get(teff, logg, FeH)
-                wave = spec_dict.get('wave')
-                flux = spec_dict.get('flux')
-                mu = spec_dict.get('mu')
-                radius = spec_dict.get('r_eff')
-                
-                # Apply the filter if any
-                if isinstance(bandpass, core.Filter):
-                    flux = bandpass.convolve([wave,flux])
-                    wave = bandpass.rsr[0]
+        # Retrieve the wavelength, flux, mu, and effective radius
+        wave = grid_point.get('wave')
+        flux = grid_point.get('flux')
+        mu = grid_point.get('mu')
+        radius = grid_point.get('r_eff')
+        
+        # Apply the filter if any
+        if isinstance(bandpass, core.Filter):
+            flux = bandpass.convolve([wave,flux])
+            wave = bandpass.rsr[0]
 
-                # Calculate mean intensity vs. mu
-                mean_i = np.mean(flux, axis=1)
+        # Calculate mean intensity vs. mu
+        mean_i = np.mean(flux, axis=1)
+        
+        # Calculate limb darkening, I[mu]/I[1] vs. mu
+        ld = mean_i/mean_i[np.where(mu==1)]
+        
+        # Rescale mu values to make f(mu=0)=ld_min
+        # for the case where spherical models extend beyond limb
+        muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
+        mu = (mu-muz)/(1-muz)
+        
+        # Trim to useful mu range
+        mu_raw = mu.copy()
+        imu = np.where(mu>mu_min)
+        mu, ld = mu[imu], ld[imu]
+        
+        # Iterate through the requested profiles
+        if isinstance(profiles, str):
+            profiles = [profiles]
+        for profile in profiles:
+                        
+            # Define the limb darkening profile function
+            ldfunc = ld_profile(profile)
+            
+            if not ldfunc:
+                return
                 
-                # Calculate limb darkening, I[mu]/I[1] vs. mu
-                ld = mean_i/mean_i[np.where(mu==1)]
-                
-                # Rescale mu values to make f(mu=0)=ld_min
-                # for the case where spherical models extend beyond limb
-                muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
-                mu = (mu-muz)/(1-muz)
-                
-                # Trim to useful mu range
-                mu_raw = mu.copy()
-                imu = np.where(mu>mu_min)
-                mu, ld = mu[imu], ld[imu]
-                
-                # Fit limb darkening to get limb darkening coefficients (LDCs)
-                coeffs = curve_fit(ldfunc, mu, ld, method='lm')[0]
-                
-            # If a model with the given parameters is not a true grid point 
-            # but is within the grid range, calculate ALL grid values 
-            # and interpolate
             else:
                 
-                # Print that it has to calculate
-                print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
-                      ' model not in grid. Calculating...')
+                # Make dict for profile
+                grid_point[profile] = {}
                 
-                # Get values for the entire model grid
-                coeff_grid, mu_grid, r_grid = ldc_grid(model_grid, profile, mu_min=mu_min)
-                                                       
-                # Create a grid of the parameter values to interpolate over,
-                # eliminating parameters that can't be interpolated
-                params, values = [], []
-                for p,v in zip([model_grid.Teff_vals, 
-                                model_grid.logg_vals,
-                                model_grid.FeH_vals],
-                               [teff, logg, FeH]):
-                    if len(p)>1:
-                        params.append(p)
-                        values.append(v)
-                          
-                # Interpolate mu value
-                interp_muz = RegularGridInterpolator(params, mu_grid)
-                muz, = interp_muz(np.array(values))
+                # Fit limb darkening to get limb darkening coefficients
+                coeffs, cov = curve_fit(ldfunc, mu, ld, method='lm')
                 
-                # Interpolate effective radius value
-                interp_r = RegularGridInterpolator(params, r_grid)
-                radius, = interp_r(np.array(values))
+                # Add coeffs and errors to the dictionary
+                grid_point[profile]['coeffs'] = coeffs
+                grid_point[profile]['err'] = np.sqrt(np.diag(cov))
                 
-                # Interpolate coefficients
-                coeffs = []
-                for c_grid in coeff_grid:
-                    interp_coeff = RegularGridInterpolator(params, c_grid)
-                    coeffs.append(interp_coeff(np.array(values)))
-                coeffs = np.array(coeffs).flatten()
-                
-            if plot:
-                
-                lp.ld_plot(coeffs, ldfunc, fig=plot)
-                    
-            return coeffs, muz, radius
+        # Add extras
+        grid_point['mu_min'] = mu_min
+        grid_point['r_eff'] = radius
+        grid_point['profiles'] = profiles
+        
+        if plot:
             
-        # If the desired params are not within the grid bounds, return
-        else:
-            # Print that it cannot calculate
-            print('Teff:', teff, ' logg:', logg, ' FeH:', FeH, 
-                  ' model not within grid bounds', model_grid.Teff_rng,
-                  model_grid.logg_rng, model_grid.FeH_rng)
-                  
-            return
+            # Make a list of LD functions and plot them
+            ldfuncs = [ld_profile(profile) for profile in profiles]
+            lp.ld_plot(ldfuncs, grid_point, fig=plot, **kwargs)
+        
+        return grid_point
+            
+    # If the desired params are not within the grid bounds, return
+    else:
+        # Print that it cannot calculate
+        print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
+              ' model not within grid bounds', model_grid.Teff_rng,
+              model_grid.logg_rng, model_grid.FeH_rng)
+              
+        return
 
 def ldc_grid(model_grid, profile, write_to='', mu_min=0.05, plot=False, **kwargs):
     """

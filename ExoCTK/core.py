@@ -6,6 +6,10 @@ A module for classes and functions used across all ExoCTK subpackages
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
+from scipy.interpolate import splmake, spleval
+from scipy.interpolate import RegularGridInterpolator
+from functools import partial
+import multiprocessing
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
@@ -15,6 +19,7 @@ import warnings
 import numpy as np
 import urllib
 import os
+import time
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -240,6 +245,39 @@ def filter_list(filter_directory=pkg_resources.resource_filename('ExoCTK', 'data
     
     return {'files':files, 'bands':bands, 'path':filter_directory}
 
+def interp_flux(mu, flux, params, values):
+    """
+    Interpolate a cube of synthetic spectra for a
+    given index of mu
+    
+    Parameters
+    ----------
+    mu: int
+        The index of the (Teff, logg, FeH, *mu*, wavelength)
+        data cube to interpolate
+    flux: np.ndarray
+        The 5D data array
+    params: list
+        A list of each free parameter range
+    values: list
+        A list of each free parameter values
+    
+    Returns
+    -------
+    np.array
+        The array of new flux values
+    """
+    # Iterate over each wavelength (-1 index of flux array)
+    l = flux.shape[-1]
+    flx = np.zeros(l)
+    for lam in range(l):
+        interp_f = RegularGridInterpolator(params, flux[:,:,:,mu,lam])
+        f, = interp_f(values)
+        
+        flx[lam] = f
+    
+    return flx
+
 class ModelGrid(object):
     """
     Creates a ModelGrid object which contains a multi-parameter
@@ -294,6 +332,9 @@ class ModelGrid(object):
         self.refs = ''
         self.wave_rng = (0,40)
         self.n_bins = 1E10
+        self.flux = ''
+        self.r_eff = ''
+        self.mu = ''
         
         # Save the refs to a References() object
         if bibcode:
@@ -361,7 +402,7 @@ class ModelGrid(object):
         self.logg_vals = np.unique(table['logg'])
         self.FeH_vals = np.unique(table['FeH'])
         
-    def get(self, Teff, logg, FeH, verbose=False):
+    def get(self, Teff, logg, FeH, interp=True):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
@@ -375,63 +416,222 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
-        verbose: bool
-            Print some information about the spectrum
+        interp: bool
+            Interpolate the model if possible
         
         Returns
         -------
-        list
-            A list of arrays of the wavelength, flux, and 
+        dict
+            A dictionary of arrays of the wavelength, flux, and 
             mu values and the effective radius for the given model
         
         """
-        # Get the row index and filepath
-        try: 
-            row, = np.where((self.data['Teff']==Teff)
-                          & (self.data['logg']==logg)
-                          & (self.data['FeH']==FeH))[0]
-        except ValueError:
+        # See if the model with the desired parameters is witin the grid
+        in_grid = all([(Teff>=self.Teff_rng[0])&
+                       (Teff<=self.Teff_rng[1])&
+                       (logg>=self.logg_rng[0])&
+                       (logg<=self.logg_rng[1])&
+                       (FeH>=self.FeH_rng[0])&
+                       (FeH<=self.FeH_rng[1])])
+        
+        if in_grid:
+            
+            # See if the model with the desired parameters is a true grid point
+            on_grid = self.data[[(self.data['Teff']==Teff)&
+                                 (self.data['logg']==logg)&
+                                 (self.data['FeH']==FeH)]]\
+                                 in self.data
+            
+            # Grab the data if the point is on the grid
+            if on_grid:
+                
+                # Get the row index and filepath
+                row, = np.where((self.data['Teff']==Teff)
+                              & (self.data['logg']==logg)
+                              & (self.data['FeH']==FeH))[0]
+
+                filepath = self.path+str(self.data[row]['filename'])
+
+                # Get the flux, mu, and abundance arrays
+                raw_flux = fits.getdata(filepath, 0)
+                mu = fits.getdata(filepath, 1)
+                #abund = fits.getdata(filepath, 2)
+
+                # Construct full wavelength scale and convert to microns
+                if self.CRVAL1=='-':
+                    # Try to get data from WAVELENGTH extension...
+                    raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
+                else:
+                    # ...or try to generate it
+                    l = len(raw_flux[0])
+                    raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
+            
+                # Convert from A to um
+                raw_wave *= 1E-4
+
+                # Trim the wavelength and flux arrays
+                idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
+                                              raw_wave<=self.wave_rng[1]))
+                flux = raw_flux[:,idx]
+                wave = raw_wave[idx]
+
+                # Make a dictionary of parameters
+                # This should really be a core.Spectrum() object!
+                spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
+                spec_dict['wave'] = wave
+
+                # Bin the spectrum if necessary
+                if self.n_bins>0 and self.n_bins<len(wave):
+                    pass
+
+                spec_dict['flux'] = flux
+                spec_dict['mu'] = mu
+                #spec_dict['abund'] = abund
+                
+            # If not on the grid, interpolate to it
+            else:
+                # Call grid_interp method
+                if interp:
+                    spec_dict = self.grid_interp(Teff, logg, FeH)
+                else:
+                    return
+
+            return spec_dict
+        
+        else:
             print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
                   ' model not in grid.')
             return
-        filepath = self.path+str(self.data[row]['filename'])
+    
+    def grid_interp(self, Teff, logg, FeH, plot=False):
+        """
+        Interpolate the grid to the desired parameters
         
-        # Get the flux, mu, and abundance arrays
-        raw_flux = fits.getdata(filepath, 0)
-        mu = fits.getdata(filepath, 1)
-        #abund = fits.getdata(filepath, 2)
+        Parameters
+        ----------
+        Teff: int
+            The effective temperature (K)
+        logg: float
+            The logarithm of the surface gravity (dex)
+        FeH: float
+            The logarithm of the ratio of the metallicity 
+            and solar metallicity (dex)
+        plot: bool
+            Plot the interpolated spectrum along
+            with the 8 neighboring grid spectra
         
-        # Construct full wavelength scale and convert to microns
-        if self.CRVAL1=='-':
-            # Try to get data from WAVELENGTH extension...
-            raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
-        else:
-            # ...or try to generate it
-            raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(len(raw_flux[0]))).squeeze()
-        
-        # Convert from A to um
-        raw_wave *= 1E-4
-        
-        # Trim the wavelength and flux arrays
-        idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
-                                      raw_wave<=self.wave_rng[1]))
-        flux = raw_flux[:,idx]
-        wave = raw_wave[idx]
-        
-        # Make a dictionary of parameters
-        # This should really be a core.Spectrum() object!
-        spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
-        spec_dict['wave'] = wave
-        
-        # Bin the spectrum if necessary
-        if self.n_bins>0 and self.n_bins<len(wave):
-            pass
+        Returns
+        -------
+        dict
+            A dictionary of arrays of the wavelength, flux, and 
+            mu values and the effective radius for the given model
+        """
+        # Load the fluxes
+        if isinstance(self.flux,str):
+            print('Loading flux into table...')
+            self.load_flux()
             
-        spec_dict['flux'] = flux
-        spec_dict['mu'] = mu
-        #spec_dict['abund'] = abund
+        # Get the flux array
+        flux = self.flux.copy()
         
-        return spec_dict
+        # Get the interpolable parameters
+        params, values = [], []
+        for p,v in zip([self.Teff_vals, self.logg_vals, self.FeH_vals],
+                       [Teff, logg, FeH]):
+            if len(p)>1:
+                params.append(p)
+                values.append(v)
+        values = np.asarray(values)
+        label = '{}/{}/{}'.format(Teff,logg,FeH)
+        
+        # Interpolate flux values at each wavelength
+        # using a pool for multiple processes
+        print('Interpolating grid point [{}]...'.format(label))
+        processes = 4
+        mu_index = range(flux.shape[-2])
+        start = time.time()
+        pool = multiprocessing.Pool(processes)
+        func = partial(interp_flux, flux=flux, params=params, values=values)
+        new_flux = pool.map(func, mu_index)
+        pool.close()
+        pool.join()
+        
+        # Clean up and time of execution
+        new_flux = np.asarray(new_flux)
+        print('Run time in seconds: ', time.time()-start)
+        
+        if plot:
+            # Plot the interpolated spectrum
+            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+            
+            # Plot the 8 neighboring spectra
+            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
+                          (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
+                           label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            
+            plt.legend(loc=0)
+        
+        # Interpolate mu value
+        interp_mu = RegularGridInterpolator(params, self.mu)
+        mu, = interp_mu(np.array(values))
+        
+        # Interpolate r_eff value
+        interp_r = RegularGridInterpolator(params, self.r_eff)
+        r_eff, = interp_r(np.array(values))
+        
+        # Make a dictionary to return
+        grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
+                      'mu': mu, 'r_eff': r_eff,
+                      'flux':new_flux, 'wave':self.wavelength}
+    
+        return grid_point
+    
+    def load_flux(self):
+        """
+        Retrieve the flux arrays for all models 
+        and load into the ModelGrid.array attribute
+        with shape (Teff, logg, FeH, mu, wavelength)
+        """
+        if isinstance(self.flux,str):
+            
+            # Get array dimensions
+            T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
+            shp = [len(T),len(G),len(M)]
+            
+            # Iterate through rows
+            for nt,teff in enumerate(T):
+                for ng,logg in enumerate(G):
+                    for nm,feh in enumerate(M):
+                    
+                        try:
+                            
+                            # Retrieve flux using the `get()` method
+                            d = self.get(teff, logg, feh, interp=False)
+                            
+                            if d:
+                                # Make sure arrays exist
+                                if isinstance(self.flux,str):
+                                    self.flux = np.zeros(shp+list(d['flux'].shape))
+                                if isinstance(self.r_eff,str):
+                                    self.r_eff = np.zeros(shp)
+                                if isinstance(self.mu,str):
+                                    self.mu = np.zeros(shp+list(d['mu'].shape))
+                            
+                                # Add data to respective arrays
+                                self.flux[nt,ng,nm] = d['flux']
+                                self.r_eff[nt,ng,nm] = d['r_eff']
+                                self.mu[nt,ng,nm] = d['mu']
+                            
+                                # Get the wavelength array
+                                self.wavelength = d['wave']
+                            
+                                # Garbage collection
+                                del d
+                            
+                        except: pass
+        else:
+            print('Data already loaded.')
         
     def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
                   FeH_rng=(-3,3), wave_rng=(0,40), n_bins=''):
@@ -547,8 +747,8 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     
     if plot:
         plt.figure()
-        plt.plot(wave, flux, c='b')    
-        plt.plot(wavnew, specnew, c='r')
+        plt.loglog(wave, flux, c='b')    
+        plt.loglog(wavnew, specnew, c='r')
         
     return specnew
 
@@ -825,16 +1025,31 @@ def smooth(x,window_len=10,window='hanning'):
     return y[window_len-1:-window_len+1]
 
 def medfilt(x, window_len):
-    """Apply a length-k median filter to a 1D array x.
-    Boundaries are extended by repeating endpoints.
     """
-    assert x.ndim == 1, "Input must be one-dimensional."
+    Apply a length-k median filter to a 1D array x.
+    Boundaries are extended by repeating endpoints.
+    
+    Parameters
+    ----------
+    x: np.array
+        The 1D array to smooth
+    window_len: int
+        The size of the smoothing window
+    
+    Returns
+    -------
+    np.ndarray
+        The smoothed 1D array
+    """
+    # assert x.ndim == 1, "Input must be one-dimensional."
     if window_len % 2 == 0:
         print("Median filter length ("+str(window_len)+") must be odd. Adding 1.")
         window_len += 1
-    k2 = (window_len - 1) // 2
-    s=np.r_[2*np.median(x[0:window_len/5])-x[window_len:1:-1],x,2*np.median(x[-window_len/5:])-x[-1:-window_len:-1]]
-    y = np.zeros ((len (s), window_len), dtype=s.dtype)
+    window_len = int(window_len)
+    k2 = int((window_len - 1)//2)
+    s = np.r_[2*np.median(x[0:int(window_len/5)])-x[window_len:1:-1],x,2*np.median(x[int(-window_len/5):])-x[-1:-window_len:-1]]
+    y = np.zeros((len(s), window_len), dtype=s.dtype)
+    
     y[:,k2] = s
     for i in range (k2):
         j = k2 - i
@@ -843,3 +1058,42 @@ def medfilt(x, window_len):
         y[:-j,-(i+1)] = s[j:]
         y[-j:,-(i+1)] = s[-1]
     return np.median(y[window_len-1:-window_len+1], axis=1)
+
+def find_closest(axes, points, n=1, values=False):
+    """
+    Find the n-neighboring elements of a given value in an array
+        
+    Parameters
+    ----------
+    axes: list, np.array
+        The array(s) to search
+    points: array-like, float
+        The point(s) to search for
+    n: int
+        The number of values to the left and right of the points
+    Returns
+    -------
+    np.ndarray
+        The n-values to the left and right of 'points' in 'axes'
+    """
+    results = []
+    if not isinstance(axes,list):
+        axes = [axes]
+        points = [points]
+        
+    for i,(axis,point) in enumerate(zip(axes,points)):
+        if point>=min(axis) and point<=max(axis):
+            axis = np.asarray(axis)
+            idx = np.clip(axis.searchsorted(point), 1, len(axis)-1)
+        
+            if values:
+                result = axis[max(0,idx-n):min(idx+n,len(axis))]
+            else:
+                result = np.arange(0,len(axis))[max(0,idx-n):min(idx+n,len(axis))].astype(int)
+                
+            results.append(result)
+        else:
+            print('Point {} outside grid.'.format(point))
+            return
+
+    return results
