@@ -13,10 +13,7 @@ from bokeh.plotting import figure, show
 from bokeh.models import Span
 from matplotlib import rc, cm
 from astropy.io import fits
-try:
-    from .. import core
-except:
-    from ExoCTK import core
+from .. import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)

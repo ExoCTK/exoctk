@@ -10,14 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
-try:
-    from . import ldcplot as lp
-except:
-    import ldcplot as lp
-try:
-    from .. import core
-except:
-    from ExoCTK import core
+from . import ldcplot as lp
+from .. import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
