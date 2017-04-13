@@ -25,6 +25,9 @@ except:
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
+COLORS = ['blue', 'red', 'green', 'orange', 
+          'cyan', 'magenta', 'pink', 'purple']
+
 def ld_plot(profiles, grid_point, fig=None, 
             colors='blue', **kwargs):
     """
@@ -73,11 +76,13 @@ def ld_plot(profiles, grid_point, fig=None,
         vline = Span(location=mu_min, dimension='height', line_color='0.5', line_width=2)
         fig.renderers.extend([vline])
     
-    # Make profile list
+    # Make profile list and get colors
     if isinstance(profiles, str):
         profiles = [profiles]
     if isinstance(colors, str):
         colors = [colors]
+    if len(colors)!=len(profiles):
+        colors = COLORS[:len(profiles)]
     
     for color,profile in zip(colors,profiles):
         # Get the LD function for the given profile
@@ -87,8 +92,16 @@ def ld_plot(profiles, grid_point, fig=None,
     
         # Evaluate the limb darkening profile fit
         ld_vals = ldfunc(mu_vals, *coeffs)
+        
+        # ==========================================
+        # ==========================================
+        # ==========================================
+        # Bootstrap the results to get errors here!
         dn_err = ldfunc(mu_vals, *coeffs-err)
         up_err = ldfunc(mu_vals, *coeffs+err)
+        # ==========================================
+        # ==========================================
+        # ==========================================
         
         # Add fits to matplotlib
         if isinstance(fig, matplotlib.figure.Figure):
@@ -98,7 +111,7 @@ def ld_plot(profiles, grid_point, fig=None,
             ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
             ax.set_ylim(0,1)
             ax.set_xlim(0,1)
-    
+            
         # Or to bokeh!
         else:
             # Draw the curve and error

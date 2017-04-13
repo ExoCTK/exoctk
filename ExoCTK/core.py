@@ -542,12 +542,12 @@ class ModelGrid(object):
                 params.append(p)
                 values.append(v)
         values = np.asarray(values)
-        label = l = '{}/{}/{}'.format(*values)
+        label = '{}/{}/{}'.format(Teff,logg,FeH)
         
         # Interpolate flux values at each wavelength
         # using a pool for multiple processes
         print('Interpolating grid point [{}]...'.format(label))
-        processes = 8
+        processes = 4
         mu_index = range(flux.shape[-2])
         start = time.time()
         pool = multiprocessing.Pool(processes)
@@ -1078,7 +1078,8 @@ def find_closest(axes, points, n=1, values=False):
     """
     results = []
     if not isinstance(axes,list):
-        axes = list(axes)
+        axes = [axes]
+        points = [points]
         
     for i,(axis,point) in enumerate(zip(axes,points)):
         if point>=min(axis) and point<=max(axis):
