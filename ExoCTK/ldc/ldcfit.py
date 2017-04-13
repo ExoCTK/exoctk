@@ -210,10 +210,13 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
         # Add extras
         grid_point['mu_min'] = mu_min
         grid_point['r_eff'] = radius
+        grid_point['profiles'] = profiles
         
         if plot:
-        
-            lp.ld_plot(profiles, grid_point, fig=plot, **kwargs)
+            
+            # Make a list of LD functions and plot them
+            ldfuncs = [ld_profile(profile) for profile in profiles]
+            lp.ld_plot(ldfuncs, grid_point, fig=plot, **kwargs)
         
         return grid_point
             
