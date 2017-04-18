@@ -178,20 +178,19 @@ class Filter(object):
                 
             return
         
-    def convolve(self, spectrum):
+    def apply(self, spectrum):
         """
-        Convolve a spectrum with the filter RSR
+        Apply the filter to the given spectrum
         
         Parameters
         ----------
         spectrum: array-like
-            The wavelength [um] and flux of the spectrum to
-            be convolved
-            
+            The wavelength [um] and flux of the spectrum
+            to apply the filter to
         Returns
         -------
         np.ndarray
-            The convolved spectrum
+            The filtered spectrum
             
         """
         # Make into iterable arrays
