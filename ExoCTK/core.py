@@ -207,7 +207,7 @@ class Filter(object):
         for n,f in enumerate(flx):
             binned[n] = rebin_spec([wav, f], self.rsr[0])
         
-        # Convolve the RSR and spectrum
+        # Apply the RSR curve to the spectrum
         binned *= self.rsr[1]
         
         # Restore original shape
@@ -220,10 +220,18 @@ class Filter(object):
         Print a table of info about the current filter
         """
         # Get the info from the class 
-        info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, (int,float,str,bytes))]
+        tp = (int, bytes, bool, str, float, tuple, list, np.ndarray)
+        exclude = ['rsr']
+        info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, tp)
+                and k not in exclude]
+                
+        # Make the table
+        table = at.Table(np.asarray(info).reshape(len(info),2),
+                 names=['Attributes','Values'])
         
-        # Print a nice table
-        at.Table(np.asarray(info).reshape(len(info),2), names=['Attributes','Values']).pprint(max_width=500, align=['>','<'])
+        # Sort and print
+        table.sort('Attributes')
+        table.pprint(max_width=-1, align=['>','<'])
         
 def filter_list(filter_directory=pkg_resources.resource_filename('ExoCTK', 'data/filters/')):
     """
@@ -397,9 +405,9 @@ class ModelGrid(object):
         self.Teff_rng = (min(table['Teff']),max(table['Teff']))
         self.logg_rng = (min(table['logg']),max(table['logg']))
         self.FeH_rng = (min(table['FeH']),max(table['FeH']))
-        self.Teff_vals = np.unique(table['Teff'])
-        self.logg_vals = np.unique(table['logg'])
-        self.FeH_vals = np.unique(table['FeH'])
+        self.Teff_vals = np.asarray(np.unique(table['Teff']))
+        self.logg_vals = np.asarray(np.unique(table['logg']))
+        self.FeH_vals = np.asarray(np.unique(table['FeH']))
         
     def get(self, Teff, logg, FeH, interp=True):
         """
@@ -432,7 +440,7 @@ class ModelGrid(object):
                        (logg<=self.logg_rng[1])&
                        (FeH>=self.FeH_rng[0])&
                        (FeH<=self.FeH_rng[1])])
-        
+                       
         if in_grid:
             
             # See if the model with the desired parameters is a true grid point
@@ -448,14 +456,14 @@ class ModelGrid(object):
                 row, = np.where((self.data['Teff']==Teff)
                               & (self.data['logg']==logg)
                               & (self.data['FeH']==FeH))[0]
-
+                              
                 filepath = self.path+str(self.data[row]['filename'])
-
+                
                 # Get the flux, mu, and abundance arrays
                 raw_flux = fits.getdata(filepath, 0)
                 mu = fits.getdata(filepath, 1)
                 #abund = fits.getdata(filepath, 2)
-
+                
                 # Construct full wavelength scale and convert to microns
                 if self.CRVAL1=='-':
                     # Try to get data from WAVELENGTH extension...
@@ -464,27 +472,28 @@ class ModelGrid(object):
                     # ...or try to generate it
                     l = len(raw_flux[0])
                     raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
-            
+                    
                 # Convert from A to um
                 raw_wave *= 1E-4
-
+                
                 # Trim the wavelength and flux arrays
                 idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
                                               raw_wave<=self.wave_rng[1]))
                 flux = raw_flux[:,idx]
                 wave = raw_wave[idx]
-
+                
                 # Make a dictionary of parameters
                 # This should really be a core.Spectrum() object!
                 spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
                 spec_dict['wave'] = wave
-
+                
                 # Bin the spectrum if necessary
                 if self.n_bins>0 and self.n_bins<len(wave):
                     pass
-
+                    
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
+                spec_dict['r_eff'] = ''
                 #spec_dict['abund'] = abund
                 
             # If not on the grid, interpolate to it
@@ -494,9 +503,9 @@ class ModelGrid(object):
                     spec_dict = self.grid_interp(Teff, logg, FeH)
                 else:
                     return
-
+                    
             return spec_dict
-        
+            
         else:
             print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
                   ' model not in grid.')
@@ -682,24 +691,32 @@ class ModelGrid(object):
             print('The model grid has not been updated. Please try again.')
             
         # Update the attributes
-        self.Teff_rng = (min(self.data['Teff']),max(self.data['Teff']))
-        self.logg_rng = (min(self.data['logg']),max(self.data['logg']))
-        self.FeH_rng = (min(self.data['FeH']),max(self.data['FeH']))
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
+        self.Teff_rng = (min(self.Teff_vals),max(self.Teff_vals))
+        self.logg_rng = (min(self.logg_vals),max(self.logg_vals))
+        self.FeH_rng = (min(self.FeH_vals),max(self.FeH_vals))
         
         # Clear the grid copy from memory
         del grid
         
     def info(self):
         """
-        Print the ModelGrid attributes
+        Print a table of info about the current ModelGrid
         """
-        for n,v in vars(self).items():
-            if type(v) in [int, bytes, bool, str, float, tuple, list]:
-                print('{}: {}'.format(n,v))
-                
+        # Get the info from the class 
+        tp = (int, bytes, bool, str, float, tuple, list, np.ndarray)
+        info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, tp)]
+
+        # Make the table
+        table = at.Table(np.asarray(info).reshape(len(info),2),
+                 names=['Attributes','Values'])
+        
+        # Sort and print
+        table.sort('Attributes')
+        table.pprint(max_width=-1, align=['>','<'])
+        
     def reset(self):
         """
         Reset the current grid to the original state

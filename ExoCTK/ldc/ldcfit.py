@@ -13,6 +13,8 @@ from scipy.optimize import curve_fit
 from . import ldcplot as lp
 from .. import core
 
+
+
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
    
@@ -159,9 +161,10 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
         
         # Apply the filter if any
         if isinstance(bandpass, core.Filter):
-            flux = bandpass.convolve([wave,flux])
+            print(bandpass)
+            flux = bandpass.apply([wave,flux])
             wave = bandpass.rsr[0]
-
+            
         # Calculate mean intensity vs. mu
         mean_i = np.mean(flux, axis=1)
         
@@ -201,10 +204,13 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
                 grid_point[profile]['coeffs'] = coeffs
                 grid_point[profile]['err'] = np.sqrt(np.diag(cov))
                 
-        # Add extras
+        # Add raw data and inputs
+        grid_point['flux'] = flux
+        grid_point['wave'] = wave
         grid_point['mu_min'] = mu_min
         grid_point['r_eff'] = radius
         grid_point['profiles'] = profiles
+        grid_point['bandpass'] = bandpass
         
         if plot:
             
