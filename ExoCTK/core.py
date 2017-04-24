@@ -340,6 +340,7 @@ class ModelGrid(object):
         self.wave_rng = (0,40)
         self.n_bins = 1E10
         self.flux = ''
+        self.wavelength = ''
         self.r_eff = ''
         self.mu = ''
         
@@ -582,11 +583,11 @@ class ModelGrid(object):
         
         # Interpolate mu value
         interp_mu = RegularGridInterpolator(params, self.mu)
-        mu, = interp_mu(np.array(values))
+        mu = interp_mu(np.array(values)).squeeze()
         
         # Interpolate r_eff value
         interp_r = RegularGridInterpolator(params, self.r_eff)
-        r_eff, = interp_r(np.array(values))
+        r_eff = interp_r(np.array(values)).squeeze()
         
         # Make a dictionary to return
         grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
@@ -628,16 +629,18 @@ class ModelGrid(object):
                             
                                 # Add data to respective arrays
                                 self.flux[nt,ng,nm] = d['flux']
-                                self.r_eff[nt,ng,nm] = d['r_eff']
-                                self.mu[nt,ng,nm] = d['mu']
+                                self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
+                                self.mu[nt,ng,nm] = d['mu'].squeeze()
                             
                                 # Get the wavelength array
-                                self.wavelength = d['wave']
+                                if isinstance(self.wavelength,str):
+                                    self.wavelength = d['wave']
                             
                                 # Garbage collection
                                 del d
                             
-                        except: pass
+                        except IOError:
+                            pass
         else:
             print('Data already loaded.')
         

@@ -13,8 +13,6 @@ from scipy.optimize import curve_fit
 from . import ldcplot as lp
 from .. import core
 
-
-
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
    
@@ -156,14 +154,20 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
         # Retrieve the wavelength, flux, mu, and effective radius
         wave = grid_point.get('wave')
         flux = grid_point.get('flux')
-        mu = grid_point.get('mu')
+        mu = grid_point.get('mu').squeeze()
         radius = grid_point.get('r_eff')
         
         # Apply the filter if any
         if isinstance(bandpass, core.Filter):
-            print(bandpass)
             flux = bandpass.apply([wave,flux])
             wave = bandpass.rsr[0]
+            
+            if bandpass.WavelengthMin/10000<model_grid.wavelength[0]\
+            or bandpass.WavelengthMax/10000>model_grid.wavelength[-1]:
+                print('Bandpass {} not covered by'.format(bandpass.filterID))
+                print('model grid of wavelength range',model_grid.wave_rng)
+                
+                return
             
         # Calculate mean intensity vs. mu
         mean_i = np.mean(flux, axis=1)
