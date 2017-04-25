@@ -408,8 +408,11 @@ class ModelGrid(object):
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
-                ii.write(table, self.inv_file)
-                
+                try:
+                    ii.write(table, self.inv_file)
+                except:
+                    print('Could not write inventory file to',self.inv_file)
+                    
         # Remove columns where the values are all the same
         # and store value as attribute instead
         for n in table.colnames:
