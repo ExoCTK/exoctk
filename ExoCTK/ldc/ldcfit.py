@@ -228,8 +228,10 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
     else:
         # Print that it cannot calculate
         print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
-              ' model not within grid bounds', model_grid.Teff_rng,
-              model_grid.logg_rng, model_grid.FeH_rng)
+              ' model not within grid bounds', (min(model_grid.Teff_vals),
+              max(model_grid.Teff_vals)), (min(model_grid.logg_vals),
+              max(model_grid.logg_vals)), (min(model_grid.FeH_vals),
+              max(model_grid.FeH_vals)))
               
         return
 

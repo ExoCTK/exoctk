@@ -395,37 +395,34 @@ class ModelGrid(object):
             # Fix data types and make the table
             dtypes = [str if d==bool else d for d in dtypes]
             table = at.Table(np.array(vals), names=keys, dtype=dtypes)
-        
+            
             # Add the filenames as a column
             table['filename'] = filenames
-        
+    
             # Rename any columns
             for new,old in names.items():
                 try:
                     table.rename_column(old, new)
                 except:
                     print('No column named',old)
-        
-            # Remove columns where the values are all the same
-            # and store value as attribute instead
-            for n in table.colnames:
-                val = table[n][0]
-                if list(table[n]).count(val) == len(table[n])\
-                and n not in ['Teff','logg','FeH']:
-                    setattr(self, n, val)
-                    table.remove_column(n)
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
                 ii.write(table, self.inv_file)
+                
+        # Remove columns where the values are all the same
+        # and store value as attribute instead
+        for n in table.colnames:
+            val = table[n][0]
+            if list(table[n]).count(val) == len(table[n])\
+            and n not in ['Teff','logg','FeH']:
+                setattr(self, n, val)
+                table.remove_column(n)
         
         # Store the table in the data attribute
         self.data = table
         
         # Store the parameter ranges
-        self.Teff_rng = (min(table['Teff']),max(table['Teff']))
-        self.logg_rng = (min(table['logg']),max(table['logg']))
-        self.FeH_rng = (min(table['FeH']),max(table['FeH']))
         self.Teff_vals = np.asarray(np.unique(table['Teff']))
         self.logg_vals = np.asarray(np.unique(table['logg']))
         self.FeH_vals = np.asarray(np.unique(table['FeH']))
@@ -455,12 +452,12 @@ class ModelGrid(object):
         
         """
         # See if the model with the desired parameters is witin the grid
-        in_grid = all([(Teff>=self.Teff_rng[0])&
-                       (Teff<=self.Teff_rng[1])&
-                       (logg>=self.logg_rng[0])&
-                       (logg<=self.logg_rng[1])&
-                       (FeH>=self.FeH_rng[0])&
-                       (FeH<=self.FeH_rng[1])])
+        in_grid = all([(Teff>=min(self.Teff_vals))&
+                       (Teff<=max(self.Teff_vals))&
+                       (logg>=min(self.logg_vals))&
+                       (logg<=max(self.logg_vals))&
+                       (FeH>=min(self.FeH_vals))&
+                       (FeH<=max(self.FeH_vals))])
                        
         if in_grid:
             
@@ -717,9 +714,6 @@ class ModelGrid(object):
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
-        self.Teff_rng = (min(self.Teff_vals),max(self.Teff_vals))
-        self.logg_rng = (min(self.logg_vals),max(self.logg_vals))
-        self.FeH_rng = (min(self.FeH_vals),max(self.FeH_vals))
         
         # Clear the grid copy from memory
         del grid
