@@ -13,6 +13,7 @@ import multiprocessing
 import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
+import astropy.io.ascii as ii
 import matplotlib.pyplot as plt
 import pkg_resources
 import warnings
@@ -308,6 +309,8 @@ class ModelGrid(object):
         The number of bins for the ModelGrid wavelength array
     data: astropy.table.Table
         The table of parameters for the ModelGrid
+    inv_file: str
+        An inventory file to more quickly load the database
     
     """
     def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
@@ -334,6 +337,16 @@ class ModelGrid(object):
         if '*' not in model_directory:
             model_directory += '*'
         
+        # Check for an inventory file in this directory
+        # to speed up ModelGrid table creation
+        table = ''
+        if model_directory.endswith('/*'):
+            self.inv_file = model_directory.replace('*','inventory.txt')
+            try:
+                table = ii.read(self.inv_file)
+            except:
+                pass
+        
         # Create some attributes
         self.path = os.path.dirname(model_directory)+'/'
         self.refs = ''
@@ -356,48 +369,55 @@ class ModelGrid(object):
             self.refs = bibcode
             # _check_for_ref_object()
         
-        # Get list of spectral intensity files
-        files = glob(model_directory)
-        filenames = []
-        if not files:
-            print('No files match',model_directory,'.')
-            return
-        
-        # Parse the FITS headers
-        vals, dtypes = [], []
-        for f in files:
-            if f.endswith('.fits'):
-                try:
-                    header = fits.getheader(f)
-                    keys = np.array(header.cards).T[0]
-                    dtypes = [type(i[1]) for i in header.cards]
-                    vals.append([header.get(k) for k in keys])
-                    filenames.append(f.split('/')[-1])
-                except:
-                    print(f,'could not be read into the model grid.')
+        # If no inventory file, grab the raw files and make it from scratch
+        if not table:
             
-        # Fix data types and make the table
-        dtypes = [str if d==bool else d for d in dtypes]
-        table = at.Table(np.array(vals), names=keys, dtype=dtypes)
+            # Get list of spectral intensity files
+            files = glob(model_directory)
+            filenames = []
+            if not files:
+                print('No files match',model_directory,'.')
+                return
         
-        # Add the filenames as a column
-        table['filename'] = filenames
+            # Parse the FITS headers
+            vals, dtypes = [], []
+            for f in files:
+                if f.endswith('.fits'):
+                    try:
+                        header = fits.getheader(f)
+                        keys = np.array(header.cards).T[0]
+                        dtypes = [type(i[1]) for i in header.cards]
+                        vals.append([header.get(k) for k in keys])
+                        filenames.append(f.split('/')[-1])
+                    except:
+                        print(f,'could not be read into the model grid.')
+            
+            # Fix data types and make the table
+            dtypes = [str if d==bool else d for d in dtypes]
+            table = at.Table(np.array(vals), names=keys, dtype=dtypes)
         
-        # Rename any columns
-        for new,old in names.items():
-            try:
-                table.rename_column(old, new)
-            except:
-                print('No column named',old)
+            # Add the filenames as a column
+            table['filename'] = filenames
         
-        # Remove columns where the values are all the same
-        # and store value as attribute instead
-        for n in table.colnames:
-            val = table[n][0]
-            if list(table[n]).count(val) == len(table[n])\
-            and n not in ['Teff','logg','FeH']:
-                setattr(self, n, val)
-                table.remove_column(n)
+            # Rename any columns
+            for new,old in names.items():
+                try:
+                    table.rename_column(old, new)
+                except:
+                    print('No column named',old)
+        
+            # Remove columns where the values are all the same
+            # and store value as attribute instead
+            for n in table.colnames:
+                val = table[n][0]
+                if list(table[n]).count(val) == len(table[n])\
+                and n not in ['Teff','logg','FeH']:
+                    setattr(self, n, val)
+                    table.remove_column(n)
+            
+            # Write an inventory file to this directory for future table loads
+            if model_directory.endswith('/*'):
+                ii.write(table, self.inv_file)
         
         # Store the table in the data attribute
         self.data = table
@@ -644,8 +664,8 @@ class ModelGrid(object):
         else:
             print('Data already loaded.')
         
-    def customize(self, Teff_rng=(0,1E4), logg_rng=(0,6), 
-                  FeH_rng=(-3,3), wave_rng=(0,40), n_bins=''):
+    def customize(self, Teff_rng=(2300,8000), logg_rng=(0,6), 
+                  FeH_rng=(-2,1), wave_rng=(0,40), n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
         surface gravity, and metallicity. Also sets the wavelength range
