@@ -99,6 +99,8 @@ def ld_plot(ldfuncs, grid_point, fig=None,
         if isinstance(fig, matplotlib.figure.Figure):
         
             # Draw the curve and error
+            if profile=='uniform':
+                ld_vals = [ld_vals]*len(mu_vals)
             p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
             ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
             ax.set_ylim(0,1)
