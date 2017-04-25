@@ -162,8 +162,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
             flux = bandpass.apply([wave,flux])
             wave = bandpass.rsr[0]
             
-            if bandpass.WavelengthMin/10000<model_grid.wavelength[0]\
-            or bandpass.WavelengthMax/10000>model_grid.wavelength[-1]:
+            if bandpass.WavelengthMin/10000<model_grid.wave_rng[0]\
+            or bandpass.WavelengthMax/10000>model_grid.wave_rng[-1]:
                 print('Bandpass {} not covered by'.format(bandpass.filterID))
                 print('model grid of wavelength range',model_grid.wave_rng)
                 
