@@ -392,13 +392,14 @@ class ModelGrid(object):
                     except:
                         print(f,'could not be read into the model grid.')
             
-            # Fix data types and make the table
+            # Fix data types, trim extraneous values, and make the table
             dtypes = [str if d==bool else d for d in dtypes]
+            vals = [v[:len(dtypes)] for v in vals]
             table = at.Table(np.array(vals), names=keys, dtype=dtypes)
             
             # Add the filenames as a column
             table['filename'] = filenames
-    
+            
             # Rename any columns
             for new,old in names.items():
                 try:
