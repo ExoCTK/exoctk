@@ -101,7 +101,7 @@ def ld_profile(name='quadratic', latex=False):
         return
         
 
-def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001, 
+def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6, 
         bandpass='', plot=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
@@ -179,6 +179,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.001,
         # for the case where spherical models extend beyond limb
         muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
         mu = (mu-muz)/(1-muz)
+        grid_point['scaled_mu'] = mu
+        grid_point['ld_raw'] = ld
         
         # Trim to useful mu range
         mu_raw = mu.copy()

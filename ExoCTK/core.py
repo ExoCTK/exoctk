@@ -372,6 +372,10 @@ class ModelGrid(object):
         # If no inventory file, grab the raw files and make it from scratch
         if not table:
             
+            # Print update...
+            if model_directory.endswith('/*'):
+                print("Indexing models. Loading this model grid will be MUCH faster next time!")
+            
             # Get list of spectral intensity files
             files = glob(model_directory)
             filenames = []
@@ -647,19 +651,19 @@ class ModelGrid(object):
                                     self.r_eff = np.zeros(shp)
                                 if isinstance(self.mu,str):
                                     self.mu = np.zeros(shp+list(d['mu'].shape))
-                            
+                                    
                                 # Add data to respective arrays
                                 self.flux[nt,ng,nm] = d['flux']
                                 self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
                                 self.mu[nt,ng,nm] = d['mu'].squeeze()
-                            
+                                
                                 # Get the wavelength array
                                 if isinstance(self.wavelength,str):
                                     self.wavelength = d['wave']
-                            
+                                    
                                 # Garbage collection
                                 del d
-                            
+                                
                         except IOError:
                             pass
         else:
