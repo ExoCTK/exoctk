@@ -316,7 +316,7 @@ class ModelGrid(object):
     
     """
     def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
-                 names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
+                 reset=False, names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
                        'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
         """
@@ -355,6 +355,11 @@ class ModelGrid(object):
             
             for k,v in vars(model_grid).items():
                 setattr(self, k, v)
+            
+            self.flux = self.path+'model_grid_flux.hdf5'
+            self.wavelength = ''
+            self.r_eff = ''
+            self.mu = ''
             
             del model_grid
             
@@ -637,13 +642,14 @@ class ModelGrid(object):
             print('Grid too sparse. Could not interpolate.')
             return
             
-    def load_flux(self):
+    def load_flux(self, reset=False):
         """
         Retrieve the flux arrays for all models 
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
-        if not os.path.isfile(self.flux):
+        if isinstance(self.flux,str) and not os.path.isfile(self.flux)\
+        or reset:
             
             print('Loading flux into table...')
             
@@ -656,13 +662,14 @@ class ModelGrid(object):
             for nt,teff in enumerate(T):
                 for ng,logg in enumerate(G):
                     for nm,feh in enumerate(M):
-                    
+                        
                         try:
                             
                             # Retrieve flux using the `get()` method
                             d = self.get(teff, logg, feh, interp=False)
                             
                             if d:
+                                
                                 # Make sure arrays exist
                                 if isinstance(self.flux,str):
                                     flux = np.zeros(shp+list(d['flux'].shape))
@@ -679,7 +686,7 @@ class ModelGrid(object):
                                 # Get the wavelength array
                                 if isinstance(self.wavelength,str):
                                     self.wavelength = d['wave']
-                                    
+                                
                                 # Garbage collection
                                 del d
                                 
@@ -687,10 +694,16 @@ class ModelGrid(object):
                                 n += 1
                                 print("{:.2f} percent complete.".format(n*100./N), end='\r')
                                 
-                        except IOError:
+                        except:
                             # No model computed so reduce total
                             N -= 1
                             
+            # Update the pickle
+            try:
+                pickle.dump(self, open(self.file, 'wb'))
+            except IOError:
+                print('Could not write model grid to',self.file)
+            
             # Load the flux into an HDF5 file
             f = h5py.File(self.flux, "w")
             dset = f.create_dataset('flux', data=flux)
@@ -699,12 +712,6 @@ class ModelGrid(object):
             del dset
             print("100.00 percent complete!", end='\n')
             
-            # Update the pickle
-            try:
-                pickle.dump(self, open(self.file, 'wb'))
-            except IOError:
-                print('Could not write model grid to',self.file)
-                
         else:
             print('Data already loaded.')
             
@@ -756,6 +763,7 @@ class ModelGrid(object):
             self.data = grid
             print('The given parameter ranges would leave 0 models in the grid.')
             print('The model grid has not been updated. Please try again.')
+            return
             
         # Update the wavelength and flux attributes
         if isinstance(self.wavelength,np.ndarray):
@@ -799,8 +807,12 @@ class ModelGrid(object):
         """
         Reset the current grid to the original state
         """
-        self = self.__init__(self.path)
-
+        try:
+            os.remove(self.path+'model_grid_flux.hdf5')
+        except:
+            pass
+        self.__init__(self.path, reset=True)
+        
 def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     """
     Rebin a spectrum to a new wavelength array while preserving 
