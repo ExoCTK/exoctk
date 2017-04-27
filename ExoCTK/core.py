@@ -316,7 +316,7 @@ class ModelGrid(object):
     
     """
     def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
-                 reset=False, names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
+                 names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
                        'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
         """
@@ -446,6 +446,7 @@ class ModelGrid(object):
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
+                print('foo')
                 self.file = file
                 try:
                     pickle.dump(self, open(self.file, 'wb'))
@@ -648,8 +649,7 @@ class ModelGrid(object):
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
-        if isinstance(self.flux,str) and not os.path.isfile(self.flux)\
-        or reset:
+        if isinstance(self.flux,str) and not os.path.isfile(self.flux):
             
             print('Loading flux into table...')
             
@@ -697,12 +697,12 @@ class ModelGrid(object):
                         except:
                             # No model computed so reduce total
                             N -= 1
-                            
-            # Update the pickle
-            try:
-                pickle.dump(self, open(self.file, 'wb'))
-            except IOError:
-                print('Could not write model grid to',self.file)
+            #
+            # # Update the pickle
+            # try:
+            #     pickle.dump(self, open(self.file, 'wb'))
+            # except IOError:
+            #     print('Could not write model grid to',self.file)
             
             # Load the flux into an HDF5 file
             f = h5py.File(self.flux, "w")
@@ -811,7 +811,7 @@ class ModelGrid(object):
             os.remove(self.path+'model_grid_flux.hdf5')
         except:
             pass
-        self.__init__(self.path, reset=True)
+        self.__init__(self.path)
         
 def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     """
