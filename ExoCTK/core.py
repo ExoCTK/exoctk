@@ -22,6 +22,7 @@ import numpy as np
 import urllib
 import os
 import time
+import h5py
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -369,11 +370,11 @@ class ModelGrid(object):
             self.refs = ''
             self.wave_rng = (0,40)
             self.n_bins = 1E10
-            self.flux = ''
+            self.flux = self.path+'model_grid_flux.hdf5'
             self.wavelength = ''
             self.r_eff = ''
             self.mu = ''
-        
+            
             # Save the refs to a References() object
             if bibcode:
                 if isinstance(bibcode, (list,tuple)):
@@ -572,7 +573,7 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         """
         # Load the fluxes
-        if isinstance(self.flux,str):
+        if isinstance(self.flux,str) and not os.path.isfile(self.flux):
             self.load_flux()
             
         # Get the flux array
@@ -588,62 +589,68 @@ class ModelGrid(object):
         values = np.asarray(values)
         label = '{}/{}/{}'.format(Teff,logg,FeH)
         
-        # Interpolate flux values at each wavelength
-        # using a pool for multiple processes
-        print('Interpolating grid point [{}]...'.format(label))
-        processes = 4
-        mu_index = range(flux.shape[-2])
-        start = time.time()
-        pool = multiprocessing.Pool(processes)
-        func = partial(interp_flux, flux=flux, params=params, values=values)
-        new_flux = pool.map(func, mu_index)
-        pool.close()
-        pool.join()
-        
-        # Clean up and time of execution
-        new_flux = np.asarray(new_flux)
-        print('Run time in seconds: ', time.time()-start)
-        
-        if plot:
-            # Plot the interpolated spectrum
-            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+        try:
+            # Interpolate flux values at each wavelength
+            # using a pool for multiple processes
+            print('Interpolating grid point [{}]...'.format(label))
+            processes = 4
+            mu_index = range(flux.shape[-2])
+            start = time.time()
+            pool = multiprocessing.Pool(processes)
+            func = partial(interp_flux, flux=flux, params=params, values=values)
+            new_flux = pool.map(func, mu_index)
+            pool.close()
+            pool.join()
             
-            # Plot the 8 neighboring spectra
-            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
-                          (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
-                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
-                           label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            # Clean up and time of execution
+            new_flux = np.asarray(new_flux)
+            print('Run time in seconds: ', time.time()-start)
             
-            plt.legend(loc=0)
-        
-        # Interpolate mu value
-        interp_mu = RegularGridInterpolator(params, self.mu)
-        mu = interp_mu(np.array(values)).squeeze()
-        
-        # Interpolate r_eff value
-        interp_r = RegularGridInterpolator(params, self.r_eff)
-        r_eff = interp_r(np.array(values)).squeeze()
-        
-        # Make a dictionary to return
-        grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
-                      'mu': mu, 'r_eff': r_eff,
-                      'flux':new_flux, 'wave':self.wavelength}
-    
-        return grid_point
-    
+            if plot:
+                # Plot the interpolated spectrum
+                plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+                
+                # Plot the 8 neighboring spectra
+                for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
+                              (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+                    plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
+                               label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+                               
+                plt.legend(loc=0)
+                
+            # Interpolate mu value
+            interp_mu = RegularGridInterpolator(params, self.mu)
+            mu = interp_mu(np.array(values)).squeeze()
+            
+            # Interpolate r_eff value
+            interp_r = RegularGridInterpolator(params, self.r_eff)
+            r_eff = interp_r(np.array(values)).squeeze()
+            
+            # Make a dictionary to return
+            grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
+                          'mu': mu, 'r_eff': r_eff,
+                          'flux':new_flux, 'wave':self.wavelength}
+                          
+            return grid_point
+            
+        except IOError:
+            print('Grid too sparse. Could not interpolate.')
+            return
+            
     def load_flux(self):
         """
         Retrieve the flux arrays for all models 
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
-        if isinstance(self.flux,str):
+        if not os.path.isfile(self.flux):
             
             print('Loading flux into table...')
             
             # Get array dimensions
             T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
             shp = [len(T),len(G),len(M)]
+            n, N = 1, np.prod(shp)
             
             # Iterate through rows
             for nt,teff in enumerate(T):
@@ -658,14 +665,14 @@ class ModelGrid(object):
                             if d:
                                 # Make sure arrays exist
                                 if isinstance(self.flux,str):
-                                    self.flux = np.zeros(shp+list(d['flux'].shape))
+                                    flux = np.zeros(shp+list(d['flux'].shape))
                                 if isinstance(self.r_eff,str):
                                     self.r_eff = np.zeros(shp)
                                 if isinstance(self.mu,str):
                                     self.mu = np.zeros(shp+list(d['mu'].shape))
                                     
                                 # Add data to respective arrays
-                                self.flux[nt,ng,nm] = d['flux']
+                                flux[nt,ng,nm] = d['flux']
                                 self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
                                 self.mu[nt,ng,nm] = d['mu'].squeeze()
                                 
@@ -676,18 +683,31 @@ class ModelGrid(object):
                                 # Garbage collection
                                 del d
                                 
+                                # Print update
+                                n += 1
+                                print("{:.2f} percent complete.".format(n*100./N), end='\r')
+                                
                         except IOError:
-                            pass
+                            # No model computed so reduce total
+                            N -= 1
+                            
+            # Load the flux into an HDF5 file
+            f = h5py.File(self.flux, "w")
+            dset = f.create_dataset('flux', data=flux)
+            self.flux = dset[:]
+            f.close()
+            del dset
+            print("100.00 percent complete!", end='\n')
             
             # Update the pickle
             try:
                 pickle.dump(self, open(self.file, 'wb'))
             except IOError:
                 print('Could not write model grid to',self.file)
-            
+                
         else:
             print('Data already loaded.')
-        
+            
     def customize(self, Teff_rng=(2300,8000), logg_rng=(0,6), 
                   FeH_rng=(-2,1), wave_rng=(0,40), n_bins=''):
         """
@@ -737,17 +757,24 @@ class ModelGrid(object):
             print('The given parameter ranges would leave 0 models in the grid.')
             print('The model grid has not been updated. Please try again.')
             
-        # Update the attributes
+        # Update the wavelength and flux attributes
+        if isinstance(self.wavelength,np.ndarray):
+            w = self.wavelength
+            W_idx, = np.where((w>=wave_rng[0])&(w<=wave_rng[1]))
+            T_idx, = np.where((self.Teff_vals>=Teff_rng[0])&(self.Teff_vals<=Teff_rng[1]))
+            G_idx, = np.where((self.logg_vals>=logg_rng[0])&(self.logg_vals<=logg_rng[1]))
+            M_idx, = np.where((self.FeH_vals>=FeH_rng[0])&(self.FeH_vals<=FeH_rng[1]))
+            
+            # Trim arrays
+            self.wavelength = w[W_idx]
+            self.flux = self.flux[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1,:,W_idx[0]:W_idx[-1]+1]
+            self.mu = self.mu[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1]
+            self.r_eff = self.r_eff[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1]
+        
+        # Update the parameter attributes
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
-        
-        # Update the wavelength and flux attributes if wave_rng is given
-        if isinstance(self.wavelength,np.ndarray):
-            w = self.wavelength
-            idx, = np.where((w>wave_rng[0])&(w<wave_rng[1]))
-            self.wavelength = w[idx]
-            self.flux = self.flux[:,:,:,:,idx[0]:idx[-1]]
         
         # Clear the grid copy from memory
         del grid
