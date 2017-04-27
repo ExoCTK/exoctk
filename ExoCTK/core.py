@@ -16,6 +16,7 @@ import astropy.io.votable as vo
 import astropy.io.ascii as ii
 import matplotlib.pyplot as plt
 import pkg_resources
+import pickle
 import warnings
 import numpy as np
 import urllib
@@ -336,45 +337,54 @@ class ModelGrid(object):
         # is given without a wildcard
         if '*' not in model_directory:
             model_directory += '*'
-        
-        # Check for an inventory file in this directory
-        # to speed up ModelGrid table creation
-        table = ''
+            
+        # Check for a precomputed pickle of this ModelGrid
+        model_grid = ''
         if model_directory.endswith('/*'):
-            self.inv_file = model_directory.replace('*','inventory.txt')
+            # Location of model_grid pickle
+            file = model_directory.replace('*','model_grid.p')
+            
             try:
-                table = ii.read(self.inv_file)
+                model_grid = pickle.load(open(file, 'rb'))
             except:
                 pass
         
-        # Create some attributes
-        self.path = os.path.dirname(model_directory)+'/'
-        self.refs = ''
-        self.wave_rng = (0,40)
-        self.n_bins = 1E10
-        self.flux = ''
-        self.wavelength = ''
-        self.r_eff = ''
-        self.mu = ''
-        
-        # Save the refs to a References() object
-        if bibcode:
-            if isinstance(bibcode, (list,tuple)):
-                pass
-            elif bibcode and isinstance(bibcode, str):
-                bibcode = [bibcode]
-            else:
-                pass
+        # Instantiate the precomputed model grid
+        if model_grid:
             
-            self.refs = bibcode
-            # _check_for_ref_object()
-        
-        # If no inventory file, grab the raw files and make it from scratch
-        if not table:
+            for k,v in vars(model_grid).items():
+                setattr(self, k, v)
+            
+            del model_grid
+            
+        # Or compute it from scratch
+        else:
             
             # Print update...
             if model_directory.endswith('/*'):
                 print("Indexing models. Loading this model grid will be MUCH faster next time!")
+            
+            # Create some attributes
+            self.path = os.path.dirname(model_directory)+'/'
+            self.refs = ''
+            self.wave_rng = (0,40)
+            self.n_bins = 1E10
+            self.flux = ''
+            self.wavelength = ''
+            self.r_eff = ''
+            self.mu = ''
+        
+            # Save the refs to a References() object
+            if bibcode:
+                if isinstance(bibcode, (list,tuple)):
+                    pass
+                elif bibcode and isinstance(bibcode, str):
+                    bibcode = [bibcode]
+                else:
+                    pass
+                    
+                self.refs = bibcode
+                # _check_for_ref_object()
             
             # Get list of spectral intensity files
             files = glob(model_directory)
@@ -410,30 +420,31 @@ class ModelGrid(object):
                     table.rename_column(old, new)
                 except:
                     print('No column named',old)
+                    
+            # Remove columns where the values are all the same
+            # and store value as attribute instead
+            for n in table.colnames:
+                val = table[n][0]
+                if list(table[n]).count(val) == len(table[n])\
+                and n not in ['Teff','logg','FeH']:
+                    setattr(self, n, val)
+                    table.remove_column(n)
+                    
+            # Store the table in the data attribute
+            self.data = table
+            
+            # Store the parameter ranges
+            self.Teff_vals = np.asarray(np.unique(table['Teff']))
+            self.logg_vals = np.asarray(np.unique(table['logg']))
+            self.FeH_vals = np.asarray(np.unique(table['FeH']))
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
+                self.file = file
                 try:
-                    ii.write(table, self.inv_file)
-                except:
-                    print('Could not write inventory file to',self.inv_file)
-                    
-        # Remove columns where the values are all the same
-        # and store value as attribute instead
-        for n in table.colnames:
-            val = table[n][0]
-            if list(table[n]).count(val) == len(table[n])\
-            and n not in ['Teff','logg','FeH']:
-                setattr(self, n, val)
-                table.remove_column(n)
-        
-        # Store the table in the data attribute
-        self.data = table
-        
-        # Store the parameter ranges
-        self.Teff_vals = np.asarray(np.unique(table['Teff']))
-        self.logg_vals = np.asarray(np.unique(table['logg']))
-        self.FeH_vals = np.asarray(np.unique(table['FeH']))
+                    pickle.dump(self, open(self.file, 'wb'))
+                except IOError:
+                    print('Could not write model grid to',self.file)
         
     def get(self, Teff, logg, FeH, interp=True):
         """
@@ -562,7 +573,6 @@ class ModelGrid(object):
         """
         # Load the fluxes
         if isinstance(self.flux,str):
-            print('Loading flux into table...')
             self.load_flux()
             
         # Get the flux array
@@ -629,6 +639,8 @@ class ModelGrid(object):
         """
         if isinstance(self.flux,str):
             
+            print('Loading flux into table...')
+            
             # Get array dimensions
             T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
             shp = [len(T),len(G),len(M)]
@@ -666,6 +678,13 @@ class ModelGrid(object):
                                 
                         except IOError:
                             pass
+            
+            # Update the pickle
+            try:
+                pickle.dump(self, open(self.file, 'wb'))
+            except IOError:
+                print('Could not write model grid to',self.file)
+            
         else:
             print('Data already loaded.')
         
@@ -722,6 +741,13 @@ class ModelGrid(object):
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
+        
+        # Update the wavelength and flux attributes if wave_rng is given
+        if isinstance(self.wavelength,np.ndarray):
+            w = self.wavelength
+            idx, = np.where((w>wave_rng[0])&(w<wave_rng[1]))
+            self.wavelength = w[idx]
+            self.flux = self.flux[:,:,:,:,idx[0]:idx[-1]]
         
         # Clear the grid copy from memory
         del grid
