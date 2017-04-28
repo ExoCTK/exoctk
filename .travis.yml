@@ -26,13 +26,12 @@ env:
         # to repeat them for all configurations.
         - MAIN_CMD='python setup.py'
         - ASTROPY_VERSION=stable
-        - SETUP_CMD='test'
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
         - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh'
-        - PIP_DEPENDENCIES='sphinx_automodapi sphinx_rtd_theme bibtexparser'
+        - PIP_DEPENDENCIES='sphinx_automodapi sphinx_rtd_theme bibtexparser batman-package'
 
     matrix:
         - PYTHON_VERSION=2.7 SETUP_CMD='install'
@@ -54,9 +53,9 @@ matrix:
         - env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx'
 
         # Try Astropy development version
-        - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development
+        - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development SETUP_CMD='test'
 
-        - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development
+        - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
 
 before_install:
     # - git clone git://github.com/spacetelescope/pysynphot.git
