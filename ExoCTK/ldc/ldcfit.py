@@ -180,8 +180,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         mean_i = np.mean(flux, axis=1)
         
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        print(mean_i.shape,mu)
-        ld = mean_i/mean_i[np.where(mu==1)]
+        ld = mean_i/mean_i[np.where(mu==max(mu))]
         
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
