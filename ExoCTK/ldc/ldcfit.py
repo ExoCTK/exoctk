@@ -103,7 +103,7 @@ def ld_profile(name='quadratic', latex=False):
         
 
 def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6, 
-        bandpass='', plot=False, save=False, **kwargs):
+        bandpass='', grid_point='', plot=False, save=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -134,6 +134,9 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     bandpass: core.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
+    grid_point: dict (optional)
+        A previously computed model grid point, rather
+        than providing Teff, logg, and FeH
     plot: bool, matplotlib.figure.Figure, bokeh.plotting.figure.Figure
         Plot mu vs. limb darkening for this model in an existing
         figure or in a new figure
@@ -149,7 +152,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     
     """              
     # Get the model, interpolating if necessary
-    grid_point = model_grid.get(Teff, logg, FeH)
+    if not grid_point:
+        grid_point = model_grid.get(Teff, logg, FeH)
     
     # If the model exists, continue
     if grid_point:
@@ -176,6 +180,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         mean_i = np.mean(flux, axis=1)
         
         # Calculate limb darkening, I[mu]/I[1] vs. mu
+        print(mean_i.shape,mu)
         ld = mean_i/mean_i[np.where(mu==1)]
         
         # Rescale mu values to make f(mu=0)=ld_min
