@@ -44,8 +44,8 @@ struct Chem {
 
 /* --- Associated function prototypes ------------------------------- */
 
-void ReadOpacTable(struct vars variables, struct Opac opac, char *filename);
-void FreeOpacTable(struct vars variables, struct Opac opac);
+void ReadOpacTable(struct Opac opac, char *filename);
+void FreeOpacTable(struct Opac opac);
 
 #endif /* !__OPAC_H__ */
 

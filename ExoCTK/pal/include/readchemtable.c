@@ -38,21 +38,16 @@ extern struct Chem chem;
 
 /* ------- begin ------------ ReadChemTable.c -------------------- */
 
-void ReadChemTable(struct vars variables) {
+void ReadChemTable() {
   
   int i, j;
   char dum[8];
-  int chemSelection[32];
+  int chemSelection[30];
   
   /* Initialize and obtain variables from other files */
-  // char **fileArray = getFileArray();
-  // vars variables = getVars();
-  // getChemSelection(chemSelection);
-  for (i=0; i<32; i++) {
-    chemSelection[i] = variables.chemselection[i];
-  }
-  
-
+  char **fileArray = getFileArray();
+  vars variables = getVars();
+  getChemSelection(chemSelection);
   int NTEMP = variables.NTEMP;
   int NPRESSURE = variables.NPRESSURE;
   
@@ -105,11 +100,9 @@ void ReadChemTable(struct vars variables) {
   
   /* Read in chemistry table */	
   
-  // f1 = fopen(fileArray[1],"r");
-  printf("Using EOS file: %s\n", variables.eosfname);
-  f1 = fopen(variables.eosfname, "r");
+  f1 = fopen(fileArray[1],"r");
   if(f1 == NULL){
-    // printf("\nreadchemtable.c:\nError opening file: %s \nNo such file or directory.\nMake sure you have the appropriate file path and name specified in userInput.in\n\n", fileArray[1]);
+    printf("\nreadchemtable.c:\nError opening file: %s \nNo such file or directory.\nMake sure you have the appropriate file path and name specified in userInput.in\n\n", fileArray[1]);
     exit(1);
   }
   
@@ -282,9 +275,9 @@ void ReadChemTable(struct vars variables) {
 
 /* ------- start ------------ FreeChemTable.c -------------------- */
 
-void FreeChemTable(struct vars variables){ 
+void FreeChemTable(){ 
 
-  // vars variables = getVars();
+  vars variables = getVars();
   int NTEMP = variables.NTEMP;
   int NPRESSURE = variables.NPRESSURE;
 

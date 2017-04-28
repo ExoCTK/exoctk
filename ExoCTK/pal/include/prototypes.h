@@ -32,16 +32,16 @@ double Radius(double R_pl, double *ds, int NT);
 void Angles(double *ds, double *theta, double *dtheta, int NT, double Rpl, double Rst);
 void Tau_LOS(double **kappa_nu, double **tau_tr, double *ds, int NT, double Rpl, int NLam);
 void Locate(int n, double *array, double value, int *ilow);
-int  RT_Transmit(struct vars variables, double* wavelength, double* flux);
-void ReadTP(vars variables);
-void TotalOpac(struct vars variables);
+int  RT_Transmit();
+void ReadTP();
+void TotalOpac();
 double Planck(double T, double lambda);
 double lint2D(double x1, double x2, double y1, double y2, double z1, 
 	      double z2, double z3, double z4, double x, double y);
 double lint(double x1, double y1, double x2, double y2, double x);
-void FreeTP(struct vars variables);
-void ReadChemTable(struct vars variables);
-void FreeChemTable(struct vars variables);
+void FreeTP();
+void ReadChemTable();
+void FreeChemTable();
 void errorCheck(int onOff, double value);
 
 #endif
