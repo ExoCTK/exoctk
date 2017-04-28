@@ -41,11 +41,9 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     mu = grid_point['mu']
     mu_min = grid_point['mu_min']
     profiles = grid_point['profiles']
-    
-    # Scale the raw data
+    mu_raw = grid_point['scaled_mu']
+    ld_raw = grid_point['ld_raw']
     mu_vals = np.linspace(0, 1, 1000)
-    scale = 1./np.mean(flux, axis=1)[np.where(mu==1)]
-    ld_raw = np.mean(flux, axis=1)*scale
     
     # Is it a matplotlib plot?
     if isinstance(fig, matplotlib.figure.Figure):
@@ -54,7 +52,7 @@ def ld_plot(ldfuncs, grid_point, fig=None,
         ax = fig.add_subplot(111)
         
         # Plot the fitted points
-        ax.errorbar(mu, ld_raw, c='k', ls='None', marker='o',
+        ax.errorbar(mu_raw, ld_raw, c='k', ls='None', marker='o',
                      markeredgecolor='k', markerfacecolor='None')
                      
         # Plot the mu cutoff

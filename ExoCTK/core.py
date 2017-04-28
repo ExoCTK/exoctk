@@ -16,11 +16,13 @@ import astropy.io.votable as vo
 import astropy.io.ascii as ii
 import matplotlib.pyplot as plt
 import pkg_resources
+import pickle
 import warnings
 import numpy as np
 import urllib
 import os
 import time
+import h5py
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -336,41 +338,59 @@ class ModelGrid(object):
         # is given without a wildcard
         if '*' not in model_directory:
             model_directory += '*'
-        
-        # Check for an inventory file in this directory
-        # to speed up ModelGrid table creation
-        table = ''
+            
+        # Check for a precomputed pickle of this ModelGrid
+        model_grid = ''
         if model_directory.endswith('/*'):
-            self.inv_file = model_directory.replace('*','inventory.txt')
+            # Location of model_grid pickle
+            file = model_directory.replace('*','model_grid.p')
+            
             try:
-                table = ii.read(self.inv_file)
+                model_grid = pickle.load(open(file, 'rb'))
             except:
                 pass
         
-        # Create some attributes
-        self.path = os.path.dirname(model_directory)+'/'
-        self.refs = ''
-        self.wave_rng = (0,40)
-        self.n_bins = 1E10
-        self.flux = ''
-        self.wavelength = ''
-        self.r_eff = ''
-        self.mu = ''
-        
-        # Save the refs to a References() object
-        if bibcode:
-            if isinstance(bibcode, (list,tuple)):
-                pass
-            elif bibcode and isinstance(bibcode, str):
-                bibcode = [bibcode]
-            else:
-                pass
+        # Instantiate the precomputed model grid
+        if model_grid:
             
-            self.refs = bibcode
-            # _check_for_ref_object()
-        
-        # If no inventory file, grab the raw files and make it from scratch
-        if not table:
+            for k,v in vars(model_grid).items():
+                setattr(self, k, v)
+            
+            self.flux = self.path+'model_grid_flux.hdf5'
+            self.wavelength = ''
+            self.r_eff = ''
+            self.mu = ''
+            
+            del model_grid
+            
+        # Or compute it from scratch
+        else:
+            
+            # Print update...
+            if model_directory.endswith('/*'):
+                print("Indexing models. Loading this model grid will be MUCH faster next time!")
+            
+            # Create some attributes
+            self.path = os.path.dirname(model_directory)+'/'
+            self.refs = ''
+            self.wave_rng = (0,40)
+            self.n_bins = 1E10
+            self.flux = self.path+'model_grid_flux.hdf5'
+            self.wavelength = ''
+            self.r_eff = ''
+            self.mu = ''
+            
+            # Save the refs to a References() object
+            if bibcode:
+                if isinstance(bibcode, (list,tuple)):
+                    pass
+                elif bibcode and isinstance(bibcode, str):
+                    bibcode = [bibcode]
+                else:
+                    pass
+                    
+                self.refs = bibcode
+                # _check_for_ref_object()
             
             # Get list of spectral intensity files
             files = glob(model_directory)
@@ -406,30 +426,31 @@ class ModelGrid(object):
                     table.rename_column(old, new)
                 except:
                     print('No column named',old)
+                    
+            # Remove columns where the values are all the same
+            # and store value as attribute instead
+            for n in table.colnames:
+                val = table[n][0]
+                if list(table[n]).count(val) == len(table[n])\
+                and n not in ['Teff','logg','FeH']:
+                    setattr(self, n, val)
+                    table.remove_column(n)
+                    
+            # Store the table in the data attribute
+            self.data = table
+            
+            # Store the parameter ranges
+            self.Teff_vals = np.asarray(np.unique(table['Teff']))
+            self.logg_vals = np.asarray(np.unique(table['logg']))
+            self.FeH_vals = np.asarray(np.unique(table['FeH']))
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
+                self.file = file
                 try:
-                    ii.write(table, self.inv_file)
-                except:
-                    print('Could not write inventory file to',self.inv_file)
-                    
-        # Remove columns where the values are all the same
-        # and store value as attribute instead
-        for n in table.colnames:
-            val = table[n][0]
-            if list(table[n]).count(val) == len(table[n])\
-            and n not in ['Teff','logg','FeH']:
-                setattr(self, n, val)
-                table.remove_column(n)
-        
-        # Store the table in the data attribute
-        self.data = table
-        
-        # Store the parameter ranges
-        self.Teff_vals = np.asarray(np.unique(table['Teff']))
-        self.logg_vals = np.asarray(np.unique(table['logg']))
-        self.FeH_vals = np.asarray(np.unique(table['FeH']))
+                    pickle.dump(self, open(self.file, 'wb'))
+                except IOError:
+                    print('Could not write model grid to',self.file)
         
     def get(self, Teff, logg, FeH, interp=True):
         """
@@ -558,7 +579,6 @@ class ModelGrid(object):
         """
         # Load the fluxes
         if isinstance(self.flux,str):
-            print('Loading flux into table...')
             self.load_flux()
             
         # Get the flux array
@@ -574,50 +594,55 @@ class ModelGrid(object):
         values = np.asarray(values)
         label = '{}/{}/{}'.format(Teff,logg,FeH)
         
-        # Interpolate flux values at each wavelength
-        # using a pool for multiple processes
-        print('Interpolating grid point [{}]...'.format(label))
-        processes = 4
-        mu_index = range(flux.shape[-2])
-        start = time.time()
-        pool = multiprocessing.Pool(processes)
-        func = partial(interp_flux, flux=flux, params=params, values=values)
-        new_flux = pool.map(func, mu_index)
-        pool.close()
-        pool.join()
-        
-        # Clean up and time of execution
-        new_flux = np.asarray(new_flux)
-        print('Run time in seconds: ', time.time()-start)
-        
-        if plot:
-            # Plot the interpolated spectrum
-            plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+        try:
+            # Interpolate flux values at each wavelength
+            # using a pool for multiple processes
+            print('Interpolating grid point [{}]...'.format(label))
+            processes = 4
+            mu_index = range(flux.shape[-2])
+            start = time.time()
+            pool = multiprocessing.Pool(processes)
+            func = partial(interp_flux, flux=flux, params=params, values=values)
+            new_flux = pool.map(func, mu_index)
+            pool.close()
+            pool.join()
             
-            # Plot the 8 neighboring spectra
-            for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
-                          (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
-                plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
-                           label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            # Clean up and time of execution
+            new_flux = np.asarray(new_flux)
+            print('Run time in seconds: ', time.time()-start)
             
-            plt.legend(loc=0)
-        
-        # Interpolate mu value
-        interp_mu = RegularGridInterpolator(params, self.mu)
-        mu = interp_mu(np.array(values)).squeeze()
-        
-        # Interpolate r_eff value
-        interp_r = RegularGridInterpolator(params, self.r_eff)
-        r_eff = interp_r(np.array(values)).squeeze()
-        
-        # Make a dictionary to return
-        grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
-                      'mu': mu, 'r_eff': r_eff,
-                      'flux':new_flux, 'wave':self.wavelength}
-    
-        return grid_point
-    
-    def load_flux(self):
+            # if plot:
+            #     # Plot the interpolated spectrum
+            #     plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+            #
+            #     # Plot the 8 neighboring spectra
+            #     for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
+            #                   (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+            #         plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
+            #                    label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            #
+            #     plt.legend(loc=0)
+                
+            # Interpolate mu value
+            interp_mu = RegularGridInterpolator(params, self.mu)
+            mu = interp_mu(np.array(values)).squeeze()
+            
+            # Interpolate r_eff value
+            interp_r = RegularGridInterpolator(params, self.r_eff)
+            r_eff = interp_r(np.array(values)).squeeze()
+            
+            # Make a dictionary to return
+            grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
+                          'mu': mu, 'r_eff': r_eff,
+                          'flux':new_flux, 'wave':self.wavelength}
+                          
+            return grid_point
+            
+        except IOError:
+            print('Grid too sparse. Could not interpolate.')
+            return
+            
+    def load_flux(self, reset=False):
         """
         Retrieve the flux arrays for all models 
         and load into the ModelGrid.array attribute
@@ -625,46 +650,72 @@ class ModelGrid(object):
         """
         if isinstance(self.flux,str):
             
-            # Get array dimensions
-            T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
-            shp = [len(T),len(G),len(M)]
+            print('Loading flux into table...')
             
-            # Iterate through rows
-            for nt,teff in enumerate(T):
-                for ng,logg in enumerate(G):
-                    for nm,feh in enumerate(M):
-                    
-                        try:
+            if os.path.isfile(self.flux):
+                
+                # Load the flux from the HDF5 file
+                f = h5py.File(self.flux, "r")
+                self.flux = f['flux'][:]
+                f.close()
+                
+            else:
+                
+                # Get array dimensions
+                T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
+                shp = [len(T),len(G),len(M)]
+                n, N = 1, np.prod(shp)
+                
+                # Iterate through rows
+                for nt,teff in enumerate(T):
+                    for ng,logg in enumerate(G):
+                        for nm,feh in enumerate(M):
                             
-                            # Retrieve flux using the `get()` method
-                            d = self.get(teff, logg, feh, interp=False)
-                            
-                            if d:
-                                # Make sure arrays exist
-                                if isinstance(self.flux,str):
-                                    self.flux = np.zeros(shp+list(d['flux'].shape))
-                                if isinstance(self.r_eff,str):
-                                    self.r_eff = np.zeros(shp)
-                                if isinstance(self.mu,str):
-                                    self.mu = np.zeros(shp+list(d['mu'].shape))
-                            
-                                # Add data to respective arrays
-                                self.flux[nt,ng,nm] = d['flux']
-                                self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
-                                self.mu[nt,ng,nm] = d['mu'].squeeze()
-                            
-                                # Get the wavelength array
-                                if isinstance(self.wavelength,str):
-                                    self.wavelength = d['wave']
-                            
-                                # Garbage collection
-                                del d
-                            
-                        except IOError:
-                            pass
+                            try:
+                                
+                                # Retrieve flux using the `get()` method
+                                d = self.get(teff, logg, feh, interp=False)
+                                
+                                if d:
+                                    
+                                    # Make sure arrays exist
+                                    if isinstance(self.flux,str):
+                                        self.flux = np.zeros(shp+list(d['flux'].shape))
+                                    if isinstance(self.r_eff,str):
+                                        self.r_eff = np.zeros(shp)
+                                    if isinstance(self.mu,str):
+                                        self.mu = np.zeros(shp+list(d['mu'].shape))
+                                        
+                                    # Add data to respective arrays
+                                    self.flux[nt,ng,nm] = d['flux']
+                                    self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
+                                    self.mu[nt,ng,nm] = d['mu'].squeeze()
+                                    
+                                    # Get the wavelength array
+                                    if isinstance(self.wavelength,str):
+                                        self.wavelength = d['wave']
+                                        
+                                    # Garbage collection
+                                    del d
+                                    
+                                    # Print update
+                                    n += 1
+                                    print("{:.2f} percent complete.".format(n*100./N), end='\r')
+                                    
+                            except:
+                                # No model computed so reduce total
+                                N -= 1
+                                
+                # Load the flux into an HDF5 file
+                f = h5py.File(self.path+'model_grid_flux.hdf5', "w")
+                dset = f.create_dataset('flux', data=self.flux)
+                f.close()
+                del dset
+                print("100.00 percent complete!", end='\n')
+                
         else:
             print('Data already loaded.')
-        
+            
     def customize(self, Teff_rng=(2300,8000), logg_rng=(0,6), 
                   FeH_rng=(-2,1), wave_rng=(0,40), n_bins=''):
         """
@@ -713,8 +764,23 @@ class ModelGrid(object):
             self.data = grid
             print('The given parameter ranges would leave 0 models in the grid.')
             print('The model grid has not been updated. Please try again.')
+            return
             
-        # Update the attributes
+        # Update the wavelength and flux attributes
+        if isinstance(self.wavelength,np.ndarray):
+            w = self.wavelength
+            W_idx, = np.where((w>=wave_rng[0])&(w<=wave_rng[1]))
+            T_idx, = np.where((self.Teff_vals>=Teff_rng[0])&(self.Teff_vals<=Teff_rng[1]))
+            G_idx, = np.where((self.logg_vals>=logg_rng[0])&(self.logg_vals<=logg_rng[1]))
+            M_idx, = np.where((self.FeH_vals>=FeH_rng[0])&(self.FeH_vals<=FeH_rng[1]))
+            
+            # Trim arrays
+            self.wavelength = w[W_idx]
+            self.flux = self.flux[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1,:,W_idx[0]:W_idx[-1]+1]
+            self.mu = self.mu[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1]
+            self.r_eff = self.r_eff[T_idx[0]:T_idx[-1]+1,G_idx[0]:G_idx[-1]+1,M_idx[0]:M_idx[-1]+1]
+        
+        # Update the parameter attributes
         self.Teff_vals = np.unique(self.data['Teff'])
         self.logg_vals = np.unique(self.data['logg'])
         self.FeH_vals = np.unique(self.data['FeH'])
@@ -742,8 +808,12 @@ class ModelGrid(object):
         """
         Reset the current grid to the original state
         """
-        self = self.__init__(self.path)
-
+        try:
+            os.remove(self.path+'model_grid_flux.hdf5')
+        except:
+            pass
+        self.__init__(self.path)
+        
 def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     """
     Rebin a spectrum to a new wavelength array while preserving 

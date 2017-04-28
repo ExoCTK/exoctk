@@ -84,6 +84,7 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK'
             
             # Scale the flux values by the flux(mu=1) value
             data_cube[:-1] *= data_cube[-1]
+            data_cube[-1] *= 1E5
             
             # Apply units
             data_cube = data_cube*q.erg/q.cm**2/q.s/q.steradian/q.Hz
