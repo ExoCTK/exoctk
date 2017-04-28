@@ -446,7 +446,6 @@ class ModelGrid(object):
             
             # Write an inventory file to this directory for future table loads
             if model_directory.endswith('/*'):
-                print('foo')
                 self.file = file
                 try:
                     pickle.dump(self, open(self.file, 'wb'))
@@ -579,7 +578,7 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         """
         # Load the fluxes
-        if isinstance(self.flux,str) and not os.path.isfile(self.flux):
+        if isinstance(self.flux,str):
             self.load_flux()
             
         # Get the flux array
@@ -612,17 +611,17 @@ class ModelGrid(object):
             new_flux = np.asarray(new_flux)
             print('Run time in seconds: ', time.time()-start)
             
-            if plot:
-                # Plot the interpolated spectrum
-                plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
-                
-                # Plot the 8 neighboring spectra
-                for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
-                              (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
-                    plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
-                               label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
-                               
-                plt.legend(loc=0)
+            # if plot:
+            #     # Plot the interpolated spectrum
+            #     plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
+            #
+            #     # Plot the 8 neighboring spectra
+            #     for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
+            #                   (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
+            #         plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
+            #                    label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
+            #
+            #     plt.legend(loc=0)
                 
             # Interpolate mu value
             interp_mu = RegularGridInterpolator(params, self.mu)
@@ -649,69 +648,72 @@ class ModelGrid(object):
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
-        if isinstance(self.flux,str) and not os.path.isfile(self.flux):
+        if isinstance(self.flux,str):
             
             print('Loading flux into table...')
             
-            # Get array dimensions
-            T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
-            shp = [len(T),len(G),len(M)]
-            n, N = 1, np.prod(shp)
-            
-            # Iterate through rows
-            for nt,teff in enumerate(T):
-                for ng,logg in enumerate(G):
-                    for nm,feh in enumerate(M):
-                        
-                        try:
+            if os.path.isfile(self.flux):
+                
+                # Load the flux from the HDF5 file
+                f = h5py.File(self.flux, "r")
+                print(f['flux'])
+                self.flux = f['flux'][:]
+                f.close()
+                
+            else:
+                
+                # Get array dimensions
+                T, G, M = self.Teff_vals, self.logg_vals, self.FeH_vals
+                shp = [len(T),len(G),len(M)]
+                n, N = 1, np.prod(shp)
+                
+                # Iterate through rows
+                for nt,teff in enumerate(T):
+                    for ng,logg in enumerate(G):
+                        for nm,feh in enumerate(M):
                             
-                            # Retrieve flux using the `get()` method
-                            d = self.get(teff, logg, feh, interp=False)
-                            
-                            if d:
+                            try:
                                 
-                                # Make sure arrays exist
-                                if isinstance(self.flux,str):
-                                    flux = np.zeros(shp+list(d['flux'].shape))
-                                if isinstance(self.r_eff,str):
-                                    self.r_eff = np.zeros(shp)
-                                if isinstance(self.mu,str):
-                                    self.mu = np.zeros(shp+list(d['mu'].shape))
+                                # Retrieve flux using the `get()` method
+                                d = self.get(teff, logg, feh, interp=False)
+                                
+                                if d:
                                     
-                                # Add data to respective arrays
-                                flux[nt,ng,nm] = d['flux']
-                                self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
-                                self.mu[nt,ng,nm] = d['mu'].squeeze()
+                                    # Make sure arrays exist
+                                    if isinstance(self.flux,str):
+                                        self.flux = np.zeros(shp+list(d['flux'].shape))
+                                    if isinstance(self.r_eff,str):
+                                        self.r_eff = np.zeros(shp)
+                                    if isinstance(self.mu,str):
+                                        self.mu = np.zeros(shp+list(d['mu'].shape))
+                                        
+                                    # Add data to respective arrays
+                                    self.flux[nt,ng,nm] = d['flux']
+                                    self.r_eff[nt,ng,nm] = d['r_eff'] or np.nan
+                                    self.mu[nt,ng,nm] = d['mu'].squeeze()
+                                    
+                                    # Get the wavelength array
+                                    if isinstance(self.wavelength,str):
+                                        self.wavelength = d['wave']
+                                        
+                                    # Garbage collection
+                                    del d
+                                    
+                                    # Print update
+                                    n += 1
+                                    print("{:.2f} percent complete.".format(n*100./N), end='\r')
+                                    
+                            except:
+                                # No model computed so reduce total
+                                N -= 1
                                 
-                                # Get the wavelength array
-                                if isinstance(self.wavelength,str):
-                                    self.wavelength = d['wave']
-                                
-                                # Garbage collection
-                                del d
-                                
-                                # Print update
-                                n += 1
-                                print("{:.2f} percent complete.".format(n*100./N), end='\r')
-                                
-                        except:
-                            # No model computed so reduce total
-                            N -= 1
-            #
-            # # Update the pickle
-            # try:
-            #     pickle.dump(self, open(self.file, 'wb'))
-            # except IOError:
-            #     print('Could not write model grid to',self.file)
-            
-            # Load the flux into an HDF5 file
-            f = h5py.File(self.flux, "w")
-            dset = f.create_dataset('flux', data=flux)
-            self.flux = dset[:]
-            f.close()
-            del dset
-            print("100.00 percent complete!", end='\n')
-            
+                # Load the flux into an HDF5 file
+                f = h5py.File(self.path+'model_grid_flux.hdf5', "w")
+                dset = f.create_dataset('flux', data=self.flux)
+                f.close()
+                del dset
+                print("100.00 percent complete!", end='\n')
+                
         else:
             print('Data already loaded.')
             
