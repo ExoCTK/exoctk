@@ -656,7 +656,6 @@ class ModelGrid(object):
                 
                 # Load the flux from the HDF5 file
                 f = h5py.File(self.flux, "r")
-                print(f['flux'])
                 self.flux = f['flux'][:]
                 f.close()
                 
