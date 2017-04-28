@@ -227,11 +227,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
             # the columns are ['Profile','c0','e0',...,'cn','en']
             tables = []
             for p in grid_point['profiles']:
-                data = np.array([[p]+','.join([','.join(map(str,\
-                       [grid_point[p]['coeffs'][n],grid_point[p]['err'][n]]))\
-                       for n in range(len(grid_point[p]['coeffs']))])\
-                       .split(',')])
-                names = ['Profile']+','.join(['c{0},e{0}'.format(n) for n in \
+                data = np.array([[p]+','.join(['{:.2f},{:.2f}'.format(*[grid_point[p]['coeffs'][n],grid_point[p]['err'][n]]) for n in range(len(grid_point[p]['coeffs']))]).split(',')])
+                names = ['Profile']+','.join(['c{0},e{0}'.format(n+1) for n in \
                         range(len(grid_point[p]['coeffs']))]).split(',')
                 tables.append(at.Table(data, names=names))
             
