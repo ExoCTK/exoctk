@@ -87,6 +87,8 @@ def ld_plot(ldfuncs, grid_point, fig=None,
         # ==========================================
         # ==========================================
         # Bootstrap the results to get errors here!
+        # dn_err = ldfunc(mu_vals, *coeffs-1.95596*err)
+        # up_err = ldfunc(mu_vals, *coeffs+1.95596*err)
         dn_err = ldfunc(mu_vals, *coeffs-err)
         up_err = ldfunc(mu_vals, *coeffs+err)
         # ==========================================

@@ -103,7 +103,7 @@ def ld_profile(name='quadratic', latex=False):
         
 
 def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6, 
-        bandpass='', plot=False, verbose=True, **kwargs):
+        bandpass='', grid_point='', plot=False, save=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -134,11 +134,14 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     bandpass: core.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
+    grid_point: dict (optional)
+        A previously computed model grid point, rather
+        than providing Teff, logg, and FeH
     plot: bool, matplotlib.figure.Figure, bokeh.plotting.figure.Figure
         Plot mu vs. limb darkening for this model in an existing
         figure or in a new figure
-    verbose: bool
-        Print the table of coefficients
+    save: str
+        Save the plot and the table of coefficients to file
     
     Returns
     -------
@@ -149,7 +152,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     
     """              
     # Get the model, interpolating if necessary
-    grid_point = model_grid.get(Teff, logg, FeH)
+    if not grid_point:
+        grid_point = model_grid.get(Teff, logg, FeH)
     
     # If the model exists, continue
     if grid_point:
@@ -176,7 +180,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         mean_i = np.mean(flux, axis=1)
         
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i/mean_i[np.where(mu==1)]
+        ld = mean_i/mean_i[np.where(mu==max(mu))]
         
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
@@ -220,23 +224,26 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['r_eff'] = radius
         grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
+            
+        # Make a table for each profile then stack them so that
+        # the columns are ['Profile','c0','e0',...,'cn','en']
+        tables = []
+        for p in grid_point['profiles']:
+            data = np.array([[p]+','.join(['{:.2f},{:.2f}'.format(\
+                   *[grid_point[p]['coeffs'][n],grid_point[p]['err'][n]])\
+                   for n in range(len(grid_point[p]['coeffs']))])\
+                   .split(',')])
+            names = ['Profile']+','.join(['c{0},e{0}'.format(n+1) for n in \
+                    range(len(grid_point[p]['coeffs']))]).split(',')
+            tables.append(at.Table(data, names=names))
         
-        if verbose:
+        table = at.vstack(tables)
+        table.pprint(max_width=-1)
+        
+        if save:
             
-            # Make a table for each profile then stack them so that
-            # the columns are ['Profile','c0','e0',...,'cn','en']
-            tables = []
-            for p in grid_point['profiles']:
-                data = np.array([[p]+','.join(['{:.2f},{:.2f}'.format(\
-                       *[grid_point[p]['coeffs'][n],grid_point[p]['err'][n]])\
-                       for n in range(len(grid_point[p]['coeffs']))])\
-                       .split(',')])
-                names = ['Profile']+','.join(['c{0},e{0}'.format(n+1) for n in \
-                        range(len(grid_point[p]['coeffs']))]).split(',')
-                tables.append(at.Table(data, names=names))
-            
-            table = at.vstack(tables)
-            table.pprint(max_width=-1)
+            # Write the table to file
+            table.write(save.replace('.txt','.csv'), format='ascii.fast_csv')
         
         if plot:
             
