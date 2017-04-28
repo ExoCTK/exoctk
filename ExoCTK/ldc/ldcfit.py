@@ -8,6 +8,7 @@ import inspect
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt
+import astropy.table as at
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from . import ldcplot as lp
@@ -102,7 +103,7 @@ def ld_profile(name='quadratic', latex=False):
         
 
 def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6, 
-        bandpass='', plot=False, **kwargs):
+        bandpass='', plot=False, verbose=True, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
     If the model grid does not contain a spectrum of the given parameters, the
@@ -136,6 +137,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     plot: bool, matplotlib.figure.Figure, bokeh.plotting.figure.Figure
         Plot mu vs. limb darkening for this model in an existing
         figure or in a new figure
+    verbose: bool
+        Print the table of coefficients
     
     Returns
     -------
@@ -217,6 +220,23 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['r_eff'] = radius
         grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
+        
+        if verbose:
+            
+            # Make a table for each profile then stack them so that
+            # the columns are ['Profile','c0','e0',...,'cn','en']
+            tables = []
+            for p in grid_point['profiles']:
+                data = np.array([[p]+','.join([','.join(map(str,\
+                       [grid_point[p]['coeffs'][n],grid_point[p]['err'][n]]))\
+                       for n in range(len(grid_point[p]['coeffs']))])\
+                       .split(',')])
+                names = ['Profile']+','.join(['c{0},e{0}'.format(n) for n in \
+                        range(len(grid_point[p]['coeffs']))]).split(',')
+                tables.append(at.Table(data, names=names))
+            
+            table = at.vstack(tables)
+            table.pprint(max_width=-1)
         
         if plot:
             
