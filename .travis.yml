@@ -30,7 +30,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
-        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh'
+        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh hd5'
         - PIP_DEPENDENCIES='sphinx_automodapi sphinx_rtd_theme bibtexparser batman-package'
 
     matrix:

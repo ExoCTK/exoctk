@@ -3,6 +3,8 @@
 """
 A module for classes and functions used across all ExoCTK subpackages
 """
+from __future__ import print_function
+
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
