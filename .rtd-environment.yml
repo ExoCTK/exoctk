@@ -2,6 +2,7 @@ name: ExoCTK
 
 channels:
     - astropy
+    - http://ssb.stsci.edu/astroconda
 
 dependencies:
     - astropy
@@ -10,6 +11,7 @@ dependencies:
     - numpy
     - scipy
     - numba
+    - h5py
 
-#   - pip:
-#       - dependency_from_pip
+   - pip:
+       - batman-package
