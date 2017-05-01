@@ -3,7 +3,10 @@
     <style media="screen" type="text/css">
       h1 { display:none; }
     </style>
-.. image:: ../ExoCTK/data/images/ExoCTK_logo.png
+
+.. only:: html
+
+   .. image:: ../ExoCTK/data/images/ExoCTK_logo.png
 
 ############################
 ExoCTK Package Documentation
