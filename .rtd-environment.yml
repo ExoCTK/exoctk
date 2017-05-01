@@ -12,6 +12,5 @@ dependencies:
     - scipy
     - numba
     - h5py
-
-   pip:
-       - batman-package
+    - pip:
+        - batman-package
