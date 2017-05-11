@@ -3,6 +3,8 @@
 """
 A module for classes and functions used across all ExoCTK subpackages
 """
+from __future__ import print_function
+
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
@@ -656,7 +658,6 @@ class ModelGrid(object):
                 
                 # Load the flux from the HDF5 file
                 f = h5py.File(self.flux, "r")
-                print(f['flux'])
                 self.flux = f['flux'][:]
                 f.close()
                 
