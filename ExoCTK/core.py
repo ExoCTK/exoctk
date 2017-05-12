@@ -223,7 +223,7 @@ class Filter(object):
         
         return binned
         
-    def bin(self, n_bins='', n_channels='', bin_throughput=''):
+    def bin(self, n_bins='', n_channels='', bin_throughput='', plot=False):
         """
         Break the filter up into bins and apply a throughput to each bin,
         useful for G141, G102, and other grisms
@@ -235,42 +235,55 @@ class Filter(object):
         n_cahnnels: int (optional)
             The number of channels per bin, which will be used to calculate n_bins
         bin_throughput: array-like (optional)
-            The shape of the throughput for each bin, top hat by default,
-            of length n_channels
+            The throughput for each bin (top hat by default)
+            must be of length n_channels
+        plot: bool
+            Plot the throughput before and after binning
         """
         # Calculate the number of bins and channels
         rsr = len(self.raw[0])
         if n_channels and isinstance(n_channels,int):
-            self.n_channels = n_channels
-            self.n_bins = rsr/n_channels
+            self.n_channels = int(n_channels)
+            self.n_bins = int(rsr/self.n_channels)
         elif n_bins and isinstance(n_bins,int):
-            self.n_channels = rsr/n_bins
-            self.n_bins = n_bins
+            self.n_bins = int(n_bins)
+            self.n_channels = int(rsr/self.n_bins)
         else:
             print('Please specify n_bins or n_channels as integers.')
             return
+            
+        print('{} bins of {} channels each.'.format(self.n_bins,self.n_channels))
         
         # Trim throughput edges so that there are an integer number of bins
-        self.n_bins = int(self.n_bins)
-        self.n_channels = int(self.n_channels)
         new_len = self.n_bins*self.n_channels
         start = (rsr-new_len)//2
-        self.rsr = self.raw[:,start:new_len+start]
+        self.rsr = np.copy(self.raw[:,start:new_len+start])
         
         # Reshape the throughput array
-        self.rsr = self.rsr.reshape(self.n_bins,2,self.n_channels)
+        self.rsr = self.rsr.reshape(2,self.n_bins,self.n_channels)
+        self.rsr = self.rsr.swapaxes(0,1)
         
         # Get the bin throughput function
-        if not bin_throughput:
+        if not isinstance(bin_throughput, (list,tuple,np.ndarray)):
             bin_throughput = np.ones(self.n_channels)
         
-        # Apply the bin throughput
-        self.rsr *= bin_throughput
+        # Make sure the shape is right
+        if len(bin_throughput)==self.n_channels:
+            
+            # Save the attribute
+            self.bin_throughput = np.asarray(bin_throughput)
         
-        # Save some attributes
-        self.bin_throughput = bin_throughput
+            # Apply the bin throughput
+            self.rsr[:,1] *= self.bin_throughput
         
-        print('{} bins of {} channels each.'.format(self.n_bins,self.n_channels))
+        else:
+            print('bin_throughput must be an array of length',self.n_channels)
+            print('Using top hat throughput for each bin.')
+        
+        if plot:
+            plt.plot(self.raw[0], self.raw[1], lw=6, alpha=0.1)
+            for x,y in self.rsr:
+                plt.plot(x, y)
     
     def info(self):
         """
