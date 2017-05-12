@@ -186,7 +186,7 @@ class Filter(object):
                 
             return
             
-    def apply(self, spectrum):
+    def apply(self, spectrum, plot=False):
         """
         Apply the filter to the given spectrum
         
@@ -195,6 +195,9 @@ class Filter(object):
         spectrum: array-like
             The wavelength [um] and flux of the spectrum
             to apply the filter to
+        plot: bool
+            Plot the original and filtered spectrum
+        
         Returns
         -------
         np.ndarray
@@ -203,25 +206,35 @@ class Filter(object):
         """
         # Make into iterable arrays
         wav, flx = [np.asarray(i) for i in spectrum]
-        dims = list(flx.shape)
-        if len(dims)==1:
+        
+        # Make flux 2D
+        if len(flx.shape)==1:
             flx = np.expand_dims(flx, axis=0)
-            
-        # Make binned flux array
-        bin_dims = dims[:-1]+[len(self.rsr[0])]
-        binned = np.zeros(bin_dims)
+        
+        # Make throughput 3D
+        rsr = np.copy(self.rsr)
+        if len(rsr.shape)==2:
+            rsr = np.expand_dims(rsr, axis=0)
+        
+        # Make empty filtered array
+        filtered = np.zeros((rsr.shape[0],flx.shape[0],rsr.shape[2]))
         
         # Rebin the input spectra to the filter wavelength array
-        for n,f in enumerate(flx):
-            binned[n] = rebin_spec([wav, f], self.rsr[0])
-        
+        for i,bn in enumerate(rsr):
+            for j,f in enumerate(flx):
+                filtered[i][j] = rebin_spec([wav, f], bn[0])
+                
         # Apply the RSR curve to the spectrum
-        binned *= self.rsr[1]
+        filtered *= np.expand_dims(rsr[:,1], axis=1)
         
-        # Restore original shape
-        binned = binned.reshape(bin_dims)
+        if plot:
+            plt.loglog(wav, flx[0])
+            for n,bn in enumerate(rsr):
+                plt.loglog(bn[0], filtered[n][0])
         
-        return binned
+        del rsr, wav, flx
+        
+        return filtered.squeeze()
         
     def bin(self, n_bins='', n_channels='', bin_throughput='', plot=False):
         """
