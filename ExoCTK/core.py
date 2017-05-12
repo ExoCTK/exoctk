@@ -103,7 +103,6 @@ class Filter(object):
             The bandpass filename (e.g. 2MASS.J)
         filter_directory: str
             The directory containing the filter files
-            
         """
         # Get list of filters
         filters = filter_list(filter_directory) if filter_directory else filter_list()
@@ -169,6 +168,10 @@ class Filter(object):
             
             # Create some attributes
             self.path = filepath
+            self.n_channels = len(self.rsr[0])
+            self.n_bins = 1
+            self.raw = self.rsr
+            
             try:
                 self.refs = [self.CalibrationReference.split('=')[-1]]
             except:
@@ -182,7 +185,7 @@ class Filter(object):
                 os.remove(filepath)
                 
             return
-        
+            
     def apply(self, spectrum):
         """
         Apply the filter to the given spectrum
@@ -219,6 +222,55 @@ class Filter(object):
         binned = binned.reshape(bin_dims)
         
         return binned
+        
+    def bin(self, n_bins='', n_channels='', bin_throughput=''):
+        """
+        Break the filter up into bins and apply a throughput to each bin,
+        useful for G141, G102, and other grisms
+        
+        Parameters
+        ----------
+        n_bins: int
+            The number of bins to dice the throughput curve into
+        n_cahnnels: int (optional)
+            The number of channels per bin, which will be used to calculate n_bins
+        bin_throughput: array-like (optional)
+            The shape of the throughput for each bin, top hat by default,
+            of length n_channels
+        """
+        # Calculate the number of bins and channels
+        rsr = len(self.raw[0])
+        if n_channels and isinstance(n_channels,int):
+            self.n_channels = n_channels
+            self.n_bins = rsr/n_channels
+        elif n_bins and isinstance(n_bins,int):
+            self.n_channels = rsr/n_bins
+            self.n_bins = n_bins
+        else:
+            print('Please specify n_bins or n_channels as integers.')
+            return
+        
+        # Trim throughput edges so that there are an integer number of bins
+        self.n_bins = int(self.n_bins)
+        self.n_channels = int(self.n_channels)
+        new_len = self.n_bins*self.n_channels
+        start = (rsr-new_len)//2
+        self.rsr = self.raw[:,start:new_len+start]
+        
+        # Reshape the throughput array
+        self.rsr = self.rsr.reshape(self.n_bins,2,self.n_channels)
+        
+        # Get the bin throughput function
+        if not bin_throughput:
+            bin_throughput = np.ones(self.n_channels)
+        
+        # Apply the bin throughput
+        self.rsr *= bin_throughput
+        
+        # Save some attributes
+        self.bin_throughput = bin_throughput
+        
+        print('{} bins of {} channels each.'.format(self.n_bins,self.n_channels))
     
     def info(self):
         """
