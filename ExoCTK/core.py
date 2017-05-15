@@ -171,6 +171,7 @@ class Filter(object):
             self.n_channels = len(self.rsr[0])
             self.n_bins = 1
             self.raw = self.rsr
+            self.centers = np.array([self.WavelengthCen/10000.])
             
             try:
                 self.refs = [self.CalibrationReference.split('=')[-1]]
@@ -220,13 +221,12 @@ class Filter(object):
         filtered = np.zeros((rsr.shape[0],flx.shape[0],rsr.shape[2]))
         
         # Rebin the input spectra to the filter wavelength array
+        # and apply the RSR curve to the spectrum
         for i,bn in enumerate(rsr):
             for j,f in enumerate(flx):
-                filtered[i][j] = rebin_spec([wav, f], bn[0])
+                #filtered[i][j] = rebin_spec([wav, f], bn[0])*bn[1]
+                filtered[i][j] = np.interp(bn[0], wav, f)*bn[1]
                 
-        # Apply the RSR curve to the spectrum
-        filtered *= np.expand_dims(rsr[:,1], axis=1)
-        
         if plot:
             plt.loglog(wav, flx[0])
             for n,bn in enumerate(rsr):
@@ -276,35 +276,41 @@ class Filter(object):
         self.rsr = self.rsr.reshape(2,self.n_bins,self.n_channels)
         self.rsr = self.rsr.swapaxes(0,1)
         
+        # Get the bin centers
+        w_cen = np.nanmean(self.rsr[:,0,:], axis=1)
+        f_cen = np.nanmean(self.rsr[:,1,:], axis=1)
+        self.centers = np.asarray([w_cen,f_cen])
+        
         # Get the bin throughput function
         if not isinstance(bin_throughput, (list,tuple,np.ndarray)):
             bin_throughput = np.ones(self.n_channels)
-        
+            
         # Make sure the shape is right
         if len(bin_throughput)==self.n_channels:
             
             # Save the attribute
             self.bin_throughput = np.asarray(bin_throughput)
-        
+            
             # Apply the bin throughput
             self.rsr[:,1] *= self.bin_throughput
-        
+            
         else:
             print('bin_throughput must be an array of length',self.n_channels)
             print('Using top hat throughput for each bin.')
-        
+            
         if plot:
+            plt.plot(*self.centers, ls='None', marker='.', c='k')
             plt.plot(self.raw[0], self.raw[1], lw=6, alpha=0.1)
             for x,y in self.rsr:
                 plt.plot(x, y)
-    
+                
     def info(self):
         """
         Print a table of info about the current filter
         """
         # Get the info from the class 
         tp = (int, bytes, bool, str, float, tuple, list, np.ndarray)
-        exclude = ['rsr']
+        exclude = ['rsr', 'bin_throughput', 'raw']
         info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, tp)
                 and k not in exclude]
                 
