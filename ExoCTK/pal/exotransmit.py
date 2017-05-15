@@ -63,7 +63,7 @@ def create_user_input(base_dir=None, T_P_file='/T_P/t_p_800K.dat',
                       R_planet=6.4e+6, R_star=7.0e+8, P_cloud=0.0,
                       Rayleigh=1.0, **kwargs):
     """
-    Create the userInput.in file needed to run Exo_Transmit.
+    Create the userInput.in file needed to run Exo-Transmit.
     
     Parameters
     ----------
@@ -74,7 +74,7 @@ def create_user_input(base_dir=None, T_P_file='/T_P/t_p_800K.dat',
     EOS_file: str
         The location of the Equation of State file relative to the `base_dir`
     output_file: str
-        The location to save the output spectrum relaitve to the `base_dir`
+        The location to save the output spectrum relative to the `base_dir`
     g: float
         The planet surface gravity in m / s^2
     R_planet: float
