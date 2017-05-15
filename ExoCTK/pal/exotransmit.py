@@ -13,10 +13,17 @@ else:
     from urlparse import urljoin
 
 def exotransmit(**kwargs):
+    """
+    Run exotransmit.  The function can take any arguments for 
+    `create_user_input`, `create_chem_selection` and `create_other_input` for 
+    parameter names and descriptions.
+
+    """
 
     check_user_input(**kwargs)
     create_user_input(**kwargs)
     create_chem_selection(**kwargs)
+    check_other_input(**kwargs)
     create_other_input(**kwargs)
 
     _exotransmit_wrapper.exotransmit()
@@ -42,6 +49,13 @@ def check_user_input(base_dir=None, T_P_file='/T_P/t_p_800K.dat',
     if not os.path.isdir(base_dir + os.path.dirname(output_file)):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT),
                                 base_dir + os.path.dirname(output_file))
+
+    # other parameters need to be able to be cast to float
+    float(g)
+    float(R_planet)
+    float(R_star)
+    float(P_cloud)
+    float(Rayleigh)
 
 def create_user_input(base_dir=None, T_P_file='/T_P/t_p_800K.dat',
                       EOS_file='/EOS/eos_1Xsolar_cond.dat',
@@ -113,6 +127,41 @@ def create_chem_selection(CH4=True, CO2=True, CO=True, H2O=True, NH3=True,
     with open('selectChem.in', 'w') as f:
         f.write(contents)
 
+def check_other_input(base_dir=None, opac_CH4='/Opac/opacCH4.dat', opac_C2H2='/Opac/opacC2H2.dat',
+                       opac_C2H4='/Opac/opacC2H4.dat', opac_C2H6='/Opac/opacC2H6.dat',
+                       opac_CO='/Opac/opacCO.dat', opac_CO2='/Opac/opacCO2.dat',
+                       opac_H2CO='/Opac/opacH2CO.dat', opac_H2O='/Opac/opacH2O.dat',
+                       opac_H2S='/Opac/opacH2S.dat', opac_HCN='/Opac/opacHCN.dat',
+                       opac_HCl='/Opac/opacHCl.dat', opac_HF='/Opac/opacHF.dat',
+                       opac_MgH='/Opac/opacMgH.dat', opac_N2='/Opac/opacN2.dat',
+                       opac_NH3='/Opac/opacNH3.dat', opac_NO='/Opac/opacNO.dat',
+                       opac_NO2='/Opac/opacNO2.dat', opac_O2='/Opac/opacO2.dat',
+                       opac_O3='/Opac/opacO3.dat', opac_OCS='/Opac/opacOCS.dat',
+                       opac_OH='/Opac/opacOH.dat', opac_PH3='/Opac/opacPH3.dat',
+                       opac_SH='/Opac/opacSH.dat', opac_SO2='/Opac/opacSO2.dat',
+                       opac_SiH='/Opac/opacSiH.dat', opac_SiO='/Opac/opacSiO.dat',
+                       opac_TiO='/Opac/opacTiO.dat', opac_VO='/Opac/opacVO.dat',
+                       opac_Na='/Opac/opacNa.dat', opac_K='/Opac/opacK.dat',
+                       opac_CIA='/Opac/opacCIA.dat',
+                       NT=30, Tmin=100.0, Tmax=3000.0,
+                       NP=13, Pmin=1.0e-4, Pmax=1.0e8, Nlambda=4616, Ntau=334, **kwargs):
+
+    sig = inspect.signature(create_other_input)
+    for param in sig.parameters.keys():
+        if 'opac' in param:
+            if not os.path.isfile(base_dir + param):
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT),
+                                base_dir + os.path.dirname(output_file))
+
+    int(NT)
+    int(NP)
+    int(Nlambda)
+    int(Ntau)
+    float(Tmin)
+    float(Tmax)
+    float(Pmin)
+    float(Pmax)
+
 def create_other_input(opac_CH4='/Opac/opacCH4.dat', opac_C2H2='/Opac/opacC2H2.dat',
                        opac_C2H4='/Opac/opacC2H4.dat', opac_C2H6='/Opac/opacC2H6.dat',
                        opac_CO='/Opac/opacCO.dat', opac_CO2='/Opac/opacCO2.dat',
@@ -133,7 +182,7 @@ def create_other_input(opac_CH4='/Opac/opacCH4.dat', opac_C2H2='/Opac/opacC2H2.d
                        NP=13, Pmin=1.0e-4, Pmax=1.0e8, Nlambda=4616, Ntau=334,
                        **kwargs):
 
-    sig = inspect.signature(create_other_input)
+
     with open(os.path.join(os.path.dirname(__file__),
                            'include/otherInput.in')) as f:
         otherinput_template = f.read()
@@ -172,7 +221,7 @@ def collect_exotransmit_data():
     """
     Get all of the Exo_Transmit ancillary data from the original Github repo.
     """
-    base_url = 'https://api.github.com/repos/ExoCTK/exoctk_data/contents/exotransmit'
+    base_url = 'https://api.github.com/repos/ExoCTK/exoctk_data/contents/exotransmit/'
     download_url_dir(base_url, 'EOS')
     download_url_dir(base_url, 'Opac')
     download_url_dir(base_url, 'T_P')
