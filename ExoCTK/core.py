@@ -93,7 +93,7 @@ class Filter(object):
         The SVO filter ID
     
     """
-    def __init__(self, band, filter_directory=''):
+    def __init__(self, band, filter_directory='', **kwargs):
         """
         Loads the bandpass data into the Filter object
         
@@ -165,7 +165,7 @@ class Filter(object):
                 # Set the attribute
                 if key!='Description':
                     setattr(self, key, val)
-            
+                    
             # Create some attributes
             self.path = filepath
             self.n_channels = len(self.rsr[0])
@@ -181,6 +181,10 @@ class Filter(object):
                 self.refs = [self.CalibrationReference.split('=')[-1]]
             except:
                 self.refs = []
+                
+            # Bin from the get-go
+            if kwargs:
+                self.bin(**kwargs)
             
         # If empty, delete XML file
         except:
