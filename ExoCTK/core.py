@@ -412,7 +412,7 @@ class ModelGrid(object):
     def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
                  names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
-                       'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
+                       'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}, **kwargs):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -468,7 +468,6 @@ class ModelGrid(object):
             self.path = os.path.dirname(model_directory)+'/'
             self.refs = ''
             self.wave_rng = (0,40)
-            self.n_bins = 1E10
             self.flux = self.path+'model_grid_flux.hdf5'
             self.wavelength = ''
             self.r_eff = ''
@@ -545,6 +544,13 @@ class ModelGrid(object):
                     pickle.dump(self, open(self.file, 'wb'))
                 except IOError:
                     print('Could not write model grid to',self.file)
+                    
+        # Print something
+        print(len(self.data),'models loaded from',self.path)
+        
+        # Customize from the get-go
+        if kwargs:
+            self.customize(**kwargs)
         
     def get(self, Teff, logg, FeH, interp=True):
         """
