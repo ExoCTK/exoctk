@@ -171,7 +171,11 @@ class Filter(object):
             self.n_channels = len(self.rsr[0])
             self.n_bins = 1
             self.raw = self.rsr
-            self.centers = np.array([self.WavelengthCen/10000.])
+            
+            # Get the bin centers
+            w_cen = np.nanmean(self.rsr[0])
+            f_cen = np.nanmean(self.rsr[1])
+            self.centers = np.asarray([[w_cen],[f_cen]])
             
             try:
                 self.refs = [self.CalibrationReference.split('=')[-1]]
