@@ -10,6 +10,7 @@ from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
 from scipy.interpolate import splmake, spleval
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import zoom
 from functools import partial
 import multiprocessing
 import bibtexparser as bt
@@ -93,7 +94,7 @@ class Filter(object):
         The SVO filter ID
     
     """
-    def __init__(self, band, filter_directory=''):
+    def __init__(self, band, filter_directory='', **kwargs):
         """
         Loads the bandpass data into the Filter object
         
@@ -103,7 +104,6 @@ class Filter(object):
             The bandpass filename (e.g. 2MASS.J)
         filter_directory: str
             The directory containing the filter files
-            
         """
         # Get list of filters
         filters = filter_list(filter_directory) if filter_directory else filter_list()
@@ -166,13 +166,26 @@ class Filter(object):
                 # Set the attribute
                 if key!='Description':
                     setattr(self, key, val)
-            
+                    
             # Create some attributes
             self.path = filepath
+            self.n_channels = len(self.rsr[0])
+            self.n_bins = 1
+            self.raw = self.rsr
+            
+            # Get the bin centers
+            w_cen = np.nanmean(self.rsr[0])
+            f_cen = np.nanmean(self.rsr[1])
+            self.centers = np.asarray([[w_cen],[f_cen]])
+            
             try:
                 self.refs = [self.CalibrationReference.split('=')[-1]]
             except:
                 self.refs = []
+                
+            # Bin from the get-go
+            if kwargs:
+                self.bin(**kwargs)
             
         # If empty, delete XML file
         except:
@@ -182,8 +195,8 @@ class Filter(object):
                 os.remove(filepath)
                 
             return
-        
-    def apply(self, spectrum):
+            
+    def apply(self, spectrum, plot=False):
         """
         Apply the filter to the given spectrum
         
@@ -192,6 +205,9 @@ class Filter(object):
         spectrum: array-like
             The wavelength [um] and flux of the spectrum
             to apply the filter to
+        plot: bool
+            Plot the original and filtered spectrum
+        
         Returns
         -------
         np.ndarray
@@ -200,33 +216,110 @@ class Filter(object):
         """
         # Make into iterable arrays
         wav, flx = [np.asarray(i) for i in spectrum]
-        dims = list(flx.shape)
-        if len(dims)==1:
+        
+        # Make flux 2D
+        if len(flx.shape)==1:
             flx = np.expand_dims(flx, axis=0)
-            
-        # Make binned flux array
-        bin_dims = dims[:-1]+[len(self.rsr[0])]
-        binned = np.zeros(bin_dims)
+        
+        # Make throughput 3D
+        rsr = np.copy(self.rsr)
+        if len(rsr.shape)==2:
+            rsr = np.expand_dims(rsr, axis=0)
+        
+        # Make empty filtered array
+        filtered = np.zeros((rsr.shape[0],flx.shape[0],rsr.shape[2]))
         
         # Rebin the input spectra to the filter wavelength array
-        for n,f in enumerate(flx):
-            binned[n] = rebin_spec([wav, f], self.rsr[0])
+        # and apply the RSR curve to the spectrum
+        for i,bn in enumerate(rsr):
+            for j,f in enumerate(flx):
+                #filtered[i][j] = rebin_spec([wav, f], bn[0])*bn[1]
+                filtered[i][j] = np.interp(bn[0], wav, f)*bn[1]
+                
+        if plot:
+            plt.loglog(wav, flx[0])
+            for n,bn in enumerate(rsr):
+                plt.loglog(bn[0], filtered[n][0])
         
-        # Apply the RSR curve to the spectrum
-        binned *= self.rsr[1]
+        del rsr, wav, flx
         
-        # Restore original shape
-        binned = binned.reshape(bin_dims)
+        return filtered.squeeze()
         
-        return binned
-    
+    def bin(self, n_bins='', n_channels='', bin_throughput='', plot=False):
+        """
+        Break the filter up into bins and apply a throughput to each bin,
+        useful for G141, G102, and other grisms
+        
+        Parameters
+        ----------
+        n_bins: int
+            The number of bins to dice the throughput curve into
+        n_cahnnels: int (optional)
+            The number of channels per bin, which will be used to calculate n_bins
+        bin_throughput: array-like (optional)
+            The throughput for each bin (top hat by default)
+            must be of length n_channels
+        plot: bool
+            Plot the throughput before and after binning
+        """
+        # Calculate the number of bins and channels
+        rsr = len(self.raw[0])
+        if n_channels and isinstance(n_channels,int):
+            self.n_channels = int(n_channels)
+            self.n_bins = int(rsr/self.n_channels)
+        elif n_bins and isinstance(n_bins,int):
+            self.n_bins = int(n_bins)
+            self.n_channels = int(rsr/self.n_bins)
+        else:
+            print('Please specify n_bins or n_channels as integers.')
+            return
+            
+        print('{} bins of {} channels each.'.format(self.n_bins,self.n_channels))
+        
+        # Trim throughput edges so that there are an integer number of bins
+        new_len = self.n_bins*self.n_channels
+        start = (rsr-new_len)//2
+        self.rsr = np.copy(self.raw[:,start:new_len+start])
+        
+        # Reshape the throughput array
+        self.rsr = self.rsr.reshape(2,self.n_bins,self.n_channels)
+        self.rsr = self.rsr.swapaxes(0,1)
+        
+        # Get the bin centers
+        w_cen = np.nanmean(self.rsr[:,0,:], axis=1)
+        f_cen = np.nanmean(self.rsr[:,1,:], axis=1)
+        self.centers = np.asarray([w_cen,f_cen])
+        
+        # Get the bin throughput function
+        if not isinstance(bin_throughput, (list,tuple,np.ndarray)):
+            bin_throughput = np.ones(self.n_channels)
+            
+        # Make sure the shape is right
+        if len(bin_throughput)==self.n_channels:
+            
+            # Save the attribute
+            self.bin_throughput = np.asarray(bin_throughput)
+            
+            # Apply the bin throughput
+            self.rsr[:,1] *= self.bin_throughput
+            
+        else:
+            print('bin_throughput must be an array of length',self.n_channels)
+            print('Using top hat throughput for each bin.')
+            
+        if plot:
+            plt.plot(*self.centers, ls='None', marker='.', c='k')
+            plt.plot(self.raw[0], self.raw[1], lw=6, alpha=0.1)
+            for x,y in self.rsr:
+                plt.plot(x, y)
+                
     def info(self):
         """
         Print a table of info about the current filter
         """
         # Get the info from the class 
         tp = (int, bytes, bool, str, float, tuple, list, np.ndarray)
-        exclude = ['rsr']
+        exclude = ['rsr', 'bin_throughput', 'raw']
         info = [[k,str(v)] for k,v in vars(self).items() if isinstance(v, tp)
                 and k not in exclude]
                 
@@ -320,7 +413,8 @@ class ModelGrid(object):
     def __init__(self, model_directory, bibcode='2013A&A...553A...6H',
                  names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
-                       'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}):
+                       'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}, 
+                 resolution='', **kwargs):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -335,6 +429,9 @@ class ModelGrid(object):
         names: dict (optional)
             A dictionary to rename the table columns. The Phoenix
             model keywords are given as an example
+        resolution: int (optional)
+            The desired wavelength resolution (lambda/d_lambda) 
+            of the grid spectra
         """
         # Make sure we can use glob if a directory 
         # is given without a wildcard
@@ -358,7 +455,8 @@ class ModelGrid(object):
             for k,v in vars(model_grid).items():
                 setattr(self, k, v)
             
-            self.flux = self.path+'model_grid_flux.hdf5'
+            self.flux_file = self.path+'model_grid_flux.hdf5'
+            self.flux = ''
             self.wavelength = ''
             self.r_eff = ''
             self.mu = ''
@@ -376,8 +474,8 @@ class ModelGrid(object):
             self.path = os.path.dirname(model_directory)+'/'
             self.refs = ''
             self.wave_rng = (0,40)
-            self.n_bins = 1E10
-            self.flux = self.path+'model_grid_flux.hdf5'
+            self.flux_file = self.path+'model_grid_flux.hdf5'
+            self.flux = ''
             self.wavelength = ''
             self.r_eff = ''
             self.mu = ''
@@ -453,8 +551,18 @@ class ModelGrid(object):
                     pickle.dump(self, open(self.file, 'wb'))
                 except IOError:
                     print('Could not write model grid to',self.file)
+                    
+        # Print something
+        print(len(self.data),'models loaded from',self.path)
         
-    def get(self, Teff, logg, FeH, interp=True):
+        # Customize from the get-go
+        if kwargs:
+            self.customize(**kwargs)
+            
+        # Save the desired resolution
+        self.resolution = resolution
+        
+    def get(self, Teff, logg, FeH, resolution='', interp=True):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
@@ -468,6 +576,8 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity 
             and solar metallicity (dex)
+        resolution: int (optional)
+            The desired wavelength resolution (lambda/d_lambda) 
         interp: bool
             Interpolate the model if possible
         
@@ -527,15 +637,18 @@ class ModelGrid(object):
                 flux = raw_flux[:,idx]
                 wave = raw_wave[idx]
                 
+                # Bin the spectrum if necessary
+                if resolution or self.resolution:
+                    
+                    # Calculate zoom
+                    z = _calc_zoom(resolution or self.resolution, wave)
+                    wave = zoom(wave, z)
+                    flux = zoom(flux, (1, z))
+                    
                 # Make a dictionary of parameters
                 # This should really be a core.Spectrum() object!
                 spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
                 spec_dict['wave'] = wave
-                
-                # Bin the spectrum if necessary
-                if self.n_bins>0 and self.n_bins<len(wave):
-                    pass
-                    
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
                 spec_dict['r_eff'] = ''
@@ -650,14 +763,21 @@ class ModelGrid(object):
         and load into the ModelGrid.array attribute
         with shape (Teff, logg, FeH, mu, wavelength)
         """
+        if reset:
+            
+            # Delete the old file and clear the flux attribute
+            if os.path.isfile(self.flux_file):
+                os.remove(self.flux_file)
+            self.flux = ''
+            
         if isinstance(self.flux,str):
             
             print('Loading flux into table...')
             
-            if os.path.isfile(self.flux):
+            if os.path.isfile(self.flux_file):
                 
                 # Load the flux from the HDF5 file
-                f = h5py.File(self.flux, "r")
+                f = h5py.File(self.flux_file, "r")
                 self.flux = f['flux'][:]
                 f.close()
                 
@@ -704,12 +824,12 @@ class ModelGrid(object):
                                     n += 1
                                     print("{:.2f} percent complete.".format(n*100./N), end='\r')
                                     
-                            except:
+                            except IOError:
                                 # No model computed so reduce total
                                 N -= 1
                                 
                 # Load the flux into an HDF5 file
-                f = h5py.File(self.path+'model_grid_flux.hdf5', "w")
+                f = h5py.File(self.flux_file, "w")
                 dset = f.create_dataset('flux', data=self.flux)
                 f.close()
                 del dset
@@ -816,6 +936,30 @@ class ModelGrid(object):
             pass
         self.__init__(self.path)
         
+def _calc_zoom(R_f, arr):
+    """
+    Calculate the zoom factor required to make the given
+    array into the given resolution
+    
+    Parameters
+    ----------
+    R_f: int
+        The desired final resolution of the wavelength array
+    arr: array-like
+        The array to zoom
+    """
+    # Get initial resolution
+    lam = arr[-1]-arr[0]
+    d_lam_i = np.nanmean(np.diff(arr))
+    R_i = lam/d_lam_i
+    
+    # Calculate zoom
+    d_lam_f = lam/R_f
+    z = d_lam_i/d_lam_f
+    
+    return z
+    
+
 def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     """
     Rebin a spectrum to a new wavelength array while preserving 

@@ -164,11 +164,10 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         mu = grid_point.get('mu').squeeze()
         radius = grid_point.get('r_eff')
         
-        # Apply the filter if any
+        # Check if a bandpass is provided
         if isinstance(bandpass, core.Filter):
-            flux = bandpass.apply([wave,flux])
-            wave = bandpass.rsr[0]
             
+            # Make sure the bandpass has coverage
             if bandpass.WavelengthMin/10000<model_grid.wave_rng[0]\
             or bandpass.WavelengthMax/10000>model_grid.wave_rng[-1]:
                 print('Bandpass {} not covered by'.format(bandpass.filterID))
@@ -176,23 +175,49 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                 
                 return
             
+            else:
+                # Apply the filter
+                flux = bandpass.apply([wave,flux])
+                
+                # Make rsr curve 3 dimensions if there is only one
+                # wavelength bin, then get wavelength only
+                bp = bandpass.rsr
+                if len(bp.shape)==2:
+                    bp = bp[None,:]
+                wave = bp[:,0,:]
+            
         # Calculate mean intensity vs. mu
-        mean_i = np.mean(flux, axis=1)
+        wave = wave[None,:] if len(wave.shape)==1 else wave
+        flux = flux[None,:] if len(flux.shape)==2 else flux
+        mean_i = np.nanmean(flux, axis=-1)
+        mean_i[mean_i==0] = np.nan
         
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i/mean_i[np.where(mu==max(mu))]
+        ld = mean_i/mean_i[:,np.where(mu==max(mu))].squeeze(axis=-1)
         
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
-        muz = np.interp(ld_min, ld, mu) if any(ld<ld_min) else 0
+        ld_avg = np.nanmean(ld, axis=0)
+        muz = np.interp(ld_min, ld_avg, mu) if any(ld_avg<ld_min) else 0
         mu = (mu-muz)/(1-muz)
         grid_point['scaled_mu'] = mu
         grid_point['ld_raw'] = ld
         
         # Trim to useful mu range
         mu_raw = mu.copy()
-        imu = np.where(mu>mu_min)
-        mu, ld = mu[imu], ld[imu]
+        imu, = np.where(mu>mu_min)
+        mu, ld = mu[imu], ld[:,imu]
+        
+        # Add raw data and inputs
+        grid_point['flux'] = flux
+        grid_point['wave'] = wave
+        grid_point['mu_min'] = mu_min
+        grid_point['r_eff'] = radius
+        grid_point['profiles'] = profiles
+        grid_point['bandpass'] = bandpass
+        grid_point['n_bins'] = bandpass.n_bins
+        grid_point['n_channels'] = bandpass.n_channels
+        grid_point['centers'] = bandpass.centers
         
         # Iterate through the requested profiles
         if isinstance(profiles, str):
@@ -210,43 +235,50 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                 # Make dict for profile
                 grid_point[profile] = {}
                 
-                # Fit limb darkening to get limb darkening coefficients
-                coeffs, cov = curve_fit(ldfunc, mu, ld, method='lm')
+                # Fit limb darkening to get limb darkening
+                # coefficients for each wavelength bin
+                all_coeffs, all_errs = [], []
+                cen = bandpass.centers[0]
                 
-                # Add coeffs and errors to the dictionary
-                grid_point[profile]['coeffs'] = coeffs
-                grid_point[profile]['err'] = np.sqrt(np.diag(cov))
+                c = len(inspect.signature(ldfunc).parameters)-1
+                for w,l in zip(cen,ld):
+                    coeffs, cov = curve_fit(ldfunc, mu, l, method='lm')
+                    err = np.sqrt(np.diag(cov))
+                    all_coeffs.append([w]+list(coeffs))
+                    all_errs.append(list(err))
+                    
+                # Make a table of coefficients
+                all_coeffs = list(zip(*all_coeffs))
+                c_cols = ['wavelength']+['c{}'.format(n+1) for n in range(c)]
+                c_table = at.Table(all_coeffs, names=c_cols)
                 
-        # Add raw data and inputs
-        grid_point['flux'] = flux
-        grid_point['wave'] = wave
-        grid_point['mu_min'] = mu_min
-        grid_point['r_eff'] = radius
-        grid_point['profiles'] = profiles
-        grid_point['bandpass'] = bandpass
-            
+                # Make a table of errors
+                all_errs = list(zip(*all_errs))
+                e_cols = ['e{}'.format(n+1) for n in range(c)]
+                e_table = at.Table(all_errs, names=e_cols)
+                
+                # Combine, format, and store tables
+                cols = ['wavelength']+','.join(['c{0},e{0}'.format(n+1) for n in range(c)]).split(',')
+                grid_point[profile]['coeffs'] = at.hstack([c_table,e_table])[cols]
+                for k in c_cols[1:]+e_cols:
+                    grid_point[profile]['coeffs'][k].format = '%.3f'
+                
         # Make a table for each profile then stack them so that
         # the columns are ['Profile','c0','e0',...,'cn','en']
-        tables = []
         for p in grid_point['profiles']:
-            data = np.array([[p]+','.join(['{:.2f},{:.2f}'.format(\
-                   *[grid_point[p]['coeffs'][n],grid_point[p]['err'][n]])\
-                   for n in range(len(grid_point[p]['coeffs']))])\
-                   .split(',')])
-            names = ['Profile']+','.join(['c{0},e{0}'.format(n+1) for n in \
-                    range(len(grid_point[p]['coeffs']))]).split(',')
-            tables.append(at.Table(data, names=names))
-        
-        table = at.vstack(tables)
-        table.pprint(max_width=-1)
-        
-        if save:
+            print(p,':')
+            grid_point[p]['coeffs'].pprint(max_width=-1)
+            print('\r')
             
             # Write the table to file
-            table.write(save.replace('.txt','.csv'), format='ascii.fast_csv')
-        
+            if save:
+                with open(save, 'a') as f:
+                    f.write('Profile: '+p+'\n')
+                    grid_point[p]['coeffs'].write(f, format='ascii.ipac')
+                    f.write('\r')
+
         if plot:
-            
+
             # Make a list of LD functions and plot them
             ldfuncs = [ld_profile(profile) for profile in profiles]
             lp.ld_plot(ldfuncs, grid_point, fig=plot, **kwargs)

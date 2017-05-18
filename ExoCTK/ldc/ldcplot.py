@@ -47,26 +47,28 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     
     # Is it a matplotlib plot?
     if isinstance(fig, matplotlib.figure.Figure):
-    
+        
         # Make axes
         ax = fig.add_subplot(111)
         
         # Plot the fitted points
-        ax.errorbar(mu_raw, ld_raw, c='k', ls='None', marker='o',
+        for ldr in ld_raw:
+            ax.errorbar(mu_raw, ldr, c='k', ls='None', marker='o',
                      markeredgecolor='k', markerfacecolor='None')
                      
         # Plot the mu cutoff
         ax.axvline(mu_min, color='0.5', ls=':')
-    
+        
     # Otherwise it mush be bokeh!
     else:
         # Plot the fitted points
-        fig.circle(mu, ld_raw, fill_color='blue')
-        
+        for ldr in ld_raw:
+            fig.circle(mu, ldr, fill_color='blue')
+            
         # Plot the mu cutoff
         vline = Span(location=mu_min, dimension='height', line_color='0.5', line_width=2)
         fig.renderers.extend([vline])
-    
+        
     # Make profile list and get colors
     if callable(ldfuncs):
         ldfuncs = [ldfuncs]
@@ -74,43 +76,48 @@ def ld_plot(ldfuncs, grid_point, fig=None,
         colors = [colors]
     if len(colors)!=len(ldfuncs):
         colors = COLORS[:len(ldfuncs)]
-    
+        
     for color,profile,ldfunc in zip(colors,profiles,ldfuncs):
-        # Get the LD function for the given profile
-        coeffs = grid_point[profile]['coeffs']
-        err = grid_point[profile]['err']
-    
-        # Evaluate the limb darkening profile fit
-        ld_vals = ldfunc(mu_vals, *coeffs)
+        # Get the coefficients for the given profile
+        table = grid_point[profile]['coeffs']
+        coeffs = table[[k for k in table.colnames if k.startswith('c')]]
+        errs = table[[k for k in table.colnames if k.startswith('e')]]
         
-        # ==========================================
-        # ==========================================
-        # ==========================================
-        # Bootstrap the results to get errors here!
-        dn_err = ldfunc(mu_vals, *coeffs-err)
-        up_err = ldfunc(mu_vals, *coeffs+err)
-        # ==========================================
-        # ==========================================
-        # ==========================================
-        
-        # Add fits to matplotlib
-        if isinstance(fig, matplotlib.figure.Figure):
-        
-            # Draw the curve and error
-            if profile=='uniform':
-                ld_vals = [ld_vals]*len(mu_vals)
-            p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
-            ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
-            ax.set_ylim(0,1)
-            ax.set_xlim(0,1)
+        for n in range(len(table)):
+            co = np.asarray(list(coeffs[n]))
+            er = np.asarray(list(errs[n]))
             
-        # Or to bokeh!
-        else:
-            # Draw the curve and error
-            fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
-            vals = np.append(mu_vals, mu_vals[::-1])
-            errs = np.append(dn_err, up_err[::-1])
-            fig.patch(vals, errs, color=color, fill_alpha=0.2)
+            # Evaluate the limb darkening profile fit
+            ld_vals = ldfunc(mu_vals, *co)
+            
+            # ==========================================
+            # ==========================================
+            # ==========================================
+            # Bootstrap the results to get errors here!
+            dn_err = ldfunc(mu_vals, *co-er)
+            up_err = ldfunc(mu_vals, *co+er)
+            # ==========================================
+            # ==========================================
+            # ==========================================
+            
+            # Add fits to matplotlib
+            if isinstance(fig, matplotlib.figure.Figure):
+                
+                # Draw the curve and error
+                if profile=='uniform':
+                    ld_vals = [ld_vals]*len(mu_vals)
+                p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
+                ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
+                ax.set_ylim(0,1)
+                ax.set_xlim(0,1)
+                
+            # Or to bokeh!
+            else:
+                # Draw the curve and error
+                fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
+                vals = np.append(mu_vals, mu_vals[::-1])
+                evals = np.append(dn_err, up_err[::-1])
+                fig.patch(vals, evals, color=color, fill_alpha=0.2)
 
 # def ld_v_mu(model_grid, compare, profiles=('quadratic','nonlinear'), **kwargs):
 #     """
