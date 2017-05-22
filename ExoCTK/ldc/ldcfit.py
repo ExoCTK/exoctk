@@ -215,9 +215,15 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['r_eff'] = radius
         grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
-        grid_point['n_bins'] = bandpass.n_bins
-        grid_point['n_channels'] = bandpass.n_channels
-        grid_point['centers'] = bandpass.centers
+        
+        if isinstance(bandpass, core.Filter):
+            grid_point['n_bins'] = bandpass.n_bins
+            grid_point['n_channels'] = bandpass.n_channels
+            grid_point['centers'] = bandpass.centers
+        else:
+            grid_point['n_bins'] = 1
+            grid_point['n_channels'] = wave.shape[-1]
+            grid_point['centers'] = np.array([(wave[-1]+wave[0])/2.])
         
         # Iterate through the requested profiles
         if isinstance(profiles, str):
@@ -238,7 +244,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                 # Fit limb darkening to get limb darkening
                 # coefficients for each wavelength bin
                 all_coeffs, all_errs = [], []
-                cen = bandpass.centers[0]
+                cen = grid_point['centers'][0]
                 
                 c = len(inspect.signature(ldfunc).parameters)-1
                 for w,l in zip(cen,ld):
