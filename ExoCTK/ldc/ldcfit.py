@@ -9,6 +9,7 @@ import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 import astropy.table as at
+from svo_filters import svo
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from . import ldcplot as lp
@@ -131,7 +132,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         The minimum mu value to consider
     ld_min: float
         The minimum limb darkening value to consider
-    bandpass: core.Filter() (optional)
+    bandpass: svo.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
     grid_point: dict (optional)
@@ -165,11 +166,11 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         radius = grid_point.get('r_eff')
         
         # Check if a bandpass is provided
-        if isinstance(bandpass, core.Filter):
+        if isinstance(bandpass, svo.Filter):
             
             # Make sure the bandpass has coverage
-            if bandpass.WavelengthMin/10000<model_grid.wave_rng[0]\
-            or bandpass.WavelengthMax/10000>model_grid.wave_rng[-1]:
+            if bandpass.WavelengthMin<model_grid.wave_rng[0]*model_grid.wl_units\
+            or bandpass.WavelengthMax>model_grid.wave_rng[-1]*model_grid.wl_units:
                 print('Bandpass {} not covered by'.format(bandpass.filterID))
                 print('model grid of wavelength range',model_grid.wave_rng)
                 
@@ -216,7 +217,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
         
-        if isinstance(bandpass, core.Filter):
+        if isinstance(bandpass, svo.Filter):
             grid_point['n_bins'] = bandpass.n_bins
             grid_point['n_channels'] = bandpass.n_channels
             grid_point['centers'] = bandpass.centers

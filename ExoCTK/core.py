@@ -17,6 +17,7 @@ import bibtexparser as bt
 import astropy.table as at
 import astropy.io.votable as vo
 import astropy.io.ascii as ii
+import astropy.units as q
 import matplotlib.pyplot as plt
 import pkg_resources
 import pickle
@@ -93,7 +94,7 @@ class ModelGrid(object):
                  names={'Teff':'PHXTEFF', 'logg':'PHXLOGG',
                        'FeH':'PHXM_H', 'mass':'PHXMASS',
                        'r_eff':'PHXREFF', 'Lbol':'PHXLUM'}, 
-                 resolution='', **kwargs):
+                 resolution='', wl_units=q.um, **kwargs):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -111,6 +112,7 @@ class ModelGrid(object):
         resolution: int (optional)
             The desired wavelength resolution (lambda/d_lambda) 
             of the grid spectra
+        wl_units: astropy.units.quantity
         """
         # Make sure we can use glob if a directory 
         # is given without a wildcard
@@ -238,6 +240,11 @@ class ModelGrid(object):
         if kwargs:
             self.customize(**kwargs)
             
+        # Set the wavelength_units
+        self.wl_units = q.AA
+        if wl_units:
+            self.set_units(wl_units)
+            
         # Save the desired resolution
         self.resolution = resolution
         
@@ -307,8 +314,8 @@ class ModelGrid(object):
                     l = len(raw_flux[0])
                     raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
                     
-                # Convert from A to um
-                raw_wave *= 1E-4
+                # Convert from A to desired units
+                raw_wave *= self.const
                 
                 # Trim the wavelength and flux arrays
                 idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
@@ -618,6 +625,22 @@ class ModelGrid(object):
         except:
             pass
         self.__init__(self.path)
+        
+    def set_units(self, wl_units=q.um):
+        """
+        Set the wavelength and flux units
+        
+        Parameters
+        ----------
+        wl_units: str, astropy.units.core.PrefixUnit, astropy.units.core.CompositeUnit
+            The wavelength units
+        """
+        # Set wavelength units
+        old_unit = self.wl_units
+        self.wl_units = q.Unit(wl_units)
+            
+        # Update the wavelength
+        self.const = (old_unit/self.wl_units).decompose()._scale
         
 def _calc_zoom(R_f, arr):
     """
