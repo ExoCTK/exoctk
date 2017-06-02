@@ -9,6 +9,7 @@ import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 import astropy.table as at
+import astropy.units as q
 from svo_filters import svo
 from matplotlib import rc
 from scipy.optimize import curve_fit
@@ -169,8 +170,10 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         if isinstance(bandpass, svo.Filter):
             
             # Make sure the bandpass has coverage
-            if bandpass.WavelengthMin<model_grid.wave_rng[0]*model_grid.wl_units\
-            or bandpass.WavelengthMax>model_grid.wave_rng[-1]*model_grid.wl_units:
+            if bandpass.WavelengthMin*q.Unit(bandpass.WavelengthUnit)\
+                <model_grid.wave_rng[0]*model_grid.wl_units\
+            or bandpass.WavelengthMax*q.Unit(bandpass.WavelengthUnit)\
+                >model_grid.wave_rng[-1]*model_grid.wl_units:
                 print('Bandpass {} not covered by'.format(bandpass.filterID))
                 print('model grid of wavelength range',model_grid.wave_rng)
                 
