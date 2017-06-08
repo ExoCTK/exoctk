@@ -412,18 +412,6 @@ class ModelGrid(object):
             new_flux = np.asarray(new_flux)
             print('Run time in seconds: ', time.time()-start)
             
-            # if plot:
-            #     # Plot the interpolated spectrum
-            #     plt.loglog(self.wavelength, new_flux[0], c='k', lw=2, label=label)
-            #
-            #     # Plot the 8 neighboring spectra
-            #     for i,j,k in [(0,0,0),(0,1,0),(0,0,1),(0,1,1),\
-            #                   (1,0,0),(1,1,0),(1,0,1),(1,1,1)]:
-            #         plt.loglog(self.wavelength, flux[nb[0][i],nb[1][j],nb[2][k],0],
-            #                    label='{}/{}/{}'.format(vl[0][i],vl[1][j],vl[2][k]))
-            #
-            #     plt.legend(loc=0)
-                
             # Interpolate mu value
             interp_mu = RegularGridInterpolator(params, self.mu)
             mu = interp_mu(np.array(values)).squeeze()
