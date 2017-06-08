@@ -582,8 +582,7 @@ class ModelGrid(object):
         self.FeH_vals = np.unique(self.data['FeH'])
         
         # Reload the flux array with the new grid parameters
-        if self.flux:
-            self.load_flux(reset=True)
+        self.load_flux(reset=True)
         
         # Clear the grid copy from memory
         del grid
