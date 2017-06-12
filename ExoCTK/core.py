@@ -179,7 +179,7 @@ class ModelGrid(object):
             if not files:
                 print('No files match',model_directory,'.')
                 return
-        
+                
             # Parse the FITS headers
             vals, dtypes = [], []
             for f in files:
@@ -192,7 +192,7 @@ class ModelGrid(object):
                         filenames.append(f.split('/')[-1])
                     except:
                         print(f,'could not be read into the model grid.')
-            
+                        
             # Fix data types, trim extraneous values, and make the table
             dtypes = [str if d==bool else d for d in dtypes]
             vals = [v[:len(dtypes)] for v in vals]

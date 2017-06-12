@@ -63,11 +63,11 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     else:
         # Plot the fitted points
         for ldr in ld_raw:
-            fig.circle(mu, ldr, fill_color='blue')
+            fig.circle(mu, ldr, fill_color='black')
             
         # Plot the mu cutoff
-        vline = Span(location=mu_min, dimension='height', line_color='0.5', line_width=2)
-        fig.renderers.extend([vline])
+        fig.line([mu_min,mu_min], [0,1], legend='cutoff', line_color='#6b6ecf', 
+                 line_dash='dotted')
         
     # Make profile list and get colors
     if callable(ldfuncs):
@@ -100,12 +100,13 @@ def ld_plot(ldfuncs, grid_point, fig=None,
             # ==========================================
             # ==========================================
             
+            if profile=='uniform':
+                ld_vals = [ld_vals]*len(mu_vals)
+            
             # Add fits to matplotlib
             if isinstance(fig, matplotlib.figure.Figure):
                 
                 # Draw the curve and error
-                if profile=='uniform':
-                    ld_vals = [ld_vals]*len(mu_vals)
                 p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
                 ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
                 ax.set_ylim(0,1)
@@ -117,7 +118,7 @@ def ld_plot(ldfuncs, grid_point, fig=None,
                 fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
                 vals = np.append(mu_vals, mu_vals[::-1])
                 evals = np.append(dn_err, up_err[::-1])
-                fig.patch(vals, evals, color=color, fill_alpha=0.2)
+                fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
 
 # def ld_v_mu(model_grid, compare, profiles=('quadratic','nonlinear'), **kwargs):
 #     """
