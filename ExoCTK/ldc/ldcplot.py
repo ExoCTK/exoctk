@@ -9,10 +9,12 @@ import numpy as np
 import os
 import copy
 import inspect
+import astropy.table as at
 from bokeh.plotting import figure, show
 from bokeh.models import Span
 from matplotlib import rc, cm
 from astropy.io import fits
+from copy import copy
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -21,7 +23,7 @@ COLORS = ['blue', 'red', 'green', 'orange',
           'cyan', 'magenta', 'pink', 'purple']
 
 def ld_plot(ldfuncs, grid_point, fig=None, 
-            colors='blue', **kwargs):
+            colors='blue', bin_idx='', **kwargs):
     """
     Make a LD plot in Bokeh or Matplotlib
     
@@ -31,44 +33,28 @@ def ld_plot(ldfuncs, grid_point, fig=None,
         The limb darkening function to use
     grid_point: dict
         The model data for the grid point
+    fig: matplotlib.figure, bokeh.plotting.figure
+        The figure to plot in
+    color: str, array-like
+        The color(s) to use for the plot
+    bin_idx: int (optional)
+        The index of the wavelength bin to plot,
+        otherwise plot all of them
     """
     # Make a figure 
     if not fig or fig==True:
         fig = plt.gcf()
     
     # Get actual data points
-    flux = grid_point['flux']
+    slc = slice(bin_idx,bin_idx+1) if isinstance(bin_idx,int) else slice(None)
+    flux = grid_point['flux'][slc]
     mu = grid_point['mu']
     mu_min = grid_point['mu_min']
     profiles = grid_point['profiles']
     mu_raw = grid_point['scaled_mu']
-    ld_raw = grid_point['ld_raw']
+    ld_raw = grid_point['ld_raw'][slc]
     mu_vals = np.linspace(0, 1, 1000)
     
-    # Is it a matplotlib plot?
-    if isinstance(fig, matplotlib.figure.Figure):
-        
-        # Make axes
-        ax = fig.add_subplot(111)
-        
-        # Plot the fitted points
-        for ldr in ld_raw:
-            ax.errorbar(mu_raw, ldr, c='k', ls='None', marker='o',
-                     markeredgecolor='k', markerfacecolor='None')
-                     
-        # Plot the mu cutoff
-        ax.axvline(mu_min, color='0.5', ls=':')
-        
-    # Otherwise it mush be bokeh!
-    else:
-        # Plot the fitted points
-        for ldr in ld_raw:
-            fig.circle(mu, ldr, fill_color='black')
-            
-        # Plot the mu cutoff
-        fig.line([mu_min,mu_min], [0,1], legend='cutoff', line_color='#6b6ecf', 
-                 line_dash='dotted')
-        
     # Make profile list and get colors
     if callable(ldfuncs):
         ldfuncs = [ldfuncs]
@@ -80,6 +66,10 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     for color,profile,ldfunc in zip(colors,profiles,ldfuncs):
         # Get the coefficients for the given profile
         table = grid_point[profile]['coeffs']
+        
+        if bin_idx!='':
+            table = at.Table(table[bin_idx])
+        
         coeffs = table[[k for k in table.colnames if k.startswith('c')]]
         errs = table[[k for k in table.colnames if k.startswith('e')]]
         
@@ -106,6 +96,16 @@ def ld_plot(ldfuncs, grid_point, fig=None,
             # Add fits to matplotlib
             if isinstance(fig, matplotlib.figure.Figure):
                 
+                # Make axes
+                ax = fig.add_subplot(111)
+                
+                # Plot the fitted points
+                ax.errorbar(mu_raw, ld_raw[n], c='k', ls='None', marker='o',
+                             markeredgecolor='k', markerfacecolor='None')
+                     
+                # Plot the mu cutoff
+                ax.axvline(mu_min, color='0.5', ls=':')
+                
                 # Draw the curve and error
                 p = ax.plot(mu_vals, ld_vals, color=color, label=profile, **kwargs)
                 ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
@@ -114,6 +114,14 @@ def ld_plot(ldfuncs, grid_point, fig=None,
                 
             # Or to bokeh!
             else:
+                
+                # Plot the fitted points
+                fig.circle(mu, ld_raw[n], fill_color='black')
+                
+                # Plot the mu cutoff
+                fig.line([mu_min,mu_min], [0,1], legend='cutoff', line_color='#6b6ecf', 
+                         line_dash='dotted')
+                         
                 # Draw the curve and error
                 fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
                 vals = np.append(mu_vals, mu_vals[::-1])
