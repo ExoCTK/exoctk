@@ -222,11 +222,11 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         
         if isinstance(bandpass, svo.Filter):
             grid_point['n_bins'] = bandpass.n_bins
-            grid_point['n_channels'] = bandpass.n_channels
+            grid_point['pixels_per_bin'] = bandpass.pixels_per_bin
             grid_point['centers'] = bandpass.centers.round(5)
         else:
             grid_point['n_bins'] = 1
-            grid_point['n_channels'] = wave.shape[-1]
+            grid_point['pixels_per_bin'] = wave.shape[-1]
             grid_point['centers'] = np.array([(wave[-1]+wave[0])/2.]).round(5)
         
         # Iterate through the requested profiles
