@@ -127,7 +127,6 @@ char** getFileArray(){
     fileArray[j] = (char*)malloc(strlen(pwd)+strlen(extension[j])+1);
     strcpy(fileArray[j], pwd);
     strcat(fileArray[j], extension[j]);
-    printf("%s\n", fileArray[j]);
   }
 
   return fileArray; //return the array 

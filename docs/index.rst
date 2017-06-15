@@ -33,6 +33,7 @@ User Documentation
    :maxdepth: 1
 
    pal/forward_models
+   pal/exotransmit
 
 **Nuts and bolts of ExoCTK**
 

@@ -1,0 +1,34 @@
+For each gas, place a 1 after the equals sign if the gas opacity will be present in your transmission calculations, and 0 if not. Do not change the order of the gases in this file!
+CH4 = {}
+CO2 = {}
+CO = {}
+H2O = {}
+NH3 = {}
+O2 = {}
+O3 = {}
+C2H2 = {}
+C2H4 = {}
+C2H6 = {}
+H2CO = {}
+H2S = {}
+HCl = {}
+HCN = {}
+HF = {}
+MgH = {}
+N2 = {}
+NO = {}
+NO2 = {}
+OCS = {}
+OH = {}
+PH3 = {}
+SH = {}
+SiH = {}
+SiO = {}
+SO2 = {}
+TiO = {}
+VO = {}
+Na = {}
+K = {}
+Scattering = {}
+Collision Induced Absorption = {}
+Do not delete this line!

@@ -44,13 +44,6 @@ typedef struct vars{
   double R_STAR;
   double T_STAR;
 
-  char* tpfname;
-  char* eosfname;
-
-  char** fileArray;
-
-  int chemselection[32];
-
 }vars;
 
 //extern vars variables;

@@ -44,10 +44,11 @@ extern struct Opac opac;
 /* ------- begin ---------------- RT_Transmit -------------------- */
 
 
-int RT_Transmit(struct vars variables, double* wavelength, double* flux)
+int RT_Transmit()
 {
-  printf("Using T-P profile: %s\n", variables.tpfname);
-  getNTau(&variables, variables.tpfname);
+  char **fileArray = getFileArray();
+  vars variables = getVars();
+  getNTau(&variables, fileArray[0]);
   int NTAU = variables.NTAU;
   double R_PLANET = variables.R_PLANET;
   double R_STAR = variables.R_STAR;
@@ -60,6 +61,7 @@ int RT_Transmit(struct vars variables, double* wavelength, double* flux)
   double *intensity, *flux_st, *flux_pl, *flux_tr;
   double *ds, *theta, *dtheta, R, t_star;
   int i, j, a, b;
+  FILE *file;
   
   /*   Allocate memory */
   
@@ -129,21 +131,28 @@ int RT_Transmit(struct vars variables, double* wavelength, double* flux)
   
   Angles(ds, theta, dtheta, NTAU, R_PLANET, R_STAR);
   
-  /*   Calculate the incident and emergent intensities.  Print to file 
-       transmission.dat */
+  /*   Calculate the incident and emergent intensities.  Print to Output
+       file specified in userInput.in  */
   
   R -=  Radius(R_PLANET, ds, NTAU);
   printf("R %f\n", (1.0 -  SQ(R)/SQ(R_STAR)));
-    
+  
+  file = fopen(fileArray[2], "w");
+  
   t_star = 6000.0;  // Arbitrary stellar temperature.  Gets divided out.
+
+  fprintf(file, "Wavelength\tTransit Depth\n");
+  fprintf(file, "(meters)\t(percent)\n");
+  
+
   for(i=0; i<NLAMBDA; i++){
     flux_pl[i] = 0.0;
     intensity[i] = Planck(t_star, atmos.lambda[i]);
+    
     for(j=0; j<NTAU; j++){
       flux_pl[i] += intensity[i] * exp(-tau_tr[i][j]) *
-      cos(theta[j]) * sin(theta[j]) * dtheta[j];
+	cos(theta[j]) * sin(theta[j]) * dtheta[j];
     }
-
     
     flux_pl[i] *= 2 * PI;
     
@@ -151,9 +160,10 @@ int RT_Transmit(struct vars variables, double* wavelength, double* flux)
     flux_tr[i] = (1.0 -  SQ(Radius(R_PLANET, ds, NTAU))/SQ(R_STAR)) 
       * flux_st[i] + flux_pl[i];
     
-    wavelength[i] = atmos.lambda[i];
-    flux[i] = 100.0*(1.0-flux_tr[i]/flux_st[i]);
+    fprintf(file, "%e\t%e\n", atmos.lambda[i], 100.0*(1.0-flux_tr[i]/flux_st[i]));
   }
+  
+  fclose(file);
   
   /*   Free memory */
   
