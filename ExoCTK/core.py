@@ -49,19 +49,21 @@ def interp_flux(mu, flux, params, values):
     
     Returns
     -------
-    np.array
+    tu
         The array of new flux values
     """
     # Iterate over each wavelength (-1 index of flux array)
     l = flux.shape[-1]
     flx = np.zeros(l)
+    generators = []
     for lam in range(l):
         interp_f = RegularGridInterpolator(params, flux[:,:,:,mu,lam])
         f, = interp_f(values)
         
         flx[lam] = f
+        generators.append(interp_f)
     
-    return flx
+    return flx, generators
 
 class ModelGrid(object):
     """
@@ -404,12 +406,13 @@ class ModelGrid(object):
             start = time.time()
             pool = multiprocessing.Pool(processes)
             func = partial(interp_flux, flux=flux, params=params, values=values)
-            new_flux = pool.map(func, mu_index)
+            new_flux, generators = zip(*pool.map(func, mu_index))
             pool.close()
             pool.join()
             
             # Clean up and time of execution
             new_flux = np.asarray(new_flux)
+            generators = np.asarray(generators)
             print('Run time in seconds: ', time.time()-start)
             
             # Interpolate mu value
@@ -423,7 +426,8 @@ class ModelGrid(object):
             # Make a dictionary to return
             grid_point = {'Teff':Teff, 'logg':logg, 'FeH':FeH,
                           'mu': mu, 'r_eff': r_eff,
-                          'flux':new_flux, 'wave':self.wavelength}
+                          'flux':new_flux, 'wave':self.wavelength,
+                          'generators':generators}
                           
             return grid_point
             
