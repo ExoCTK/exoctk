@@ -249,8 +249,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                 # coefficients for each wavelength bin
                 all_coeffs, all_errs = [], []
                 cen = grid_point['centers'][0]
-                
-                c = len(inspect.signature(ldfunc).parameters)-1
+                c = range(len(inspect.signature(ldfunc).parameters)-1)
                 for w,l in zip(cen,ld):
                     coeffs, cov = curve_fit(ldfunc, mu, l, method='lm')
                     err = np.sqrt(np.diag(cov))
@@ -259,16 +258,16 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                     
                 # Make a table of coefficients
                 all_coeffs = list(zip(*all_coeffs))
-                c_cols = ['wavelength']+['c{}'.format(n+1) for n in range(c)]
+                c_cols = ['wavelength']+['c{}'.format(n+1) for n in c]
                 c_table = at.Table(all_coeffs, names=c_cols)
                 
                 # Make a table of errors
                 all_errs = list(zip(*all_errs))
-                e_cols = ['e{}'.format(n+1) for n in range(c)]
+                e_cols = ['e{}'.format(n+1) for n in c]
                 e_table = at.Table(all_errs, names=e_cols)
                 
                 # Combine, format, and store tables
-                cols = ['wavelength']+','.join(['c{0},e{0}'.format(n+1) for n in range(c)]).split(',')
+                cols = ['wavelength']+','.join(['c{0},e{0}'.format(n+1) for n in c]).split(',')
                 grid_point[profile]['coeffs'] = at.hstack([c_table,e_table])[cols]
                 for k in c_cols[1:]+e_cols:
                     grid_point[profile]['coeffs'][k].format = '%.3f'

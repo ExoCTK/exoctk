@@ -22,6 +22,23 @@ rc('text', usetex=True)
 COLORS = ['blue', 'red', 'green', 'orange', 
           'cyan', 'magenta', 'pink', 'purple']
 
+def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
+    """
+    Bootstrap errors 
+    """
+    # Generate n_samples
+    vals = []
+    for n in range(n_samples):
+        co = np.random.normal(coeffs, errors)
+        vals.append(func(mu_vals, *co))
+        
+    # r = np.array(list(zip(*vals)))
+    dn_err = np.min(np.asarray(vals), axis=0)
+    up_err = np.max(np.asarray(vals), axis=0)
+    
+    return dn_err, up_err
+    
+
 def ld_plot(ldfuncs, grid_point, fig=None, 
             colors='blue', bin_idx='', **kwargs):
     """
@@ -44,7 +61,7 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     # Make a figure 
     if not fig or fig==True:
         fig = plt.gcf()
-    
+        
     # Get actual data points
     slc = slice(bin_idx,bin_idx+1) if isinstance(bin_idx,int) else slice(None)
     flux = grid_point['flux'][slc]
@@ -84,8 +101,9 @@ def ld_plot(ldfuncs, grid_point, fig=None,
             # ==========================================
             # ==========================================
             # Bootstrap the results to get errors here!
-            dn_err = ldfunc(mu_vals, *co-er)
-            up_err = ldfunc(mu_vals, *co+er)
+            dn_err, up_err = bootstrap_errors(mu_vals, ldfunc, co, er)
+            # dn_err = ldfunc(mu_vals, *co-er)
+            # up_err = ldfunc(mu_vals, *co+er)
             # ==========================================
             # ==========================================
             # ==========================================
