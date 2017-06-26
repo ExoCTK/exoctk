@@ -310,7 +310,7 @@ def calc_t_duration(n_group, n_int, n_reset, t_frame, n_frame):
     t_duration : float
         Duration time (in seconds).
     """
-
+    
     t_duration = t_frame*(n_group*n_frame + n_reset)*n_int
     return t_duration
 
@@ -351,6 +351,9 @@ def calc_t_frame(n_col, n_row, n_amp, ins):
     t_frame : float
         The frame time (in seconds).
     """
+    print('Dem ints doe.') 
+    n_col, n_amp, n_row = int(n_col), int(n_amp), int(n_row)
+    
     if ins == 'NIRSpec':
         n = 2
     if ins in ['NIRCam', 'NIRISS']:
