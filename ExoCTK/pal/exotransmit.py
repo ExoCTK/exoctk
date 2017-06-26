@@ -20,10 +20,10 @@ def exotransmit(**kwargs):
 
     """
 
-    check_user_input(**kwargs)
+    # check_user_input(**kwargs)
     create_user_input(**kwargs)
     create_chem_selection(**kwargs)
-    check_other_input(**kwargs)
+    # check_other_input(**kwargs)
     create_other_input(**kwargs)
 
     _exotransmit_wrapper.exotransmit()
