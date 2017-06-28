@@ -90,7 +90,7 @@ class Filter(object):
         The SVO filter ID
     
     """
-    def __init__(self, band, filter_directory=pkg_resources.resource_filename('svo_filters', 'data/filters/'), 
+    def __init__(self, band, filter_directory=pkg_resources.resource_filename('ExoCTK', 'data/filters/'), 
                  wl_units=q.um, zp_units=q.erg/q.s/q.cm**2/q.AA, DELETE=False, **kwargs):
         """
         Loads the bandpass data into the Filter object
@@ -529,8 +529,7 @@ class Filter(object):
         self.ZeroPointUnit = 'Jy'
         self.filterID = 'Top Hat'
 
-def filters(filter_directory=pkg_resources.resource_filename('svo_filters', \
-            'data/filters/'), update=False, fmt='table', **kwargs):
+def filters(filter_directory=pkg_resources.resource_filename('ExoCTK', 'data/filters/'), update=False, fmt='table', **kwargs):
     """
     Get a list of the available filters
     
