@@ -9,10 +9,12 @@ import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 import astropy.table as at
+import astropy.units as q
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from . import ldcplot as lp
 from .. import core
+from .. import svo
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
@@ -131,7 +133,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         The minimum mu value to consider
     ld_min: float
         The minimum limb darkening value to consider
-    bandpass: core.Filter() (optional)
+    bandpass: svo.Filter() (optional)
         The photometric filter through which the limb darkening
         is to be calculated
     grid_point: dict (optional)
@@ -165,11 +167,13 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         radius = grid_point.get('r_eff')
         
         # Check if a bandpass is provided
-        if isinstance(bandpass, core.Filter):
+        if isinstance(bandpass, svo.Filter):
             
             # Make sure the bandpass has coverage
-            if bandpass.WavelengthMin/10000<model_grid.wave_rng[0]\
-            or bandpass.WavelengthMax/10000>model_grid.wave_rng[-1]:
+            if bandpass.WavelengthMin*q.Unit(bandpass.WavelengthUnit)\
+                <model_grid.wave_rng[0]*model_grid.wl_units\
+            or bandpass.WavelengthMax*q.Unit(bandpass.WavelengthUnit)\
+                >model_grid.wave_rng[-1]*model_grid.wl_units:
                 print('Bandpass {} not covered by'.format(bandpass.filterID))
                 print('model grid of wavelength range',model_grid.wave_rng)
                 
@@ -215,9 +219,15 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['r_eff'] = radius
         grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
-        grid_point['n_bins'] = bandpass.n_bins
-        grid_point['n_channels'] = bandpass.n_channels
-        grid_point['centers'] = bandpass.centers
+        
+        if isinstance(bandpass, svo.Filter):
+            grid_point['n_bins'] = bandpass.n_bins
+            grid_point['pixels_per_bin'] = bandpass.pixels_per_bin
+            grid_point['centers'] = bandpass.centers.round(5)
+        else:
+            grid_point['n_bins'] = 1
+            grid_point['pixels_per_bin'] = wave.shape[-1]
+            grid_point['centers'] = np.array([(wave[-1]+wave[0])/2.]).round(5)
         
         # Iterate through the requested profiles
         if isinstance(profiles, str):
@@ -238,9 +248,8 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                 # Fit limb darkening to get limb darkening
                 # coefficients for each wavelength bin
                 all_coeffs, all_errs = [], []
-                cen = bandpass.centers[0]
-                
-                c = len(inspect.signature(ldfunc).parameters)-1
+                cen = grid_point['centers'][0]
+                c = range(len(inspect.signature(ldfunc).parameters)-1)
                 for w,l in zip(cen,ld):
                     coeffs, cov = curve_fit(ldfunc, mu, l, method='lm')
                     err = np.sqrt(np.diag(cov))
@@ -249,16 +258,16 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
                     
                 # Make a table of coefficients
                 all_coeffs = list(zip(*all_coeffs))
-                c_cols = ['wavelength']+['c{}'.format(n+1) for n in range(c)]
+                c_cols = ['wavelength']+['c{}'.format(n+1) for n in c]
                 c_table = at.Table(all_coeffs, names=c_cols)
                 
                 # Make a table of errors
                 all_errs = list(zip(*all_errs))
-                e_cols = ['e{}'.format(n+1) for n in range(c)]
+                e_cols = ['e{}'.format(n+1) for n in c]
                 e_table = at.Table(all_errs, names=e_cols)
                 
                 # Combine, format, and store tables
-                cols = ['wavelength']+','.join(['c{0},e{0}'.format(n+1) for n in range(c)]).split(',')
+                cols = ['wavelength']+','.join(['c{0},e{0}'.format(n+1) for n in c]).split(',')
                 grid_point[profile]['coeffs'] = at.hstack([c_table,e_table])[cols]
                 for k in c_cols[1:]+e_cols:
                     grid_point[profile]['coeffs'][k].format = '%.3f'
