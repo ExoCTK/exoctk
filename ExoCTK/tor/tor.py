@@ -20,14 +20,14 @@ Outputs :
 
 ## -- IMPORTS
 import math
+
+from astropy.io import ascii
 import numpy as np
+from scipy import interpolate
 from scipy.integrate import quad
 
 ## -- FUNCTIONS
 # - I think this is going to have a few different sections up in hereeee...
-
-def test():
-    print('This test import worked!')
 
 ## -- PHOTOMETRY/THROUHGPUT ESTIMATES
 
@@ -178,6 +178,80 @@ def estimate_blackbody(wavelength, temp):
     # Expression for blackbody
     integrand = (2*h*(nu**3)/(c**2))/(np.e**((h*nu)/(k*temp)) - 1)
     return integrand
+
+## -- I GAVE UP AND KIND OF USE PANDEIA FUNCTIONS
+
+def calc_groups_from_exp_time(max_exptime_per_int, t_frame):
+    """
+    Given the maximum saturation time, calculates the number
+    of frames per group.
+
+    Parameters
+    ----------
+    max_exptime_per_int : float
+        The maximum number of seconds an integration can last
+        before it's oversaturated. 
+    t_frame : float
+        The time per frame.
+    """
+
+    groups = max_exptime_per_int/t_frame
+    return np.round(groups)
+
+def create_pandeia_dicts():
+    """
+    WIP -- How to initialize these dicts quick w/o reading a 
+    text file? RN the answer is hard coding...
+    Time will tell.
+
+    Returns
+    -------
+    pandeia_dicts : dict of dict of array
+    """
+    
+    dat = ascii.read('/user/mhill/exoctk/tor/tor_pandeia_dat.csv')
+    pandeia_dict = dict(dat)
+    return pandeia_dict
+
+
+def interpolate_from_dat(mag, ins, filt, sub, band, t_frame, sat_lvl):
+    """
+    Interpolates the precalculated pandeia data to estimate the saturation limit.
+
+    Parameters
+    ----------
+    mag : float
+        The magnitude of the source.
+    band_ins : str
+        The band in which the magnitude is -- only does : 
+    t_frame : float
+        The seconds per frame for the instrument/subarray.
+
+    Returns
+    -------
+    n_group : int
+        The number of groups that won't oversaturate the detector.
+    """
+    
+    # Create the dictionaries for each filter and select out the prerun data
+    dict = create_pandeia_dicts()
+    print(ins, filt, sub, band)
+    print('DO THESE PARAMS LOOKS RIGHT???')
+    
+    mag_dat, exptime = dict['input_mag'], dict[ins + '_'+ filt + '_' + sub + '_' + band]
+
+    # Interpolate the given magnitude
+    func = interpolate.interp1d(mag_dat, exptime)
+    max_sat = func(mag)
+    
+    # Figure out what it means in wake of the given sat lvl
+    max_exptime = sat_lvl/max_sat
+
+    # Calculate the nearest number of groups
+    n_group = calc_groups_from_exp_time(max_exptime, t_frame)
+    
+    return n_group
+
 
 
 ## -- SIMPLE LOGIC TIME CALCULATIONS
@@ -412,7 +486,7 @@ def calc_t_ramp(t_int, n_reset, t_frame):
     return t_ramp
 
 
-def create_tor_dict(transit_time, n_group, mag, band, temp, sat_max, sat_mode, throughput, filt, ins, subarray, n_reset, n_frame=1, n_skip=0):
+def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_mode, sat_max, n_reset, n_frame=1, n_skip=0):
     """Calculates all of the tor things and puts them in a dictionary for easy access. 
 
     Parameters
@@ -446,14 +520,17 @@ def create_tor_dict(transit_time, n_group, mag, band, temp, sat_max, sat_mode, t
     # Or continue as normal
     else:
         n_row, n_col, n_amp, px_size, t_frame, MIRI_n_reset = params
-        print(px_size)
+        band_ins = str(band) + '_' + str(filt)
+        
+#        print(px_size)
         sat_max = convert_sat(sat_max, sat_mode, ins)
 
         # Calculate countrate and n_groups if it isn't supplied
         if n_group == 'optimize':
-            countrate = calc_cr(mag, band, temp, px_size, throughput, filt)
-            print('Countrate : ' + str(countrate))
-            n_group = calc_n_group(ins, countrate, sat_max, t_frame, n_frame, n_skip)
+            n_group = interpolate_from_dat(mag, ins, filt, subarray, band, t_frame, sat_max)
+#            countrate = calc_cr(mag, band, temp, px_size, throughput, filt)
+#            print('Countrate : ' + str(countrate))
+#            n_group = calc_n_group(ins, countrate, sat_max, t_frame, n_frame, n_skip)
         
         n_group = int(float(n_group))
         # Calculate times/ramps/etc
@@ -476,12 +553,13 @@ def create_tor_dict(transit_time, n_group, mag, band, temp, sat_max, sat_mode, t
             'n_int': n_int, 't_exp': round(t_exp/3600, 3), 't_duration': round(t_duration/3600, 3), 'obs_eff': obs_eff}
         return tor_dict
 
+
 ## -- INS CONVERSION THINGS
 
 def convert_sat(sat_max, sat_mode, ins):
      
     if sat_mode == 'well':
-        ins_dict = {'NIRSpec': 60000, 'MIRI': 250000, 'NIRCam': 90000, 'NIRISS': 70000}
+        ins_dict = {'NIRSpec': 60000, 'MIRI': 250000, 'NIRCam': 90000, 'NIRISS': 75000}
         sat_max = sat_max*ins_dict[ins]
 
     print(sat_max)
