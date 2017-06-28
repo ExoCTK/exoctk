@@ -198,7 +198,7 @@ def calc_groups_from_exp_time(max_exptime_per_int, t_frame):
     groups = max_exptime_per_int/t_frame
     return np.round(groups)
 
-def create_pandeia_dicts():
+def create_pandeia_dicts(infile):
     """
     WIP -- How to initialize these dicts quick w/o reading a 
     text file? RN the answer is hard coding...
@@ -209,12 +209,12 @@ def create_pandeia_dicts():
     pandeia_dicts : dict of dict of array
     """
     
-    dat = ascii.read('/user/mhill/exoctk/tor/tor_pandeia_dat.csv')
+    dat = ascii.read(infile)
     pandeia_dict = dict(dat)
     return pandeia_dict
 
 
-def interpolate_from_dat(mag, ins, filt, sub, band, t_frame, sat_lvl):
+def interpolate_from_dat(mag, ins, filt, sub, band, t_frame, sat_lvl, infile):
     """
     Interpolates the precalculated pandeia data to estimate the saturation limit.
 
@@ -234,7 +234,7 @@ def interpolate_from_dat(mag, ins, filt, sub, band, t_frame, sat_lvl):
     """
     
     # Create the dictionaries for each filter and select out the prerun data
-    dict = create_pandeia_dicts()
+    dict = create_pandeia_dicts(infile)
     print(ins, filt, sub, band)
     print('DO THESE PARAMS LOOKS RIGHT???')
     
@@ -461,6 +461,11 @@ def calc_t_int(n_group, t_frame, n_frame, n_skip):
     """
     
     t_int = (n_group*(n_frame + n_skip) - n_skip)*t_frame
+    print(t_int)
+    print(n_group)
+    print(n_frame)
+    print(n_skip)
+    print(t_frame)
     return t_int
 
 
@@ -486,7 +491,7 @@ def calc_t_ramp(t_int, n_reset, t_frame):
     return t_ramp
 
 
-def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_mode, sat_max, n_reset, n_frame=1, n_skip=0):
+def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_mode, sat_max, n_reset, infile, n_frame=1, n_skip=0):
     """Calculates all of the tor things and puts them in a dictionary for easy access. 
 
     Parameters
@@ -527,7 +532,7 @@ def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_m
 
         # Calculate countrate and n_groups if it isn't supplied
         if n_group == 'optimize':
-            n_group = interpolate_from_dat(mag, ins, filt, subarray, band, t_frame, sat_max)
+            n_group = interpolate_from_dat(mag, ins, filt, subarray, band, t_frame, sat_max, infile)
 #            countrate = calc_cr(mag, band, temp, px_size, throughput, filt)
 #            print('Countrate : ' + str(countrate))
 #            n_group = calc_n_group(ins, countrate, sat_max, t_frame, n_frame, n_skip)
