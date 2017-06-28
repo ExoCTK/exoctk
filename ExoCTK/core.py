@@ -238,18 +238,23 @@ class ModelGrid(object):
         # Print something
         print(len(self.data),'models loaded from',self.path)
         
-        # Customize from the get-go
-        if kwargs:
-            self.customize(**kwargs)
-            
+        # In case no filter is used
+        self.n_bins = 1
+        
         # Set the wavelength_units
         self.wl_units = q.AA
         if wl_units:
             self.set_units(wl_units)
+        else:
+            self.const = 1
             
         # Save the desired resolution
         self.resolution = resolution
         
+        # Customize from the get-go
+        if kwargs:
+            self.customize(**kwargs)
+            
     def get(self, Teff, logg, FeH, resolution='', interp=True):
         """
         Retrieve the wavelength, flux, and effective radius 

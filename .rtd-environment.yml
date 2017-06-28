@@ -14,4 +14,3 @@ dependencies:
     - h5py
     - pip:
         - batman-package
-        - svo_filters
