@@ -5,6 +5,7 @@ from . import _chimera
 
 from astropy.modeling import Fittable1DModel, Parameter
 import numpy as np
+from scipy import interp
 from scipy.optimize import least_squares
 
 
@@ -58,7 +59,7 @@ class LineForwardModel(Fittable1DModel):
         self.abund_path = abund_path
         self.Pgrid, self.Tgrid, self.wno, self.gord, self.wts, self.xsecarr = _chimera.fm.xsects(self.abscoeff_dir)
 
-        super(AstropyForwardModel, self).__init__(Rp, Rstar, Mp, Tirr, logKir,
+        super(LineForwardModel, self).__init__(Rp, Rstar, Mp, Tirr, logKir,
                                                   logg1, logMet, logCtoO, logPQC,
                                                   logPQN, logRayAmp, RaySlp, logPc)
 
@@ -86,7 +87,21 @@ class LineForwardModel(Fittable1DModel):
                                                     self.xsecarr,
                                                     cea_path=self.cea_path,
                                                     abund_path=self.abund_path)
+        self.full_flux = F
+        self.full_wavelength = 1e4/wnocrop
+        self.atm = atm
 
         transmission = _instrument_non_uniform_tophat(wavelength, wnocrop, F)
 
         return transmission
+
+    def thermal_profile(self):
+        logP = np.arange(-7, 1.5, 0.1) + 0.1
+        g0 = 6.67384E-11 * self.Mp * 1.898E27 / (self.Rp * 69911. * 1.E3) ** 2
+        kv = 10. ** (self.logg1 + self.logKir)
+        kth = 10. ** self.logKir
+        tp = _chimera.fm.TP(self.Tirr, 100, g0, kv, kv, kth, 0.5)
+        T = interp(logP, np.log10(tp[1]), tp[0])
+
+        return T, logP
+
