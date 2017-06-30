@@ -18,6 +18,7 @@ import pkg_resources
 import numpy as np
 import urllib
 import os
+from ExoCTK import core
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 WL_KEYS = ['FWHM', 'WavelengthCen', 'WavelengthEff', 'WavelengthMax',
@@ -108,104 +109,143 @@ class Filter(object):
         DELETE: bool
             Delete the given filter
         """
-        # Check if TopHat
-        if band.lower().replace('-','').replace(' ','')=='tophat':
+        # If the filter_directory is an array, load it as the filter
+        if isinstance(filter_directory, (list,np.ndarray)):
             
-            # check kwargs for limits
-            wl_min = kwargs.get('wl_min')
-            wl_max = kwargs.get('wl_max')
-            filepath = ''
+            self.raw = np.array([filter_directory[0].data,filter_directory[1]])
+            self.WavelengthUnit = str(q.um)
+            self.ZeroPointUnit = str(q.erg/q.s/q.cm**2/q.AA)
+            x, f = self.raw
             
-            if not wl_min and not wl_max:
-                print("Please provide **{'wl_min','wl_max'} to create top hat filter.")
-                return
-            else:
-                # Load the filter
-                self.load_TopHat(wl_min, wl_max, kwargs.get('n_pixels',100))
+            # Get a spectrum of Vega
+            vega = np.genfromtxt(pkg_resources.resource_filename('ExoCTK', 'data/core/vega.txt'), unpack=True)[:2]
+            vega = core.rebin_spec(vega, x)*q.erg/q.s/q.cm**2/q.AA
+            self.ZeroPoint = (np.trapz((vega[1]*f).to(q.erg/q.s/q.cm**2/q.AA), x=x)/np.trapz(f, x=x)).to(q.erg/q.s/q.cm**2/q.AA).value
+            
+            # Calculate the filter's properties
+            self.filterID = band
+            self.WavelengthPeak = np.max(self.raw[0])
+            self.WavelengthMin = np.interp(max(f)/100.,f[:np.where(np.diff(f)>0)[0][-1]],x[:np.where(np.diff(f)>0)[0][-1]])
+            self.WavelengthMax = np.interp(max(f)/100.,f[::-1][:np.where(np.diff(f[::-1])>0)[0][-1]],x[::-1][:np.where(np.diff(f[::-1])>0)[0][-1]])
+            self.WavelengthEff = np.trapz(f*x*vega, x=x)/np.trapz(f*vega, x=x)
+            self.WavelengthMean = np.trapz(f*x, x=x)/np.trapz(f, x=x)
+            self.WidthEff = np.trapz(f*x, x=x)
+            self.WavelengthPivot = np.sqrt(np.trapz(f*x, x=x)/np.trapz(f/x, x=x))
+            self.WavelengthPhot = np.trapz(f*vega*x**2, x=x)/np.trapz(f*vega*x, x=x)
+
+            # Fix these two:
+            self.WavelengthCen = self.WavelengthMean
+            self.FWHM = self.WidthEff
+            
+            # Add missing attributes
+            self.rsr = self.raw.copy()
+            self.path = ''
+            self.pixels_per_bin = self.rsr.shape[-1]
+            self.n_pixels = self.rsr.shape[-1]
+            self.n_bins = 1
+            self.wl_min = self.WavelengthMin
+            self.wl_max = self.WavelengthMax
             
         else:
             
-            # Get list of filters
-            files = glob(filter_directory+'*')
-            bands = [os.path.basename(b) for b in files]
-            filepath = filter_directory+band
+            # Check if TopHat
+            if band.lower().replace('-','').replace(' ','')=='tophat':
             
-            # If the filter is missing, ask what to do
-            if filepath not in files:
+                # check kwargs for limits
+                wl_min = kwargs.get('wl_min')
+                wl_max = kwargs.get('wl_max')
+                filepath = ''
             
-                print('Current filters:',
-                      ', '.join(bands),
-                      '\n')
-                      
-                print('No filters match',filepath)
-                dl = input('Would you like me to download it? [y/n] ')
-                
-                if dl.lower()=='y':
-                    
-                    # Prompt for new filter
-                    print('\nA full list of available filters from the\n'\
-                          'SVO Filter Profile Service can be found at\n'\
-                          'http://svo2.cab.inta-csic.es/theory/fps3/\n')
-                    band = input('Enter the band name to retrieve (e.g. 2MASS/2MASS.J): ')
-                    
-                    # Download the XML (VOTable) file
-                    baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
-                    filepath = filter_directory+os.path.basename(band)
-                    _ = urllib.request.urlretrieve(baseURL+band, filepath)
-                    
-                    # Print the new filepath
-                    print('Band stored as',filepath)
-                    
+                if not wl_min and not wl_max:
+                    print("Please provide **{'wl_min','wl_max'} to create top hat filter.")
+                    return
                 else:
+                    # Load the filter
+                    self.load_TopHat(wl_min, wl_max, kwargs.get('n_pixels',100))
+                    
+            else:
+                
+                # Get list of filters
+                files = glob(filter_directory+'*')
+                bands = [os.path.basename(b) for b in files]
+                filepath = filter_directory+band
+                
+                # If the filter is missing, ask what to do
+                if filepath not in files:
+                    
+                    print('Current filters:',
+                          ', '.join(bands),
+                          '\n')
+                      
+                    print('No filters match',filepath)
+                    dl = input('Would you like me to download it? [y/n] ')
+                
+                    if dl.lower()=='y':
+                    
+                        # Prompt for new filter
+                        print('\nA full list of available filters from the\n'\
+                              'SVO Filter Profile Service can be found at\n'\
+                              'http://svo2.cab.inta-csic.es/theory/fps3/\n')
+                        band = input('Enter the band name to retrieve (e.g. 2MASS/2MASS.J): ')
+                    
+                        # Download the XML (VOTable) file
+                        baseURL = 'http://svo2.cab.inta-csic.es/svo/theory/fps/fps.php?ID='
+                        filepath = filter_directory+os.path.basename(band)
+                        _ = urllib.request.urlretrieve(baseURL+band, filepath)
+                    
+                        # Print the new filepath
+                        print('Band stored as',filepath)
+                    
+                    else:
+                        return
+                    
+                # Try to read filter info
+                try:
+                    
+                    # Parse the XML file
+                    vot = vo.parse_single_table(filepath)
+                    self.rsr = np.array([list(i) for i in vot.array]).T
+                    
+                    # Parse the filter metadata
+                    for p in [str(p).split() for p in vot.params]:
+                        
+                        # Extract the key/value pairs
+                        key = p[1].split('"')[1]
+                        val = p[-1].split('"')[1]
+                        
+                        # Do some formatting
+                        if p[2].split('"')[1]=='float'\
+                        or p[3].split('"')[1]=='float':
+                            val = float(val)
+                            
+                        else:
+                            val = val.replace('b&apos;','')\
+                                     .replace('&apos','')\
+                                     .replace('&amp;','&')\
+                                     .strip(';')
+                                 
+                        # Set the attribute
+                        if key!='Description':
+                            setattr(self, key, val)
+                            
+                    # Create some attributes
+                    self.path = filepath
+                    self.pixels_per_bin = self.rsr.shape[-1]
+                    self.n_pixels = self.rsr.shape[-1]
+                    self.n_bins = 1
+                    self.raw = self.rsr.copy()
+                    self.wl_min = self.WavelengthMin
+                    self.wl_max = self.WavelengthMax
+                    
+                # If empty, delete XML file
+                except IOError:
+                    
+                    print('No filter named',band)
+                    # if os.path.isfile(filepath):
+                    #     os.remove(filepath)
+                    
                     return
                     
-            # Try to read filter info
-            try:
-                
-                # Parse the XML file
-                vot = vo.parse_single_table(filepath)
-                self.rsr = np.array([list(i) for i in vot.array]).T
-                
-                # Parse the filter metadata
-                for p in [str(p).split() for p in vot.params]:
-                
-                    # Extract the key/value pairs
-                    key = p[1].split('"')[1]
-                    val = p[-1].split('"')[1]
-                    
-                    # Do some formatting
-                    if p[2].split('"')[1]=='float'\
-                    or p[3].split('"')[1]=='float':
-                        val = float(val)
-                        
-                    else:
-                        val = val.replace('b&apos;','')\
-                                 .replace('&apos','')\
-                                 .replace('&amp;','&')\
-                                 .strip(';')
-                                 
-                    # Set the attribute
-                    if key!='Description':
-                        setattr(self, key, val)
-                        
-                # Create some attributes
-                self.path = filepath
-                self.pixels_per_bin = self.rsr.shape[-1]
-                self.n_pixels = self.rsr.shape[-1]
-                self.n_bins = 1
-                self.raw = self.rsr.copy()
-                self.wl_min = self.WavelengthMin
-                self.wl_max = self.WavelengthMax
-                    
-            # If empty, delete XML file
-            except IOError:
-                
-                print('No filter named',band)
-                # if os.path.isfile(filepath):
-                #     os.remove(filepath)
-                
-                return
-                
         # Get the bin centers
         w_cen = np.nanmean(self.rsr[0])
         f_cen = np.nanmean(self.rsr[1])
@@ -216,7 +256,7 @@ class Filter(object):
             self.set_wl_units(wl_units)
             
         # Set zeropoint flux units
-        if zp_units:
+        if zp_units!=self.ZeroPointUnit:
             self.set_zp_units(zp_units)
             
         # Get references
