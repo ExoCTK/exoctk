@@ -133,5 +133,9 @@ setup(name=PACKAGENAME,
       **package_info
 )
 
+# Create filters pickle file immediately
+from ExoCTK import svo
+svo.filters()
+
 #os.system('python ExoCTK/bar/setup.py build_ext')
 #os.system('./ExoCTK/bar/include/compile_cea_64bit.com')
