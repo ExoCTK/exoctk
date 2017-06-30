@@ -40,7 +40,7 @@ struct Chem chem;
 /* ------- begin ---------------- main --------------------------- */
 
 
-int main()
+int main_transmission()
 {
   TotalOpac();
   printf("TotalOpac done\n");
