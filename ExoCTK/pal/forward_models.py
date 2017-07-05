@@ -6,7 +6,6 @@ from . import _chimera
 from astropy.modeling import Fittable1DModel, Parameter
 import numpy as np
 from scipy import interp
-from scipy.optimize import least_squares
 
 
 def _instrument_non_uniform_tophat(wlgrid, wno, Fp):
