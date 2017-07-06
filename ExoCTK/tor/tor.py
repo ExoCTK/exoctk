@@ -553,7 +553,7 @@ def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_m
         obs_eff = calc_obs_efficiency(t_exp, t_duration)
 
         # Write out dict
-        tor_dict = {'n_col': n_col, 'n_row': n_row, 'n_amp': n_amp, 'n_group': n_group, 'n_reset': n_reset,
+        tor_dict = {'n_col': n_col, 'n_row': n_row, 'n_amp': n_amp, 'n_group': n_group, 'n_reset': n_reset, 'sat_max': sat_max,
             'n_frame': n_frame, 'n_skip': n_skip, 'obs_time': transit_time, 't_frame': round(t_frame, 3), 't_int': round(t_int, 3), 't_ramp': t_ramp, 
             'n_int': n_int, 't_exp': round(t_exp/3600, 3), 't_duration': round(t_duration/3600, 3), 'obs_eff': obs_eff}
         return tor_dict
