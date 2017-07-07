@@ -436,7 +436,6 @@ def fx(x, gas_scale, Pgrid, Tgrid, wno, gord, wts, xsecarr, cea_path=None, abund
         H2arr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(H2arr))*gas_scale[17]
         Hearr = 10.**interp(np.log10(P),np.log10(Pchem),np.log10(Hearr))*gas_scale[18]
         MMWarr = interp(np.log10(P),np.log10(Pchem), MMWarr)
-        print(MMWarr.shape)
 
     elif abund_path is not None:
         pts = np.zeros((T.shape[0], 4))
@@ -444,7 +443,6 @@ def fx(x, gas_scale, Pgrid, Tgrid, wno, gord, wts, xsecarr, cea_path=None, abund
         pts[:,1] += CtoO
         pts[:,2] = P
         pts[:,3] = T
-        print(pts)
         hdul = fits.open(abund_path)
         H2Oarr = interpn((hdul['Z_grid'].data, hdul['CtoO_grid'].data,
                           hdul['P_grid'].data, hdul['T_grid'].data),

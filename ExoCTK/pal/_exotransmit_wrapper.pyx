@@ -4,7 +4,7 @@ generates transmission spectra to study exoplanet atmospheres.
 """
 
 cdef extern from "include/main_transmission.c":
-    void main()
+    void main_transmission()
 
 def exotransmit():
-    main()
+    main_transmission()
