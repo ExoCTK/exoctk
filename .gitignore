@@ -34,6 +34,7 @@ docs/_build
 # Pycharm editor project files
 .idea
 
+
 # Packages/installer info
 *.egg
 *.egg-info
