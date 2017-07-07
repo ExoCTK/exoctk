@@ -24,25 +24,182 @@ Modified cnvrt method to return a CelestialVector."""
 #  Got rid of degrees trig functions.
 
 from math import *
-from math_extensionsx import *
-import rotationsx as ROT
+from ExoCTK.tor.contam_tool.math_extensionsx import *
+# import ExoCTK.tor.contam_tool.rotationsx as ROT
 
 D2R = pi/180.
 R2D = 180. / pi
 PI2 = 2. * pi
 unit_limit = lambda x: min(max(-1.,x),1.)
 
+
+
+
+# This object is from rotationsx.py. I had to copy it here because DL is doing cyclic imports
+class Vector (object):
+   "Class to encapsulate vector data and operations."
+     
+   def __init__(self,x=0.0,y=0.0,z=0.0):
+      """Constructor for a three-dimensional vector.
+      
+	  Note that two-dimensional vectors can be constructed by omitting one of 
+	  the coordinates, which will default to 0."""
+		 
+      self.x = x     #Cartesian x coordinate
+      self.y = y     #Cartesian y coordinate
+      self.z = z     #Cartesian z coordinate
+      
+   def __str__(self):  #Called when used in print statement
+   	  """Returns a string representation of the vector."""
+   	  return('Vector: x: %.3f, y: %.3f, z: %.3f'\
+   	  			% (self.x, self.y, self.z)) 	  
+      
+   def set_eq(self, x=None, y=None, z=None):
+      """Assigns new value to vector.
+      
+      Arguments are now optional to permit this to be used with 2D vectors
+      or to modify any subset of coordinates."""
+      
+      if (x != None):
+      	self.x = x
+      if (y != None):
+        self.y = y
+      if (z != None):
+          self.z = z
+      
+   def length(self):
+      """Returns magnitude of the vector """ 
+      return(sqrt(self.x * self.x + self.y * self.y + self.z * self.z))
+       
+   def normalize(self):
+      """Returns copy of the normalized vector """ 
+      mag = self.length()
+      return (Vector(self.x/mag,self.y/mag,self.z/mag))
+
+   def __mul__(self,rs):
+      """Implements Vector * scalar.  Can then use '*' syntax in multiplying a vector by a scalar rs. """ 
+      x = self.x * rs
+      y = self.y * rs
+      z = self.z * rs
+      return (Vector(x,y,z))
+      
+   def __rmul__(self,ls):
+      """Implements float * Vector """ 
+      x = self.x * ls
+      y = self.y * ls
+      z = self.z * ls
+      return (Vector(x,y,z))
+      
+   def __add__(self,rs):
+      """Implements Vector + Vector """ 
+      x = self.x + rs.x
+      y = self.y + rs.y
+      z = self.z + rs.z
+      return (Vector(x,y,z))
+      
+   def __sub__(self,rs):
+      """Implements Vector - Vector """ 
+      x = self.x - rs.x
+      y = self.y - rs.y
+      z = self.z - rs.z
+      return (Vector(x,y,z))
+      
+   def __truediv__(self,rs):
+      """Implements Vector / float """ 
+      x = self.x / rs
+      y = self.y / rs
+      z = self.z / rs
+      return (Vector(x,y,z))
+      
+   def __imul__(self,rs):
+      """Implements Vector *= float """ 
+      self.x *= rs
+      self.y *= rs
+      self.z *= rs
+      return (self)
+      
+   def __iadd__(self,rs):
+      """Implements Vector += vector """ 
+      self.x += rs.x
+      self.y += rs.y
+      self.z += rs.z
+      return (self)
+      
+   def __isub__(self,rs):
+      """Implements Vector -= vector """ 
+      self.x -= rs.x
+      self.y -= rs.y
+      self.z -= rs.z
+      return (self)
+      
+   def __idiv__(self,rs):
+      """Implements Vector /= float """ 
+      self.x /= rs
+      self.y /= rs
+      self.z /= rs
+      return (self)
+      
+   def create_matrix(self):
+       """Converts a Vector into a single-column matrix."""
+       
+       column = [self.x, self.y, self.z]
+       return(Matrix([[element] for element in column]))  #singleton list
+  
+   #Recommend deletion -- better to use a single interface that takes two vectors.
+   def dot(self,V2):
+      """returns dot product between two vectors """ 
+      return(self.x * V2.x + self.y * V2.y + self.z * V2.z)
+
+   #Recommend deletion in favor of non-method version.
+   def cross(self,V2):
+       """returns cross product of two vectors """ 
+       x = self.y*V2.z - V1.z*V2.y
+       y = self.z*V2.x - V1.x*V2.z
+       z = self.x*V2.y - V1.y*V2.x
+       return Vector(x,y,z)
+      
+   #Replace by separation - RLH
+   def angle(self,V2):
+      """returns angle between the two vectors in degrees """ 
+      R1 = self.length()
+      R2 = V2.length()
+      adot = dot(self,V2)
+      adot = adot / R1 / R2
+      adot = min(1.,adot)
+      adot = max(-1.,adot)
+      return acosd(adot)
+            
+   # RLH: What do these add?  We're creating methods just to access individual attributes.
+   def rx(self):  return self.x
+   def ry(self):  return self.y
+   def rz(self):  return self.z
+   
+   # RLH: Suggest deletion in favor of __str__, which has the advantage that it is called on print.
+   def display(self):
+      return "[%f, %f, %f]" % (self.x,self.y,self.z)
+      
+   # RLH: Not necessary if CelestialVector is used.
+   def set_xyz(self,ra,dec):
+      """Creates a unit vector from spherical coordinates """ 
+      self.x = cosd(dec) *cosd(ra)
+      self.y = cosd(dec) *sind(ra)
+      self.z = sind(dec)
+#End of the vector object
+
+
+
+
 def QX(angle):
    """Creates rotation quaternion about X axis, rotates a vector about this axis"""
-   return Quaternion(ROT.Vector(sin(angle/2.),0.,0.),cos(angle/2.))
+   return Quaternion(Vector(sin(angle/2.),0.,0.),cos(angle/2.))
 
 def QY(angle):
    """Creates rotation quaternion about Y axis, rotates a vector about this axis"""
-   return Quaternion(ROT.Vector(0.,sin(angle/2.),0.),cos(angle/2.))
+   return Quaternion(Vector(0.,sin(angle/2.),0.),cos(angle/2.))
 
 def QZ(angle):
    """Creates rotation quaternion about Z axis, rotates a vector about this axis"""
-   return Quaternion(ROT.Vector(0.,0.,sin(angle/2.)),cos(angle/2.))
+   return Quaternion(Vector(0.,0.,sin(angle/2.)),cos(angle/2.))
 
 def Qmake_a_point(V):
    """Creates a pure Q, i.e. defines a pointing not a rotation"""
@@ -50,7 +207,7 @@ def Qmake_a_point(V):
 
 def cvt_pt_Q_to_V(Q):
    """Converts a pure (pointing) Q to a unit position Vector"""
-   return ROT.Vector(Q.q1,Q.q2,Q.q3)
+   return Vector(Q.q1,Q.q2,Q.q3)
 
 
 #The following functions are dependent upon the spacecraft definitions and perhaps should be moved to that module
@@ -89,16 +246,16 @@ def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
 
 def cvt_v2v3_using_body2inertial_Q_to_c1c2pa_tuple(Q,v2,v3):
    """Given Q and v2,v3 gives pos on sky and V3 PA """
-   Vp_body = ROT.Vector(0.,0.,0.)
+   Vp_body = Vector(0.,0.,0.)
    Vp_body.set_xyz_from_angs(v2,v3)
    Vp_eci_pt = Q.cnvrt(Vp_body)
    coord1  = atan2(Vp_eci_pt.y,Vp_eci_pt.x)
    if coord1 < 0. : coord1 += PI2
    coord2 = asin(unit_limit(Vp_eci_pt.z))
 
-   V3_body = ROT.Vector(0.,0.,1.)
+   V3_body = Vector(0.,0.,1.)
    V3_eci_pt = Q.cnvrt(V3_body)
-   NP_eci = ROT.Vector(0.,0.,1.)
+   NP_eci = Vector(0.,0.,1.)
    V_left = cross(NP_eci,Vp_eci_pt)
    if V_left.length()>0.:
       V_left = V_left/V_left.length()
@@ -112,14 +269,14 @@ def cvt_v2v3_using_body2inertial_Q_to_c1c2pa_tuple(Q,v2,v3):
 
 def cvt_c1c2_using_body2inertial_Q_to_v2v3pa_tuple(Q,coord1,coord2):
    """Given Q and a position, returns v2,v3,V3PA tuple """
-   Vp_eci = ROT.Vector(1.,0.,0.)
+   Vp_eci = Vector(1.,0.,0.)
    Vp_eci.set_xyz_from_angs(coord1,coord2)
    Vp_body_pt = Q.inv_cnvrt(Vp_eci)
    v2 = atan2(Vp_body_pt.y,Vp_body_pt.x)
    v3 = asin(unit_limit(Vp_body_pt.z))
-   V3_body = ROT.Vector(0.,0.,1.)
+   V3_body = Vector(0.,0.,1.)
    V3_eci_pt = self.cnvrt(V3_body)
-   NP_eci = ROT.Vector(0.,0.,1.)
+   NP_eci = Vector(0.,0.,1.)
    V_left = cross(NP_eci,Vp_eci)
    if V_left.length()>0.:
     V_left = V_left / V_left.length()
@@ -156,15 +313,15 @@ class Quaternion:
    def normalize(self):
       """Returns a copy of the Q normalized """
       scale = self.length()
-      return Quaternion(ROT.Vector(self.q1/scale,self.q2/scale,self.q3/scale),self.q4/scale)
+      return Quaternion(Vector(self.q1/scale,self.q2/scale,self.q3/scale),self.q4/scale)
    
    def conjugate(self):
       """Returns a copy of the conjugated Q """
-      return Quaternion(ROT.Vector(-self.q1,-self.q2,-self.q3),self.q4)
+      return Quaternion(Vector(-self.q1,-self.q2,-self.q3),self.q4)
    
    def __mul__(self,rs):
       """Defines Q*Q for quaternion multiplication """
-      Q = Quaternion(ROT.Vector(0.,0.,0.),0.)
+      Q = Quaternion(Vector(0.,0.,0.),0.)
       #Q.V = rs.V * self.q4 + self.V * rs.q4 + cross(self.V,rs.V)
       Q.q1 = rs.q1 * self.q4 + self.q1 * rs.q4 + (self.q2 * rs.q3 - self.q3 * rs.q2)
       Q.q2 = rs.q2 * self.q4 + self.q2 * rs.q4 + (self.q3 * rs.q1 - self.q1 * rs.q3)
@@ -176,13 +333,13 @@ class Quaternion:
       """Rotates a vector from the starting frame to the ending frame defined by the Q """
       QV = Qmake_a_point(V)
       QV = self * QV * self.conjugate()
-      return ROT.Vector(QV.q1,QV.q2,QV.q3)
+      return Vector(QV.q1,QV.q2,QV.q3)
       
    def inv_cnvrt(self,V):
       """Rotates a vector from the ending frame to the starting frame defined by the Q"""
       QV = Qmake_a_point(V)
       QV = self.conjugate() * QV * self
-      return ROT.Vector(QV.q1,QV.q2,QV.q3)
+      return Vector(QV.q1,QV.q2,QV.q3)
    def set_values(self, V, angle):
       """Sets quaterion values using a direction vector and a rotation of the coordinate frame about it."""
       S = sin(-angle/2.)

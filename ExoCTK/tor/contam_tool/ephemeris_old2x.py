@@ -4,11 +4,13 @@
 import string
 import sys
 import time
-import time_extensionsx as time2
 from math import *
-from rotationsx import *
-from quaternionx import *
-import astro_funcx as astro_func
+
+#Local imports
+import ExoCTK.tor.contam_tool.time_extensionsx as time2
+from ExoCTK.tor.contam_tool.rotationsx import *
+from ExoCTK.tor.contam_tool.quaternionx import *
+import ExoCTK.tor.contam_tool.astro_funcx as astro_func
 
 D2R = pi/180.  #degrees to radians
 R2D = 180. / pi #radians to degrees 
