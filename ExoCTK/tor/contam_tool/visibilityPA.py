@@ -20,11 +20,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator
-import os, base64, io
+import os, base64, io, mpld3
 
 
 def calc_vis(RA, DEC, targetName=None, tmpDir=""):
-	figfile = io.BytesIO()
 	D2R = math.pi / 180.  #degrees to radians
 	R2D = 180. / math.pi #radians to degrees 
 
@@ -45,8 +44,6 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 			dec   = float(dec) * D2R
 
 		#load ephemeris
-		print('this is the current wd')
-		print(os.getcwd())
 		ephFileName,eclFlag=os.path.join(os.path.dirname(ExoCTK.__file__),'data/tor/JWST_ephem_short.txt'),False
 		eph = EPH.Ephemeris(ephFileName, eclFlag)
 		#convert dates from MJD to Gregorian calendar dates
@@ -164,8 +161,8 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 		fig.autofmt_xdate()
 		plt.grid()
 		if save:
-			png=tmpDir+'/visibilityPA-'+targetName+'.png'
-			plt.savefig(png)
+			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
+			png = mpld3.fig_to_html(fig)
 			
 
 		return png
