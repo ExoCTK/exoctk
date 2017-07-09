@@ -23,7 +23,7 @@ from matplotlib.ticker import MultipleLocator,AutoMinorLocator
 import os, base64, io, mpld3
 
 
-def calc_vis(RA, DEC, targetName=None, tmpDir=""):
+def calc_vis(RA, DEC, targetName=None):
 	D2R = math.pi / 180.  #degrees to radians
 	R2D = 180. / math.pi #radians to degrees 
 
@@ -35,7 +35,7 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 		hour_or_deg = (s/60.+m)/60.+d
 		return hour_or_deg
 
-	def checkVisPA(ra,dec,targetName=None,save=False,tmpDir=""):
+	def checkVisPA(ra,dec,targetName=None,save=False):
 		if ra.find(':')>-1:  #format is hh:mm:ss.s or  dd:mm:ss.s  
 			ra  = convert_ddmmss_to_float(ra) * 15. * D2R
 			dec   = convert_ddmmss_to_float(dec) * D2R
@@ -93,8 +93,9 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 		if paGood[-1][1]<360.: paBad.append([paGood[-1][1],360.])
 
 		#print results to file
+		"""
 		if save:
-			fName=tmpDir+'/visibilityPA-'+targetName+'.txt'
+			fName='visibilityPA-'+targetName+'.txt'
 			fic=open(fName,'w')
 
 			fic.write('#Date    MJD          VIS?  PAnom   PArange\n')
@@ -112,11 +113,13 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 			fic.write(','.join([str(x) for x in paBad]))
 			fic.write("\n")
 			fic.close()
+		"""
 
 		#make the plot
 		fig=plt.figure()
 		ax=plt.axes()
 		plt.title(targetName)
+		
 
 		#plot nominal PA
 		iBad,=np.where(vis==False)
@@ -129,6 +132,7 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 			paMasked=np.insert(paMasked,i,np.nan)
 			gdMasked=np.insert(gdMasked,i,gdMasked[i])
 		plt.plot(gdMasked,paMasked,color='k')
+# 		plt.xticks(rotation = 'vertical')
 
 		#plot ranges allowed through roll
 		if wrap:
@@ -158,10 +162,11 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 		plt.ylim(0,360)
 		ax.yaxis.set_major_locator(MultipleLocator(25))
 		ax.yaxis.set_minor_locator(MultipleLocator(5))
-		fig.autofmt_xdate()
 		plt.grid()
+		for label in ax.get_xticklabels():
+			label.set_rotation(45)
 		if save:
-			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
+# 			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
 			png = mpld3.fig_to_html(fig)
 			
 
@@ -169,8 +174,8 @@ def calc_vis(RA, DEC, targetName=None, tmpDir=""):
 
 	#arguments RA & DEC, conversion to radians
 	save=False if targetName==None else True
-	os.makedirs(tmpDir, exist_ok=True)
+# 	os.makedirs(tmpDir, exist_ok=True)
 
-	png = checkVisPA(RA, DEC,targetName=targetName,save=save,tmpDir=tmpDir)
+	png = checkVisPA(RA, DEC,targetName=targetName,save=save)
 
 	return png
