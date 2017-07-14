@@ -115,7 +115,7 @@ def thermo(M, CtoO, T, P, name, cea_path):
 
         #execute
         os.system('./run_'+name+'.com')
-        output=open('cea2_'+name+'.out')
+        output=open('cea2_'+name+'.out', 'w+')
         out=output.readlines()  #elements from column 28:37
 
         sub=' H2O            \n'
