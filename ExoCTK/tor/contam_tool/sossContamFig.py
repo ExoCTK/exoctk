@@ -176,7 +176,7 @@ def contam(cubeName,targetName='noName',paRange=[0,360],badPA=[],tmpDir=""):
     plt.ylim(plotPAmin-0.5*dPA,plotPAmax+0.5*dPA)
     ax1a.yaxis.set_minor_locator(MultipleLocator(minTicksMult))
     ax1a.set_yticklabels([])
-    plt.xlabel('% channels contam. \n above threshold',fontsize='small')
+    plt.xlabel('\% channels contam. \n above threshold',fontsize='small')
     plt.grid()
     plt.plot(100*np.sum(contamO1 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.001')
     plt.plot(100*np.sum(contamO1 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.01')
@@ -194,7 +194,7 @@ def contam(cubeName,targetName='noName',paRange=[0,360],badPA=[],tmpDir=""):
     plt.ylim(plotPAmin-0.5*dPA,plotPAmax+0.5*dPA)
     ax2a.yaxis.set_minor_locator(MultipleLocator(minTicksMult))
     ax2a.set_yticklabels([])
-    plt.xlabel('% channels contam. \n above threshold',fontsize='small')
+    plt.xlabel('\% channels contam. \n above threshold',fontsize='small') 
     plt.grid()
     plt.plot(100*np.sum(contamO2 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.001')
     plt.plot(100*np.sum(contamO2 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.01')
@@ -332,8 +332,8 @@ def contam(cubeName,targetName='noName',paRange=[0,360],badPA=[],tmpDir=""):
     suffix="_PA{}-{}".format(*paRange)
     plt.savefig(tmpDir+'/contamination-'+targetName+suffix+'.pdf',bbox_inches='tight')
     plt.savefig(tmpDir+'/contamination-'+targetName+suffix+'.png',bbox_inches='tight')
-    #plt.show()
-
+#     plt.show() 
+#     pdb.set_trace()
     plt.close()
 
 if __name__ == "__main__":
@@ -342,7 +342,7 @@ if __name__ == "__main__":
 
     ra=argv[1]
     dec=argv[2]
-    cubeNameSuf=argv[3]
+    cubeName=argv[3]
 
     pamin=0 if len(argv)<5 else int(argv[4])
     pamax=360 if len(argv)<6 else int(argv[5])
@@ -351,10 +351,9 @@ if __name__ == "__main__":
     save=False if len(argv)<7 else True #if name provided -> save
     tmpDir="." if len(argv)<8 else argv[7]
     os.makedirs(tmpDir, exist_ok=True)
+#     pdb.set_trace()
+    goodPA, badPA, _ =calc_vis(ra, dec, targetName=targetName)
 
-    goodPA,badPA=checkVisPA(ra,dec,targetName=targetName,save=save,tmpDir=tmpDir)
-
-    cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
     contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA,tmpDir=tmpDir)
     
 

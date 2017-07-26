@@ -1,6 +1,7 @@
 from astroquery.irsa import Irsa
+from astropy.io import fits
 import matplotlib.pyplot as plt
-import generate_JH_HK_colors as colors
+#import generate_JH_HK_colors as colors
 import astropy.coordinates as crd
 import astropy.units as u
 import numpy as np
@@ -14,7 +15,7 @@ def sossFieldSim(ra, dec, binComp=None):
 	targetcrd = crd.SkyCoord(ra = ra, dec = dec, unit=(u.hour, u.deg))
 	targetRA = targetcrd.ra.value
 	targetDEC = targetcrd.dec.value
-	info   = Irsa.query_region(targetcrd, catalog = 'fp_psc', spatial = 'Box', width = 4*u.arcmin) 
+	info   = Irsa.query_region(targetcrd, catalog = 'fp_psc', spatial = 'Cone', radius = 2.5*u.arcmin) 
 	# coordinates of possible contaminants in degrees
 	contamRA   = info['ra'].data.data 
 	contamDEC  = info['dec'].data.data
@@ -31,7 +32,6 @@ def sossFieldSim(ra, dec, binComp=None):
 	# add any missing companion
 	cubeNameSuf=''
 	if binComp is not None:
-		#contamRA       = [contamRA,contamRA[targetIndex]+bincomp[0]/3600/cos(contamDEC[targetIndex]*!dtor)] (JF)
 		deg2rad = np.pi/180
 		contamRA    = np.append(contamRA, (contamRA[targetIndex] + binComp[0]/3600/cos(contamDEC[targetIndex]*deg2rad)))
 		contamDEC   = np.append(contamDEC, (contamDEC[targetIndex] + binComp[1]/3600))
@@ -41,6 +41,7 @@ def sossFieldSim(ra, dec, binComp=None):
 		J_Hobs      = (Jmag-Hmag)
 		H_Kobs      = (Hmag-Kmag)
 		cubeNameSuf ='_custom'
+	
 
 	#Joe's coordinate conversion code
 	def deg2HMS(ra='', dec='', round=False):
@@ -71,9 +72,10 @@ def sossFieldSim(ra, dec, binComp=None):
 			return (RA, DEC)
 		else:
 			return RA or DEC
+			
+			
 
-	cubeName = 'cubes/cube_RA' + deg2HMS(ra = contamRA[targetIndex], round = True) + \
-	                     'DEC' + deg2HMS(ra = contamDEC[targetIndex], round = True) + cubeNameSuf + '.fits'
+	cubeName = 'cube/cube_RA_' + deg2HMS(ra = contamRA[targetIndex], round = True).replace(' ',':') + '_DEC_' + deg2HMS(ra = contamDEC[targetIndex], round = True).replace(' ',':') + cubeNameSuf + '.fits'
 
 	print('Cube name:')
 	print(cubeName)
@@ -81,7 +83,7 @@ def sossFieldSim(ra, dec, binComp=None):
 	print(cubeNameSuf)
 	print('Target coordinates:')
 	print(deg2HMS(ra = contamRA[targetIndex]))
-	print(deg2HMS(ra = contamDEC[targetIndex]))
+	print(deg2HMS(dec = contamDEC[targetIndex]))  dec
 
 
 	if os.path.exists(cubeName) and (binComp is not None):
@@ -132,17 +134,29 @@ def sossFieldSim(ra, dec, binComp=None):
 		restore,'modelsInfo.sav'
 	endelse
 	"""
+	
+	
+	#Restoring model parameters
+	modelParam = idlsave.read('idlSaveFiles/modelsInfo.sav') 
+	models     = modelParam['models']
+	modelPadX  = modelParam['modelpadx']
+	modelPadY  = modelParam['modelpady'] 
+	dimXmod    = modelParam['dimxmod']
+	dimYmod    = modelParam['dimymod']
+	jhMod      = modelParam['jhmod']
+	hkMod      = modelParam['hkmod']
+	teffMod    = modelParam['teffmod'] 
+	
 
 	# Initialize final fits cube that contains the modelled traces with contamination
 	PAmin = 0
 	PAmax = 360
 	angle_step = 1	# degrees
 	# Set of fov angles to cover
-	angle_set = np.arange(PAmin, PAmax+angle_step, angle_step)	# degrees
+	angle_set = np.arange(PAmin, PAmax, angle_step)	# degrees  the upper limit
 	nsteps    = len(angle_set)
-	simucube  = np.zeros((256,2048,nsteps+2))  # cube of trace simulation at every degree of field rotation,+target at O1 and O2
+	simucube  = np.zeros([nsteps+2,2048, 256])  # cube of trace simulation at every degree of field rotation,+target at O1 and O2
 
-	#pos_dict  = dict(x=99.9,y=99.9,contamRA=99.9,contamDEC=99.9,jmag=99.9)
 	niriss_pixel_scale = 0.065	# arcsec
 
 	sweetspot = dict(x=99.9,y=99.9,contamRA=99.9,contamDEC=99.9,jmag=99.9)
@@ -151,8 +165,9 @@ def sossFieldSim(ra, dec, binComp=None):
 	sweetspot['contamRA'] = contamRA[targetIndex]
 	sweetspot['contamDEC'] = contamDEC[targetIndex]
 	sweetspot['jmag'] = Jmag[targetIndex]
+	
 
-	# Put field stars position and magnitudes in a dictture
+	# Put field stars position and magnitudes in a dictionary
 	nstars = len(contamRA)
 	stars = dict(x=np.empty(nstars), y=np.empty(nstars), contamRA=np.empty(nstars), contamDEC=np.empty(nstars), jmag=np.empty(nstars))
 	
@@ -162,8 +177,6 @@ def sossFieldSim(ra, dec, binComp=None):
 
 	# find Teff of each star
 	T = np.zeros(nstars)
-	jhMod, hkMod, teffMod = colors.colorMod()
-	#Question JF: what if len(nstars)!=len(jhMod)?
 	for j in range(nstars):
 		color_seperation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
 		min_seperation_ind = np.argmin(color_seperation)
@@ -172,11 +185,13 @@ def sossFieldSim(ra, dec, binComp=None):
 	# load8colors
 	# Big loop to generate a simulation at each Field-of-view (FOV) rotation
 	radeg = 180/np.pi
-	for angle in angle_set:
-		fieldrotation = angle
+	saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+	
+	for angle in range(angle_set.size): 
+		fieldrotation = angle_set[angle] 
 	# 	print('Angle:',fieldrotation
 
-		pixelsep = 3600 * np.sqrt((np.cos(sweetspot['contamDEC']/radeg)*((stars['contamRA'] - sweetspot['contamRA']))**2)+((stars['contamDEC'] - sweetspot['contamDEC'])**2))
+		pixelsep = 3600 * np.sqrt(((np.cos(sweetspot['contamDEC']/radeg)*(stars['contamRA'] - sweetspot['contamRA']))**2) +((stars['contamDEC'] - sweetspot['contamDEC'])**2))
 		xo = -np.cos(sweetspot['contamDEC']/radeg)*(stars['contamRA'] - sweetspot['contamRA'])*3600/niriss_pixel_scale
 		yo = (stars['contamDEC'] - sweetspot['contamDEC'])*3600/niriss_pixel_scale
 
@@ -196,17 +211,15 @@ def sossFieldSim(ra, dec, binComp=None):
 	        #  given the uncertainty of the POM location wrt to detector FOV
 		# Retain stars that are within the Direct Image NIRISS POM FOV
 		
-		ind = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) & (stars['y'] >= -154) & (stars['y'] <= 2047+174))
+		ind = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) & (stars['y'] >= -154) & (stars['y'] <= 2047+174))[0]
 		starsInFOV = dict(x=stars['x'][ind], y =stars['y'][ind], contamRA=stars['contamRA'][ind], contamDEC=stars['contamDEC'][ind], jmag=stars['jmag'][ind]) # *** pour In Field Of View
 		dx = dx[ind]
 		dy = dy[ind]
-		Tboucle = T[ind]
+		T_loop = T[ind]
 		
-		
-	
 	# 	print(' Number of stars in FOV:',nstars # ***
 	# 	print(' J magnitude of those stars:', starsInFOV.jmag # ***
-	# 	print(' Temperature of those stars:', Tboucle
+	# 	print(' Temperature of those stars:', T_loop
 
 		# print
 		# printline,starsInFOV.x,starsInFOV.y,starsInFOV.jmag
@@ -221,48 +234,50 @@ def sossFieldSim(ra, dec, binComp=None):
 			plt.plot(sweetspot['x'], sweetspot['y'], 'ro')
 			plt.show()
 
-		saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-		modelPadX = 2000-1900
-		modelPadY = 2000
-		dimXmod = 256
-		dimYmod = 2048
 		for i in range(len(ind)):
 			intx = round(dx[i])
 			inty = round(dy[i])
-			# print(intx,inty
-		
-			k=np.where(teffMod == Tboucle[i])
+			# print(intx,inty)
+
+			k=np.where(teffMod == T_loop[i])
+			k = k[0][0]
 			
 			
 			fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i] - sweetspot['jmag']))
-			
 
 			# if target and first angle, add target traces of order 1 and 2 in output cube
-			if (intx == 0) and (inty == 0) and (ang == 0):
+			if (intx == 0) & (inty == 0) & (angle == 0):
 				# modelO1O2=readfits(fNameMod[k]) # read the order 1 and order 2 trace
-				fNameModO12 = saveFiles[i]
-				modelO12 = idlsave.read(fNameModO12)
-				simucube[0, :, :]= modelO12[0, modelPadY:modelPadY+2047, modelPadX:modelPadX+255] * fluxscale # order 1
-				simucube[1, :, :]= modelO12[1, modelPadY:modelPadY+2047, modelPadX:modelPadX+255] * fluxscale # order 2
+				
+				fNameModO12 = saveFiles[k] , the index here should be k, not i
+				modelO12 = idlsave.read(fNameModO12)['modelo12']
+# 				pdb.set_trace()
+				simucube[0, :, :]= modelO12[0, modelPadY:modelPadY+2048, modelPadX:modelPadX+256] * fluxscale # order 1
+				simucube[1, :, :]= modelO12[1, modelPadY:modelPadY+2048, modelPadX:modelPadX+256] * fluxscale # order 2
 		
 			# if a field star
 			
 			if (intx != 0) or (inty != 0):
-				mx0=modelPadX-intx
-				mx1=modelPadX-intx+255
-				my0=modelPadY-inty
-				my1=modelPadY-inty+2047
-				#pdb.set_trace()
-				if (mx0 > dimXmod-1) or (my0 > dimYmod-1):
+				mx0=int(modelPadX-intx)
+				mx1=int(modelPadX-intx+256)
+				my0=int(modelPadY-inty)
+				my1=int(modelPadY-inty+2048)
+				
+				if (mx0 > dimXmod) or (my0 > dimYmod): #removed the -1 here
 					continue
 				if (mx1 < 0) or (my1 < 0):
 					continue
-				x0=(-mx0)>0
-				y0=(-my0)>0
-				mx0>=0
-				mx1<=(dimXmod-1)
-				my0>=0
-				my1<=(dimYmod-1)
-				simucube[angle_set+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[mx0:mx1,my0:my1,k] * fluxscale
+				
+				x0  =(mx0<0)*(-mx0) 
+				y0  =(my0<0)*(-my0) 
+				mx0 *=(mx0 >= 0)  
+				mx1 = dimXmod if mx1>dimXmod else mx1 
+				my0 *=(my0 >= 0)  
+				my1 =dimYmod if my1>dimYmod else my1 
+
+
+# 				pdb.set_trace()
+				simucube[angle+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[k, my0:my1, mx0:mx1] * fluxscale
 	
-	fits.writeto(cubeName, simucube, overwrite = True) 
+	fits.writeto(cubeName, simucube, overwrite = True)
+	print(cubeName)

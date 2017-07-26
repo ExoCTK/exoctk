@@ -20,7 +20,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator
-import os, base64, io, mpld3
+from bokeh import mpl
+from bokeh.plotting import show
+from bokeh.models import DatetimeTickFormatter 
+import os, base64, io, mpld3, pdb
 
 
 def calc_vis(RA, DEC, targetName=None):
@@ -168,14 +171,19 @@ def calc_vis(RA, DEC, targetName=None):
 		if save:
 # 			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
 			png = mpld3.fig_to_html(fig)
+			bk = mpl.to_bokeh(fig)
+			bk.plot_width=400
+# 			bk.xaxis.formatter=DatetimeTickFormatter(days=['%m/%d'])
+			show(bk)
 			
 
-		return png
+		return paGood, paBad, png
 
 	#arguments RA & DEC, conversion to radians
 	save=False if targetName==None else True
 # 	os.makedirs(tmpDir, exist_ok=True)
+# 	pdb.set_trace()
 
-	png = checkVisPA(RA, DEC,targetName=targetName,save=save)
+	paGood, paBad, png = checkVisPA(RA, DEC, targetName=targetName, save=save)
 
-	return png
+	return paGood, paBad, png
