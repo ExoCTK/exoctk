@@ -7,7 +7,7 @@ import astropy.units as u
 import numpy as np
 import os, glob, idlsave, pdb
 
-def sossFieldSim(ra, dec, binComp=None):
+def sossFieldSim(ra, dec, binComp=None, dir = 'cube'):
 
 	# binComp=[deltaRA,deltaDEC,J,H,K]
 
@@ -75,7 +75,7 @@ def sossFieldSim(ra, dec, binComp=None):
 			
 			
 
-	cubeName = 'cube/cube_RA_' + deg2HMS(ra = contamRA[targetIndex], round = True).replace(' ',':') + '_DEC_' + deg2HMS(ra = contamDEC[targetIndex], round = True).replace(' ',':') + cubeNameSuf + '.fits'
+	cubeName = dir+'/cube_RA_' + deg2HMS(ra = contamRA[targetIndex], round = True).replace(' ',':') + '_DEC_' + deg2HMS(ra = contamDEC[targetIndex], round = True).replace(' ',':') + cubeNameSuf + '.fits'
 
 	print('Cube name:')
 	print(cubeName)
@@ -83,7 +83,7 @@ def sossFieldSim(ra, dec, binComp=None):
 	print(cubeNameSuf)
 	print('Target coordinates:')
 	print(deg2HMS(ra = contamRA[targetIndex]))
-	print(deg2HMS(dec = contamDEC[targetIndex]))  dec
+	print(deg2HMS(dec = contamDEC[targetIndex]))
 
 
 	if os.path.exists(cubeName) and (binComp is not None):
@@ -249,7 +249,7 @@ def sossFieldSim(ra, dec, binComp=None):
 			if (intx == 0) & (inty == 0) & (angle == 0):
 				# modelO1O2=readfits(fNameMod[k]) # read the order 1 and order 2 trace
 				
-				fNameModO12 = saveFiles[k] , the index here should be k, not i
+				fNameModO12 = saveFiles[k]
 				modelO12 = idlsave.read(fNameModO12)['modelo12']
 # 				pdb.set_trace()
 				simucube[0, :, :]= modelO12[0, modelPadY:modelPadY+2048, modelPadX:modelPadX+256] * fluxscale # order 1
@@ -280,4 +280,5 @@ def sossFieldSim(ra, dec, binComp=None):
 				simucube[angle+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[k, my0:my1, mx0:mx1] * fluxscale
 	
 	fits.writeto(cubeName, simucube, overwrite = True)
-	print(cubeName)
+	
+	return cubeName
