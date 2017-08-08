@@ -5,17 +5,19 @@ import matplotlib.pyplot as plt
 import astropy.coordinates as crd
 import astropy.units as u
 import numpy as np
-import os, glob, idlsave, pdb
+import os, glob, idlsave, pdb, ExoCTK
 
-def sossFieldSim(ra, dec, binComp=None, dir = 'cube'):
+def sossFieldSim(ra, dec, binComp=None, dir = '.'):
 
 	# binComp=[deltaRA,deltaDEC,J,H,K]
+	if binComp == '':
+		binComp = None
 
 	# stars in large field around target
 	targetcrd = crd.SkyCoord(ra = ra, dec = dec, unit=(u.hour, u.deg))
 	targetRA = targetcrd.ra.value
 	targetDEC = targetcrd.dec.value
-	info   = Irsa.query_region(targetcrd, catalog = 'fp_psc', spatial = 'Cone', radius = 2.5*u.arcmin) 
+	info   = Irsa.query_region(targetcrd, radius = 2.5*u.arcmin, catalog = 'fp_psc')
 	# coordinates of possible contaminants in degrees
 	contamRA   = info['ra'].data.data 
 	contamDEC  = info['dec'].data.data
@@ -137,7 +139,7 @@ def sossFieldSim(ra, dec, binComp=None, dir = 'cube'):
 	
 	
 	#Restoring model parameters
-	modelParam = idlsave.read('idlSaveFiles/modelsInfo.sav') 
+	modelParam = idlsave.read(os.path.join(os.path.dirname(ExoCTK.__file__),'data/tor/idlSaveFiles/modelsInfo.sav')) 
 	models     = modelParam['models']
 	modelPadX  = modelParam['modelpadx']
 	modelPadY  = modelParam['modelpady'] 
@@ -185,7 +187,7 @@ def sossFieldSim(ra, dec, binComp=None, dir = 'cube'):
 	# load8colors
 	# Big loop to generate a simulation at each Field-of-view (FOV) rotation
 	radeg = 180/np.pi
-	saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+	saveFiles = glob.glob(os.path.join(os.path.dirname(ExoCTK.__file__),'data/tor/idlSaveFiles/*.sav'))[:-1]
 	
 	for angle in range(angle_set.size): 
 		fieldrotation = angle_set[angle] 

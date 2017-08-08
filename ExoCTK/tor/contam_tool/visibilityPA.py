@@ -23,7 +23,7 @@ from matplotlib.ticker import MultipleLocator,AutoMinorLocator
 from bokeh import mpl
 from bokeh.plotting import show
 from bokeh.models import DatetimeTickFormatter 
-import os, base64, io, mpld3, pdb
+import os, base64, io, pdb
 
 
 def calc_vis(RA, DEC, targetName=None):
@@ -170,14 +170,16 @@ def calc_vis(RA, DEC, targetName=None):
 			label.set_rotation(45)
 		if save:
 # 			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
-			png = mpld3.fig_to_html(fig)
-			bk = mpl.to_bokeh(fig)
-			bk.plot_width=400
-# 			bk.xaxis.formatter=DatetimeTickFormatter(days=['%m/%d'])
-			show(bk)
-			
+# 			png = mpld3.fig_to_html(fig)
+			# bk = mpl.to_bokeh(fig)
+# 			bk.plot_width=400
+# 			show(bk)
+			buff = io.BytesIO()
+			plt.savefig(buff, format = 'png')
+			buff.seek(0)
+			figdata_png = base64.b64encode(buff.getvalue()).decode('ascii')
 
-		return paGood, paBad, png
+		return paGood, paBad, figdata_png
 
 	#arguments RA & DEC, conversion to radians
 	save=False if targetName==None else True

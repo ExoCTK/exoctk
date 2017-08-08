@@ -6,7 +6,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator,MaxNLocator
 from . import visibilityPA as vis
-import os
+import os, io, base64
 
 #Hack to override default hatch linewidth for PDF
 import matplotlib
@@ -14,6 +14,8 @@ import six
 from matplotlib.path import Path
 from matplotlib.backends.backend_pdf import Name, Op
 from matplotlib.transforms import Affine2D
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+# from flask import make_response
 
 
 def setCustomHatchWidth(customWidth):
@@ -82,7 +84,13 @@ def cmap_discretize(cmap, N):
 	# Return colormap object.
 	return matplotlib.colors.LinearSegmentedColormap(cmap.name + "_%d"%N, cdict, 1024)
 
-def contam(ra, dec, targetName, cubeName, pamin = 0, pamax = 360, tmpDir="."):
+def contam(ra, dec, targetName, cubeName, pamin = 0, pamax = 360):
+
+	if (type(pamin) == str) | (type(pamax) == str):
+		try:
+			pamin, pamax = int(pamin), int(pamax)
+		except:
+			pamin, pamax = 0, 360
 	
 	paRange = [pamin, pamax]
 	goodPA, badPA, _ =vis.calc_vis(ra, dec, targetName=targetName)
@@ -337,12 +345,11 @@ def contam(ra, dec, targetName, cubeName, pamin = 0, pamax = 360, tmpDir="."):
 	#add target name
 	plt.figtext(0.04,0.9,targetName,fontsize='large')
 	suffix="_PA{}-{}".format(*paRange)
-	png = tmpDir+'/contamination-'+targetName+suffix+'.png'
-	pdf = tmpDir+'/contamination-'+targetName+suffix+'.pdf'
-	plt.savefig(tmpDir+'/contamination-'+targetName+suffix+'.pdf',bbox_inches='tight')
-	plt.savefig(tmpDir+'/contamination-'+targetName+suffix+'.png',bbox_inches='tight')
-	plt.close()
-	return png, pdf
+	buff = io.BytesIO()
+	plt.savefig(buff, format = 'png')
+	buff.seek(0)
+	figdata_png = base64.b64encode(buff.getvalue()).decode('ascii')
+	return figdata_png
 		
 
 if __name__ == "__main__":
@@ -363,6 +370,6 @@ if __name__ == "__main__":
 #     pdb.set_trace()
     goodPA, badPA, _ =calc_vis(ra, dec, targetName=targetName)
 
-    contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA,tmpDir=tmpDir)
+    contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA)
     
 
