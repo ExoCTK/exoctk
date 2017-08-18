@@ -1,3 +1,17 @@
+"""
+This file is meant to be used as a module for the ExoCTK website i.e. 
+app_exoctk.py. It is part of the ExoCTK package. It is designed to test
+the sossFieldSim.py file which runs the simulation. It is meant to run 
+from the terminal. Usage of this file is described in sossFieldSim.py 
+documentation.
+
+Authors:
+	Rafia Bushra, University of Arizona
+	
+	David Lafreniere, University de Montreal
+
+"""
+
 from sys import argv
 from sossFieldSim import *
 
