@@ -1,3 +1,33 @@
+"""
+This file is meant to be used as a module for the ExoCTK website i.e. 
+app_exoctk.py. It is part of the ExoCTK package. It runs the simulation 
+for two filters of NIRCam and  LRS mode of MIRI. In essence, it prodeuces 
+figures that are similar to those produced by sossContamFig.py.
+
+Authors:
+	Rafia Bushra, University of Arizona
+	
+	Jonathan Fraine, Space Telescope Science Institute
+	
+	Tom Greene, NASA Ames Research Center
+	
+Usage:
+	* From python script:
+		from ExoCTK.tor.tor2.ncam_miri import *
+		ncam_miri(target_name, instrument)
+		
+	* From terminal:
+		cd into ExoCTK/ExoCTK/tor/tor2 directory
+		$ python ncam_miri.py target_name instrument
+		
+	
+Requirements:
+	* ExoCTK package must be installed
+"""
+
+
+
+
 # T. Greene 04 April 2017 tom.greene@nasa.gov; copied Simbad.query & Irsa.query from J Fraine
 
 import matplotlib.gridspec as gridspec
@@ -18,7 +48,23 @@ import base64
 D2R = math.pi / 180.0
 
 # Input targetNamename and V3PA here
-def ncam_miri(targetName, ins = 'ncam-f322'):
+def ncam_miri(targetName, ins = 'NIRCam_F322W2'):
+	
+	"""
+	This function runs simulation for spectral overlap and prodeuces a contamination figure
+	
+	Args:
+		targetName (str) : Name of Target
+		ins (str)        : Name of instrument. Four choices:
+					NIRCam_F322W2 (default)
+					NIRCam_f444W
+					MIRI
+		
+	
+	Returns:
+		figdata_png (bytes) : Contamination plot in bytes form that should be passed on to a html file
+	"""
+	
 	# PA     = 7  #position angle of field rel. to V3 for given observation date/visibility
 
 
