@@ -16,16 +16,15 @@ Usage:
 		calc_vis(ra, dec, targetName)
 		
 	* From terminal:
-		cd into ExoCTK/ExoCTK/tor/tor2 directory
-		$ python sossContamFig.py ra dec targetName cubeName pamin pamax 
+		This function returns a figure in form of bytes. So I didn't keep a terminal 
+		version, unless you want to use ipython from terminal and import calc_vis from 
+		visibilityPA 
 		
 	
 Requirements:
 	* ExoCTK package must be installed
-	* visibilityPA.py must be in the same folder
-	* lambda_order1-2.txt must be in ExoCTK/data/tor
-	* sossFieldSim should be run before running this to get the required 
-	  fits file
+	* ephemeris_old2x.py must be in the same folder
+	* JWST_ephem_short.txt must be in ExoCTK/data/tor
 """
 
 
@@ -48,6 +47,20 @@ import io
 
 
 def calc_vis(RA, DEC, targetName=None):
+
+	"""
+	This function prduces the visibility plot and saves it to memory
+	Args:
+		ra (str)        : Right Ascension of target in hh:mm:ss
+		dec (str)       : Declination of target in ddd:mm:ss
+		targetName(str) : Name of target
+		
+	Returns:
+		paGood (list)   : list os position angle where target is accessible
+		paBad (list)    : list os position angle where target is not accessible
+		png (bytes)     : visibility plot in bytes form that should be passed on to an 
+		   				  html file
+	"""
 	D2R = math.pi / 180.  #degrees to radians
 	R2D = 180. / math.pi #radians to degrees 
 
@@ -116,28 +129,6 @@ def calc_vis(RA, DEC, targetName=None):
 			paBad.append([paGood[i-1][1],paGood[i][0]])
 		if paGood[-1][1]<360.: paBad.append([paGood[-1][1],360.])
 
-		#print results to file
-		"""
-		if save:
-			fName='visibilityPA-'+targetName+'.txt'
-			fic=open(fName,'w')
-
-			fic.write('#Date    MJD          VIS?  PAnom   PArange\n')
-			for i in range(vis.size):
-				tmp1='{:7.3f}'.format(paNom[i]) if vis[i] else 7*'-'
-				tmp2='{:7.3f}--{:7.3f}'.format(paMin[i],paMax[i]) if vis[i] else 16*'-'
-				#fic.write(gd[i].strftime("%y-%m-%d")+' {:f} {:5s} {:7.3f} {:7.3f}--{:7.3f} \n'.format(mjd[i],str(vis[i]),paNom[i],paMin[i],paMax[i]))
-				fic.write(gd[i].strftime("%y-%m-%d")+' {:f} {:5s} {} {} \n'.format(mjd[i],str(vis[i]),tmp1,tmp2))
-
-			fic.write("\n")
-			fic.write("Accessible PA ranges: ")
-			fic.write(','.join([str(x) for x in paGood]))
-			fic.write("\n")
-			fic.write("Non-accessible PA ranges: ")
-			fic.write(','.join([str(x) for x in paBad]))
-			fic.write("\n")
-			fic.close()
-		"""
 
 		#make the plot
 		fig=plt.figure()
@@ -202,10 +193,7 @@ def calc_vis(RA, DEC, targetName=None):
 
 		return paGood, paBad, figdata_png
 
-	#arguments RA & DEC, conversion to radians
 	save=False if targetName==None else True
-# 	os.makedirs(tmpDir, exist_ok=True)
-# 	pdb.set_trace()
 
 	paGood, paBad, png = checkVisPA(RA, DEC, targetName=targetName, save=save)
 
