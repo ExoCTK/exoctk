@@ -20,7 +20,9 @@ Outputs :
 
 ## -- IMPORTS
 import math
-
+from astroquery.irsa import Irsa
+from astroquery.simbad import Simbad
+import astropy.units as u
 from astropy.io import ascii
 import numpy as np
 from scipy import interpolate
@@ -657,6 +659,9 @@ def set_params_from_ins(ins, subarray):
     
     except NameError:
         return 'Error!'
+
+
+
 
 ## -- RUN
 
