@@ -170,12 +170,12 @@ if eval(setup_cfg.get('edit_on_github')):
 # -- Resolving issue number to links in changelog -----------------------------
 github_issues_url = 'https://github.com/{0}/issues/'.format(setup_cfg['github_project'])
 
-from mock import Mock as MagicMock
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-            return MagicMock()
-
-MOCK_MODULES = ['scipy','scipy.optimize','scipy.interpolate']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+# from mock import Mock as MagicMock
+#
+# class Mock(MagicMock):
+#     @classmethod
+#     def __getattr__(cls, name):
+#             return MagicMock()
+#
+# MOCK_MODULES = ['scipy','scipy.optimize','scipy.interpolate']
+# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
