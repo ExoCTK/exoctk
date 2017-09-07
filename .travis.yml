@@ -2,7 +2,7 @@ language: c
 
 os:
     - linux
-#    - osx
+    - osx
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
@@ -30,7 +30,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
-        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx=1.5.1'
+        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx'
         - PIP_DEPENDENCIES='bibtexparser batman-package astroquery'
 
     matrix:
