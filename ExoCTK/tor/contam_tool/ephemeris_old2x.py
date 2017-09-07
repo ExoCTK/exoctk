@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 #Module ephemeris.py
+from __future__ import print_function
 
 import string
 import sys
