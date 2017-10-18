@@ -814,6 +814,35 @@ class References(object):
         with open(bibfile, 'w') as out:
             out.write(bt.bwriter.BibTexWriter().write(final))
 
+def normal(mean, std, sigma=3, sample=1000, plot=False):
+    """
+    Generate a normal distribution with the given mean and standard deviation
+    
+    Parameters
+    ----------
+    mean: float
+        The mean of the normal distribution
+    std: float
+        The standard deviation of the distribution
+    sigma: float
+        The number of standard deviations to sample within
+    sample: int
+        The number of samples to take from the normal distribution
+    plot: bool
+        Plot the histogram
+    
+    Returns
+    -------
+    np.ndarray
+        The sampled values
+    """
+    vals = (np.random.normal(size=sample)*std/sigma)+mean
+    
+    if plot:
+        plt.hist(vals)
+    
+    return vals
+
 def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True, 
               fontsize=20, figsize=(15, 7), title='', **kwargs):
     """
