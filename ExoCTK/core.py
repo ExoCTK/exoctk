@@ -1061,8 +1061,9 @@ def find_closest(axes, points, n=1, values=False):
         The n-values to the left and right of 'points' in 'axes'
     """
     results = []
-    if not isinstance(axes,list):
+    if not isinstance(axes, list):
         axes = [axes]
+    if isinstance(points, (int,float)):
         points = [points]
         
     for i,(axis,point) in enumerate(zip(axes,points)):
