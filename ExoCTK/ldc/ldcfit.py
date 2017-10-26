@@ -116,11 +116,11 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     
     Parameters
     ----------
-    Teff: int
+    Teff: int, sequence
         The effective temperature of the model
-    logg: float
+    logg: float, sequence
         The logarithm of the surface gravity
-    FeH: float
+    FeH: float, sequence
         The logarithm of the metallicity
     model_grid: core.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
