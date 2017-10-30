@@ -217,8 +217,11 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         grid_point['wave'] = wave
         grid_point['mu_min'] = mu_min
         grid_point['r_eff'] = radius
-        grid_point['profiles'] = profiles
         grid_point['bandpass'] = bandpass
+        
+        if isinstance(profiles, str):
+            profiles = [profiles]
+        grid_point['profiles'] = profiles
         
         if isinstance(bandpass, svo.Filter):
             grid_point['n_bins'] = bandpass.n_bins
@@ -230,8 +233,6 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
             grid_point['centers'] = np.array([(wave[-1]+wave[0])/2.]).round(5)
         
         # Iterate through the requested profiles
-        if isinstance(profiles, str):
-            profiles = [profiles]
         for profile in profiles:
                         
             # Define the limb darkening profile function
