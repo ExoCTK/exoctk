@@ -255,7 +255,7 @@ class ModelGrid(object):
         if kwargs:
             self.customize(**kwargs)
             
-    def get(self, Teff, logg, FeH, resolution='', interp=True):
+    def get(self, Teff, logg, FeH, resolution='', interp=True, **kwargs):
         """
         Retrieve the wavelength, flux, and effective radius 
         for the spectrum of the given parameters
@@ -281,86 +281,165 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         
         """
-        # See if the model with the desired parameters is witin the grid
-        in_grid = all([(Teff>=min(self.Teff_vals))&
-                       (Teff<=max(self.Teff_vals))&
-                       (logg>=min(self.logg_vals))&
-                       (logg<=max(self.logg_vals))&
-                       (FeH>=min(self.FeH_vals))&
-                       (FeH<=max(self.FeH_vals))])
-                       
-        if in_grid:
+        # Test if any of the input parameters include uncertainties
+        if any([isinstance(p, (list,tuple,np.ndarray)) for p in [Teff, logg, FeH]]):
             
-            # See if the model with the desired parameters is a true grid point
-            on_grid = self.data[[(self.data['Teff']==Teff)&
-                                 (self.data['logg']==logg)&
-                                 (self.data['FeH']==FeH)]]\
-                                 in self.data
-            
-            # Grab the data if the point is on the grid
-            if on_grid:
-                
-                # Get the row index and filepath
-                row, = np.where((self.data['Teff']==Teff)
-                              & (self.data['logg']==logg)
-                              & (self.data['FeH']==FeH))[0]
-                              
-                filepath = self.path+str(self.data[row]['filename'])
-                
-                # Get the flux, mu, and abundance arrays
-                raw_flux = fits.getdata(filepath, 0)
-                mu = fits.getdata(filepath, 1)
-                #abund = fits.getdata(filepath, 2)
-                
-                # Construct full wavelength scale and convert to microns
-                if self.CRVAL1=='-':
-                    # Try to get data from WAVELENGTH extension...
-                    raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
-                else:
-                    # ...or try to generate it
-                    l = len(raw_flux[0])
-                    raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
-                    
-                # Convert from A to desired units
-                raw_wave *= self.const
-                
-                # Trim the wavelength and flux arrays
-                idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
-                                              raw_wave<=self.wave_rng[1]))
-                flux = raw_flux[:,idx]
-                wave = raw_wave[idx]
-                
-                # Bin the spectrum if necessary
-                if resolution or self.resolution:
-                    
-                    # Calculate zoom
-                    z = _calc_zoom(resolution or self.resolution, wave)
-                    wave = zoom(wave, z)
-                    flux = zoom(flux, (1, z))
-                    
-                # Make a dictionary of parameters
-                # This should really be a core.Spectrum() object!
-                spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
-                spec_dict['wave'] = wave
-                spec_dict['flux'] = flux
-                spec_dict['mu'] = mu
-                spec_dict['r_eff'] = ''
-                #spec_dict['abund'] = abund
-                
-            # If not on the grid, interpolate to it
-            else:
-                # Call grid_interp method
-                if interp:
-                    spec_dict = self.grid_interp(Teff, logg, FeH)
-                else:
-                    return
-                    
-            return spec_dict
+            # Kick it to `get_unc()` method below
+            return self.get_unc(Teff, logg, FeH, resolution, interp, **kwargs)
             
         else:
-            print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
-                  ' model not in grid.')
-            return
+            
+            # See if the model with the desired parameters is witin the grid
+            in_grid = all([(Teff>=min(self.Teff_vals))&
+                           (Teff<=max(self.Teff_vals))&
+                           (logg>=min(self.logg_vals))&
+                           (logg<=max(self.logg_vals))&
+                           (FeH>=min(self.FeH_vals))&
+                           (FeH<=max(self.FeH_vals))])
+                       
+            if in_grid:
+                
+                # See if the model with the desired parameters is a true grid point
+                on_grid = self.data[[(self.data['Teff']==Teff)&
+                                     (self.data['logg']==logg)&
+                                     (self.data['FeH']==FeH)]]\
+                                     in self.data
+                                     
+                # Grab the data if the point is on the grid
+                if on_grid:
+                    
+                    # Get the row index and filepath
+                    row, = np.where((self.data['Teff']==Teff)
+                                  & (self.data['logg']==logg)
+                                  & (self.data['FeH']==FeH))[0]
+                              
+                    filepath = self.path+str(self.data[row]['filename'])
+                    
+                    # Get the flux, mu, and abundance arrays
+                    raw_flux = fits.getdata(filepath, 0)
+                    mu = fits.getdata(filepath, 1)
+                    #abund = fits.getdata(filepath, 2)
+                    
+                    # Construct full wavelength scale and convert to microns
+                    if self.CRVAL1=='-':
+                        # Try to get data from WAVELENGTH extension...
+                        raw_wave = np.array(fits.getdata(filepath, ext=-1)).squeeze()
+                    else:
+                        # ...or try to generate it
+                        l = len(raw_flux[0])
+                        raw_wave = np.array(self.CRVAL1+self.CDELT1*np.arange(l)).squeeze()
+                    
+                    # Convert from A to desired units
+                    raw_wave *= self.const
+                    
+                    # Trim the wavelength and flux arrays
+                    idx, = np.where(np.logical_and(raw_wave>=self.wave_rng[0],
+                                                  raw_wave<=self.wave_rng[1]))
+                    flux = raw_flux[:,idx]
+                    wave = raw_wave[idx]
+                    
+                    # Bin the spectrum if necessary
+                    if resolution or self.resolution:
+                        
+                        # Calculate zoom
+                        z = _calc_zoom(resolution or self.resolution, wave)
+                        wave = zoom(wave, z)
+                        flux = zoom(flux, (1, z))
+                        
+                    # Make a dictionary of parameters
+                    # This should really be a core.Spectrum() object!
+                    spec_dict = dict(zip(self.data.colnames, self.data[row].as_void()))
+                    spec_dict['wave'] = wave
+                    spec_dict['flux'] = flux
+                    spec_dict['mu'] = mu
+                    spec_dict['r_eff'] = ''
+                    #spec_dict['abund'] = abund
+                    
+                # If not on the grid, interpolate to it
+                else:
+                    # Call grid_interp method
+                    if interp:
+                        spec_dict = self.grid_interp(Teff, logg, FeH)
+                    else:
+                        return
+                        
+                return spec_dict
+                
+            else:
+                print('Teff:', Teff, ' logg:', logg, ' FeH:', FeH, 
+                      ' model not in grid.')
+                return
+            
+    def get_unc(self, Teff, logg, FeH, resolution='', interp=True, n_samples=2, plot=False):
+        """
+        Same as `get()` method above but includes bootstrapped uncertainties (MUCH slower)
+        """
+        # Separete the parameters
+        try:
+            teff, sig_teff = Teff
+        except TypeError:
+            teff, sig_teff = Teff, 0
+        try:
+            logg, sig_logg = logg
+        except TypeError:
+            logg, sig_logg = logg, 0
+        try:
+            feh, sig_feh = FeH
+        except TypeError:
+            feh, sig_feh = FeH, 0
+            
+        print(teff, sig_teff, logg, sig_logg, feh, sig_feh)
+            
+        # Get the target model
+        target = self.get(teff, logg, feh, resolution, interp)
+        
+        # Make sure there are uncertainties to calculate
+        if not all([p==0 for p in [sig_teff,sig_logg,sig_feh]]):
+            
+            # Time it
+            start = time.time()
+            
+            # Pull random interpolated models from the model grid
+            samples = []
+            for _ in range(n_samples):
+                
+                try:
+                    
+                    # Get random parameter values
+                    t = np.random.normal(teff, sig_teff)
+                    g = np.random.normal(logg, sig_logg)
+                    m = np.random.normal(feh, sig_feh)
+                    
+                    # Interpolate the model
+                    model = self.get(t, g, m)
+                    
+                    # Just take the mu=1 spectrum to save time
+                    flux = model['flux']
+                    
+                    # Add to the list of samples
+                    samples.append(flux)
+                    
+                except:
+                    pass
+                    
+            print('Run time in seconds: ', time.time()-start)
+            
+            # Calculate the confidence interval at each wavelength given the sampling
+            sigma = np.std(np.array(samples), axis=0)
+            
+            # Add the uncertainty to the model dict
+            target['error'] = sigma
+            
+            # Plot it
+            if plot:
+                plt.plot(target['wave'], target['flux'][-1])
+                plt.fill_between(target['wave'], target['flux'][-1]-sigma[-1], target['flux'][-1]+sigma[-1], alpha=0.1)
+            
+        else:
+            
+            pass
+            
+        return target
     
     def grid_interp(self, Teff, logg, FeH, plot=False):
         """
