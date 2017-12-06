@@ -109,7 +109,7 @@ def thermo(M, CtoO, T, P, name, cea_path):
         text[13]=text[13].replace(text[13][20:25],'{:9.3e}'.format(P[i]))
         text[14]=text[14].replace(text[14][14:19],'{:6.1f}'.format(T[i]))
 
-        outfile=open('cea2_'+name+'.inp','w+')
+        outfile=open('cea2_'+name+'.out','w+')
         outfile.writelines(text)
         outfile.close()
 
