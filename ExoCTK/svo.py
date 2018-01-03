@@ -117,7 +117,7 @@ class Filter(object):
             self.ZeroPointUnit = str(q.erg/q.s/q.cm**2/q.AA)
             x, f = self.raw
             
-            # Get a spectrum of Vega
+            # Get a spectrum of Vega and caluclate the zeropoint
             vega = np.genfromtxt(pkg_resources.resource_filename('ExoCTK', 'data/core/vega.txt'), unpack=True)[:2]
             vega = core.rebin_spec(vega, x)*q.erg/q.s/q.cm**2/q.AA
             self.ZeroPoint = (np.trapz((vega[1]*f).to(q.erg/q.s/q.cm**2/q.AA), x=x)/np.trapz(f, x=x)).to(q.erg/q.s/q.cm**2/q.AA).value
@@ -365,12 +365,15 @@ class Filter(object):
         # Apply wavelength unit
         wl_min = wl_min.to(unit)
         wl_max = wl_max.to(unit)
-        r = self.raw
         
         # Trim the rsr by the given min and max
+        r = self.raw.copy()
         self.rsr = r[:,np.logical_and(r[0]*unit>=wl_min,r[0]*unit<=wl_max)]
-        print('Bandpass trimmed to',
-              '{} - {}'.format(wl_min,wl_max))
+        print('Bandpass trimmed to {} - {}'.format(wl_min,wl_max))
+        
+        # Oversample and rebin the rsr curve
+        w = np.arange(min(self.rsr[0]), max(self.rsr[0]), min(np.diff(self.rsr[0])))
+        self.rsr = np.array([w,np.interp(w, self.rsr[0], self.rsr[1])])
               
         # Calculate the number of bins and channels
         rsr = len(self.rsr[0])
