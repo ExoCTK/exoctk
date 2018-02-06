@@ -4,14 +4,18 @@ from __future__ import print_function
 
 import string
 import sys
-import time
+import time, pdb
 from math import *
 
 #Local imports
-import ExoCTK.tor.contam_tool.time_extensionsx as time2
-from ExoCTK.tor.contam_tool.rotationsx import *
-from ExoCTK.tor.contam_tool.quaternionx import *
-import ExoCTK.tor.contam_tool.astro_funcx as astro_func
+#import ExoCTK.tor.contam_tool.time_extensionsx as time2
+#from ExoCTK.tor.contam_tool.rotationsx import *
+#from ExoCTK.tor.contam_tool.quaternionx import *
+#import ExoCTK.tor.contam_tool.astro_funcx as astro_func
+import time_extensionsx as time2
+from rotationsx import *
+from quaternionx import *
+import astro_funcx as astro_func
 
 D2R = pi/180.  #degrees to radians
 R2D = 180. / pi #radians to degrees 
@@ -45,6 +49,7 @@ class Ephemeris:
         self.amin=0.
         self.amax=0.
         aV = Vector(0.,0.,0.)
+        #pdb.set_trace()
         if afile.find("l2_halo_FDF_060619.trh")>-1:
             ascale = 0.001
         else:

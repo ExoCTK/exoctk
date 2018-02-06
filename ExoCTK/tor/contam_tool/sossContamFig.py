@@ -347,14 +347,15 @@ if __name__ == "__main__":
     pamin=0 if len(argv)<5 else int(argv[4])
     pamax=360 if len(argv)<6 else int(argv[5])
 
-    targetName=None if len(argv)<7 else argv[6]
-    save=False if len(argv)<7 else True #if name provided -> save
-    tmpDir="." if len(argv)<8 else argv[7]
+    cubeName = argv[6] 
+    targetName=None if len(argv)<8 else argv[7]
+    save=False if len(argv)<8 else True #if name provided -> save
+    tmpDir="." if len(argv)<9 else argv[8]
     os.makedirs(tmpDir, exist_ok=True)
 
-    goodPA,badPA=checkVisPA(ra,dec,targetName=targetName,save=save,tmpDir=tmpDir)
+    goodPA, badPA, _ = calc_vis(ra, dec, targetName)
 
-    cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
+    #cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
     contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA,tmpDir=tmpDir)
     
 

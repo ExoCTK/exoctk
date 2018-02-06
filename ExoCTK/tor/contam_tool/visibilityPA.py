@@ -11,8 +11,9 @@
 
 
 import sys
-import ExoCTK
-import ExoCTK.tor.contam_tool.ephemeris_old2x as EPH
+#import ExoCTK
+#import ExoCTK.tor.contam_tool.ephemeris_old2x as EPH
+import ephemeris_old2x as EPH
 import math
 import numpy as np
 import matplotlib
@@ -20,6 +21,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator
+from astropy.io import ascii
 import os, base64, io, mpld3
 
 
@@ -44,7 +46,8 @@ def calc_vis(RA, DEC, targetName=None):
 			dec   = float(dec) * D2R
 
 		#load ephemeris
-		ephFileName,eclFlag=os.path.join(os.path.dirname(ExoCTK.__file__),'data/tor/JWST_ephem_short.txt'),False
+		#ephFileName,eclFlag=os.path.join(os.path.dirname(ExoCTK.__file__),'data/tor/JWST_ephem_short.txt'),False
+		ephFileName,eclFlag='JWST_ephem_short.txt',False
 		eph = EPH.Ephemeris(ephFileName, eclFlag)
 		#convert dates from MJD to Gregorian calendar dates
 		mjd=np.array(eph.datelist)
@@ -57,7 +60,7 @@ def calc_vis(RA, DEC, targetName=None):
 		for i in range(mjd.size):
 			vis[i]=eph.in_FOR(mjd[i],ra,dec) #is it visible?
 			pa=eph.normal_pa(mjd[i],ra,dec) #nominal PA at this date
-		
+	
 			#search for minimum PA allowed by roll
 			pa0=pa
 			while eph.is_valid(mjd[i],ra,dec,pa0-0.002):
@@ -66,7 +69,7 @@ def calc_vis(RA, DEC, targetName=None):
 			pa1=pa
 			while eph.is_valid(mjd[i],ra,dec,pa1+0.002):
 				pa1+=0.002
-		
+	
 			paNom[i]=(pa*R2D)%360
 			paMin[i]=(pa0*R2D)%360
 			paMax[i]=(pa1*R2D)%360
@@ -119,7 +122,7 @@ def calc_vis(RA, DEC, targetName=None):
 		fig=plt.figure()
 		ax=plt.axes()
 		plt.title(targetName)
-		
+	
 
 		#plot nominal PA
 		iBad,=np.where(vis==False)
@@ -132,7 +135,7 @@ def calc_vis(RA, DEC, targetName=None):
 			paMasked=np.insert(paMasked,i,np.nan)
 			gdMasked=np.insert(gdMasked,i,gdMasked[i])
 		plt.plot(gdMasked,paMasked,color='k')
-# 		plt.xticks(rotation = 'vertical')
+	# 		plt.xticks(rotation = 'vertical')
 
 		#plot ranges allowed through roll
 		if wrap:
@@ -166,16 +169,16 @@ def calc_vis(RA, DEC, targetName=None):
 		for label in ax.get_xticklabels():
 			label.set_rotation(45)
 		if save:
-# 			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
+	# 			fname=tmpDir+'/visibilityPA-'+targetName+'.png'
 			png = mpld3.fig_to_html(fig)
-			
+		
 
-		return png
+		return png, paGood, paBad
 
 	#arguments RA & DEC, conversion to radians
 	save=False if targetName==None else True
 # 	os.makedirs(tmpDir, exist_ok=True)
 
-	png = checkVisPA(RA, DEC,targetName=targetName,save=save)
+	png, pG, pB = checkVisPA(RA, DEC,targetName=targetName,save=save)
 
-	return png
+	return pG, pB, png

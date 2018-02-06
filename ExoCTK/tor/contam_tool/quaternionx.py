@@ -24,7 +24,8 @@ Modified cnvrt method to return a CelestialVector."""
 #  Got rid of degrees trig functions.
 
 from math import *
-from ExoCTK.tor.contam_tool.math_extensionsx import *
+#from ExoCTK.tor.contam_tool.math_extensionsx import *
+from math_extensionsx import *
 # import ExoCTK.tor.contam_tool.rotationsx as ROT
 
 D2R = pi/180.
