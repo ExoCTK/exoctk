@@ -1,268 +1,257 @@
 from astroquery.irsa import Irsa
+from astropy.io import fits
 import matplotlib.pyplot as plt
-import generate_JH_HK_colors as colors
 import astropy.coordinates as crd
 import astropy.units as u
 import numpy as np
 import os, glob, idlsave, pdb
 
-def sossFieldSim(ra, dec, binComp=None):
+def sossFieldSim(ra, dec, binComp=None, dimX=256):
+    # binComp: [deltaRA,deltaDEC,J,H,K]
 
-	# binComp=[deltaRA,deltaDEC,J,H,K]
-
-	# stars in large field around target
-	targetcrd = crd.SkyCoord(ra = ra, dec = dec, unit=(u.hour, u.deg))
-	targetRA = targetcrd.ra.value
-	targetDEC = targetcrd.dec.value
-	info   = Irsa.query_region(targetcrd, catalog = 'fp_psc', spatial = 'Box', width = 4*u.arcmin) 
-	# coordinates of possible contaminants in degrees
-	contamRA   = info['ra'].data.data 
-	contamDEC  = info['dec'].data.data
-	Jmag        = info['j_m'].data.data
-	Hmag        = info['h_m'].data.data
-	Kmag        = info['k_m'].data.data
-	J_Hobs      = (Jmag-Hmag)
-	H_Kobs      = (Hmag-Kmag)
+    # stars in large field around target
+    targetcrd = crd.SkyCoord(ra = ra, dec = dec, unit=(u.hour, u.deg))
+    targetRA  = targetcrd.ra.value
+    targetDEC = targetcrd.dec.value
+    info      = Irsa.query_region(targetcrd, catalog = 'fp_psc', spatial = 'Cone', radius = 2.5*u.arcmin) 
 	
-	# target coords
-	distance    = np.sqrt((targetRA-contamRA)**2 + (targetDEC-contamDEC)**2)
-	targetIndex = np.argmin(distance) # the target
-	
-	# add any missing companion
-	cubeNameSuf=''
-	if binComp is not None:
-		#contamRA       = [contamRA,contamRA[targetIndex]+bincomp[0]/3600/cos(contamDEC[targetIndex]*!dtor)] (JF)
-		deg2rad = np.pi/180
-		contamRA    = np.append(contamRA, (contamRA[targetIndex] + binComp[0]/3600/cos(contamDEC[targetIndex]*deg2rad)))
-		contamDEC   = np.append(contamDEC, (contamDEC[targetIndex] + binComp[1]/3600))
-		Jmag        = np.append(Jmag,binComp[2])
-		Hmag        = np.append(Kmag,binComp[3])
-		Kmag        = np.append(Kmag,binComp[4])
-		J_Hobs      = (Jmag-Hmag)
-		H_Kobs      = (Hmag-Kmag)
-		cubeNameSuf ='_custom'
+    # coordinates of all stars in FOV, including target
+    allRA   = info['ra'].data.data 
+    allDEC  = info['dec'].data.data
+    Jmag    = info['j_m'].data.data
+    Hmag    = info['h_m'].data.data
+    Kmag    = info['k_m'].data.data
+    J_Hobs  = Jmag-Hmag
+    H_Kobs  = Hmag-Kmag
+    
+    # target coords
+    distance    = np.sqrt( ((targetRA-allRA)*np.cos(targetDEC))**2 + (targetDEC-allDEC)**2 )
+    targetIndex = np.argmin(distance) # the target
+    
+    # add any missing companion
+    cubeNameSuf=''
+    if binComp is not None:
+        deg2rad     = np.pi/180
+        allRA       = np.append(allRA, (allRA[targetIndex] + binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)))
+        allDEC      = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
+        Jmag        = np.append(Jmag,binComp[2])
+        Hmag        = np.append(Kmag,binComp[3])
+        Kmag        = np.append(Kmag,binComp[4])
+        J_Hobs      = Jmag-Hmag
+        H_Kobs      = Hmag-Kmag
+        cubeNameSuf ='_custom'          
 
-	#Joe's coordinate conversion code
-	def deg2HMS(ra='', dec='', round=False):
-		RA, DEC, rs, ds = '', '', '', ''
-		if dec:
-			if str(dec)[0] == '-':
-		  		ds, dec = '-', abs(dec)
-			deg = int(dec)
-			decM = abs(int((dec-deg)*60))
-			if round:
-		  		decS = int((abs((dec-deg)*60)-decM)*60)
-			else:
-		  		decS = (abs((dec-deg)*60)-decM)*60
-			DEC = '{0}{1} {2} {3}'.format(ds, deg, decM, decS)
+    #number of stars
+    nStars=allRA.size
 
-		if ra:
-			if str(ra)[0] == '-':
-		  		rs, ra = '-', abs(ra)
-			raH = int(ra/15)
-			raM = int(((ra/15)-raH)*60)
-			if round:
-		  		raS = int(((((ra/15)-raH)*60)-raM)*60)
-			else:
-		  		raS = ((((ra/15)-raH)*60)-raM)*60
-			RA = '{0}{1} {2} {3}'.format(rs, raH, raM, raS)
+    cooTar=crd.SkyCoord(ra=allRA[targetIndex],dec=allDEC[targetIndex], unit=(u.deg, u.deg))
+    cubeName = 'cubes/cube_RA_DEC_'+cooTar.to_string('hmsdms',precision=1).replace(' ','')+'.fits'
 
-		if ra and dec:
-			return (RA, DEC)
-		else:
-			return RA or DEC
+    print('Cube name:')
+    print(cubeName)
+    print('cubNameSuf:')
+    print(cubeNameSuf)
+    print('Target coordinates:',cooTar.to_string('hmsdms',precision=1))
 
-	cubeName = 'cubes/cube_RA' + deg2HMS(ra = contamRA[targetIndex], round = True) + \
-	                     'DEC' + deg2HMS(ra = contamDEC[targetIndex], round = True) + cubeNameSuf + '.fits'
+    if os.path.exists(cubeName) and (binComp is None):
+        return
 
-	print('Cube name:')
-	print(cubeName)
-	print('cubNameSuf:')
-	print(cubeNameSuf)
-	print('Target coordinates:')
-	print(deg2HMS(ra = contamRA[targetIndex]))
-	print(deg2HMS(ra = contamDEC[targetIndex]))
+    """
+    # the trace models
+    if 0:
+        modelDir  = '/Users/david/Documents/work/jwst/niriss/soss/data'
 
+        # synthetic mag & colors of models
+        readcol,modelDir+'/'+'magnitude_modele_atm.txt',Ttheo,logg,MH,aH,Jtheo,Htheo,Ktheo,jhtheo,jktheo,hktheo,format='f,f,f,f,f,f,f,f,f,f'
+        remove,where(logg ne 4.50 or Ttheo lt 2800),Ttheo,logg,jhtheo,jktheo,hktheo 
 
-	if os.path.exists(cubeName) and (binComp is not None):
-		return
+        # load model traces
+        fNameMod=file_search(modelDir,'simu_lte*-4.5-0.0.BT-Settl_LLNL_UDEMPSF_cropped.fits.gz',count=nMod)
+        teffMod=fix(strmid(fNameMod,strpos(fNameMod[0],'simu_lte')+8,3))*100
+        isort=sort(teffMod)
+        teffMod=teffMod[isort]
+        fNameMod=fNameMod[isort]
 
-	
-	"""
-	# the trace models
-	if 0:
-		modelDir  = '/Users/david/Documents/work/jwst/a_GTO/SOSS-WG/contamination/modelTraces'
+        # cropped model traces are cubes whose third axis are: 0->sum of all orders, 1->order 1, 2->order 2
+        h0=headfits(fNameMod[0])
+        dimXmod=sxpar(h0,'naxis1')
+        dimYmod=sxpar(h0,'naxis2')
+        models=fltarr(dimXmod,dimYmod,nMod)
+        jhMod=fltarr(nMod)
+        hkMod=fltarr(nMod)
+        for i=0,nMod-1 do begin
+            tmp=readfits(fNameMod[i])
+            models[*,*,i]=tmp[*,*,0] # keep only the sum of all orders
 
-		# synthetic mag & colors of models
-		readcol,modelDir+'/'+'magnitude_modele_atm.txt',Ttheo,logg,MH,aH,Jtheo,Htheo,Ktheo,jhtheo,jktheo,hktheo,format='f,f,f,f,f,f,f,f,f,f'
-		remove,where(logg ne 4.50 or Ttheo lt 2800),Ttheo,logg,jhtheo,jktheo,hktheo 
+            modelO12=tmp[*,*,1:2]
+            fNameModO12='modelOrder12_teff'+strtrim(teffMod[i],2)+'.sav'
+            save,modelO12,file=fNameModO12
+        
+            j=where(Ttheo eq teffMod[i])
+            jhMod[i]=jhTheo[j]
+            hkMod[i]=hkTheo[j]  
+        endfor
+        modelPadX = 2000-1900
+        modelPadY = 2000
 
-		# load model traces
-		fNameMod=file_search(modelDir,'simu_lte*-4.5-0.0.BT-Settl_LLNL_UDEMPSF_cropped.fits.gz',count=nMod)
-		teffMod=fix(strmid(fNameMod,strpos(fNameMod[0],'simu_lte')+8,3))*100
-		isort=sort(teffMod)
-		teffMod=teffMod[isort]
-		fNameMod=fNameMod[isort]
+        # save the model traces
+        save,models,fNameModO12,teffMod,jhMod,hkMod,dimXmod,dimYmod,modelPadX,modelPadY,Ttheo,logg,jhtheo,jktheo,hktheo,file='modelsInfo.sav'
+    endif else begin
+        restore,'modelsInfo.sav'
+    endelse
+    """
+    
+    #Restoring model parameters 
+    modelParam = idlsave.read('idlSaveFiles/modelsInfo.sav',verbose=False) 
+    models     = modelParam['models']
+    modelPadX  = modelParam['modelpadx']
+    modelPadY  = modelParam['modelpady'] 
+    dimXmod    = modelParam['dimxmod']
+    dimYmod    = modelParam['dimymod']
+    jhMod      = modelParam['jhmod']
+    hkMod      = modelParam['hkmod']
+    teffMod    = modelParam['teffmod'] 
 
-		# cropped model traces are cubes whose third axis are: 0->sum of all orders, 1->order 1, 2->order 2
-		h0=headfits(fNameMod[0])
-		dimXmod=sxpar(h0,'naxis1')
-		dimYmod=sxpar(h0,'naxis2')
-		models=fltarr(dimXmod,dimYmod,nMod)
-		jhMod=fltarr(nMod)
-		hkMod=fltarr(nMod)
-		for i=0,nMod-1 do begin
-			tmp=readfits(fNameMod[i])
-			models[*,*,i]=tmp[*,*,0] # keep only the sum of all orders
+    # find/assign Teff of each star
+    starsT=np.empty(nStars)
+    for j in range(nStars):
+        color_separation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
+        min_separation_ind = np.argmin(color_separation)
+        starsT[j]=teffMod[min_separation_ind]
 
-			modelO12=tmp[*,*,1:2]
-			fNameModO12='modelOrder12_teff'+strtrim(teffMod[i],2)+'.sav'
-			save,modelO12,file=fNameModO12
-		
-			j=where(Ttheo eq teffMod[i])
-			jhMod[i]=jhTheo[j]
-			hkMod[i]=hkTheo[j]	
-		endfor
-		modelPadX = 2000-1900
-		modelPadY = 2000
+    radeg = 180/np.pi
+    niriss_pixel_scale = 0.065  # arcsec
+    sweetSpot = dict(x=856,y=107,RA=allRA[targetIndex],DEC=allDEC[targetIndex],jmag=Jmag[targetIndex])
 
-		# save the model traces
-		save,models,fNameModO12,teffMod,jhMod,hkMod,dimXmod,dimYmod,modelPadX,modelPadY,Ttheo,logg,jhtheo,jktheo,hktheo,file='modelsInfo.sav'
-	endif else begin
-		restore,'modelsInfo.sav'
-	endelse
-	"""
+    #offset between all stars and target
+    dRA=(allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
+    dDEC=(allDEC - sweetSpot['DEC'])*3600
+    
+    # Put field stars positions and magnitudes in structured array
+    _ = dict(RA=allRA, DEC=allDEC, dRA=dRA, dDEC=dDEC, jmag=Jmag, T=starsT,
+             x=np.empty(nStars), y=np.empty(nStars), dx=np.empty(nStars), dy=np.empty(nStars))
+    stars=np.empty(nStars,dtype=[(key,val.dtype) for key,val in _.items()])
+    for key,val in _.items(): stars[key]=val
+   
+    # Initialize final fits cube that contains the modelled traces with contamination
+    PAmin = 0 #instrument PA, degrees
+    PAmax = 360
+    dPA = 1 # degrees
+    # Set of IPA values to cover
+    PAtab = np.arange(PAmin, PAmax, dPA)    # degrees
+    nPA    = len(PAtab)
 
-	# Initialize final fits cube that contains the modelled traces with contamination
-	PAmin = 0
-	PAmax = 360
-	angle_step = 1	# degrees
-	# Set of fov angles to cover
-	angle_set = np.arange(PAmin, PAmax+angle_step, angle_step)	# degrees
-	nsteps    = len(angle_set)
-	simucube  = np.zeros((256,2048,nsteps+2))  # cube of trace simulation at every degree of field rotation,+target at O1 and O2
+    # dimX=256 #2048 #########now as argument, with default to 256
+    dimY=2048
+    simuCube=np.zeros([nPA+2,dimY, dimX])  # cube of trace simulation at every degree of field rotation, +target at O1 and O2
 
-	#pos_dict  = dict(x=99.9,y=99.9,contamRA=99.9,contamDEC=99.9,jmag=99.9)
-	niriss_pixel_scale = 0.065	# arcsec
+    # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+    saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+    #pdb.set_trace()
+    
+    # Big loop to generate a simulation at each instrument PA
+    for kPA in range(PAtab.size):
+        APA= PAtab[kPA]
+        V3PA=APA+0.57 #from APT
+    
+        stars['dx']= (np.cos(np.pi/2+APA/radeg)*stars['dRA']-np.sin(np.pi/2+APA/radeg)*stars['dDEC'])/niriss_pixel_scale
+        stars['dy']= (np.sin(np.pi/2+APA/radeg)*stars['dRA']+np.cos(np.pi/2+APA/radeg)*stars['dDEC'])/niriss_pixel_scale
+        stars['x'] = stars['dx']+sweetSpot['x']
+        stars['y'] = stars['dy']+sweetSpot['y']
 
-	sweetspot = dict(x=99.9,y=99.9,contamRA=99.9,contamDEC=99.9,jmag=99.9)
-	sweetspot['x'] = 859			# position on the detector of the target in direct images
-	sweetspot['y'] = 107
-	sweetspot['contamRA'] = contamRA[targetIndex]
-	sweetspot['contamDEC'] = contamDEC[targetIndex]
-	sweetspot['jmag'] = Jmag[targetIndex]
+        # Display the star field (blue), target (red), subarray (green), full array (blue), and axes
+        if (kPA==0 and nStars > 1) and False:
+            plt.plot([0,2047,2047,0,0],[0,0,2047,2047,0], 'b')
+            plt.plot([0,255,255,0,0],[0,0,2047,2047,0], 'g')
+            #the order 1 & 2 traces
+            t1=np.loadtxt('/Users/david/Documents/work/jwst/niriss/soss/data/trace_order1.txt',unpack=True)
+            plt.plot(t1[0],t1[1],'r')
+            t2=np.loadtxt('/Users/david/Documents/work/jwst/niriss/soss/data/trace_order2.txt',unpack=True)
+            plt.plot(t2[0],t2[1],'r')
+            plt.plot(stars['x'], stars['y'], 'b*')
+            plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
+            plt.title("APA= {} (V3PA={})".format(APA,V3PA))
+            ax=plt.gca()
 
-	# Put field stars position and magnitudes in a dictture
-	nstars = len(contamRA)
-	stars = dict(x=np.empty(nstars), y=np.empty(nstars), contamRA=np.empty(nstars), contamDEC=np.empty(nstars), jmag=np.empty(nstars))
-	
-	stars['contamRA']  = contamRA
-	stars['contamDEC'] = contamDEC
-	stars['jmag'] = Jmag
+            #add V2 & V3 axes
+            l,hw,hl=250,50,50
+            adx,ady=-l*np.cos(-0.57/radeg),-l*np.sin(-0.57/radeg)
+            ax.arrow(2500, 1800, adx,ady, head_width=hw, head_length=hl, length_includes_head=True, fc='k') #V3
+            plt.text(2500+1.4*adx,1800+1.4*ady,"V3",va='center',ha='center')
+            adx,ady=-l*np.cos((-0.57-90)/radeg),-l*np.sin((-0.57-90)/radeg)
+            ax.arrow(2500, 1800, adx, ady, head_width=hw, head_length=hl, length_includes_head=True, fc='k') #V2
+            plt.text(2500+1.4*adx,1800+1.4*ady,"V2",va='center',ha='center')
+            #add North and East
+            adx,ady=-l*np.cos(APA/radeg),-l*np.sin(APA/radeg)
+            ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl, length_includes_head=True, fc='k') #N
+            plt.text(2500+1.4*adx,1300+1.4*ady,"N",va='center',ha='center')
+            adx,ady=-l*np.cos((APA-90)/radeg),-l*np.sin((APA-90)/radeg)
+            ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl, length_includes_head=True, fc='k') #E
+            plt.text(2500+1.4*adx,1300+1.4*ady,"E",va='center',ha='center')
 
-	# find Teff of each star
-	T = np.zeros(nstars)
-	jhMod, hkMod, teffMod = colors.colorMod()
-	#Question JF: what if len(nstars)!=len(jhMod)?
-	for j in range(nstars):
-		color_seperation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
-		min_seperation_ind = np.argmin(color_seperation)
-		T[j]=teffMod[min_seperation_ind]
-
-	# load8colors
-	# Big loop to generate a simulation at each Field-of-view (FOV) rotation
-	radeg = 180/np.pi
-	for angle in angle_set:
-		fieldrotation = angle
-	# 	print('Angle:',fieldrotation
-
-		pixelsep = 3600 * np.sqrt((np.cos(sweetspot['contamDEC']/radeg)*((stars['contamRA'] - sweetspot['contamRA']))**2)+((stars['contamDEC'] - sweetspot['contamDEC'])**2))
-		xo = -np.cos(sweetspot['contamDEC']/radeg)*(stars['contamRA'] - sweetspot['contamRA'])*3600/niriss_pixel_scale
-		yo = (stars['contamDEC'] - sweetspot['contamDEC'])*3600/niriss_pixel_scale
-
-		dx = xo * np.cos(fieldrotation/radeg) - yo * np.sin(fieldrotation/radeg)
-		dy = xo * np.sin(fieldrotation/radeg) + yo * np.cos(fieldrotation/radeg)
-	
-		stars['x'] = dx+sweetspot['x']
-		stars['y'] = dy+sweetspot['y']
+            ax.set_xlim(-400,2047+800)
+            ax.set_ylim(-400,2047+400)
+            ax.set_aspect('equal')
+            plt.show()
  
-	        # email from Michael Maszkiewicz on 2016 May 17:
-	        #  POM edge is:
-	        #     1.67-2.01 mm left of detector in x
-	        #     2.15-2.22 mm above detector in y
-	        #     2.22-2.43 mm right of detector in x
-	        #     1.49-1.87 mm below detector in y
-	        #  we take the larger value in each direction and add a 50 pixels margin
-	        #  given the uncertainty of the POM location wrt to detector FOV
-		# Retain stars that are within the Direct Image NIRISS POM FOV
-		
-		ind = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) & (stars['y'] >= -154) & (stars['y'] <= 2047+174))
-		starsInFOV = dict(x=stars['x'][ind], y =stars['y'][ind], contamRA=stars['contamRA'][ind], contamDEC=stars['contamDEC'][ind], jmag=stars['jmag'][ind]) # *** pour In Field Of View
-		dx = dx[ind]
-		dy = dy[ind]
-		Tboucle = T[ind]
-		
-		
-	
-	# 	print(' Number of stars in FOV:',nstars # ***
-	# 	print(' J magnitude of those stars:', starsInFOV.jmag # ***
-	# 	print(' Temperature of those stars:', Tboucle
+            # email from Michael Maszkiewicz on 2016 May 17:
+            #  POM edge is:
+            #     1.67-2.01 mm left of detector in x
+            #     2.15-2.22 mm above detector in y
+            #     2.22-2.43 mm right of detector in x
+            #     1.49-1.87 mm below detector in y
+            #  we take the larger value in each direction and add a 50 pixels margin
+            #  given the uncertainty of the POM location wrt to detector FOV
 
-		# print
-		# printline,starsInFOV.x,starsInFOV.y,starsInFOV.jmag
+        # Retain stars that are within the Direct Image NIRISS POM FOV
+        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) & (stars['y'] >= -154) & (stars['y'] <= 2047+174))
+        starsInFOV=stars[ind]
+        
+    #   print(' Number of stars in FOV:',ind.size)
+    #   print(' J magnitude of those stars:', starsInFOV['Jmag'])
+    #   print(' Temperature of those stars:', starsInFOV['T'])
 
-		if 0 & nstars > 1:
-			# Display the star field and sub array location in red
-			plt.plot(starsInFOV['x'], starsInFOV['y'], 'o')
-			plt.xlim(-50,2047+50)
-			plt.ylim(-50,2047+50)
-			plt.plot([0,2047,2047,0,0],[0,0,2047,2047,0], 'r')
-			plt.plot([0,255,255,0,0],[0,0,2047,2047,0], 'g')
-			plt.plot(sweetspot['x'], sweetspot['y'], 'ro')
-			plt.show()
+        for i in range(len(ind)):
+            intx = round(starsInFOV['dx'][i])
+            inty = round(starsInFOV['dy'][i])
+            # print(intx,inty)
 
-		saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-		modelPadX = 2000-1900
-		modelPadY = 2000
-		dimXmod = 256
-		dimYmod = 2048
-		for i in range(len(ind)):
-			intx = round(dx[i])
-			inty = round(dy[i])
-			# print(intx,inty
-		
-			k=np.where(teffMod == Tboucle[i])
-			
-			
-			fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i] - sweetspot['jmag']))
-			
+            k=np.where(teffMod == starsInFOV['T'][i])[0][0]
+            
+            fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i] - sweetSpot['jmag']))
 
-			# if target and first angle, add target traces of order 1 and 2 in output cube
-			if (intx == 0) and (inty == 0) and (ang == 0):
-				# modelO1O2=readfits(fNameMod[k]) # read the order 1 and order 2 trace
-				fNameModO12 = saveFiles[i]
-				modelO12 = idlsave.read(fNameModO12)
-				simucube[0, :, :]= modelO12[0, modelPadY:modelPadY+2047, modelPadX:modelPadX+255] * fluxscale # order 1
-				simucube[1, :, :]= modelO12[1, modelPadY:modelPadY+2047, modelPadX:modelPadX+255] * fluxscale # order 2
-		
-			# if a field star
-			
-			if (intx != 0) or (inty != 0):
-				mx0=modelPadX-intx
-				mx1=modelPadX-intx+255
-				my0=modelPadY-inty
-				my1=modelPadY-inty+2047
-				#pdb.set_trace()
-				if (mx0 > dimXmod-1) or (my0 > dimYmod-1):
-					continue
-				if (mx1 < 0) or (my1 < 0):
-					continue
-				x0=(-mx0)>0
-				y0=(-my0)>0
-				mx0>=0
-				mx1<=(dimXmod-1)
-				my0>=0
-				my1<=(dimYmod-1)
-				simucube[angle_set+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[mx0:mx1,my0:my1,k] * fluxscale
-	
-	fits.writeto(cubeName, simucube, overwrite = True) 
+            #deal with subection sizes
+            mx0=int(modelPadX-intx)
+            mx1=int(modelPadX-intx+dimX)
+            my0=int(modelPadY-inty)
+            my1=int(modelPadY-inty+dimY)
+            
+            if (mx0 > dimXmod) or (my0 > dimYmod):
+                continue
+            if (mx1 < 0) or (my1 < 0):
+                continue
+            
+            x0  =(mx0<0)*(-mx0)
+            y0  =(my0<0)*(-my0)
+            mx0 *=(mx0 >= 0)
+            mx1 = dimXmod if mx1>dimXmod else mx1
+            my0 *=(my0 >= 0)
+            my1 =dimYmod if my1>dimYmod else my1
+
+            # if target and first kPA, add target traces of order 1 and 2 in output cube
+            if (intx == 0) & (inty == 0) & (kPA == 0):              
+                fNameModO12 = saveFiles[k]
+                modelO12 = idlsave.read(fNameModO12,verbose=False)['modelo12']
+                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0]= modelO12[0, my0:my1, mx0:mx1] * fluxscale # order 1
+                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0]= modelO12[1, my0:my1, mx0:mx1] * fluxscale # order 2
+                
+            if (intx != 0) or (inty != 0): #field star
+                simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[k, my0:my1, mx0:mx1] * fluxscale
+    
+    fits.writeto(cubeName, simuCube, clobber = True)
+    print(cubeName)
+
+
+if __name__=='__main__':
+    ra,dec="04 25 29.0162","-30 36 01.603" #Wasp 79
+    sossFieldSim(ra,dec)
