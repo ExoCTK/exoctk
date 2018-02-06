@@ -5,21 +5,21 @@ from __future__ import print_function
 import string
 import sys
 import time, pdb
-from math import *
+import math
 
 #Local imports
 #import ExoCTK.tor.contam_tool.time_extensionsx as time2
 #from ExoCTK.tor.contam_tool.rotationsx import *
 #from ExoCTK.tor.contam_tool.quaternionx import *
 #import ExoCTK.tor.contam_tool.astro_funcx as astro_func
-import time_extensionsx as time2
-from rotationsx import *
-from quaternionx import *
-import astro_funcx as astro_func
+from . import time_extensionsx as time2
+from . import rotationsx as rx
+from . import quaternionx as qx
+from . import astro_funcx as astro_func
 
-D2R = pi/180.  #degrees to radians
-R2D = 180. / pi #radians to degrees 
-PI2 = 2. * pi   # 2 pi
+D2R = math.pi/180.  #degrees to radians
+R2D = 180. / math.pi #radians to degrees 
+PI2 = 2. * math.pi   # 2 math.pi
 unit_limit = lambda x: min(max(-1.,x),1.) # forces value to be in [-1,1]
 MIN_SUN_ANGLE = 84.8 * D2R  #minimum Sun angle, in radians
 MAX_SUN_ANGLE = 135.0 * D2R #maximum Sun angle, in radians
@@ -27,7 +27,7 @@ SUN_ANGLE_PAD = 0.5 * D2R   #pad away from Sun angle limits when constructing sa
 
 obliquity_of_the_ecliptic = 23.439291  # At J2000 equinox
 obliquity_of_the_ecliptic *=  D2R
-Qecl2eci = QX(obliquity_of_the_ecliptic)
+Qecl2eci = qx.QX(obliquity_of_the_ecliptic)
 
 class Ephemeris:
     #07/31/2008 Added functions for sun position
@@ -48,7 +48,7 @@ class Ephemeris:
         self.zlist = []
         self.amin=0.
         self.amax=0.
-        aV = Vector(0.,0.,0.)
+        aV = rx.Vector(0.,0.,0.)
         #pdb.set_trace()
         if afile.find("l2_halo_FDF_060619.trh")>-1:
             ascale = 0.001
@@ -127,7 +127,7 @@ class Ephemeris:
         x = (self.xlist[indx+1] - self.xlist[indx])*frac + self.xlist[indx]  
         y = (self.ylist[indx+1] - self.ylist[indx])*frac + self.ylist[indx]  
         z = (self.zlist[indx+1] - self.zlist[indx])*frac + self.zlist[indx]  
-        return Vector(x,y,z)
+        return rx.Vector(x,y,z)
         #alower = float(int(adate - 0.5)) + 0.5
         #if alower>= self.amin and adate>= self.amin and adate<=self.amax:
 ##            x = spline_interp(adate,self.datelist,self.xlist)
@@ -146,15 +146,15 @@ class Ephemeris:
     def sun_pos(self,adate):
         Vsun = -1. * self.pos(adate)
         Vsun = Vsun / Vsun.length()
-        coord2 = asin(unit_limit(Vsun.z))
-        coord1 = atan2(Vsun.y,Vsun.x)
+        coord2 = math.asin(unit_limit(Vsun.z))
+        coord1 = math.atan2(Vsun.y,Vsun.x)
         if coord1 < 0.: coord1 += PI2
         return (coord1,coord2)
 
     def normal_pa(self,adate,tgt_c1,tgt_c2): #tgt_c1,tgt_c2 are RA & DEC in radians
         (sun_c1, sun_c2) = self.sun_pos(adate)
         sun_pa = astro_func.pa(tgt_c1,tgt_c2,sun_c1,sun_c2)
-        V3_pa = sun_pa + pi  # We want -V3 pointed towards sun.
+        V3_pa = sun_pa + math.pi  # We want -V3 pointed towards sun.
         if V3_pa < 0. : V3_pa += PI2
         if V3_pa >= PI2 : V3_pa -= PI2
         return V3_pa
@@ -167,7 +167,7 @@ class Ephemeris:
         
         #Retrieve Sun's position and transform to ecliptic coordinates.
         (sun_ra, sun_dec) = self.sun_pos(date)   #RA range 0-PI2
-        vSun = CelestialVector(sun_ra, sun_dec, degrees=False)  #use radians
+        vSun = rx.CelestialVector(sun_ra, sun_dec, degrees=False)  #use radians
         vSun = vSun.transform_frame('ec')
         
         #Now subtract the minimum Sun angle plus a pad from the ecliptic longitude.
@@ -182,10 +182,10 @@ class Ephemeris:
         if (longitude < 0):
             longitude = longitude + PI2
             
-        vec1 = CelestialVector(longitude, 0.0, frame='ec', degrees=False)
+        vec1 = rx.CelestialVector(longitude, 0.0, frame='ec', degrees=False)
         vec1 = vec1.transform_frame('eq')
         pa = self.normal_pa(date, vec1.ra, vec1.dec)
-        return(Attitude(vec1.ra, vec1.dec, pa, degrees=False))
+        return(rx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
 
     def is_valid(self,date,ngc_1,ngc_2,V3pa):
         """Indicates whether an attitude is valid at a given date."""
@@ -196,24 +196,24 @@ class Ephemeris:
             
         (sun_1,sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1,ngc_2,sun_1,sun_2)
-        vehicle_pitch = pi/2 - d   #see JI memo from May 2006
-        #sun pitch is always equal or greater than sun angle (V1 to sun)
+        vehicle_math.pitch = math.pi/2 - d   #see JI memo from May 2006
+        #sun math.pitch is always equal or greater than sun angle (V1 to sun)
         if (d<MIN_SUN_ANGLE or d>MAX_SUN_ANGLE):
             return False
-        # now checking the roll and pitch angle combination
-        pa = astro_func.pa(ngc_1, ngc_2, sun_1, sun_2) + pi
-        roll = acos(cos(V3pa - pa))
-        sun_roll = asin(sin(roll) * cos(vehicle_pitch))
+        # now checking the roll and math.pitch angle combination
+        pa = astro_func.pa(ngc_1, ngc_2, sun_1, sun_2) + math.pi
+        roll = math.acos(math.cos(V3pa - pa))
+        sun_roll = math.asin(sin(roll) * math.cos(vehicle_math.pitch))
         if (abs(sun_roll)<=5.2*D2R):
-            sun_pitch = atan2(tan(vehicle_pitch), cos(roll))
-            if (sun_pitch<=5.2*D2R and sun_pitch>=-45.*D2R):
+            sun_math.pitch = math.atan2(tan(vehicle_math.pitch), math.cos(roll))
+            if (sun_math.pitch<=5.2*D2R and sun_math.pitch>=-45.*D2R):
                 return True
         return False
 
     def in_FOR(self,date,ngc_1,ngc_2): #ngc_1 & ngc_2 are ra & dec in radians
         (sun_1,sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1,ngc_2,sun_1,sun_2)
-        #sun pitch is always equal or greater than sun angle (V1 to sun)
+        #sun math.pitch is always equal or greater than sun angle (V1 to sun)
         if (d<MIN_SUN_ANGLE or d>MAX_SUN_ANGLE):
             return False
         return True

@@ -13,7 +13,7 @@
 import sys
 #import ExoCTK
 #import ExoCTK.tor.contam_tool.ephemeris_old2x as EPH
-import ephemeris_old2x as EPH
+from . import ephemeris_old2x as EPH
 import math
 import numpy as np
 import matplotlib
