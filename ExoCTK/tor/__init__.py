@@ -9,7 +9,6 @@ from . import visibilityPA
 from . import p_computeRangePA
 from . import sossContamFig
 from . import tor
-from . import lambda_order
 from . import generate_JH_HK_colors
 from . import resolve
 from . import time_extensionsx

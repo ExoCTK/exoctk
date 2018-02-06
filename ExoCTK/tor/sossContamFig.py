@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator,MaxNLocator
-from visibilityPA import *
+from . import visibilityPA as vpa
 import os
 
 #Hack to override default hatch linewidth for PDF
@@ -353,7 +353,7 @@ if __name__ == "__main__":
     tmpDir="." if len(argv)<9 else argv[8]
     os.makedirs(tmpDir, exist_ok=True)
 
-    goodPA, badPA, _ = calc_vis(ra, dec, targetName)
+    goodPA, badPA, _ = vpa.calc_vis(ra, dec, targetName)
 
     #cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
     contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA,tmpDir=tmpDir)

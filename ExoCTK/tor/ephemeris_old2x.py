@@ -88,7 +88,7 @@ class Ephemeris:
         fin.close()
         #print len(self.datelist),len(self.xlist),len(self.ylist),len(self.zlist)
         
-    def report_ephemeris (self, limit=100000, pathname=None):
+    def report_ephemeris(self, limit=100000, pathname=None):
         """Prints a formatted report of the ephemeris.
         
         If a limit is specified, no more than the maximum number of records are reported.
@@ -160,7 +160,7 @@ class Ephemeris:
         return V3_pa
 
     
-    def long_term_attitude (self, date):
+    def long_term_attitude(self, date):
         """Defines a long-term safe attitude as of a given date.
         
         date = date of computation, as an mjd."""
