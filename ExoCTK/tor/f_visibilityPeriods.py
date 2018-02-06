@@ -14,7 +14,7 @@
 # =====================================================================================
 import sys
 import math
-import ephemeris_old2x
+from . import ephemeris_old2x
 
 D2R = math.pi / 180.  #degrees to radians
 R2D = 180. / math.pi #radians to degrees 

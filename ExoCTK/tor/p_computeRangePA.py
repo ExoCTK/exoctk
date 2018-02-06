@@ -52,8 +52,8 @@ import string
 import math
 import matplotlib.pyplot as plt
 
-import f_visibilityPeriods as f_visibilityPeriods
-import ephemeris_old2x as EPH
+from . import f_visibilityPeriods as f_visibilityPeriods
+from . import ephemeris_old2x as EPH
 import astropy.time
 
 D2R = math.pi / 180.  #degrees to radians
