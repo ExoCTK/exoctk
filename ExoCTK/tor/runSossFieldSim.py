@@ -3,14 +3,14 @@
 
 from sys import argv
 
-from sossFieldSim import *
+from . import sossFieldSim
 
 if len(argv) == 3:
-	sossFieldSim(argv[1],argv[2])
+	sossFieldSim.sossFieldSim(argv[1],argv[2])
 elif len(argv) == 4:
    
 	 bc  = float(argv[3].split(','))
    
-	 sossFieldSim(argv[1], argv[2], bincomp=bc)
+	 sossFieldSim.sossFieldSim(argv[1], argv[2], bincomp=bc)
 else:
 	print("Needs 2 or 3 arguments")
