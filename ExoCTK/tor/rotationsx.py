@@ -6,8 +6,8 @@ import math
 from math import *
 #import ExoCTK.tor.contam_tool.math_extensionsx as math2
 #import ExoCTK.tor.contam_tool.quaternionx as quat
-import math_extensionsx as math2
-import quaternionx as quat
+from . import math_extensionsx as math2
+from . import quaternionx as quat
 #from math2 import *
 #import string
 #import sys
