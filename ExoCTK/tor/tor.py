@@ -622,7 +622,7 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     """
     
     ## -- TARGET ACQ
-    ta_frame_time = set_t_frame(params['ins'], params['subarray_ta'], ta=True)
+    ta_frame_time = set_t_frame(params['infile'], params['ins'], params['subarray_ta'], ta=True)
 
     if ta_frame_time == 'Error!':
         return 'Looks like you mismatched your instrument and subarray. Please try again.'
@@ -639,7 +639,7 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     
     # Figure out the rows/cols/amps/px_size and sat
     ins_params = set_params_from_ins(params['ins'], params['subarray'])
-    frame_time = set_t_frame(params['ins'], params['subarray'])
+    frame_time = set_t_frame(params['infile'], params['ins'], params['subarray'])
 
     # Test for an empty set of parameters
     if ins_params == 'Error!' or frame_time == 'Error':
@@ -709,12 +709,14 @@ def convert_sat(sat_max, sat_mode, ins):
     return sat_max
     
 
-def set_t_frame(ins, sub, ta=False):
+def set_t_frame(infile, ins, sub, ta=False):
     """ Assign the appropriate frame time based on the ins
     and subarray. For now, modes are implied.
 
     Parameters
     ----------
+    infile: str
+        The path to the data file.
     ins : str
         The instrument : 'miri', 'niriss', 'nirspec', or 
         'nircam'.
@@ -730,25 +732,18 @@ def set_t_frame(ins, sub, ta=False):
         The frame time for this ins/sub combo.
     """
     
-    # This dictionary holds all the frame times.
-    frame_time = {'miri': {'ta': {'slitlessprism': 0.16}, 'slitlessprism': 0.16},
-                  'niriss': {'ta': {'subtaami': 0.045}, 'substrip96': 2.219, 'substrip256': 5.49},
-                  'nircam': {'ta': {'sub32tats': 0.015}, 
-                             'full': 10.73666, 'subgrism256': 1.34666, 'subgrism128': 0.676, 'subgrism64': 0.3406},
-                  'nirspec': {'ta': {'full': 10.736, 'sub32': 0.015},
-                              'sub2048': 0.0916, 'sub1024a': 0.451, 'sub1024b': 0.451, 'sub512': 0.2255}
-                  }
+    # Read in dict with frame times
+    with open(infile) as f:
+        frame_time = json.load(f)['frame_time']
+    
     try:
 
         if ta:
-            print(ins, sub)
             t_frame = frame_time[ins]['ta'][sub]
         else:
-            print(ins, sub)
             t_frame = frame_time[ins][sub]
 
     except (KeyError, IndexError) as e:
-        print('RIP')
         t_frame = 'Error!'
 
     return t_frame
