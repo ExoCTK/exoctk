@@ -136,28 +136,28 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
     paMasked = np.copy(paNom)
     paMasked[iBad] = np.nan
     gdMasked = np.copy(gd)
-    if wrap:
-        i = np.argmax(paNom)
-        if paNom[i+1]<10: 
-            i+=1
-        paMasked = np.insert(paMasked,i,np.nan)
-        gdMasked = np.insert(gdMasked,i,gdMasked[i])
 
-        i = np.argmax(paMin)
-        goUp = paMin[i-2]<paMin[i-1] #PA going up at wrap point?
+    i = np.argmax(paNom)
+    if paNom[i+1]<10: 
+        i+=1
+    paMasked = np.insert(paMasked,i,np.nan)
+    gdMasked = np.insert(gdMasked,i,gdMasked[i])
+
+    i = np.argmax(paMin)
+    goUp = paMin[i-2]<paMin[i-1] #PA going up at wrap point?
+
+    # Top part
+    i0_top = 0 if goUp else i
+    i1_top = i if goUp else paMin.size-1
+    paMaxTmp = np.copy(paMax)
+    paMaxTmp[np.where(paMin>paMax)[0]] = 360
     
-        # Top part
-        i0_top = 0 if goUp else i
-        i1_top = i if goUp else paMin.size-1
-        paMaxTmp = np.copy(paMax)
-        paMaxTmp[np.where(paMin>paMax)[0]] = 360
-        
-        # Bottom part
-        i = np.argmin(paMax)
-        i0_bot = i if goUp else 0
-        i1_bot = paMin.size-1 if goUp else i 
-        paMinTmp = np.copy(paMin)
-        paMinTmp[np.where(paMin>paMax)[0]] = 0
+    # Bottom part
+    i = np.argmin(paMax)
+    i0_bot = i if goUp else 0
+    i1_bot = paMin.size-1 if goUp else i 
+    paMinTmp = np.copy(paMin)
+    paMinTmp[np.where(paMin>paMax)[0]] = 0
 
     # Add fits to matplotlib
     if isinstance(fig, matplotlib.figure.Figure):
@@ -201,15 +201,23 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
         # Convert datetime to a number for Bokeh
         gdMaskednum = [d.timestamp() for d in gdMasked]
 
-        # Plot the mu cutoff
-        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color='black')
-
         # Draw the curve and error
-        # fig.line(mu_vals, ld_vals, line_color=color, legend=profile, **kwargs)
-        # vals = np.append(mu_vals, mu_vals[::-1])
-        # evals = np.append(dn_err, up_err[::-1])
-        # fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
+        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color='black')
+        
+        # Top
+        err_y = np.concatenate([paMin[i0_top:i1_top+1],paMaxTmp[i0_top:i1_top+1][::-1]])
+        err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
+        fig.patch(err_x, err_y, color='black', fill_alpha=0.2, line_alpha=0)
+        
+        # Bottom
+        err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],paMax[i0_bot:i1_bot+1][::-1]])
+        err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],[d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
+        fig.patch(err_x, err_y, color='black', fill_alpha=0.2, line_alpha=0)
+        
+        # Plot formatting
+        fig.xaxis.axis_label = 'Date'
+        fig.yaxis.axis_label = 'Position Angle (degrees)'
     
-    return paGood, paBad, fig
+    return paGood, paBad, gd, fig
 
     # return png, paGood, paBad
