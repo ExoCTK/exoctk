@@ -196,24 +196,24 @@ class Ephemeris:
             
         (sun_1,sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1,ngc_2,sun_1,sun_2)
-        vehicle_math.pitch = math.pi/2 - d   #see JI memo from May 2006
-        #sun math.pitch is always equal or greater than sun angle (V1 to sun)
+        vehicle_pitch = math.pi/2 - d   #see JI memo from May 2006
+        #sun pitch is always equal or greater than sun angle (V1 to sun)
         if (d<MIN_SUN_ANGLE or d>MAX_SUN_ANGLE):
             return False
-        # now checking the roll and math.pitch angle combination
+        # now checking the roll and pitch angle combination
         pa = astro_func.pa(ngc_1, ngc_2, sun_1, sun_2) + math.pi
         roll = math.acos(math.cos(V3pa - pa))
-        sun_roll = math.asin(sin(roll) * math.cos(vehicle_math.pitch))
+        sun_roll = math.asin(math.sin(roll) * math.cos(vehicle_pitch))
         if (abs(sun_roll)<=5.2*D2R):
-            sun_math.pitch = math.atan2(tan(vehicle_math.pitch), math.cos(roll))
-            if (sun_math.pitch<=5.2*D2R and sun_math.pitch>=-45.*D2R):
+            sun_pitch = math.atan2(math.tan(vehicle_pitch), math.cos(roll))
+            if (sun_pitch<=5.2*D2R and sun_pitch>=-45.*D2R):
                 return True
         return False
 
     def in_FOR(self,date,ngc_1,ngc_2): #ngc_1 & ngc_2 are ra & dec in radians
         (sun_1,sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1,ngc_2,sun_1,sun_2)
-        #sun math.pitch is always equal or greater than sun angle (V1 to sun)
+        #sun pitch is always equal or greater than sun angle (V1 to sun)
         if (d<MIN_SUN_ANGLE or d>MAX_SUN_ANGLE):
             return False
         return True
