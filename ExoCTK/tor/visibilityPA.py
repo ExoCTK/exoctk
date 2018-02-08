@@ -200,24 +200,24 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
         
         # Convert datetime to a number for Bokeh
         gdMaskednum = [d.timestamp() for d in gdMasked]
+        color = 'green'
 
         # Draw the curve and error
-        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color='black')
+        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
         
         # Top
         err_y = np.concatenate([paMin[i0_top:i1_top+1],paMaxTmp[i0_top:i1_top+1][::-1]])
         err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
-        fig.patch(err_x, err_y, color='black', fill_alpha=0.2, line_alpha=0)
+        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
         
         # Bottom
         err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],paMax[i0_bot:i1_bot+1][::-1]])
         err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],[d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
-        fig.patch(err_x, err_y, color='black', fill_alpha=0.2, line_alpha=0)
+        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
         
         # Plot formatting
         fig.xaxis.axis_label = 'Date'
         fig.yaxis.axis_label = 'Position Angle (degrees)'
-    
+            
     return paGood, paBad, gd, fig
 
-    # return png, paGood, paBad
