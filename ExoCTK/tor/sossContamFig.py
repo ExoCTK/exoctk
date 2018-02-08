@@ -6,13 +6,12 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator,MaxNLocator
 from . import visibilityPA as vpa
 import os
-
-#Hack to override default hatch linewidth for PDF
 import matplotlib
 import six
 from matplotlib.path import Path
 from matplotlib.backends.backend_pdf import Name, Op
 from matplotlib.transforms import Affine2D
+
 def setCustomHatchWidth(customWidth):
     def _writeHatches(self):
         hatchDict = dict()
@@ -353,7 +352,7 @@ if __name__ == "__main__":
     tmpDir="." if len(argv)<9 else argv[8]
     os.makedirs(tmpDir, exist_ok=True)
 
-    goodPA, badPA, _ = vpa.calc_vis(ra, dec, targetName)
+    goodPA, badPA, _ = vpa.checkVisPA(ra, dec, targetName)
 
     #cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
     contam(cubeName,targetName=targetName,paRange=[pamin,pamax],badPA=badPA,tmpDir=tmpDir)
