@@ -250,7 +250,7 @@ def interpolate_from_dat(mag, ins, filt, sub, band, t_frame, sat_lvl, infile):
     # Calculate the nearest number of groups
     n_group = calc_groups_from_exp_time(max_exptime, t_frame)
     
-    return n_group
+    return n_group, max_sat
 
 
 
@@ -461,11 +461,7 @@ def calc_t_int(n_group, t_frame, n_frame, n_skip):
     """
     
     t_int = (n_group*(n_frame + n_skip) - n_skip)*t_frame
-    print(t_int)
-    print(n_group)
-    print(n_frame)
-    print(n_skip)
-    print(t_frame)
+    
     return t_int
 
 
@@ -531,8 +527,9 @@ def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_m
         sat_max = convert_sat(sat_max, sat_mode, ins)
 
         # Calculate countrate and n_groups if it isn't supplied
+        n_group_calc, max_sat = interpolate_from_dat(mag, ins, filt, subarray, band, t_frame, sat_max, infile)
         if n_group == 'optimize':
-            n_group = interpolate_from_dat(mag, ins, filt, subarray, band, t_frame, sat_max, infile)
+            n_group = n_group_calc
 #            countrate = calc_cr(mag, band, temp, px_size, throughput, filt)
 #            print('Countrate : ' + str(countrate))
 #            n_group = calc_n_group(ins, countrate, sat_max, t_frame, n_frame, n_skip)
@@ -541,7 +538,7 @@ def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_m
         # Calculate times/ramps/etc
         t_int = calc_t_int(n_group, t_frame, n_frame, n_skip)
         t_ramp = calc_t_ramp(t_int, n_reset, t_frame)
-    
+        
         # Calculate nubmer of integrations (THE MEAT)
         if ins == 'MIRI':
             n_reset = MIRI_n_reset
@@ -551,13 +548,34 @@ def create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_m
         t_exp = calc_t_exp(n_int, t_ramp)
         t_duration = calc_t_duration(n_group, n_int, n_reset, t_frame, n_frame)
         obs_eff = calc_obs_efficiency(t_exp, t_duration)
+        max_sat_prediction = predict_max_sat(t_int, max_sat)
 
         # Write out dict
         tor_dict = {'n_col': n_col, 'n_row': n_row, 'n_amp': n_amp, 'n_group': n_group, 'n_reset': n_reset, 'sat_max': sat_max,
-            'n_frame': n_frame, 'n_skip': n_skip, 'obs_time': transit_time, 't_frame': round(t_frame, 3), 't_int': round(t_int, 3), 't_ramp': t_ramp, 
-            'n_int': n_int, 't_exp': round(t_exp/3600, 3), 't_duration': round(t_duration/3600, 3), 'obs_eff': obs_eff}
+            'n_frame': n_frame, 'n_skip': n_skip, 'obs_time': transit_time, 't_frame': round(t_frame, 3), 't_int': round(t_int, 3), 
+            't_ramp': t_ramp, 'n_int': n_int, 't_exp': round(t_exp/3600, 3), 't_duration': round(t_duration/3600, 3), 'obs_eff': obs_eff,
+            'max_sat_prediction': round(max_sat_prediction, 3)}
         return tor_dict
 
+def predict_max_sat(t_int, max_sat):
+    """Multiplies the max pixels saturation per second by the total time
+    per integration to estimate the maximum saturation the detector will reach.
+    
+    Parameters
+    ----------
+    t_int : float
+        Seconds per integration.
+    max_sat : float
+        Max pixel saturation per second.
+
+    Returns
+    -------
+    max_prediction : float
+        The prediction of the maximum pixel saturation reachd.
+    """
+
+    max_prediction = t_int*max_sat
+    return max_prediction
 
 ## -- INS CONVERSION THINGS
 
@@ -663,11 +681,7 @@ def set_params_from_ins(ins, subarray):
 if __name__ == "__main__":
     
 
-    transit_time, n_col, n_row, n_reset, n_amp = 5, 96, 2048, 1, 1
-    mag, band, temp, px_size, throughput, filt = 10.3, 'K',  2550, 3e9, 'med', 'G235M'
-    sat_max = 20000
-
-    tor_dict = create_tor_dict(transit_time, mag, band, temp, sat_max, px_size, throughput, filt, n_col, n_row, n_amp, n_reset)
+    tor_dict = create_tor_dict(transit_time, n_group, mag, band, filt, ins, subarray, sat_mode, sat_max, n_reset, infile, n_frame=1)
     for key in tor_dict:
         print(key, tor_dict[key])
 
