@@ -1,62 +1,62 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib
-# matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator,MaxNLocator
 from . import visibilityPA as vpa
 import os
 import matplotlib
 import six
-from matplotlib.path import Path
-from matplotlib.backends.backend_pdf import Name, Op
-from matplotlib.transforms import Affine2D
+# from matplotlib.path import Path
+# from matplotlib.backends.backend_pdf import Name, Op
+# from matplotlib.transforms import Affine2D
 import pkg_resources
 import base64
 import io
 
-def setCustomHatchWidth(customWidth):
-    def _writeHatches(self):
-        hatchDict = dict()
-        sidelen = 72.0
-        for hatch_style, name in six.iteritems(self.hatchPatterns):
-            ob = self.reserveObject('hatch pattern')
-            hatchDict[name] = ob
-            res = {'Procsets':
-                   [Name(x) for x in "PDF Text ImageB ImageC ImageI".split()]}
-            self.beginStream(
-                ob.id, None,
-                {'Type': Name('Pattern'),
-                 'PatternType': 1, 'PaintType': 1, 'TilingType': 1,
-                 'BBox': [0, 0, sidelen, sidelen],
-                 'XStep': sidelen, 'YStep': sidelen,
-                 'Resources': res})
-
-            # lst is a tuple of stroke color, fill color,
-            # number of - lines, number of / lines,
-            # number of | lines, number of \ lines
-            rgb = hatch_style[0]
-            self.output(rgb[0], rgb[1], rgb[2], Op.setrgb_stroke)
-            if hatch_style[1] is not None:
-                rgb = hatch_style[1]
-                self.output(rgb[0], rgb[1], rgb[2], Op.setrgb_nonstroke,
-                            0, 0, sidelen, sidelen, Op.rectangle,
-                            Op.fill)
-
-            self.output(customWidth, Op.setlinewidth) ###the new width###
-
-            # TODO: We could make this dpi-dependent, but that would be
-            # an API change
-            self.output(*self.pathOperations(
-                Path.hatch(hatch_style[2]),
-                Affine2D().scale(sidelen),
-                simplify=False))
-            self.output(Op.stroke)
-
-            self.endStream()
-        self.writeObject(self.hatchObject, hatchDict)
-
-    matplotlib.backends.backend_pdf.PdfFile.writeHatches = _writeHatches
+# def setCustomHatchWidth(customWidth):
+#     def _writeHatches(self):
+#         hatchDict = dict()
+#         sidelen = 72.0
+#         for hatch_style, name in six.iteritems(self.hatchPatterns):
+#             ob = self.reserveObject('hatch pattern')
+#             hatchDict[name] = ob
+#             res = {'Procsets':
+#                    [Name(x) for x in "PDF Text ImageB ImageC ImageI".split()]}
+#             self.beginStream(
+#                 ob.id, None,
+#                 {'Type': Name('Pattern'),
+#                  'PatternType': 1, 'PaintType': 1, 'TilingType': 1,
+#                  'BBox': [0, 0, sidelen, sidelen],
+#                  'XStep': sidelen, 'YStep': sidelen,
+#                  'Resources': res})
+#
+#             # lst is a tuple of stroke color, fill color,
+#             # number of - lines, number of / lines,
+#             # number of | lines, number of \ lines
+#             rgb = hatch_style[0]
+#             self.output(rgb[0], rgb[1], rgb[2], Op.setrgb_stroke)
+#             if hatch_style[1] is not None:
+#                 rgb = hatch_style[1]
+#                 self.output(rgb[0], rgb[1], rgb[2], Op.setrgb_nonstroke,
+#                             0, 0, sidelen, sidelen, Op.rectangle,
+#                             Op.fill)
+#
+#             self.output(customWidth, Op.setlinewidth) ###the new width###
+#
+#             # TODO: We could make this dpi-dependent, but that would be
+#             # an API change
+#             self.output(*self.pathOperations(
+#                 Path.hatch(hatch_style[2]),
+#                 Affine2D().scale(sidelen),
+#                 simplify=False))
+#             self.output(Op.stroke)
+#
+#             self.endStream()
+#         self.writeObject(self.hatchObject, hatchDict)
+#
+#     matplotlib.backends.backend_pdf.PdfFile.writeHatches = _writeHatches
 
 def cmap_discretize(cmap, N):
     """Return a discrete colormap from the continuous colormap cmap.
@@ -176,7 +176,7 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
 
         for p in badPA:
             plt.fill_between([lamO1.min(),lamO1.max()],p[0],p[1],hatch='xx',facecolors='none',edgecolor='k',lw=0)
-        setCustomHatchWidth(0.4)
+        # setCustomHatchWidth(0.4)
 
         #main panel order 2
         ax2=plt.axes([0.18,0.11,0.18,0.7])
