@@ -293,8 +293,10 @@ def map_to_ta_modes(ins, max_group, min_group):
     
     Returns
     -------
-    ta_groups : int
-        The suggestions for ta groups.
+    min_ta_groups : int
+        The min possible groups to hit target SNR.
+    max_ta_groups : int
+        The max possible groups before saturation.
     """
 
     # Allowable group modes for each ins
@@ -305,17 +307,20 @@ def map_to_ta_modes(ins, max_group, min_group):
               }
     
     # Split the diff and match 'em up. 
-    avg_groups = np.mean([max_group, min_group])
     allowable_groups = groups[ins]
-    ta_groups = min(allowable_groups, key=lambda x:abs(x-avg_groups))
+    min_ta_groups = min(allowable_groups, key=lambda x:abs(x-min_group))
+    max_ta_groups = min(allowable_groups, key=lambda x:abs(x-max_group))
     
     # Unless it was oversaturated from the get-go OR there aren't enough groups
     # for SNR
     if min_group == 0:
-        ta_groups = 0
+        min_ta_groups = 0
+        max_ta_groups = 0
     if min_group > max(allowable_groups):
-        ta_groups = -1
-    return ta_groups
+        min_ta_groups = -1
+        max_ta_groups = 0
+    
+    return max_ta_groups, min_ta_groups
 
 def min_groups(mag, ins, filt, sub, mod, band, infile):
     """Estimates the minimum number of groups to reach 
@@ -624,16 +629,14 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     ## -- TARGET ACQ
     ta_frame_time = set_t_frame(params['infile'], params['ins'], params['subarray_ta'], ta=True)
 
-    if ta_frame_time == 'Error!':
-        return 'Looks like you mismatched your instrument and subarray. Please try again.'
-
     max_group, sat_rate_ta = interpolate_from_dat(params['mag'], params['ins'], params['filt_ta'], 
                                      params['subarray_ta'], params['mod'], params['band'],
                                      ta_frame_time, params['sat_max'], params['infile'], ta=True)
     min_group = min_groups(params['mag'], params['ins'], params['filt_ta'], params['subarray_ta'], 
                            params['mod'], params['band'], params['infile'])
-    ta_groups = map_to_ta_modes(params['ins'], max_group, min_group)
-    t_duration_ta = calc_t_duration(ta_groups, 1, 1, ta_frame_time)
+    min_ta_groups, max_ta_groups = map_to_ta_modes(params['ins'], max_group, min_group)
+    t_duration_ta_min = calc_t_duration(min_ta_groups, 1, 1, ta_frame_time)
+    t_duration_ta_max = calc_t_duration(max_ta_groups, 1, 1, ta_frame_time)
 
     ## -- THE OTHER STUFF I GUESS??
     
@@ -641,60 +644,58 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     ins_params = set_params_from_ins(params['ins'], params['subarray'])
     frame_time = set_t_frame(params['infile'], params['ins'], params['subarray'])
 
-    # Test for an empty set of parameters
-    if ins_params == 'Error!' or frame_time == 'Error':
-        return 'Looks like you mismatched your instrument, filter, and subarray. Please try again.'
+    # Run all the calculations
+    n_row, n_col, n_amp, px_size, t_frame, n_reset = ins_params
+    band_ins = '{0}_{1}'.format(params['band'], params['filt'])
     
-    # Or continue as normal
+    params['sat_max'] = convert_sat(params['sat_max'], params['sat_mode'], params['ins'])
+
+    # Calculate countrate and n_groups if it isn't supplied
+    n_group, sat_rate = interpolate_from_dat(params['mag'],
+        params['ins'], params['filt'], params['subarray'], params['mod'],
+        params['band'], frame_time, params['sat_max'], params['infile'])
+    
+    if str(params['n_group']) == 'optimize':
+        params['n_group'] = int(n_group)
     else:
-        n_row, n_col, n_amp, px_size, t_frame, n_reset = ins_params
-        band_ins = '{0}_{1}'.format(params['band'], params['filt'])
-        
-        params['sat_max'] = convert_sat(params['sat_max'], params['sat_mode'], params['ins'])
-
-        # Calculate countrate and n_groups if it isn't supplied
-        n_group, sat_rate = interpolate_from_dat(params['mag'],
-            params['ins'], params['filt'], params['subarray'], params['mod'],
-            params['band'], frame_time, params['sat_max'], params['infile'])
-        
-        if str(params['n_group']) == 'optimize':
-            params['n_group'] = int(n_group)
-        else:
-            params['n_group'] = int(float(params['n_group']))
-        
-        
-        # Calculate times/ramps/etc
-        t_int = calc_t_int(params['n_group'], frame_time, n_frame, n_skip)
-        t_ramp = calc_t_ramp(t_int, n_reset, frame_time)
+        params['n_group'] = int(float(params['n_group']))
     
-        # Calculate nubmer of integrations (THE MEAT)
-        n_int = calc_n_int(params['obs_time'], params['n_group'], n_reset, frame_time, n_frame)
     
-        # Other things that may come in handy who knows?
-        t_exp = calc_t_exp(n_int, t_ramp)
-        t_duration = calc_t_duration(params['n_group'], n_int, n_reset, frame_time, n_frame)
-        obs_eff = calc_obs_efficiency(t_exp, t_duration)
+    # Calculate times/ramps/etc
+    t_int = calc_t_int(params['n_group'], frame_time, n_frame, n_skip)
+    t_ramp = calc_t_ramp(t_int, n_reset, frame_time)
+    
+    # Calculate nubmer of integrations (THE MEAT)
+    n_int = calc_n_int(params['obs_time'], params['n_group'], n_reset, frame_time, n_frame)
+    
+    # Other things that may come in handy who knows?
+    t_exp = calc_t_exp(n_int, t_ramp)
+    t_duration = calc_t_duration(params['n_group'], n_int, n_reset, frame_time, n_frame)
+    obs_eff = calc_obs_efficiency(t_exp, t_duration)
 
-        # Update params with new friends
-        params['n_col'] = n_col
-        params['n_row'] = n_row
-        params['n_amp'] = n_amp
-        params['n_reset'] = n_reset
-        params['n_frame'] = n_frame
-        params['n_skip'] = n_skip
-        params['t_frame'] = round(frame_time, 3)
-        params['t_int'] = round(t_int, 3)
-        params['t_ramp'] = round(t_ramp, 3)
-        params['n_int'] = n_int
-        params['t_exp'] = round(t_exp/3600, 3)
-        params['t_duration'] = round(t_duration/3600, 3)
-        params['obs_eff'] = round(obs_eff, 3)
-        params['ta_t_frame'] = ta_frame_time
-        params['ta_groups'] = int(ta_groups)
-        params['t_duration_ta'] = t_duration_ta
-        params['max_sat_prediction'] = round(sat_rate*frame_time*params['n_group'], 3)
-        params['max_sat_ta'] = round(sat_rate_ta*ta_frame_time*ta_groups, 3)
-        return params 
+    # Update params with new friends
+    params['n_col'] = n_col
+    params['n_row'] = n_row
+    params['n_amp'] = n_amp
+    params['n_reset'] = n_reset
+    params['n_frame'] = n_frame
+    params['n_skip'] = n_skip
+    params['t_frame'] = round(frame_time, 3)
+    params['t_int'] = round(t_int, 3)
+    params['t_ramp'] = round(t_ramp, 3)
+    params['n_int'] = n_int
+    params['t_exp'] = round(t_exp/3600, 3)
+    params['t_duration'] = round(t_duration/3600, 3)
+    params['obs_eff'] = round(obs_eff, 3)
+    params['ta_t_frame'] = ta_frame_time
+    params['min_ta_groups'] = int(min_ta_groups)
+    params['max_ta_groups'] = int(max_ta_groups)
+    params['t_duration_ta_min'] = t_duration_ta_min
+    params['t_duration_ta_max'] = t_duration_ta_max
+    params['max_sat_prediction'] = round(sat_rate*frame_time*params['n_group'], 3)
+    params['max_sat_ta'] = round(sat_rate_ta*ta_frame_time*max_ta_groups, 3)
+    params['min_sat_ta'] = round(sat_rate_ta*ta_frame_time*min_ta_groups, 3)
+    return params 
 
 
 ## -- INS CONVERSION THINGS
@@ -736,15 +737,10 @@ def set_t_frame(infile, ins, sub, ta=False):
     with open(infile) as f:
         frame_time = json.load(f)['frame_time']
     
-    try:
-
-        if ta:
-            t_frame = frame_time[ins]['ta'][sub]
-        else:
-            t_frame = frame_time[ins][sub]
-
-    except (KeyError, IndexError) as e:
-        t_frame = 'Error!'
+    if ta:
+        t_frame = frame_time[ins]['ta'][sub]
+    else:
+        t_frame = frame_time[ins][sub]
 
     return t_frame
 
@@ -766,60 +762,57 @@ def set_params_from_ins(ins, subarray):
         The number of columns per row.
     """
     
-    try:
-        n_reset = 1
+    n_reset = 1
  
-        if ins == 'nirspec':
-            px_size = (40e-4)**2
+    if ins == 'nirspec':
+        px_size = (40e-4)**2
 
-            if subarray == 'sub2048':
-                rows, cols = 2048, 32
-            elif subarray in ['sub1024a', 'sub1024b']:
-                rows, cols = 1024, 32
-            elif subarray == 'sub512':
-                rows, cols = 512, 32
-            
-            amps = 1 # 4 if not NRSRAPID????
-            ft = calc_t_frame(cols, rows, amps, ins)
-  
-        elif ins == 'nircam':
-            px_size = (18e-4)**2
-            
-            if subarray == 'full':
-                rows, cols, amps = 2048, 2048, 4
-            elif subarray == 'subgrism256':
-                rows, cols, amps = 256, 256, 1
-            elif subarray == 'subgrism128':
-                rows, cols, amps = 128, 2048, 1
-            elif subarray == 'subgrism64':
-                rows, cols, amps = 64, 2048, 1
-            
-            ft = calc_t_frame(cols, rows, amps, ins)
-  
-        elif ins == 'miri':
-            px_size = (25e-4)**2
-            
-            if subarray == 'slitlessprism':
-                rows, cols, ft = 416, 72, .159
-            
-            amps = 4
-            n_reset = 0 
-            
-        elif ins == 'niriss':
-            px_size = (40e-4)**2
-            
-            if subarray == 'substrip96':
-                rows, cols = 2048, 96
-            elif subarray == 'substrip256':
-                rows, cols = 2048, 256
-            
-            amps = 1
-            ft = calc_t_frame(cols, rows, amps, ins)
+        if subarray == 'sub2048':
+            rows, cols = 2048, 32
+        elif subarray in ['sub1024a', 'sub1024b']:
+            rows, cols = 1024, 32
+        elif subarray == 'sub512':
+            rows, cols = 512, 32
         
-        return rows, cols, amps, px_size, ft, n_reset
+        amps = 1 # 4 if not NRSRAPID????
+        ft = calc_t_frame(cols, rows, amps, ins)
+  
+    elif ins == 'nircam':
+        px_size = (18e-4)**2
+        
+        if subarray == 'full':
+            rows, cols, amps = 2048, 2048, 4
+        elif subarray == 'subgrism256':
+            rows, cols, amps = 256, 256, 1
+        elif subarray == 'subgrism128':
+            rows, cols, amps = 128, 2048, 1
+        elif subarray == 'subgrism64':
+            rows, cols, amps = 64, 2048, 1
+        
+        ft = calc_t_frame(cols, rows, amps, ins)
+  
+    elif ins == 'miri':
+        px_size = (25e-4)**2
+        
+        if subarray == 'slitlessprism':
+            rows, cols, ft = 416, 72, .159
+        
+        amps = 4
+        n_reset = 0 
+        
+    elif ins == 'niriss':
+        px_size = (40e-4)**2
+        
+        if subarray == 'substrip96':
+            rows, cols = 2048, 96
+        elif subarray == 'substrip256':
+            rows, cols = 2048, 256
+        
+        amps = 1
+        ft = calc_t_frame(cols, rows, amps, ins)
     
-    except NameError:
-        return 'Error!'
+    return rows, cols, amps, px_size, ft, n_reset
+    
 
 ## -- RUN
 
