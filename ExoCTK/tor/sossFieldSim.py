@@ -4,7 +4,12 @@ import matplotlib.pyplot as plt
 import astropy.coordinates as crd
 import astropy.units as u
 import numpy as np
-import os, glob, idlsave, pdb
+import os
+import glob
+import idlsave
+import pdb
+
+idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
 
 def sossFieldSim(ra, dec, binComp=None, dimX=256):
     # binComp: [deltaRA,deltaDEC,J,H,K]
@@ -45,16 +50,16 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
     nStars=allRA.size
 
     cooTar=crd.SkyCoord(ra=allRA[targetIndex],dec=allDEC[targetIndex], unit=(u.deg, u.deg))
-    cubeName = 'cubes/cube_RA_DEC_'+cooTar.to_string('hmsdms',precision=1).replace(' ','')+'.fits'
-
-    print('Cube name:')
-    print(cubeName)
-    print('cubNameSuf:')
-    print(cubeNameSuf)
-    print('Target coordinates:',cooTar.to_string('hmsdms',precision=1))
-
-    if os.path.exists(cubeName) and (binComp is None):
-        return
+    # cubeName = 'cubes/cube_RA_DEC_'+cooTar.to_string('hmsdms',precision=1).replace(' ','')+'.fits'
+    #
+    # print('Cube name:')
+    # print(cubeName)
+    # print('cubNameSuf:')
+    # print(cubeNameSuf)
+    # print('Target coordinates:',cooTar.to_string('hmsdms',precision=1))
+    #
+    # if os.path.exists(cubeName) and (binComp is None):
+    #     return
 
     """
     # the trace models
@@ -102,7 +107,7 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
     """
     
     #Restoring model parameters 
-    modelParam = idlsave.read('idlSaveFiles/modelsInfo.sav',verbose=False) 
+    modelParam = idlsave.read(os.path.join(idlsave_path,'modelsInfo.sav'),verbose=False) 
     models     = modelParam['models']
     modelPadX  = modelParam['modelpadx']
     modelPadY  = modelParam['modelpady'] 
@@ -146,7 +151,7 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
     simuCube=np.zeros([nPA+2,dimY, dimX])  # cube of trace simulation at every degree of field rotation, +target at O1 and O2
 
     # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-    saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+    saveFiles = glob.glob(os.path.join(idlsave_path,'*.sav'))[:-1]
     #pdb.set_trace()
     
     # Big loop to generate a simulation at each instrument PA
@@ -248,8 +253,10 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
             if (intx != 0) or (inty != 0): #field star
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[k, my0:my1, mx0:mx1] * fluxscale
     
-    fits.writeto(cubeName, simuCube, clobber = True)
-    print(cubeName)
+    # fits.writeto(cubeName, simuCube, clobber = True)
+    # print(cubeName)
+    
+    return simuCube
 
 
 if __name__=='__main__':
