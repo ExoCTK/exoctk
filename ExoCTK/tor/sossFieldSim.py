@@ -11,7 +11,7 @@ import pdb
 
 idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
 
-def sossFieldSim(ra, dec, binComp=None, dimX=256):
+def sossFieldSim(ra, dec, binComp='', dimX=256):
     # binComp: [deltaRA,deltaDEC,J,H,K]
 
     # stars in large field around target
@@ -35,7 +35,7 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
     
     # add any missing companion
     cubeNameSuf=''
-    if binComp is not None:
+    if binComp!='':
         deg2rad     = np.pi/180
         allRA       = np.append(allRA, (allRA[targetIndex] + binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)))
         allDEC      = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
@@ -166,6 +166,7 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
 
         # Display the star field (blue), target (red), subarray (green), full array (blue), and axes
         if (kPA==0 and nStars > 1) and False:
+            print(kPA)
             plt.plot([0,2047,2047,0,0],[0,0,2047,2047,0], 'b')
             plt.plot([0,255,255,0,0],[0,0,2047,2047,0], 'g')
             #the order 1 & 2 traces
@@ -247,8 +248,8 @@ def sossFieldSim(ra, dec, binComp=None, dimX=256):
             if (intx == 0) & (inty == 0) & (kPA == 0):              
                 fNameModO12 = saveFiles[k]
                 modelO12 = idlsave.read(fNameModO12,verbose=False)['modelo12']
-                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0]= modelO12[0, my0:my1, mx0:mx1] * fluxscale # order 1
-                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0]= modelO12[1, my0:my1, mx0:mx1] * fluxscale # order 2
+                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = modelO12[0, my0:my1, mx0:mx1] * fluxscale # order 1
+                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = modelO12[1, my0:my1, mx0:mx1] * fluxscale # order 2
                 
             if (intx != 0) or (inty != 0): #field star
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += models[k, my0:my1, mx0:mx1] * fluxscale
