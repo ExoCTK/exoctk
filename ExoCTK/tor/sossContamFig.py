@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,AutoMinorLocator,MaxNLocator
 from . import visibilityPA as vpa
@@ -168,11 +168,11 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         plt.grid()
         plt.xlabel('Wavelength (microns)',fontsize='small')
         plt.ylabel('Position Angle (degrees)',fontsize='small')
-        #contamCmap=cmap_discretize('spectral_r',8)
+        # contamCmap=cmap_discretize('spectral_',8)
         contamCmap=cmap_discretize('CMRmap_r',8)
         contamCmap.set_under('w')
         plt.imshow(np.log10(np.clip(contamO1.T,1.e-10,1.)),extent=(lamO1.min(),lamO1.max(),PA.min()-0.5*dPA,PA.max()+0.5*dPA),
-            vmin=-4,vmax=0,aspect='auto',origin='lower',interpolation='nearest',cmap=contamCmap)
+            vmin=-4,vmax=0,aspect='auto',origin='lowe',interpolation='nearest',cmap=contamCmap)
 
         for p in badPA:
             plt.fill_between([lamO1.min(),lamO1.max()],p[0],p[1],hatch='xx',facecolors='none',edgecolor='k',lw=0)
@@ -189,7 +189,7 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         plt.xlabel('Wavelength (microns)',fontsize='small')
         yminO2=np.argmin(np.abs(lamO2-0.6))
         plt.imshow(np.log10(np.clip(contamO2[yminO2:,:].T,1.e-10,1.)),extent=(lamO2[yminO2],lamO2.max(),PA.min()-0.5*dPA,PA.max()+0.5*dPA),
-            vmin=-4,vmax=0,aspect='auto',origin='lower',interpolation='nearest',cmap=contamCmap)
+            vmin=-4,vmax=0,aspect='auto',origin='lowe',interpolation='nearest',cmap=contamCmap)
 
         for p in badPA:
             plt.fill_between([lamO2[yminO2],lamO2.max()],p[0],p[1],hatch='xx',facecolors='none',edgecolor='k',lw=0)
@@ -198,7 +198,7 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         #scale bar associated with main panel orders 1 and 2
         ax4=plt.axes([0.85,0.9,0.11,0.04])
         cbar=np.tile(np.arange(-4,0.01,0.1),2).reshape([2,-1])
-        plt.imshow(cbar,vmin=-4,vmax=0,aspect='auto',origin='lower',interpolation='nearest',
+        plt.imshow(cbar,vmin=-4,vmax=0,aspect='auto',origin='lowe',interpolation='nearest',
             extent=(-4,0,0,1),cmap=contamCmap)
         ax4.set_yticks([])
         plt.xticks(np.arange(-4,0.1),fontsize='small')
@@ -211,10 +211,10 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         plt.ylim(plotPAmin-0.5*dPA,plotPAmax+0.5*dPA)
         ax1a.yaxis.set_minor_locator(MultipleLocator(minTicksMult))
         ax1a.set_yticklabels([])
-        plt.xlabel(r'$\%$ channels contam. \n above threshold',fontsize='small')
+        plt.xlabel('Pct. channels contam. \n above threshold',fontsize='small')
         plt.grid()
-        plt.plot(100*np.sum(contamO1 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label=r'$> 0.001$')
-        plt.plot(100*np.sum(contamO1 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label=r'$> 0.01$')
+        plt.plot(100*np.sum(contamO1 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='> 0.001')
+        plt.plot(100*np.sum(contamO1 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='> 0.01')
         #plt.plot(np.sum(contam >= 0.05,axis=0)/ny,PA,ls='steps',linewidth=1.5)
         for p in badPA:
             plt.fill_between([0,100],p[0],p[1],hatch='xx',facecolors='none',edgecolor='k',lw=0)
@@ -229,10 +229,10 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         plt.ylim(plotPAmin-0.5*dPA,plotPAmax+0.5*dPA)
         ax2a.yaxis.set_minor_locator(MultipleLocator(minTicksMult))
         ax2a.set_yticklabels([])
-        plt.xlabel(r'$\%$ channels contam. \n above threshold',fontsize='small')
+        plt.xlabel('Pct. channels contam. \n above threshold',fontsize='small')
         plt.grid()
-        plt.plot(100*np.sum(contamO2 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label=r'$> 0.001$')
-        plt.plot(100*np.sum(contamO2 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label=r'$> 0.01$')
+        plt.plot(100*np.sum(contamO2 >= 0.001,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.001')
+        plt.plot(100*np.sum(contamO2 >= 0.01,axis=0)/ny,PA-dPA/2,ls='steps',linewidth=1.5,label='>0.01')
         #plt.plot(np.sum(contam >= 0.05,axis=0)/ny,PA,ls='steps',linewidth=1.5)
         for p in badPA:
             plt.fill_between([0,100],p[0],p[1],hatch='xx',facecolors='none',edgecolor='k',lw=0)
@@ -256,35 +256,35 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
 
         l=np.array([0.89,0.99])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.09,1.2])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.1,1.24])
         plt.plot(l,y+y2,color='k',linewidth=1.5)
-        plt.text(l.mean(),y2,r'CH$_4$',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y2,'CH4',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.3,1.51])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.6,1.8])
         plt.plot(l,y+y2,color='k',linewidth=1.5)
-        plt.text(l.mean(),y2,r'CH$_4$',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y2,'CH4',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.75,2.05])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([2.3,lamO1.max()])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([2.15,2.5])
         plt.plot(l,y+y2,color='k',linewidth=1.5)
-        plt.text(l.mean(),y2,r'CH$_4$',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y2,'CH4',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.1692,1.1778])
         plt.vlines(l,y3,y3+0.02,color='k')
@@ -328,19 +328,19 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
 
         l=np.array([0.89,0.99])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.09,1.2])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.1,1.24])
         plt.plot(l,y+y2,color='k',linewidth=1.5)
-        plt.text(l.mean(),y2,r'CH$_4$',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y2,'CH4',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([1.3,lamO2.max()])
         plt.plot(l,y+y1,color='k',linewidth=1.5)
-        plt.text(l.mean(),y1,r'H$_2$O',ha='center',va='bottom',fontsize='xx-small')
+        plt.text(l.mean(),y1,'H2O',ha='center',va='bottom',fontsize='xx-small')
 
         l=np.array([0.7665,0.7699])
         plt.vlines(l,y3,y3+0.02,color='k')
