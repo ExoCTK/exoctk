@@ -24,6 +24,7 @@ from matplotlib.ticker import MultipleLocator,AutoMinorLocator
 from astropy.io import ascii
 import os
 import pkg_resources
+import datetime
 
 D2R = math.pi/180.  #degrees to radians
 R2D = 180./math.pi #radians to degrees 
@@ -199,7 +200,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
     else:
         
         # Convert datetime to a number for Bokeh
-        gdMaskednum = [d.timestamp() for d in gdMasked]
+        gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gdMasked)]
         color = 'green'
 
         # Draw the curve and error
@@ -207,12 +208,14 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
         
         # Top
         err_y = np.concatenate([paMin[i0_top:i1_top+1],paMaxTmp[i0_top:i1_top+1][::-1]])
-        err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
+        # err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
+        err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],gdMaskednum[i0_top:i1_top+1][::-1]])
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-        
+
         # Bottom
         err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],paMax[i0_bot:i1_bot+1][::-1]])
-        err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],[d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
+        # err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],[d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
+        err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],gdMaskednum[i0_bot:i1_bot+1][::-1]])
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
         
         # Plot formatting
