@@ -14,6 +14,10 @@ from matplotlib.transforms import Affine2D
 import pkg_resources
 import base64
 import io
+from bokeh.io import gridplot, show
+from bokeh.plotting import figure
+from bokeh.models import Range1d, LogColorMapper, LogTicker, ColorBar, Label
+from bokeh.palettes import inferno
 
 def setCustomHatchWidth(customWidth):
     def _writeHatches(self):
@@ -382,8 +386,121 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
     # Otherwise, it's a Bokeh plot
     else:
         
-        #BOKEH!
-        pass
+        # ==================================================================================================
+        # Order 1 ==========================================================================================
+        # ==================================================================================================
+        
+        # Species Plot
+        s1 = figure(width=500, plot_height=150, title=None)
+        y=np.array([0.,0.])
+        y1=0.07
+        y2=0.12
+        y3=0.17
+        y4=0.23
+
+        l=np.array([0.89,0.99])
+        s1.line(l,y+y1, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css'))
+
+        l=np.array([1.09,1.2])
+        s1.line(l,y+y1, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css'))
+
+        l=np.array([1.1,1.24])
+        s1.line(l,y+y2, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y2, x_units='data', y_units='data', text='CH4', render_mode='css'))
+
+        l=np.array([1.3,1.51])
+        s1.line(l,y+y1, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css'))
+
+        l=np.array([1.6,1.8])
+        s1.line(l,y+y2, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y2, x_units='data', y_units='data', text='CH4', render_mode='css'))
+
+        l=np.array([1.75,2.05])
+        s1.line(l,y+y1, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css'))
+
+        l=np.array([2.3,lamO1.max()])
+        s1.line(l,y+y1, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css'))
+
+        l=np.array([2.15,2.5])
+        s1.line(l,y+y2, line_color='black', line_width=1.5)
+        s1.add_layout(Label(x=l.mean(), y=y2, x_units='data', y_units='data', text='CH4', render_mode='css'))
+
+        l=np.array([1.1692,1.1778])
+        s1.line(l[0], [y3,y3+0.02], line_color='black')
+        s1.line(l[1], [y3,y3+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y3+0.02, x_units='data', y_units='data', text='K', render_mode='css'))
+
+        l=np.array([1.2437,1.2529])
+        s1.line(l[0], [y3,y3+0.02], line_color='black')
+        s1.line(l[1], [y3,y3+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y3+0.02, x_units='data', y_units='data', text='K', render_mode='css'))
+       
+        l=np.array([1.5168])
+        s1.line(l[0], [y3,y3+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y3+0.02, x_units='data', y_units='data', text='K', render_mode='css'))
+        #
+        l=np.array([1.1384,1.1409])
+        s1.line(l[0], [y4,y4+0.02], line_color='black')
+        s1.line(l[1], [y4,y4+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y4+0.02, x_units='data', y_units='data', text='Na', render_mode='css'))
+       
+        l=np.array([1.2682])
+        s1.line(l[0], [y4,y4+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y4+0.02, x_units='data', y_units='data', text='Na', render_mode='css'))
+       
+        l=np.array([2.2063,2.2090])
+        s1.line(l[0], [y4,y4+0.02], line_color='black')
+        s1.line(l[1], [y4,y4+0.02], line_color='black')
+        s1.add_layout(Label(x=l.mean(), y=y4+0.02, x_units='data', y_units='data', text='Na', render_mode='css'))
+       
+        l=np.array([2.2935,2.3227,2.3525,2.3830,2.4141])
+        s1.line(l[0], [y3,y3+0.02], line_color='black')
+        s1.line(l[1], [y3,y3+0.02], line_color='black')
+        s1.line(l[2], [y3,y3+0.02], line_color='black')
+        s1.line(l[3], [y3,y3+0.02], line_color='black')
+        s1.line(l[4], [y3,y3+0.02], line_color='black')
+        s1.line(l[[0,-1]],y+y3+0.02, line_color='black', line_width=1)
+        s1.add_layout(Label(x=l[[0,-1]].mean(), y=y3+0.02, x_units='data', y_units='data', text='CO', render_mode='css'))
+        
+        s1.xaxis.major_label_text_font_size = '0pt'
+        s1.yaxis.major_label_text_font_size = '0pt'
+
+        # Contam plot
+        s2 = figure(width=500, height=500, title=None)
+        x0, x1, y0, y1 = lamO1.min(), lamO1.max(), PA.min()-0.5*dPA, PA.max()+0.5*dPA
+        # color_mapper = LogColorMapper(palette="Viridis256", low=-4, high=0)
+        fig_data = np.log10(np.clip(contamO1.T,1.e-10,1.))
+        # s2.image([fig_data], x=x0, y=y0, dw=x1-x0, dh=y1-y0, color_mapper=color_mapper)
+        s2.image([fig_data], x=x0, y=y0, dw=x1-x0, dh=y1-y0, palette=inferno(8)[::-1])
+        # color_bar = ColorBar(color_mapper=color_mapper, ticker=LogTicker(), label_standoff=12, border_line_color=None, location=(0,0))
+        # s2.add_layout(color_bar, 'below')
+        
+        s2.xaxis.axis_label = 'Wavelength (um)'
+        s2.yaxis.axis_label = 'Position Angle (degrees)'
+        s2.x_range = Range1d(x0, x1)
+        s2.y_range = Range1d(y0, y1)
+
+        # Line plot
+        s3 = figure(width=200, height=500, title=None)
+        s3.line(100*np.sum(contamO1 >= 0.001,axis=0)/ny, PA-dPA/2, line_color='blue', legend='> 0.001')
+        s3.line(100*np.sum(contamO1 >= 0.01,axis=0)/ny, PA-dPA/2, line_color='green', legend='> 0.01')
+        s3.xaxis.axis_label = '% channels contam. above threshold'
+        s3.yaxis.major_label_text_font_size = '0pt'
+        s3.x_range = Range1d(0, 100)
+        s3.y_range = Range1d(0, 360)
+
+        # ==================================================================================================
+        # ==================================================================================================
+        # ==================================================================================================
+
+        # put all the plots in a grid layout
+        fig = gridplot(children=[[s1], [s2, s3]])
+        
         
     return fig
 
