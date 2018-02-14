@@ -570,7 +570,7 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         # Dummy plots for nice spacing
         s0 = figure(tools=TOOLS, width=150, plot_height=100, title=None)
         s0.outline_line_color = "white"
-        s7 = figure(tools=TOOLS, width=150, plot_height=100, title=None)
+        s7 = figure(tools=TOOLS, width=150, plot_height=100, title=targetName)
         s7.outline_line_color = "white"
         
         # Add bad PAs
