@@ -29,159 +29,6 @@ from scipy import interpolate
 from scipy.integrate import quad
 
 ## -- FUNCTIONS
-# - I think this is going to have a few different sections up in hereeee...
-
-## -- PHOTOMETRY/THROUHGPUT ESTIMATES
-
-def convert_mag_to_flux(mag):
-    """Converts the magnitude to flux. Assumes ST zeropoints. 
-
-    Parameters
-    ----------
-    mag : float
-        The magnitude at a given lambda.
-    
-    Returns
-    -------
-    flux : float
-        The flux at a given lambda.
-    """
-    
-    flux = 10**((mag + 21.1)/(-2.5))
-    return flux
-
-
-def calc_cr(mag, band, temp, px_size, throughput, filt):
-    """Calculates the maximum countrate for one pixel.
-
-    Parameters
-    ----------
-    mag : float
-        The magnitude throughout whichever band.
-    band : str
-        The magnitude band at hand. 
-    temp : float
-        The temperature of the object (in K.)
-    px_size : float
-        The pixels/m^2 for the given detector.
-    throughput : str
-        Whether to extimate with maximum (max), median (med),
-        or mean (mean) throughput. 
-
-    Returns
-    -------
-    countrate : float
-        The countrate per pixel per second for the filter/detector.
-    """
-    
-    # Assign band/filter wavelengths.
-    bands, filters = create_band_filter_dicts()
-    band_min, band_max, band_zpt = bands[band]
-    
-    filter_min, filter_max = filters[filt]['min_max']
-    throughput_factor = filters[filt][throughput]
-
-    # Calculate flux through given band -- based on input magnitude
-    band_flux = ((10**((mag - band_zpt)/(-2.5)))*px_size)*(1e19)*(filter_max-filter_min)
-    print('Band Flux : ' + str(band_flux))
-    # Assign it a blackbody and transform the flux for the filter at hand.
-    I_band = quad(estimate_blackbody, band_min, band_max, args=(temp))[0]
-    
-    I_filter = quad(estimate_blackbody, filter_min, filter_max, args=(temp))[0]
-    print(I_filter)
-    print(I_band)
-    # Calculate the ration of filter to band flux
-    I_ratio = I_filter/I_band
-    
-    print('Flux ratio : ' + str(I_ratio))
-    filter_flux = I_ratio*band_flux
-#    print('Flux through filter : ' + str(filter_flux))
-    
-    # Find out how much goes through the filter.
-    countrate = throughput_factor*filter_flux
-    print(countrate) 
-    return countrate
-
-def create_band_filter_dicts():
-    """Create the dictionary structures that will come in handy
-    for the other funcitons here.
-
-    Returns
-    -------
-    bands : dict
-        Dictionary full of min/max wavelengths for each band.
-    filters : dict
-        Nested dictionary full of min/max wavelengths and throughput vals.
-    """
-    
-    # Initialize dicts
-    bands, filters = {}, {}
-
-    # Magnitude bands -- in angstrom
-    bands['U'] = (3650-330, 3650+330, -20.94)
-    bands['B'] = (4450-470, 4450+470, -20.45)
-    bands['V'] = (5510-440, 5510+440, -21.12)
-    bands['R'] = (6580-690, 6580+690, -21.61)
-    bands['I'] = (8060-755, 8060+755, -22.27)
-    bands['J'] = (12200-565, 12200+565, -23.80)
-    bands['H'] = (16300-1535, 16300+1535, -24.80)
-    bands['K'] = (21900-1950, 21900+1950, -26.00)
-    bands['L'] = (34500-2360, 34500+2360, -27.87)
-#    bands['M'] = (47500-2300, 47600+2300)
-#    bands['N'] = (105000-12500, 105000+12500)
-#    bands['Q'] = (210000-24900, 210000+24900)
-    
-    ## MIRI filters -- in angstrom
-    filters['LRS'] = {'min_max': (50710.4818218, 118739.11626), 'max': 0.602303853487, 'med': 0.552979004444, 'mean': 0.504712002351}
-
-    # NIRCam filters -- in angstrom
-    filters['F322W2'] = {'min_max': (26245.490982, 40147.8957916), 'max': 0.572233552821, 'med': 0.479853694536, 'mean': 0.459312105383}
-    filters['F444W'] = {'min_max': (38794.8296593, 49745.8917836), 'max': 0.545676241333, 'med': 0.486952905631, 'mean': 0.465809117579}
-    filters['F277W'] = {'min_max': (25402.4048096, 31318.2364729), 'max': 0.41290462156, 'med': 0.321649982683, 'mean': 0.318531860247}
-    
-    # NIRISS
-    filters['GR700XD'] = {'min_max': (9000, 23500), 'max': 0.35, 'med': 0.31, 'mean': 0.31}
-
-    # NIRSpec
-    filters['G140H'] = {'min_max': (10000.0, 12700.0), 'max': 0.744763372884, 'med': 0.627978608462, 'mean': 0.626210220963}
-    filters['G140M'] = {'min_max': (10000.0, 12700.0), 'max': 0.789124407879, 'med': 0.685992244672, 'mean': 0.667456122386}
-    filters['G235H'] = {'min_max': (17000.0, 30703.3), 'max': 0.750483467307, 'med': 0.657618898472, 'mean': 0.646282919026}
-    filters['G235M'] = {'min_max': (17000.0, 31000.0), 'max': 0.80118579198, 'med': 0.692135889694, 'mean': 0.691814768153}
-    filters['G395H'] = {'min_max': (29000.0, 51776.6), 'max': 0.863484315687, 'med': 0.76015947863, 'mean': 0.727039127476}
-    filters['G395M'] = {'min_max': (29000.0, 51787.1), 'max': 0.921712341837, 'med': 0.82187746764, 'mean': 0.778701455106}
-
-    return bands, filters
-    
-def estimate_blackbody(wavelength, temp):
-    """Creates the integrand for a Planck blackbody.
-    This is techically a self contained function that will calculate 
-    the blackbody spectral radiance, but its purpose is be integrated.
-
-    Parameters
-    ----------
-    wavelength : float
-        The of the source (in microns.)
-    temp : float
-        The temperature of teh source (in K.)
-
-    Returns
-    -------
-    integrand : float
-        Final expression for spectral radiance.
-    """
-    # Constants
-    h = 6.626e-34 # m^2 kg/s 
-    k = 1.3806e-23 # m^2kg/s^2K
-    c = 3e8 # m/s\
-    # Convert wavelength to m and then frequency
-    wavelength = wavelength*(1e-10)
-    nu = c/(wavelength*1e6) # in Hz
-    
-    # Expression for blackbody
-    integrand = (2*h*(nu**3)/(c**2))/(np.e**((h*nu)/(k*temp)) - 1)
-    return integrand
-
-## -- I GAVE UP AND KIND OF USE PANDEIA FUNCTIONS
 
 def calc_groups_from_exp_time(max_exptime_per_int, t_frame):
     """
@@ -199,21 +46,6 @@ def calc_groups_from_exp_time(max_exptime_per_int, t_frame):
 
     groups = max_exptime_per_int/t_frame
     return np.floor(groups)
-
-def create_pandeia_dicts(infile):
-    """
-    WIP -- How to initialize these dicts quick w/o reading a 
-    text file? RN the answer is hard coding...
-    Time will tell.
-
-    Returns
-    -------
-    pandeia_dicts : dict of dict of array
-    """
-    
-    dat = ascii.read(infile)
-    pandeia_dict = dict(dat)
-    return pandeia_dict
 
 
 def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infile, ta=False):
@@ -248,19 +80,19 @@ def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infil
     n_group : int
         The number of groups that won't oversaturate the detector.
     """
-    
     # Create the dictionaries for each filter and select out the prerun data
     with open(infile) as f:
         dat = json.load(f)
     
     ta_or_tor = 'tor'
+    
     if ta:
         ta_or_tor = 'ta_tor'
 
     mags = dat['mags']
     sat = dat[ta_or_tor][ins][filt][sub][mod]
     
-    # Inter/olate the given magnitude
+    # Interpolate the given magnitude
     log_sat = np.log10(sat)
     func_log = interpolate.interp1d(mags, log_sat)
     func = interpolate.interp1d(mags, sat)
@@ -320,7 +152,9 @@ def map_to_ta_modes(ins, max_group, min_group):
         min_ta_groups = -1
         max_ta_groups = 0
     
+    # BOTH ARE FLIPPED RN -- I WILL FLIP BOTH BACK SOON...
     return max_ta_groups, min_ta_groups
+
 
 def min_groups(mag, ins, filt, sub, mod, band, infile):
     """Estimates the minimum number of groups to reach 
@@ -355,75 +189,12 @@ def min_groups(mag, ins, filt, sub, mod, band, infile):
     # Match to closest magnitude
     mags = dat['mags']
     closest_mag = min(mags, key=lambda x:abs(x-mag))
-    print(closest_mag)
     index = mags.index(closest_mag)
     
     # Match to data 
     min_groups = dat['ta_snr'][ins][filt][sub][mod][index]
-    print(min_groups)
     return min_groups
 
-
-## -- SIMPLE LOGIC TIME CALCULATIONS
-
-def calc_n_group(ins, countrate, sat_max, t_frame, n_frame, n_skip):
-    """Calculates number of groups per integration.
-
-    Parameters
-    ----------
-    countrate : float
-        The counts per pixel per second for your source/detector/filter.
-    sat_max : float
-        The maximum saturation limit we'll reach. 
-    t_frame : float
-        The frame time (in seconds.)
-    n_frame : int
-        Frames per group -- always 1 except maybe brown dwarves.
-    n_skip : int
-        The skips per integration -- always 1 except maybe brown dwarves.
-    
-    Returns
-    -------
-    n_group : int
-        The minimum integer of groups per integration that will NOT excede the 
-        saturatin limit.
-    """
-    if ins == 'NIRCam':
-        n_group = 4
-        while (n_group*n_frame - n_skip)*(t_frame*countrate) > sat_max:
-            n_group += -1
-    
-    if ins == 'NIRSpec':
-        n_group = 5
-        if compare_sat(n_group, countrate, sat_max, t_frame, n_frame, n_skip):
-            n_group = 4
-        if compare_sat(n_group, countrate, sat_max, t_frame, n_frame, n_skip):
-            n_group = 1
-        
-    if ins == 'NIRISS':
-        n_group = 30 
-        while compare_sat(n_group, countrate, sat_max, t_frame, n_frame, n_skip):
-            n_group += -1
-        if n_group < 1:
-            n_group = 1
-            message = 'Your source may be too bright for this filter!'
-
-    if ins == 'MIRI':
-        n_group = ((sat_max)/(t_frame*countrate) + n_skip)/n_frame
-        n_group = math.floor(n_group)
-    
-    return n_group
-    
-def compare_sat(n_group, countrate, sat_max, t_frame, n_frame, n_skip):
-    
-    print('Sat max ' + str(sat_max))
-    print('Cr ' + str(countrate))
-    print('frame # ' + str(n_frame))
-    print('frame time ' + str(t_frame))
-
-    comp = (n_group*n_frame - n_skip)*(t_frame*countrate) > sat_max
-    print(comp)
-    return comp
 
 def calc_n_int(transit_time, n_group, n_reset, t_frame, n_frame):
     """Calculates number of integrations required.
@@ -449,8 +220,7 @@ def calc_n_int(transit_time, n_group, n_reset, t_frame, n_frame):
 
     hour = 3600
     n_ints = (transit_time*hour)/(t_frame*(n_group*n_frame+n_reset))
-    print('N frame : ' + str(n_frame))
-    print('N reset : ' + str(n_reset))
+    
     return math.ceil(n_ints)
 
 
@@ -543,9 +313,7 @@ def calc_t_frame(n_col, n_row, n_amp, ins):
         n = 1
 
     t_frame = (n_col/n_amp + 12)*(n_row + n)*(1e-5)
-    print(n_row)
-    print(n_col)
-    print(t_frame)
+    
     return t_frame
 
 
@@ -570,11 +338,6 @@ def calc_t_int(n_group, t_frame, n_frame, n_skip):
     """
     
     t_int = (n_group*(n_frame + n_skip) - n_skip)*t_frame
-    print(t_int)
-    print(n_group)
-    print(n_frame)
-    print(n_skip)
-    print(t_frame)
     return t_int
 
 
@@ -628,10 +391,13 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     
     ## -- TARGET ACQ
     ta_frame_time = set_t_frame(params['infile'], params['ins'], params['subarray_ta'], ta=True)
+    
+    max_sat_ta_lvl = convert_sat(params['sat_max'], params['sat_mode'],
+            params['ins'], params['infile'], ta=True)
 
     max_group, sat_rate_ta = interpolate_from_dat(params['mag'], params['ins'], params['filt_ta'], 
                                      params['subarray_ta'], params['mod'], params['band'],
-                                     ta_frame_time, params['sat_max'], params['infile'], ta=True)
+                                     ta_frame_time, max_sat_ta_lvl, params['infile'], ta=True)
     min_group = min_groups(params['mag'], params['ins'], params['filt_ta'], params['subarray_ta'], 
                            params['mod'], params['band'], params['infile'])
     min_ta_groups, max_ta_groups = map_to_ta_modes(params['ins'], max_group, min_group)
@@ -648,7 +414,7 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
     n_row, n_col, n_amp, px_size, t_frame, n_reset = ins_params
     band_ins = '{0}_{1}'.format(params['band'], params['filt'])
     
-    params['sat_max'] = convert_sat(params['sat_max'], params['sat_mode'], params['ins'])
+    params['sat_max'] = convert_sat(params['sat_max'], params['sat_mode'], params['ins'], params['infile'])
 
     # Calculate countrate and n_groups if it isn't supplied
     n_group, sat_rate = interpolate_from_dat(params['mag'],
@@ -700,13 +466,40 @@ def create_tor_dict(params, n_frame=1, n_skip=0):
 
 ## -- INS CONVERSION THINGS
 
-def convert_sat(sat_max, sat_mode, ins):
-     
-    if sat_mode == 'well':
-        ins_dict = {'nirspec': 65500, 'miri': 250000, 'nircam': 60000, 'niriss': 75000}
-        sat_max = sat_max*ins_dict[ins]
+def convert_sat(sat_max, sat_mode, ins, infile, ta=False):
+    """ Converts full well fraction to a saturation in counts OR provides the 
+    max fullwell for TA mode.
 
-    print(sat_max)
+    Parameters
+    ----------
+    sat_max : float
+        Either a full well fraction or counts.
+    sat_mode : str
+        'well' or 'counts'.
+    ins : str
+        The instrument.
+    infile : str
+        The path to the data file.
+    ta : bool, optional
+        Whether or not it's TA mode.
+    
+    Returns
+    -------
+    sat_max : float
+        The fullwell to use in counts.
+    """
+
+    with open(infile) as f:
+        dat = json.load(f)
+
+    ins_dict = dat['fullwell'] 
+    
+    if sat_mode == 'well':
+        sat_max = sat_max*ins_dict[ins]
+    
+    if ta:
+        sat_max = ins_dict[ins]
+    
     return sat_max
     
 
@@ -818,11 +611,5 @@ def set_params_from_ins(ins, subarray):
 
 if __name__ == "__main__":
     
-
-    transit_time, n_col, n_row, n_reset, n_amp = 5, 96, 2048, 1, 1
-    mag, band, temp, px_size, throughput, filt = 10.3, 'K',  2550, 3e9, 'med', 'G235M'
-    sat_max = 20000
-
-    tor_dict = create_tor_dict(transit_time, mag, band, temp, sat_max, px_size, throughput, filt, n_col, n_row, n_amp, n_reset)
-
+    print('Hey.')
     
