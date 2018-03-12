@@ -387,19 +387,45 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
     # Otherwise, it's a Bokeh plot
     if fig:
         
-        TOOLS = 'crosshair,reset,hover,save'
+        TOOLS = 'pan,box_zoom,crosshair,reset,hover,save'
         
-        # ==================================================================================================
-        # Order 1 ==========================================================================================
-        # ==================================================================================================
-        
-        # Line list
-        s1 = figure(tools=TOOLS, width=500, plot_height=100, title=None)
         y=np.array([0.,0.])
         y1=0.07
         y2=0.12
         y3=0.17
         y4=0.23
+        bad_PA_color = '#dddddd'
+        bad_PA_alpha = 0.7
+        
+        # ==================================================================================================
+        # Order 1 ==========================================================================================
+        # ==================================================================================================
+
+        # Contam plot
+        xlim0, xlim1, ylim0, ylim1 = lamO1.min(), lamO1.max(), PA.min()-0.5*dPA, PA.max()+0.5*dPA
+        color_mapper = LinearColorMapper(palette=inferno(8)[::-1], low=-4, high=1)
+        color_mapper.low_color = 'white'
+        color_mapper.high_color = 'black'
+        s2 = figure(tools=TOOLS, width=500, height=500, title=None, x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
+        fig_data = np.log10(np.clip(contamO1.T,1.e-10,1.))
+        s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0, color_mapper=color_mapper)
+        s2.xaxis.axis_label = 'Wavelength (um)'
+        s2.yaxis.axis_label = 'Position Angle (degrees)'
+
+        # Line plot
+        s3 = figure(tools=TOOLS, width=150, height=500, x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
+        s3.line(100*np.sum(contamO1 >= 0.001,axis=0)/ny, PA-dPA/2, line_color='blue', legend='> 0.001')
+        s3.line(100*np.sum(contamO1 >= 0.01,axis=0)/ny, PA-dPA/2, line_color='green', legend='> 0.01')
+        s3.xaxis.axis_label = '% channels contam.'
+        s3.yaxis.major_label_text_font_size = '0pt'
+
+        # Add bad PAs
+        for ybad0,ybad1 in badPA:
+            s2.patch([xlim0,xlim1,xlim1,xlim0], [ybad1,ybad1,ybad0,ybad0], color=bad_PA_color, alpha=bad_PA_alpha)
+            s3.patch([0,100,100,0], [ybad1,ybad1,ybad0,ybad0], color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
+            
+        # Line list
+        s1 = figure(tools=TOOLS, width=500, plot_height=100, x_range=s2.x_range, title=None)
 
         l=np.array([0.89,0.99])
         s1.line(l,y+y1, line_color='black', line_width=1.5)
@@ -473,39 +499,39 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         s1.xaxis.major_label_text_font_size = '0pt'
         s1.yaxis.major_label_text_font_size = '0pt'
 
-        # Contam plot
-        xlim0, xlim1, ylim0, ylim1 = lamO1.min(), lamO1.max(), PA.min()-0.5*dPA, PA.max()+0.5*dPA
-        color_mapper = LinearColorMapper(palette=inferno(8)[::-1], low=-4, high=1)
-        color_mapper.low_color = 'white'
-        color_mapper.high_color = 'black'
-        s2 = figure(tools=TOOLS, width=500, height=500, title=None, x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
-        fig_data = np.log10(np.clip(contamO1.T,1.e-10,1.))
-        s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0, color_mapper=color_mapper)
-        # color_bar = ColorBar(color_mapper=color_mapper, location=(0,0))
-        s2.xaxis.axis_label = 'Wavelength (um)'
-        s2.yaxis.axis_label = 'Position Angle (degrees)'
-        # s2.add_layout(color_bar, 'below')
-
-        # Line plot
-        s3 = figure(tools=TOOLS, width=150, height=500, title=None)
-        s3.line(100*np.sum(contamO1 >= 0.001,axis=0)/ny, PA-dPA/2, line_color='blue', legend='> 0.001')
-        s3.line(100*np.sum(contamO1 >= 0.01,axis=0)/ny, PA-dPA/2, line_color='green', legend='> 0.01')
-        s3.xaxis.axis_label = '% channels contam.'
-        s3.yaxis.major_label_text_font_size = '0pt'
-        s3.x_range = Range1d(0, 100)
-        s3.y_range = Range1d(0, 360)
-
-        # Add bad PAs
-        for ybad0,ybad1 in badPA:
-            s2.patch([xlim0,xlim1,xlim1,xlim0], [ybad1,ybad1,ybad0,ybad0], color='white', alpha=0.7)
-            s3.patch([0,100,100,0], [ybad1,ybad1,ybad0,ybad0], color='white', alpha=0.7)
-
         # ==================================================================================================
         # Order 2 ==========================================================================================
         # ==================================================================================================
         
+        # Contam plot
+        xlim0, xlim1, ylim0, ylim1 = lamO2.min(), lamO2.max(), PA.min()-0.5*dPA, PA.max()+0.5*dPA
+        xlim0 = 0.614
+        s5 = figure(tools=TOOLS, width=250, height=500, title=None, x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
+        fig_data = np.log10(np.clip(contamO2.T,1.e-10,1.))[:,300:]
+        s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0, color_mapper=color_mapper)
+        s5.yaxis.major_label_text_font_size = '0pt'
+        s5.xaxis.axis_label = 'Wavelength (um)'
+
+        # Line plot
+        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range, x_range=Range1d(100, 0), title=None)
+        s6.line(100*np.sum(contamO2 >= 0.001,axis=0)/ny, PA-dPA/2, line_color='blue', legend='> 0.001')
+        s6.line(100*np.sum(contamO2 >= 0.01,axis=0)/ny, PA-dPA/2, line_color='green', legend='> 0.01')
+        s6.xaxis.axis_label = '% channels contam.'
+        s6.yaxis.major_label_text_font_size = '0pt'
+        
+        # Dummy plots for nice spacing
+        s0 = figure(tools=TOOLS, width=150, plot_height=100, title=None)
+        s0.outline_line_color = "white"
+        s7 = figure(tools=TOOLS, width=150, plot_height=100, title=targetName)
+        s7.outline_line_color = "white"
+        
+        # Add bad PAs
+        for ybad0,ybad1 in badPA:
+            s5.patch([xlim0,xlim1,xlim1,xlim0], [ybad1,ybad1,ybad0,ybad0], color=bad_PA_color, alpha=bad_PA_alpha)
+            s6.patch([0,100,100,0], [ybad1,ybad1,ybad0,ybad0], color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
+            
         # Line list
-        s4 = figure(tools=TOOLS, width=250, plot_height=100, title=None)
+        s4 = figure(tools=TOOLS, width=250, plot_height=100, x_range=s5.x_range, title=None)
         l=np.array([0.89,0.99])
         s4.line(l,y+y1, line_color='black', line_width=1.5)
         s4.add_layout(Label(x=l.mean(), y=y1, x_units='data', y_units='data', text='H2O', render_mode='css', text_font_size='8pt'))
@@ -548,35 +574,6 @@ def contam(cube, targetName='noName', paRange=[0,360], badPA=[], tmpDir="", fig=
         
         s4.xaxis.major_label_text_font_size = '0pt'
         s4.yaxis.major_label_text_font_size = '0pt'
-        
-        # Contam plot
-        xlim0, xlim1, ylim0, ylim1 = lamO2.min(), lamO2.max(), PA.min()-0.5*dPA, PA.max()+0.5*dPA
-        xlim0 = 0.614
-        s5 = figure(tools=TOOLS, width=250, height=500, title=None, x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
-        fig_data = np.log10(np.clip(contamO2.T,1.e-10,1.))[:,300:]
-        s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0, color_mapper=color_mapper)
-        s5.yaxis.major_label_text_font_size = '0pt'
-        s5.xaxis.axis_label = 'Wavelength (um)'
-
-        # Line plot
-        s6 = figure(tools=TOOLS, width=150, height=500, title=None)
-        s6.line(100*np.sum(contamO2 >= 0.001,axis=0)/ny, PA-dPA/2, line_color='blue', legend='> 0.001')
-        s6.line(100*np.sum(contamO2 >= 0.01,axis=0)/ny, PA-dPA/2, line_color='green', legend='> 0.01')
-        s6.xaxis.axis_label = '% channels contam.'
-        s6.yaxis.major_label_text_font_size = '0pt'
-        s6.x_range = Range1d(100, 0)
-        s6.y_range = Range1d(0, 360)
-        
-        # Dummy plots for nice spacing
-        s0 = figure(tools=TOOLS, width=150, plot_height=100, title=None)
-        s0.outline_line_color = "white"
-        s7 = figure(tools=TOOLS, width=150, plot_height=100, title=targetName)
-        s7.outline_line_color = "white"
-        
-        # Add bad PAs
-        for ybad0,ybad1 in badPA:
-            s5.patch([xlim0,xlim1,xlim1,xlim0], [ybad1,ybad1,ybad0,ybad0], color='white', alpha=0.7)
-            s6.patch([0,100,100,0], [ybad1,ybad1,ybad0,ybad0], color='white', alpha=0.7)
         
         # put all the plots in a grid layout
         fig = gridplot(children=[[s7, s4, s1, s0], [s6, s5, s2, s3]])
