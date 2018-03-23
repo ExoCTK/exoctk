@@ -12,9 +12,9 @@ import astropy.table as at
 import astropy.units as q
 from matplotlib import rc
 from scipy.optimize import curve_fit
+from svo_filters import svo
 from . import ldcplot as lp
 from .. import core
-from .. import svo
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
