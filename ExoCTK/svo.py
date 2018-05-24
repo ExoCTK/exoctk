@@ -18,7 +18,7 @@ import pkg_resources
 import numpy as np
 import urllib
 import os
-from ExoCTK import core
+from . import core
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 WL_KEYS = ['FWHM', 'WavelengthCen', 'WavelengthEff', 'WavelengthMax',

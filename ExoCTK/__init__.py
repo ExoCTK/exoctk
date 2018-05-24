@@ -17,3 +17,4 @@ if not _ASTROPY_SETUP_:
     from . import forward_models
     from . import integrations_groups
     from . import limb_darkening
+    from . import nircam_coronagraphy

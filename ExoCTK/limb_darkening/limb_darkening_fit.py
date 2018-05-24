@@ -150,8 +150,15 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     np.ndarray
         The list of limb darkening coefficients, mu values, and effective 
         radius calculated from the model of the given parameters from the
-        input core.ModelGrid 
-    
+        input core.ModelGrid
+        
+    Example
+    -------
+    from ExoCTK.limb_darkening import limb_darkening_fit as lf
+    from ExoCTK import core
+    fits_files = '/user/jfilippazzo/Models/ACES/default/'
+    model_grid = core.ModelGrid(fits_files, resolution=700)
+    results = lf.ldc(4500, 5.0, 0.0, model_grid, ['quadratic','linear'])
     """              
     # Get the model, interpolating if necessary
     if not grid_point:
