@@ -13,8 +13,8 @@ import astropy.units as q
 from matplotlib import rc
 from scipy.optimize import curve_fit
 from . import limb_darkening_plot as lp
-from .. import core
 from .. import svo
+from .. import core
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
