@@ -31,6 +31,7 @@ import batman
 import lmfit
 import json
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class LightCurveFitter:
@@ -51,7 +52,7 @@ class LightCurveFitter:
 
 
 class LightCurve:
-    def __init__(self, time, flux, parameters=None, fitter=None):
+    def __init__(self, time, flux, unc=None, parameters=None, fitter=None):
         """
         A class to store the actual light curve 
         
@@ -61,18 +62,40 @@ class LightCurve:
             The time axis in days
         flux: sequence
             The flux at each time
+        unc: sequence
+            The uncertainty on the flux
         parameters: str, object (optional)
             The orbital parameters of the star/planet system,
             may be a path to a JSON file or a parameter object
         fitter: 
             The instance used to perform the fit
+        
+        Example
+        -------
+        from ExoCTK.lightcurve_fitting import lightcurve
+        time = np.arange(100)
+        flux = np.random.normal([0.9 if 25<i<75 else 1 for i in range(100)], scale=0.01)
+        unc = np.random.normal(size=100, scale=0.02)
+        params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
+        lc = lightcurve.LightCurve(time, flux, unc, params)
         """
         # Check data
         if len(time)!=len(flux):
             assert ValueError('Time and flux axes must be the same length.')
 
+        # Set the data arrays
         self.time = time
         self.flux = flux
+        if unc is not None:
+            if len(unc)!=len(time):
+                raise ValueError('Time and unc axes must be the same length.')
+                
+            self.unc = unc
+            
+        else:
+            self.unc = np.array([np.nan]*len(self.time))
+        
+        # Store the orbital parameters
         self._parameters = parameters
 
 
@@ -87,7 +110,14 @@ class LightCurve:
         """A setter for the parameters"""
         # Process if it is a parameters file
         if isinstance(params, str) and os.file.exists(params):
-            params = json.load(params)
+            params = Parameters(params)
+            
+        # Or a Parameters instance
+        if not isinstance(params, Parameters):
+            raise TypeError("'params' argument must be a JSON file, ascii file, or ExoCTK.lightcurve_fitting.lightcurve.Parameters instance.")
+            
+        # Set the parameters attribute
+        self._parameters = params
 
 
     def fit(self, fitter):
@@ -95,7 +125,13 @@ class LightCurve:
 
 
     def plot(self):
-        pass
+        """Plot the light curve with all available fits"""
+        plt.figure()
+        
+        plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o', ls='none')
+        
+        plt.xlabel('Days')
+        plt.ylabel('Rp/R*')
 
 
 class Parameters:
@@ -109,6 +145,9 @@ class Parameters:
         param_file: str
             A text file of the parameters to parse
         
+        Example
+        -------
+        params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
         """
         # Make an empty params dict
         params = {}
@@ -224,7 +263,7 @@ class Parameters:
         if value not in profiles:
             assert NameError("limb_dark must be one of the following:",','.join(profiles))
 
-        self.limb_dark = value
+        self._limb_dark = value
 
 
     @property
