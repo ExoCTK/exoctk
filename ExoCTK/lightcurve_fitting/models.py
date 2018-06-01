@@ -244,38 +244,38 @@ class PolynomialModel(Model):
         self.flux = np.polyval(poly, time)
 
 
-class QuadraticModel(Model):
-    """Quadratic Model"""
-    def __init__(self):
-        """Initialize the quadratic model"""
-        super().__init__()
-
-        self.model = np.arange(100)**2
-
-
-class StellarModel(Model):
-    """Stellar Model"""
-    def __init__(self):
-        """Initialize the stellar model"""
-        super().__init__()
-
-        self.model = np.arange(100)**2
-
-
-class SystematicModel(Model):
-    """Systematic Model"""
-    def __init__(self):
-        """Initialize the systematic model"""
-        super().__init__()
-
-        self.model = np.arange(100)**2
-
-
-class TransitModel(Model):
-    """Transit Model"""
-    def __init__(self):
-        """Initialize the transit model"""
-        super().__init__()
-
-        self.model = np.arange(100)**2
+# class QuadraticModel(Model):
+#     """Quadratic Model"""
+#     def __init__(self):
+#         """Initialize the quadratic model"""
+#         super().__init__()
+#
+#         self.model = np.arange(100)**2
+#
+#
+# class StellarModel(Model):
+#     """Stellar Model"""
+#     def __init__(self):
+#         """Initialize the stellar model"""
+#         super().__init__()
+#
+#         self.model = np.arange(100)**2
+#
+#
+# class SystematicModel(Model):
+#     """Systematic Model"""
+#     def __init__(self):
+#         """Initialize the systematic model"""
+#         super().__init__()
+#
+#         self.model = np.arange(100)**2
+#
+#
+# class TransitModel(Model):
+#     """Transit Model"""
+#     def __init__(self):
+#         """Initialize the transit model"""
+#         super().__init__()
+#
+#         self.model = np.arange(100)**2
 
