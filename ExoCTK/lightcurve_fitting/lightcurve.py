@@ -1,29 +1,7 @@
-"""Light Curve Fitting
+"""Base and child classes to handle light curve fitting
 
-Generally:
-1. Start with raw data of light curve
-2. Load the known planet/stellar orbital and atmospheric parameters to create a theoretical light curve
-3. 
-
-
-Kevin
-1. Create parameters file replete with systematic models
-2. Load the obs data
-3. Generate a model of initial conditions
-4. LMFIT to determine best fit
-5. MCMC routine to determine uncertainties with best fit priors
-
-
-Jonathan
-1. Load the obs data
-2. Load planet params f(P, Tc, a/Rs, i(b), d, ldcs, e, w)
-3. Plot initial lightcurve
-4. Fidget with planet params if Tc can't be found
-5. Use LMFIT with models to determine params
-
-
-ExoCTK Version
-1. Create base class instance with default parameters, also allow a parameter file argument
+Author: Joe Filippazzo
+Email: jfilippazzo@stsci.edu
 """
 import os
 import numpy as np
@@ -34,6 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from .parameters import Parameters
+from .models import Model
 
 class LightCurveFitter:
     def __init__(self, model_class):
@@ -52,8 +31,8 @@ class LightCurveFitter:
         return self.results.iloc[self.results[param_name]==value]
 
 
-class LightCurve:
-    def __init__(self, time, flux, unc=None, parameters=None, fitter=None):
+class LightCurve(Model):
+    def __init__(self, time, flux, unc=None, parameters=None, fitter=None, units='day'):
         """
         A class to store the actual light curve 
         
@@ -80,13 +59,14 @@ class LightCurve:
         params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
         lc = lightcurve.LightCurve(time, flux, unc, params)
         """
+        # Initialize the model
+        super().__init__()
+        
         # Check data
         if len(time)!=len(flux):
-            assert ValueError('Time and flux axes must be the same length.')
+            raise ValueError('Time and flux axes must be the same length.')
 
         # Set the data arrays
-        self.time = time
-        self.flux = flux
         if unc is not None:
             if len(unc)!=len(time):
                 raise ValueError('Time and unc axes must be the same length.')
@@ -96,45 +76,34 @@ class LightCurve:
         else:
             self.unc = np.array([np.nan]*len(self.time))
         
+        # Set the time and flux axes
+        self.time = time
+        self.flux = flux
+        
+        # Set the units
+        self.units = units
+        
         # Store the orbital parameters
-        self._parameters = parameters
-
-
-    @property
-    def parameters(self):
-        """A getter for the parameters"""
-        return self._parameters
-
-
-    @parameters.setter
-    def parameters(self, params):
-        """A setter for the parameters"""
-        # Process if it is a parameters file
-        if isinstance(params, str) and os.file.exists(params):
-            params = Parameters(params)
-            
-        # Or a Parameters instance
-        if not isinstance(params, Parameters):
-            raise TypeError("'params' argument must be a JSON file, ascii file, or ExoCTK.lightcurve_fitting.lightcurve.Parameters instance.")
-            
-        # Set the parameters attribute
-        self._parameters = params
-
-
-    def fit(self, model, fitter):
+        if parameters is not None:
+            self.parameters = parameters
+        
+        
+    def fit(self, model, fitter='lmfit', **kwargs):
         """Fit the model to the lightcurve
         
         Parameters
         ----------
         model: ExoCTK.lightcurve_fitter.models.Model
             The model to fit to the data
-        fitter: 
+        fitter: str
+            The name of the fitter to use
         """
         # Interpolate model to data
-        mod = model.model
+        model.interp(self.time, self.units)
         
-        
-        self.fit_results = self.sampler.do_it()
+        if fitter=='lmfit':
+            
+            return 'lmfit'
 
 
     def plot(self):
@@ -143,6 +112,6 @@ class LightCurve:
         
         plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o', ls='none')
         
-        plt.xlabel('Days')
-        plt.ylabel('Rp/R*')
+        plt.xlabel(self.units.long_names[0])
+        plt.ylabel('Flux')
 
