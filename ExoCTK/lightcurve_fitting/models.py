@@ -200,7 +200,13 @@ class Model:
         
         
     def plot(self, components=False):
-        """Plot the model"""
+        """Plot the model
+        
+        Parameters
+        ----------
+        components: bool
+            Plot all model components
+        """
         if self.time is not None and self.flux is not None:
             plt.plot(self.time, self.flux, label=self.name)
             
@@ -212,6 +218,9 @@ class Model:
             plt.ylabel('Flux')
             
             plt.legend(loc=0)
+        
+        else:
+            print('No model data to plot.')
 
 
 class PolynomialModel(Model):
