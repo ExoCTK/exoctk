@@ -22,6 +22,7 @@ class Model:
         self._flux = None
         self._units = q.day
         self._parameters = None
+        self.components = None
         
         # Store the arguments as attributes
         for arg, val in kwargs.items():
@@ -54,7 +55,10 @@ class Model:
         # Multiply fluxes
         new_flux = self.flux*other.flux
         
-        return Model(time=self.time, flux=new_flux)
+        # Store the components
+        components = [self, other]
+        
+        return Model(time=self.time, flux=new_flux, components=components)
         
         
     def interp(self, new_time, units=q.day):
@@ -195,11 +199,15 @@ class Model:
         self._flux = np.array(flux_array)
         
         
-    def plot(self):
+    def plot(self, components=False):
         """Plot the model"""
         if self.time is not None and self.flux is not None:
             plt.plot(self.time, self.flux, label=self.name)
             
+            if components and self.components is not None:
+                for comp in self.components:
+                    comp.plot()
+                
             plt.xlabel(self.units.long_names[0])
             plt.ylabel('Flux')
             
