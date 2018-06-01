@@ -5,6 +5,7 @@ Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Model:
     def __init__(self, model_name, time=None, position=None, **kwargs):
@@ -43,6 +44,14 @@ class Model:
         new_model = self.model*other.model
 
         return CustomModel(new_model)
+        
+    
+    def plot(self):
+        """Plot the model"""
+        plt.figure()
+        
+        if self.model is not None:
+            plt.plot(self.model)
 
 
 class CustomModel(Model):
@@ -60,11 +69,11 @@ class CustomModel(Model):
 
 class LinearModel(Model):
     """Linear Model"""
-    def __init__(self, model_name):
+    def __init__(self, model_name, value=1):
         """Initialize the linear model"""
         super().__init__(model_name)
 
-        self.model = np.arange(100)
+        self.model = np.ones(100)*value
 
 
 class QuadraticModel(Model):
