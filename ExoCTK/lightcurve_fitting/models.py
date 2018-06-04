@@ -225,24 +225,58 @@ class Model:
 
 class PolynomialModel(Model):
     """Polynomial Model"""
-    def __init__(self, time, coeffs, **kwargs):
+    def __init__(self, time, **kwargs):
         """Initialize the polynomial model
         
         Parameters
         ----------
         time_array: sequence, astropy.units.quantity.Quantity
             The time array
-        coeffs: float, int, sequence
-            The list of coefficients, highest order first
         """
+        # Inherit from Model calss
         super().__init__(time=time, **kwargs)
+
+        if kwargs:
+            self.flux = self.func(**kwargs)
+            
+            
+    @staticmethod
+    def _parse_coeffs(coeff_dict):
+        """Convert dict of 'c#' coefficients into a list
+        of coefficients in decreasing order, i.e. ['c2','c1','c0']
+        
+        Parameters
+        ----------
+        coeff_dict: dict
+            The dictionary of coefficients
+        
+        Returns
+        -------
+        np.ndarray
+            The sequence of coefficient values
+        """
+        # Parse 'c#' keyword arguments as coefficients
+        coeffs = np.zeros(10)
+        for k,v in coeff_dict.items():
+            if k.lower().startswith('c') and k[1:].isdigit():
+                coeffs[int(k[1:])] = v
+           
+        # Trim zeros and reverse
+        return np.trim_zeros(coeffs)[::-1]
+        
+        
+    def func(self, **kwargs):
+        """Evaluate the function with the given values"""
+        coeffs = self._parse_coeffs(kwargs)
         
         # Create the polynomial from the coeffs
         poly = np.poly1d(coeffs)
         
-        # Evaluate
-        self.flux = np.polyval(poly, time)
-
+        # Evaluate the polynomial and store the flux
+        flux = np.polyval(poly, self.time)
+        
+        return flux
+        
 
 # class QuadraticModel(Model):
 #     """Quadratic Model"""
