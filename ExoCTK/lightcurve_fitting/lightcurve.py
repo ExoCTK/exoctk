@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 from .parameters import Parameters
 from .models import Model
+from .fitters import lmfitter
 
 class LightCurveFitter:
     def __init__(self, model_class):
@@ -32,7 +33,7 @@ class LightCurveFitter:
 
 
 class LightCurve(Model):
-    def __init__(self, time, flux, unc=None, parameters=None, fitter=None, units='day'):
+    def __init__(self, time, flux, unc=None, parameters=None, units='day', name=None):
         """
         A class to store the actual light curve 
         
@@ -47,17 +48,6 @@ class LightCurve(Model):
         parameters: str, object (optional)
             The orbital parameters of the star/planet system,
             may be a path to a JSON file or a parameter object
-        fitter: 
-            The instance used to perform the fit
-        
-        Example
-        -------
-        from ExoCTK.lightcurve_fitting import lightcurve
-        time = np.arange(100)
-        flux = np.random.normal([0.9 if 25<i<75 else 1 for i in range(100)], scale=0.01)
-        unc = np.random.normal(size=100, scale=0.02)
-        params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
-        lc = lightcurve.LightCurve(time, flux, unc, params)
         """
         # Initialize the model
         super().__init__()
@@ -82,6 +72,7 @@ class LightCurve(Model):
         
         # Set the units
         self.units = units
+        self.name = name
         
         # Store the orbital parameters
         if parameters is not None:
@@ -103,15 +94,17 @@ class LightCurve(Model):
         
         if fitter=='lmfit':
             
-            return 'lmfit'
+            # Run the fit
+            return lmfitter(self.flux, model)
 
 
     def plot(self):
         """Plot the light curve with all available fits"""
         plt.figure()
         
-        plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o', ls='none')
+        plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o', ls='none', label=self.name)
         
         plt.xlabel(self.units.long_names[0])
         plt.ylabel('Flux')
+        plt.legend(loc=0)
 
