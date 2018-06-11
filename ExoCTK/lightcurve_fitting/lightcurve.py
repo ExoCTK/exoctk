@@ -83,10 +83,6 @@ class LightCurve(Model):
         self.units = units
         self.name = name
         
-        # Store the orbital parameters
-        if parameters is not None:
-            self.parameters = parameters
-        
         
     def fit(self, model, fitter='lmfit', **kwargs):
         """Fit the model to the lightcurve
@@ -99,12 +95,12 @@ class LightCurve(Model):
             The name of the fitter to use
         """
         # Interpolate model to data
-        model.interp(self.time, self.units)
+        # model.interp(self.time, self.units)
         
         if fitter=='lmfit':
             
             # Run the fit
-            return lmfitter(self.flux, model)
+            return lmfitter(self.time, self.flux, model)
 
 
     def plot(self):

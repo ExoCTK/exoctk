@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as q
 import batman
+import copy
 
 from .parameters import Parameters
 
@@ -50,16 +51,7 @@ class Model:
         # Convert other time axis to same units
         other.units = self.units
         
-        # Interpolate the other flux to the current time axis and multiply
-        other.interp(self.time, self.units)
-        
-        # Multiply fluxes
-        new_flux = self.flux*other.flux
-        
-        # Store the components
-        components = [self, other]
-        
-        return Model(time=self.time, flux=new_flux, components=components)
+        return CompositeModel([copy.copy(self), other])
         
         
     def interp(self, new_time, units=q.day):
@@ -105,7 +97,7 @@ class Model:
             params = Parameters(params)
             
         # Or a Parameters instance
-        if not isinstance(params, Parameters):
+        if not isinstance(params, (Parameters, type(None))):
             raise TypeError("'params' argument must be a JSON file, ascii file, or ExoCTK.lightcurve_fitting.parameters.Parameters instance.")
             
         # Set the parameters attribute
@@ -200,7 +192,7 @@ class Model:
         self._flux = np.array(flux_array)
         
         
-    def plot(self, components=False):
+    def plot(self, time, components=False, **kwargs):
         """Plot the model
         
         Parameters
@@ -208,37 +200,71 @@ class Model:
         components: bool
             Plot all model components
         """
-        if self.time is not None and self.flux is not None:
-            plt.plot(self.time, self.flux, label=self.name)
-            
-            if components and self.components is not None:
-                for comp in self.components:
-                    comp.plot()
-                
-            plt.xlabel(self.units.long_names[0])
-            plt.ylabel('Flux')
-            
-            plt.legend(loc=0)
+        # Set the time
+        self.time = time
         
-        else:
-            print('No model data to plot.')
+        flux = self.eval(**kwargs)
+        plt.plot(self.time, flux, label=self.name)
+        
+        if components and self.components is not None:
+            for comp in self.components:
+                flux = comp.eval(**kwargs)
+                plt.plot(self.time, flux, label=comp.name)
+            
+        plt.xlabel(self.units.long_names[0])
+        plt.ylabel('Flux')
+        
+        plt.legend(loc=0)
+
+
+class CompositeModel(Model):
+    """A class to create composite models"""
+    def __init__(self, models, **kwargs):
+        """Initialize the composite model
+        
+        Parameters
+        ----------
+        models: sequence
+            The list of models
+        """
+        # Inherit from Model calss
+        super().__init__(**kwargs)
+        
+        # Store the models
+        self.components = models
+        
+    def eval(self, **kwargs):
+        """Evaluate the model components"""
+        # Get the time
+        if self.time is None:
+            self.time = kwargs.get('time')
+        
+        # Empty flux
+        flux = 1.
+        
+        # Evaluate flux at each model
+        for model in self.components:
+            flux *= model.eval(**kwargs)
+            
+        return flux
 
 
 class PolynomialModel(Model):
     """Polynomial Model"""
-    def __init__(self, time, **kwargs):
+    def __init__(self, **kwargs):
         """Initialize the polynomial model
-        
-        Parameters
-        ----------
-        time_array: sequence, astropy.units.quantity.Quantity
-            The time array
         """
         # Inherit from Model calss
-        super().__init__(time=time, **kwargs)
-
-        if kwargs:
-            self.flux = self.eval(**kwargs)
+        super().__init__(**kwargs)
+        
+        # Check for Parameters instance
+        self.parameters = kwargs.get('parameters')
+            
+        # Generate parameters from kwargs if necessary
+        if self.parameters is None:
+            coeffs = self._parse_coeffs(kwargs)
+            params = {'c{}'.format(n): coeff for n,coeff in enumerate(coeffs[::-1])}
+            self.parameters = Parameters(**params)
             
             
     @staticmethod
@@ -268,15 +294,17 @@ class PolynomialModel(Model):
         
     def eval(self, **kwargs):
         """Evaluate the function with the given values"""
-        coeffs = self._parse_coeffs(kwargs)
+        # Get the time
+        if self.time is None:
+            self.time = kwargs.get('time')
+        
+        coeffs = [coeff[1] for coeff in self.parameters.list][::-1]
         
         # Create the polynomial from the coeffs
         poly = np.poly1d(coeffs)
         
-        # Evaluate the polynomial and store the flux
-        self.flux = np.polyval(poly, self.time)
-        
-        return self.flux
+        # Evaluate the polynomial
+        return np.polyval(poly, self.time)
 
 
 class TransitModel(Model):
@@ -286,13 +314,21 @@ class TransitModel(Model):
         """
         # Inherit from Model calss
         super().__init__(**kwargs)
-
-        if self.time is not None:
-            self.flux = self.eval(**kwargs)
+        
+        # Check for Parameters instance
+        self.parameters = kwargs.get('parameters')
+        
+        # Generate parameters from kwargs if necessary
+        if self.parameters is None:
+            self.parameters = Parameters(**kwargs)
         
         
     def eval(self, **kwargs):
         """Evaluate the function with the given values"""
+        # Get the time
+        if self.time is None:
+            self.time = kwargs.get('time')
+        
         # Generate with batman
         bm_params = batman.TransitParams()
         
@@ -312,8 +348,6 @@ class TransitModel(Model):
         # OoT == Out of transit    
         OoT_curvature = self.parameters.offset.value+self.parameters.slope.value*(self.time-self.time.mean())+self.parameters.curvature.value*(self.time-self.time.mean())**2
 
-        # Evaluate the polynomial and store the flux
-        self.flux = m_eclipse.light_curve(bm_params) * OoT_curvature
-        
-        return self.flux
+        # Evaluate the light curve
+        return m_eclipse.light_curve(bm_params) * OoT_curvature
 

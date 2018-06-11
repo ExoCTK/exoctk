@@ -45,8 +45,14 @@ class Parameter:
         param_type: str
             Parameter type, ['free','fixed','independent']
         """
-        if param_type not in ['free','fixed','independent']:
+        if param_type not in ['free','fixed','independent',True, False]:
             raise ValueError("ptype must be 'free','fixed', or 'independent'.")
+            
+        if param_type==True:
+            param_type = 'free'
+        
+        if param_type==False:
+            param_type = 'fixed'
             
         self._ptype = param_type
     
