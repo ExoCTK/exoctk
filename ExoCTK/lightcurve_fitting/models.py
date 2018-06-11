@@ -7,6 +7,7 @@ Email: jfilippazzo@stsci.edu
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as q
+import batman
 
 from .parameters import Parameters
 
@@ -105,7 +106,7 @@ class Model:
             
         # Or a Parameters instance
         if not isinstance(params, Parameters):
-            raise TypeError("'params' argument must be a JSON file, ascii file, or ExoCTK.lightcurve_fitting.lightcurve.Parameters instance.")
+            raise TypeError("'params' argument must be a JSON file, ascii file, or ExoCTK.lightcurve_fitting.parameters.Parameters instance.")
             
         # Set the parameters attribute
         self._parameters = params
@@ -237,7 +238,7 @@ class PolynomialModel(Model):
         super().__init__(time=time, **kwargs)
 
         if kwargs:
-            self.flux = self.func(**kwargs)
+            self.flux = self.eval(**kwargs)
             
             
     @staticmethod
@@ -265,7 +266,7 @@ class PolynomialModel(Model):
         return np.trim_zeros(coeffs)[::-1]
         
         
-    def func(self, **kwargs):
+    def eval(self, **kwargs):
         """Evaluate the function with the given values"""
         coeffs = self._parse_coeffs(kwargs)
         
@@ -273,43 +274,46 @@ class PolynomialModel(Model):
         poly = np.poly1d(coeffs)
         
         # Evaluate the polynomial and store the flux
-        flux = np.polyval(poly, self.time)
+        self.flux = np.polyval(poly, self.time)
         
-        return flux
-        
+        return self.flux
 
-# class QuadraticModel(Model):
-#     """Quadratic Model"""
-#     def __init__(self):
-#         """Initialize the quadratic model"""
-#         super().__init__()
-#
-#         self.model = np.arange(100)**2
-#
-#
-# class StellarModel(Model):
-#     """Stellar Model"""
-#     def __init__(self):
-#         """Initialize the stellar model"""
-#         super().__init__()
-#
-#         self.model = np.arange(100)**2
-#
-#
-# class SystematicModel(Model):
-#     """Systematic Model"""
-#     def __init__(self):
-#         """Initialize the systematic model"""
-#         super().__init__()
-#
-#         self.model = np.arange(100)**2
-#
-#
-# class TransitModel(Model):
-#     """Transit Model"""
-#     def __init__(self):
-#         """Initialize the transit model"""
-#         super().__init__()
-#
-#         self.model = np.arange(100)**2
+
+class TransitModel(Model):
+    """Transit Model"""
+    def __init__(self, **kwargs):
+        """Initialize the transit model
+        """
+        # Inherit from Model calss
+        super().__init__(**kwargs)
+
+        if self.time is not None:
+            self.flux = self.eval(**kwargs)
+        
+        
+    def eval(self, **kwargs):
+        """Evaluate the function with the given values"""
+        # Generate with batman
+        bm_params = batman.TransitParams()
+        
+        # Set all parameters
+        for p in self.parameters.list:
+            setattr(bm_params, p[0], p[1])
+            
+        # Set t0 without units
+        bm_params.t0 = self.parameters.t0.value*q.day.to(self.units)
+        
+        # Combine limb darkening coeffs
+        bm_params.u = [self.parameters.u1.value, self.parameters.u2.value]
+        
+        # Make the eclipse
+        m_eclipse = batman.TransitModel(bm_params, self.time, transittype=self.parameters.transittype.value)
+
+        # OoT == Out of transit    
+        OoT_curvature = self.parameters.offset.value+self.parameters.slope.value*(self.time-self.time.mean())+self.parameters.curvature.value*(self.time-self.time.mean())**2
+
+        # Evaluate the polynomial and store the flux
+        self.flux = m_eclipse.light_curve(bm_params) * OoT_curvature
+        
+        return self.flux
 
