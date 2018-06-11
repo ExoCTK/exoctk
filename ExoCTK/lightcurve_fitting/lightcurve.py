@@ -16,7 +16,16 @@ from .models import Model
 from .fitters import lmfitter
 
 class LightCurveFitter:
-    def __init__(self, model_class):
+    def __init__(self, time, flux, model):
+        """Fit the model to the flux cube
+        
+        Parameters
+        ----------
+        time:
+            1D or 2D time axes
+        flux: 
+            2D flux
+        """
         self.flux = np.ones(100)
         self.time = np.arange(100)
         self.results = pd.DataFrame(names=('fit_number','wavelength', 'P', 'Tc', 'a/Rs', 'b', 'd', 'ldcs', 'e', 'w','model_name','chi2'))

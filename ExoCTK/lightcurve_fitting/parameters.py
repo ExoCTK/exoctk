@@ -7,7 +7,7 @@ import os
 
 class Parameter:
     """A generic parameter class"""
-    def __init__(self, name, value, vary=True, mn=None, mx=None):
+    def __init__(self, name, value, ptype='free', mn=None, mx=None):
         """Instantiate a Parameter with a name and value at least
         
         Parameters
@@ -16,8 +16,8 @@ class Parameter:
             The name of the parameter
         value: float, int, str, list, tuple
             The value of the parameter
-        vary: bool
-            Is this a free parameter?
+        ptype: str
+            Parameter type, ['free','fixed','independent']
         mn: float, int, str, list, tuple (optioal)
             The minimum value
         mx: float, int, str, list, tuple (optioal)
@@ -27,12 +27,34 @@ class Parameter:
         self.value = value
         self.mn = mn
         self.mx = mx
-        self.vary = vary
+        self.ptype = ptype
+        
+        
+    @property
+    def ptype(self):
+        """Getter for the ptype"""
+        return self._ptype
+        
+        
+    @ptype.setter
+    def ptype(self, param_type):
+        """Setter for ptype
+        
+        Parameters
+        ----------
+        param_type: str
+            Parameter type, ['free','fixed','independent']
+        """
+        if param_type not in ['free','fixed','independent']:
+            raise ValueError("ptype must be 'free','fixed', or 'independent'.")
+            
+        self._ptype = param_type
+    
         
     @property
     def values(self):
         """Return all values for this parameter"""
-        vals = self.name, self.value, self.vary, self.mn, self.mx
+        vals = self.name, self.value, self.ptype, self.mn, self.mx
         
         return tuple(filter(lambda x: x is not None, vals))
         
