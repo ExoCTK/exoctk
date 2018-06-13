@@ -62,7 +62,7 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
     # Set the unc
     if unc is None:
         unc = np.ones(len(data))
-        
+    
     # Fit light curve model to the simulated data
     result = lcmodel.fit(data, weights=1/unc, params=initialParams, method=method, **indep_vars)
     if verbose:
