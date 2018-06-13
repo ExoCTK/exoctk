@@ -254,7 +254,7 @@ class PolynomialModel(Model):
     def __init__(self, **kwargs):
         """Initialize the polynomial model
         """
-        # Inherit from Model calss
+        # Inherit from Model class
         super().__init__(**kwargs)
         
         # Check for Parameters instance
@@ -262,13 +262,10 @@ class PolynomialModel(Model):
             
         # Generate parameters from kwargs if necessary
         if self.parameters is None:
-            coeffs = self._parse_coeffs(kwargs)
-            params = {'c{}'.format(n): coeff for n,coeff in enumerate(coeffs[::-1])}
-            self.parameters = Parameters(**params)
+            self._parse_coeffs(kwargs)
+        
             
-            
-    @staticmethod
-    def _parse_coeffs(coeff_dict):
+    def _parse_coeffs(self, coeff_dict):
         """Convert dict of 'c#' coefficients into a list
         of coefficients in decreasing order, i.e. ['c2','c1','c0']
         
@@ -282,14 +279,17 @@ class PolynomialModel(Model):
         np.ndarray
             The sequence of coefficient values
         """
+        params = {cN:coeff for cN,coeff in coeff_dict.items() if cN.startswith('c') and cN[1:].isdigit()}
+        self.parameters = Parameters(**params)
+        
         # Parse 'c#' keyword arguments as coefficients
-        coeffs = np.zeros(10)
-        for k,v in coeff_dict.items():
+        coeffs = np.zeros(100)
+        for k,v in self.parameters.dict.items():
             if k.lower().startswith('c') and k[1:].isdigit():
-                coeffs[int(k[1:])] = v
+                coeffs[int(k[1:])] = v[0]
            
         # Trim zeros and reverse
-        return np.trim_zeros(coeffs)[::-1]
+        self.coeffs = np.trim_zeros(coeffs)[::-1]
         
         
     def eval(self, **kwargs):
@@ -298,10 +298,8 @@ class PolynomialModel(Model):
         if self.time is None:
             self.time = kwargs.get('time')
         
-        coeffs = [coeff[1] for coeff in self.parameters.list][::-1]
-        
         # Create the polynomial from the coeffs
-        poly = np.poly1d(coeffs)
+        poly = np.poly1d(self.coeffs)
         
         # Evaluate the polynomial
         return np.polyval(poly, self.time)

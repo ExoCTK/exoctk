@@ -23,6 +23,15 @@ class Parameter:
         mx: float, int, str, list, tuple (optioal)
             The maximim value
         """
+        # If value is a list, distribute the elements
+        if isinstance(value, tuple):
+            value, *other = value
+            if len(other)>1:
+                ptype, *other = other
+            if len(other)>0:
+                mn, mx = other
+        
+        # Set the attributes
         self.name = name
         self.value = value
         self.mn = mn
@@ -81,6 +90,7 @@ class Parameters:
         params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
         """
         self.__dict__['list'] = []
+        self.__dict__['dict'] = {}
         
         # Make an empty params dict
         params = {}
@@ -128,3 +138,4 @@ class Parameters:
         
         # Add it to the list of parameters
         self.__dict__['list'].append(self.__dict__[item].values)
+        self.__dict__['dict'][item] = self.__dict__[item].values[1:]
