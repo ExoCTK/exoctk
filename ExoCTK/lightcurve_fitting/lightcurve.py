@@ -97,7 +97,7 @@ class LightCurve(Model):
         if fitter=='lmfit':
             
             # Run the fit
-            return lmfitter(self.time, self.flux, model)
+            return lmfitter(self.time, self.flux, model, self.unc)
 
 
     def plot(self):
@@ -108,5 +108,5 @@ class LightCurve(Model):
         
         plt.xlabel(self.units)
         plt.ylabel('Flux')
-        plt.legend(loc=0)
+        plt.legend(loc=0, frameon=False)
 
