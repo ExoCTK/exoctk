@@ -50,34 +50,21 @@ class Model:
         if not all([hasattr(other, attr) for attr in ['units','flux','time']]):
             raise TypeError('Only another Model instance may be multiplied.')
         
-        # Convert other time axis to same units
-        # other.units = self.units
-        
         return CompositeModel([copy.copy(self), other])
         
         
-    def interp(self, new_time, units=q.day):
+    def interp(self, new_time):
         """Interpolate the flux to a new time axis
         
         Parameters
         ----------
         new_time: sequence, astropy.units.quantity.Quantity
             The time array
-        units: str, astropy.units.core.Unit, astropy.units.core.IrreducibleUnit
-            The units of the input time_array, 'day' by default
         """
         # Check the type
-        if not isinstance(new_time, (np.ndarray, tuple, list, q.quantity.Quantity)):
-            raise TypeError("Time axis must be a tuple, list, astropy quantity, or numpy array.")
-        
-        # Use given units if provided
-        if hasattr(new_time, 'unit'):
-            units = new_time.unit
-            new_time = new_time.value
+        if not isinstance(new_time, (np.ndarray, tuple, list)):
+            raise TypeError("Time axis must be a tuple, list, or numpy array.")
             
-        # Calculate the new_time
-        new_time = (np.array(new_time)*units).to(self.units).value
-        
         # Calculate the new flux
         self.flux = np.interp(new_time, self.time, self.flux)
         
@@ -338,9 +325,5 @@ class TransitModel(Model):
         # Make the eclipse
         m_eclipse = batman.TransitModel(bm_params, self.time, transittype=self.parameters.transittype.value)
 
-        # OoT == Out of transit    
-        # OoT_curvature = self.parameters.offset.value+self.parameters.slope.value*(self.time-self.time.mean())+self.parameters.curvature.value*(self.time-self.time.mean())**2
-
         # Evaluate the light curve
-        return m_eclipse.light_curve(bm_params)# * OoT_curvature
-
+        return m_eclipse.light_curve(bm_params)
