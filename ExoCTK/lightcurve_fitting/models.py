@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 import astropy.units as q
 import batman
 import copy
+import inspect
 
 from .parameters import Parameters
+from ..limb_darkening.limb_darkening_fit import ld_profile
 
 
 class Model:
@@ -49,7 +51,7 @@ class Model:
             raise TypeError('Only another Model instance may be multiplied.')
         
         # Convert other time axis to same units
-        other.units = self.units
+        # other.units = self.units
         
         return CompositeModel([copy.copy(self), other])
         
@@ -111,27 +113,25 @@ class Model:
         
         
     @time.setter
-    def time(self, time_array, units=q.day):
+    def time(self, time_array, units='MJD'):
         """A setter for the time
         
         Parameters
         ----------
         time_array: sequence, astropy.units.quantity.Quantity
             The time array
-        units: str, astropy.units.core.Unit, astropy.units.core.IrreducibleUnit
-            The units of the input time_array, 'day' by default
+        units: str
+            The units of the input time_array, ['MJD', 'BJD', 'phase']
         """
         # Check the type
-        if not isinstance(time_array, (np.ndarray, tuple, list, q.quantity.Quantity)):
-            raise TypeError("Time axis must be a tuple, list, astropy quantity, or numpy array.")
+        if not isinstance(time_array, (np.ndarray, tuple, list)):
+            raise TypeError("Time axis must be a tuple, list, or numpy array.")
         
-        # Use given units if provided
-        if hasattr(time_array, 'unit'):
-            units = time_array.unit
-            time_array = time_array.value
+        # Set the units
+        self.units = units
         
         # Set the array
-        self._time = (np.array(time_array)*units).to(self.units).value
+        self._time = time_array
         
         
     @property
@@ -146,27 +146,14 @@ class Model:
         
         Parameters
         ----------
-        units: str, astropy.units.core.Unit, astropy.units.core.IrreducibleUnit
-            The time units
+        units: str
+            The time units ['BJD', 'MJD', 'phase']
         """
-        # Convert string to unit
-        if isinstance(units, str):
-            units = q.Unit(units)
-            
         # Check the type
-        if not isinstance(units, (q.core.IrreducibleUnit, q.core.Unit)):
-            raise TypeError("units axis must be a tuple, list, astropy quantity, or numpy array.")
+        if units not in ['BJD', 'MJD', 'phase']:
+            raise TypeError("units axis must be 'BJD', 'MJD', or 'phase'.")
             
-        # Make sure they are time units
-        _ = units.to(q.day)
-            
-        # Set the attribute
         self._units = units
-        
-        # Update the time
-        if self.time is not None:
-            scale = self.units.to(units)
-            self.time = self.time*scale
         
         
     @property
@@ -211,7 +198,7 @@ class Model:
                 flux = comp.eval(**kwargs)
                 plt.plot(self.time, flux, label=comp.name)
             
-        plt.xlabel(self.units.long_names[0])
+        plt.xlabel(self.units)
         plt.ylabel('Flux')
         
         plt.legend(loc=0)
@@ -301,8 +288,11 @@ class PolynomialModel(Model):
         # Create the polynomial from the coeffs
         poly = np.poly1d(self.coeffs)
         
+        # Convert to local time
+        time_local = self.time-self.time.mean()
+        
         # Evaluate the polynomial
-        return np.polyval(poly, self.time)
+        return np.polyval(poly, time_local)
 
 
 class TransitModel(Model):
@@ -319,6 +309,10 @@ class TransitModel(Model):
         # Generate parameters from kwargs if necessary
         if self.parameters is None:
             self.parameters = Parameters(**kwargs)
+            
+        # Store the ld_profile
+        self.ld_func = ld_profile(self.parameters.limb_dark.value)
+        self.coeffs = ['u{}'.format(n) for n in range(len(inspect.signature(self.ld_func).parameters))[1:]]
         
         
     def eval(self, **kwargs):
@@ -333,19 +327,20 @@ class TransitModel(Model):
         # Set all parameters
         for p in self.parameters.list:
             setattr(bm_params, p[0], p[1])
-            
-        # Set t0 without units
-        bm_params.t0 = self.parameters.t0.value*q.day.to(self.units)
         
         # Combine limb darkening coeffs
-        bm_params.u = [self.parameters.u1.value, self.parameters.u2.value]
+        bm_params.u = [getattr(self.parameters, u).value for u in self.coeffs]
+        
+        # Use batman ld_profile name
+        if self.parameters.limb_dark.value=='4-parameter':
+            bm_params.limb_dark = 'nonlinear'
         
         # Make the eclipse
         m_eclipse = batman.TransitModel(bm_params, self.time, transittype=self.parameters.transittype.value)
 
         # OoT == Out of transit    
-        OoT_curvature = self.parameters.offset.value+self.parameters.slope.value*(self.time-self.time.mean())+self.parameters.curvature.value*(self.time-self.time.mean())**2
+        # OoT_curvature = self.parameters.offset.value+self.parameters.slope.value*(self.time-self.time.mean())+self.parameters.curvature.value*(self.time-self.time.mean())**2
 
         # Evaluate the light curve
-        return m_eclipse.light_curve(bm_params) * OoT_curvature
+        return m_eclipse.light_curve(bm_params)# * OoT_curvature
 
