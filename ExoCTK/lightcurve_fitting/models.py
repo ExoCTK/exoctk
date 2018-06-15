@@ -27,6 +27,7 @@ class Model:
         self._units = q.day
         self._parameters = None
         self.components = None
+        self.fmt = None
         
         # Store the arguments as attributes
         for arg, val in kwargs.items():
@@ -51,6 +52,29 @@ class Model:
             raise TypeError('Only another Model instance may be multiplied.')
         
         return CompositeModel([copy.copy(self), other])
+        
+        
+    @property
+    def flux(self):
+        """A getter for the flux"""
+        return self._flux
+        
+        
+    @flux.setter
+    def flux(self, flux_array):
+        """A setter for the flux
+        
+        Parameters
+        ----------
+        flux_array: sequence
+            The flux array
+        """
+        # Check the type
+        if not isinstance(flux_array, (np.ndarray, tuple, list)):
+            raise TypeError("flux axis must be a tuple, list, or numpy array.")
+        
+        # Set the array
+        self._flux = np.array(flux_array)
         
         
     def interp(self, new_time):
@@ -91,6 +115,33 @@ class Model:
             
         # Set the parameters attribute
         self._parameters = params
+        
+        
+    def plot(self, time, components=False, **kwargs):
+        """Plot the model
+        
+        Parameters
+        ----------
+        components: bool
+            Plot all model components
+        """
+        # Set the time
+        self.time = time
+        
+        flux = self.eval(**kwargs)
+        if self.fmt is not None:
+            plt.plot(self.time, flux, self.fmt, label=self.name)
+        else:
+            plt.plot(self.time, flux, label=self.name)
+        
+        if components and self.components is not None:
+            for comp in self.components:
+                flux = comp.plot(self.time, **kwargs)
+            
+        plt.xlabel(self.units)
+        plt.ylabel('Flux')
+        
+        plt.legend(loc=0, frameon=False)
         
         
     @property
@@ -141,54 +192,6 @@ class Model:
             raise TypeError("units axis must be 'BJD', 'MJD', or 'phase'.")
             
         self._units = units
-        
-        
-    @property
-    def flux(self):
-        """A getter for the flux"""
-        return self._flux
-        
-        
-    @flux.setter
-    def flux(self, flux_array):
-        """A setter for the flux
-        
-        Parameters
-        ----------
-        flux_array: sequence
-            The flux array
-        """
-        # Check the type
-        if not isinstance(flux_array, (np.ndarray, tuple, list)):
-            raise TypeError("flux axis must be a tuple, list, or numpy array.")
-        
-        # Set the array
-        self._flux = np.array(flux_array)
-        
-        
-    def plot(self, time, components=False, **kwargs):
-        """Plot the model
-        
-        Parameters
-        ----------
-        components: bool
-            Plot all model components
-        """
-        # Set the time
-        self.time = time
-        
-        flux = self.eval(**kwargs)
-        plt.plot(self.time, flux, label=self.name)
-        
-        if components and self.components is not None:
-            for comp in self.components:
-                flux = comp.eval(**kwargs)
-                plt.plot(self.time, flux, label=comp.name)
-            
-        plt.xlabel(self.units)
-        plt.ylabel('Flux')
-        
-        plt.legend(loc=0)
 
 
 class CompositeModel(Model):
