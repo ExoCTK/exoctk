@@ -42,16 +42,16 @@ class LightCurveFitter:
 
 
 class LightCurve(Model):
-    def __init__(self, time, flux, unc=None, parameters=None, units='day', name=None):
+    def __init__(self, time, flux, unc=None, parameters=None, units='MJD', name=None):
         """
         A class to store the actual light curve 
         
         Parameters
         ----------
         time: sequence
-            The time axis in days
+            The time axis in days, [MJD or BJD]
         flux: sequence
-            The flux at each time
+            The flux in electrons (not ADU)
         unc: sequence
             The uncertainty on the flux
         parameters: str, object (optional)
@@ -94,9 +94,6 @@ class LightCurve(Model):
         fitter: str
             The name of the fitter to use
         """
-        # Interpolate model to data
-        # model.interp(self.time, self.units)
-        
         if fitter=='lmfit':
             
             # Run the fit
@@ -109,7 +106,7 @@ class LightCurve(Model):
         
         plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o', ls='none', label=self.name)
         
-        plt.xlabel(self.units.long_names[0])
+        plt.xlabel(self.units)
         plt.ylabel('Flux')
         plt.legend(loc=0)
 
