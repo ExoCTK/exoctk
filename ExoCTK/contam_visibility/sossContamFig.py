@@ -3,7 +3,8 @@ from astropy.io import fits
 from . import visibilityPA as vpa
 import os
 import pkg_resources
-from bokeh.io import gridplot, show
+from bokeh.io import show
+from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, LogTicker, ColorBar, Label
 from bokeh.palettes import inferno

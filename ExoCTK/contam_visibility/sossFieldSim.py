@@ -1,12 +1,12 @@
 from astroquery.irsa import Irsa
 from astropy.io import fits
+from scipy.io import readsav
 import matplotlib.pyplot as plt
 import astropy.coordinates as crd
 import astropy.units as u
 import numpy as np
 import os
 import glob
-import idlsave
 import pdb
 
 idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
@@ -53,7 +53,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     
     #Restoring model parameters 
-    modelParam = idlsave.read(os.path.join(idlsave_path,'modelsInfo.sav'),verbose=False) 
+    modelParam = readsav(os.path.join(idlsave_path,'modelsInfo.sav'),verbose=False) 
     models     = modelParam['models']
     modelPadX  = modelParam['modelpadx']
     modelPadY  = modelParam['modelpady'] 
@@ -182,7 +182,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             # if target and first kPA, add target traces of order 1 and 2 in output cube
             if (intx == 0) & (inty == 0) & (kPA == 0):              
                 fNameModO12 = saveFiles[k]
-                modelO12 = idlsave.read(fNameModO12,verbose=False)['modelo12']
+                modelO12 = readsav(fNameModO12,verbose=False)['modelo12']
                 simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = modelO12[0, my0:my1, mx0:mx1] * fluxscale # order 1
                 simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = modelO12[1, my0:my1, mx0:mx1] * fluxscale # order 2
                 
