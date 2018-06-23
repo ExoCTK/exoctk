@@ -4,12 +4,15 @@ Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
 import os
+import json
+import numpy as np
+
 
 class Parameter:
     """A generic parameter class"""
     def __init__(self, name, value, ptype='free', mn=None, mx=None):
         """Instantiate a Parameter with a name and value at least
-        
+
         Parameters
         ----------
         name: str
@@ -26,72 +29,70 @@ class Parameter:
         # If value is a list, distribute the elements
         if isinstance(value, tuple):
             value, *other = value
-            if len(other)>1:
+            if len(other) > 1:
                 ptype, *other = other
-            if len(other)>0:
+            if len(other) > 0:
                 mn, mx = other
-        
+
         # Set the attributes
         self.name = name
         self.value = value
         self.mn = mn
         self.mx = mx
         self.ptype = ptype
-        
-        
+
     @property
     def ptype(self):
         """Getter for the ptype"""
         return self._ptype
-        
-        
+
     @ptype.setter
     def ptype(self, param_type):
         """Setter for ptype
-        
+
         Parameters
         ----------
         param_type: str
             Parameter type, ['free','fixed','independent']
         """
-        if param_type not in ['free','fixed','independent',True, False]:
-            raise ValueError("ptype must be 'free','fixed', or 'independent'.")
-            
-        if param_type==True:
+        if param_type not in ['free', 'fixed', 'independent', True, False]:
+            raise ValueError("ptype must be 'free','fixed', or 'independent'")
+
+        if param_type is True:
             param_type = 'free'
-        
-        if param_type==False:
+
+        if param_type is False:
             param_type = 'fixed'
-            
+
         self._ptype = param_type
-    
-        
+
     @property
     def values(self):
         """Return all values for this parameter"""
         vals = self.name, self.value, self.ptype, self.mn, self.mx
-        
+
         return tuple(filter(lambda x: x is not None, vals))
-        
+
 
 class Parameters:
     """A class to hold the Parameter instances
     """
     def __init__(self, param_file=None, **kwargs):
         """Initialize the parameter object
-        
+
         Parameters
         ----------
         param_file: str
             A text file of the parameters to parse
-        
+
         Example
         -------
-        params = lightcurve.Parameters(a=20, ecc=0.1, inc=89, limb_dark='quadratic')
+        params = lightcurve.Parameters(a=20, ecc=0.1, inc=89,
+        limb_dark='quadratic')
         """
         self.__dict__['list'] = []
         self.__dict__['dict'] = {}
-        
+
         # Make an empty params dict
         params = {}
 
@@ -103,7 +104,7 @@ class Parameters:
 
                 # Add the params to a dict
                 data = np.genfromtxt(param_file)
-                params = {i:j for i,j in data}
+                params = {i: j for i, j in data}
 
             # Parse the JSON file
             elif param_file.endswith('.json'):
@@ -117,10 +118,16 @@ class Parameters:
         # Try to store each as an attribute
         for param, value in params.items():
             setattr(self, param, value)
-            
-            
+
     def __setattr__(self, item, value):
         """Maps attributes to values
+
+        Parameters
+        ----------
+        item: str
+            The name for the attribute
+        value: any
+            The attribute value
         """
         # Convert single items to tuple
         if isinstance(value, (str, float, int, bool)):
@@ -135,7 +142,7 @@ class Parameters:
 
         # Set the attribute
         self.__dict__[item] = Parameter(item, *value)
-        
+
         # Add it to the list of parameters
         self.__dict__['list'].append(self.__dict__[item].values)
         self.__dict__['dict'][item] = self.__dict__[item].values[1:]
