@@ -13,8 +13,9 @@ from ._astropy_init import *
 # For egg_info test builds to pass, put package imports here.
 if not _ASTROPY_SETUP_:
     from .core import *
+    from .svo import *
     from . import contam_visibility
-    from . import forward_models
+    # from . import forward_models
     from . import integrations_groups
     from . import limb_darkening
     from . import nircam_coronagraphy
