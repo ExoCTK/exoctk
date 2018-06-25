@@ -18,3 +18,4 @@ if not _ASTROPY_SETUP_:
     from . import integrations_groups
     from . import limb_darkening
     from . import nircam_coronagraphy
+    from . import lightcurve_fitting
