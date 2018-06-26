@@ -1,5 +1,12 @@
 language: c
 
+python:
+    - 2.7
+    - 3.3
+    - 3.4
+    - 3.5
+    - 3.6
+
 os:
     - linux
     - osx
@@ -34,15 +41,18 @@ env:
         - PIP_DEPENDENCIES='bibtexparser batman-package astroquery'
 
     matrix:
-        - PYTHON_VERSION=2.7 SETUP_CMD='install'
-        - PYTHON_VERSION=2.7 SETUP_CMD='test'
-        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
+        # - PYTHON_VERSION=2.7 SETUP_CMD='install'
+        # - PYTHON_VERSION=2.7 SETUP_CMD='test'
+        # - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.5 SETUP_CMD='install'
         - PYTHON_VERSION=3.5 SETUP_CMD='test'
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 
 matrix:
+    allow_failures:
+      - python: 2.7
+      
     include:
         # Do a coverage test in Python 2.
         - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
