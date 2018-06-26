@@ -33,7 +33,7 @@ def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
     return dn_err, up_err
 
 
-def ld_plot(ldfuncs, grid_point, fig=plt.gcf(),
+def ld_plot(ldfuncs, grid_point, fig=None,
             colors='blue', bin_idx='', **kwargs):
     """
     Make a LD plot in Bokeh or Matplotlib
@@ -103,6 +103,9 @@ def ld_plot(ldfuncs, grid_point, fig=plt.gcf(),
 
             if profile == 'uniform':
                 ld_vals = [ld_vals]*len(mu_vals)
+
+            if fig is None:
+                fig = plt.gcf()
 
             # Add fits to matplotlib
             if isinstance(fig, matplotlib.figure.Figure):
