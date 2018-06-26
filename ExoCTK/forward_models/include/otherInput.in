@@ -1,0 +1,49 @@
+Collision_Opac.in - 
+Formatting here is very important, please put the instructed content on the instructed line!
+Opac Files on the next 30 lines:
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+{}
+Collision Induced Opacity files on the next line:
+{}
+Constant variables should be on the following lines:
+On lines 38 through 40, write the number of temp points in the TP grid (line 38) along with the minimum (39) and maximum (40) (in K) values
+{}
+{}
+{}
+On lines 42 through 44, write the number of pressure points in the TP grid (42) along with the minimum (43) and maximum (44) (in Pa) values.
+{}
+{}
+{}
+On line 46 write the number of wavelength points in the grid:
+{}
+On line 48 write the number of optical depth points:
+{}
+End of otherInput.c (Do not change this line!)
