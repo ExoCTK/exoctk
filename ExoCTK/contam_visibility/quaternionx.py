@@ -47,9 +47,9 @@ class GalacticPole (object):
         ascending_node = ascending node of pole, in degrees."""
 
         #Arguments specified in degrees, but values represented in radians.
-        self.latitude = radians(latitude)
-        self.longitude = radians(longitude)
-        self.anode = radians(ascending_node)
+        self.latitude = math.radians(latitude)
+        self.longitude = math.radians(longitude)
+        self.anode = math.radians(ascending_node)
 
     def __str__ (self):
         """Returns string representation of the galactic pole."""
