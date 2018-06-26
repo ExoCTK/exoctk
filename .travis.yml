@@ -49,23 +49,23 @@ env:
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 
-matrix:
-    allow_failures:
-      - python: 2.7
-      
-    include:
-        # Do a coverage test in Python 2.
-        - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build - we do this first because it
-        # may run for a long time allow warning because they seem
-        # unavoidable with automodule
-        - env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx'
-
-        # Try Astropy development version
-        # - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development SETUP_CMD='test'
-
-        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
+# matrix:
+#     allow_failures:
+#       - python: 2.7
+#
+#     include:
+#         # Do a coverage test in Python 2.
+#         - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
+#
+#         # Check for sphinx doc build - we do this first because it
+#         # may run for a long time allow warning because they seem
+#         # unavoidable with automodule
+#         - env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx'
+#        #
+#        # Try Astropy development version
+#        # - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development SETUP_CMD='test'
+#        #
+#        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
 
 before_install:
     # - git clone git://github.com/spacetelescope/pysynphot.git
