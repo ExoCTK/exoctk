@@ -2,16 +2,10 @@
 """Module for general rotations library."""
 
 #import random
-import math
 from math import *
-#import ExoCTK.tor.contam_tool.math_extensionsx as math2
-#import ExoCTK.tor.contam_tool.quaternionx as quat
 from . import math_extensionsx as math2
 from . import quaternionx as quat
-#from math2 import *
-#import string
-#import sys
-#from astro_func import *
+
 
 class GalacticPole (object):
     """Represents coordinates of galactic pole."""
@@ -168,7 +162,7 @@ class Vector (object):
       
    def length(self):
       """Returns magnitude of the vector """ 
-      return(math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z))
+      return(sqrt(self.x * self.x + self.y * self.y + self.z * self.z))
        
    def normalize(self):
       """Returns copy of the normalized vector """ 
@@ -667,7 +661,7 @@ def vel_ab(U,Vel):
     """ Takes a unit vector and a velocity vector(km/s) and returns a unit vector modidifed by the velocity abberation."""
     c = 2.9979e5 #speed of light in km/s
     Beta = Vel * (1./c)
-    rgamma = math.sqrt(1.-dot(Beta,Beta)) # This is 1/gamma
+    rgamma = sqrt(1.-dot(Beta,Beta)) # This is 1/gamma
     ubeta = dot(U,Beta)
     return (U*rgamma + Beta * (1. + (1.-rgamma)*ubeta/dot(Beta,Beta)))*(1./(1.+ubeta))
 
