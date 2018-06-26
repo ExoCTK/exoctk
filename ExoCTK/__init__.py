@@ -14,6 +14,7 @@ from ._astropy_init import *
 if not _ASTROPY_SETUP_:
     from .core import *
     from .svo import *
+    from . import forward_models
     from . import contam_visibility
     from . import integrations_groups
     from . import limb_darkening
