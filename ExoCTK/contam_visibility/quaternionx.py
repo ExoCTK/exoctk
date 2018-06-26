@@ -35,6 +35,29 @@ D2R = math.pi/180.
 R2D = 180. / math.pi
 PI2 = 2. * math.pi
 unit_limit = lambda x: min(max(-1., x), 1.)
+
+class GalacticPole (object):
+    """Represents coordinates of galactic pole."""
+
+    def __init__ (self, latitude, longitude, ascending_node):
+        """Initializes the coordinates of the galactic pole.
+
+        latitude = latitude of pole, in degrees
+        longitude = longitude of pole, in degrees
+        ascending_node = ascending node of pole, in degrees."""
+
+        #Arguments specified in degrees, but values represented in radians.
+        self.latitude = radians(latitude)
+        self.longitude = radians(longitude)
+        self.anode = radians(ascending_node)
+
+    def __str__ (self):
+        """Returns string representation of the galactic pole."""
+
+        #Convert attributes back into degrees for readability.
+        return('GalacticPole: latitude: %.3fD, longitude: %.3fD, anode: %.3fD'\
+        %(degrees(self.latitude), degrees(self.longitude), degrees(self.anode)))
+
 NGP = GalacticPole(192.859508, 27.128336, 32.932)
 # supports transformation to galactic coordinates
 
@@ -244,29 +267,6 @@ class Quaternion:
       self.q1 *= -1.
       self.q2 *= -1.
       self.q3 *= -1.
-
-
-class GalacticPole (object):
-    """Represents coordinates of galactic pole."""
-
-    def __init__ (self, latitude, longitude, ascending_node):
-        """Initializes the coordinates of the galactic pole.
-
-        latitude = latitude of pole, in degrees
-        longitude = longitude of pole, in degrees
-        ascending_node = ascending node of pole, in degrees."""
-
-        #Arguments specified in degrees, but values represented in radians.
-        self.latitude = radians(latitude)
-        self.longitude = radians(longitude)
-        self.anode = radians(ascending_node)
-
-    def __str__ (self):
-        """Returns string representation of the galactic pole."""
-
-        #Convert attributes back into degrees for readability.
-        return('GalacticPole: latitude: %.3fD, longitude: %.3fD, anode: %.3fD'\
-        %(degrees(self.latitude), degrees(self.longitude), degrees(self.anode)))
 
 
 class NumericList (list):
