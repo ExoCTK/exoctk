@@ -116,14 +116,11 @@ package_info['package_data'][PACKAGENAME].extend(ext_files)
 # ``setup``, since these are now deprecated. See this link for more details:
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
 
-install_requires = ['numpy', 'scipy', 'cython', 'matplotlib', 'numba', 'pysynphot', 'sphinx_automodapi',
-                    'sphinx_rtd_theme', 'bibtexparser', 'bokeh', 'batman-package', 'pandas', 'lmfit']
-
 setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      install_requires=install_requires,
+      install_requires=metadata.get('install_requires', 'astropy').strip().split(),
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
