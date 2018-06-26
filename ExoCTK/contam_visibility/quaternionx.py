@@ -35,8 +35,8 @@ D2R = math.pi/180.
 R2D = 180. / math.pi
 PI2 = 2. * math.pi
 unit_limit = lambda x: min(max(-1., x), 1.)
-NULL_3D_VECTOR = Vector(0, 0, 0)    #this can be reused as needed
-NGP = GalacticPole(192.859508, 27.128336, 32.932)   #supports transformation to galactic coordinates
+NGP = GalacticPole(192.859508, 27.128336, 32.932)
+# supports transformation to galactic coordinates
 
 
 def QX(angle):

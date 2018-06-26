@@ -5,7 +5,7 @@
 # Joe Filippazzo, 2018/06/26, Made PEP8 compliant
 
 from math import cos, sin, atan2, acos, pi
-from math_extensionsx import sind, cosd
+from .math_extensionsx import sind, cosd
 
 D2R = pi/180.
 R2D = 180./pi
