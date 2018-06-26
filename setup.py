@@ -117,7 +117,7 @@ package_info['package_data'][PACKAGENAME].extend(ext_files)
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
 
 install_requires = ['numpy', 'scipy', 'cython', 'matplotlib', 'numba', 'pysynphot', 'sphinx_automodapi',
-                    'sphinx_rtd_theme', 'bibtexparser', 'bokeh', 'batman-package', 'pandas']
+                    'sphinx_rtd_theme', 'bibtexparser', 'bokeh', 'batman-package', 'pandas', 'lmfit']
 
 setup(name=PACKAGENAME,
       version=VERSION,
