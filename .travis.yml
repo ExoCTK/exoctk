@@ -1,5 +1,11 @@
 language: c
 
+python:
+    - 3.3
+    - 3.4
+    - 3.5
+    - 3.6
+
 os:
     - linux
     - osx
@@ -30,32 +36,19 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
-        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx'
+        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx pandas lmfit'
         - PIP_DEPENDENCIES='bibtexparser batman-package astroquery'
 
     matrix:
-        - PYTHON_VERSION=2.7 SETUP_CMD='install'
-        - PYTHON_VERSION=2.7 SETUP_CMD='test'
-        - PYTHON_VERSION=2.7 SETUP_CMD='egg_info'
         - PYTHON_VERSION=3.5 SETUP_CMD='install'
         - PYTHON_VERSION=3.5 SETUP_CMD='test'
         - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
 
 
-matrix:
-    include:
-        # Do a coverage test in Python 2.
-        - env: PYTHON_VERSION=2.7 SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build - we do this first because it
-        # may run for a long time allow warning because they seem
-        # unavoidable with automodule
-        - env: PYTHON_VERSION=2.7 SETUP_CMD='build_sphinx'
-
-        # Try Astropy development version
-        # - env: PYTHON_VERSION=2.7 ASTROPY_VERSION=development SETUP_CMD='test'
-
-        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
+# matrix:
+#     include:
+#        # Try Astropy development version
+#        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
 
 before_install:
     # - git clone git://github.com/spacetelescope/pysynphot.git
