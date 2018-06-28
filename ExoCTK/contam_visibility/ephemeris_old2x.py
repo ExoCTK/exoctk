@@ -9,7 +9,6 @@ import math
 
 #Local imports
 from . import time_extensionsx as time2
-from . import rotationsx as rx
 from . import quaternionx as qx
 from . import astro_funcx as astro_func
 
@@ -44,7 +43,7 @@ class Ephemeris:
         self.zlist = []
         self.amin=0.
         self.amax=0.
-        aV = rx.Vector(0.,0.,0.)
+        aV = qx.Vector(0.,0.,0.)
         #pdb.set_trace()
         if afile.find("l2_halo_FDF_060619.trh")>-1:
             ascale = 0.001
@@ -123,7 +122,7 @@ class Ephemeris:
         x = (self.xlist[indx+1] - self.xlist[indx])*frac + self.xlist[indx]  
         y = (self.ylist[indx+1] - self.ylist[indx])*frac + self.ylist[indx]  
         z = (self.zlist[indx+1] - self.zlist[indx])*frac + self.zlist[indx]  
-        return rx.Vector(x,y,z)
+        return qx.Vector(x,y,z)
 
     def Vsun_pos(self,adate):
         Vsun = -1. * self.pos(adate)
@@ -153,7 +152,7 @@ class Ephemeris:
         
         #Retrieve Sun's position and transform to ecliptic coordinates.
         (sun_ra, sun_dec) = self.sun_pos(date)   #RA range 0-PI2
-        vSun = rx.CelestialVector(sun_ra, sun_dec, degrees=False)  #use radians
+        vSun = qx.CelestialVector(sun_ra, sun_dec, degrees=False)  #use radians
         vSun = vSun.transform_frame('ec')
         
         #Now subtract the minimum Sun angle plus a pad from the ecliptic longitude.
@@ -168,10 +167,10 @@ class Ephemeris:
         if (longitude < 0):
             longitude = longitude + PI2
             
-        vec1 = rx.CelestialVector(longitude, 0.0, frame='ec', degrees=False)
+        vec1 = qx.CelestialVector(longitude, 0.0, frame='ec', degrees=False)
         vec1 = vec1.transform_frame('eq')
         pa = self.normal_pa(date, vec1.ra, vec1.dec)
-        return(rx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
+        return(qx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
 
     def is_valid(self,date,ngc_1,ngc_2,V3pa):
         """Indicates whether an attitude is valid at a given date."""
