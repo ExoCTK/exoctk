@@ -71,7 +71,7 @@ def ld_profile(name='quadratic', latex=False):
         # Logarithmic
         if name == 'logarithmic':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*m*(1.-np.log(m))
+                return 1. - c1*(1.-m) - c2*m*np.log(m)
 
         # Exponential
         if name == 'exponential':
