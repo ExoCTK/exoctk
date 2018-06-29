@@ -1,21 +1,23 @@
-## EXOCTK LEGGGGGGGO
+"""
+This is a module for calcuating groups and integrations with JWST on the fly. 
+the main function (perform_calculation) takes a dictionary of inputs 
+(modeled around how the web tool takes inputs) which must include : 
+obs_time, n_group, mag, mod, band, filt, filt_ta, ins, subarray, subarray_ta, 
+sat_mode, sat_max, and infile. It produces and dictionary of outputs that includes 
+all of the original information as well as groups, integrations, saturation levels, 
+and observation time estimates for target acquisition and science observations
+with JWST. 
 
-"""This is essentially demystify_apt.py -- it aims to take in parameters about the transit
-at hand and spit out parameters that can go straight (lol) into APT.
 
-It has two main pieces:
-    
-    1. Convert the literal amount of time you need for a transit into groups and integrations.
-    2. Make sure that the exposure isn't over-saturated. 
-
-Author : 
+Authors
+-------
     Jules Fowler, April 2017
 
-Use : 
-    Part of ExoCTK, but tbh tbd?
+Use
+---
+    This is mostly a module to be used by ExoCTKWeb -- but the main function
+    can be run standalone.
 
-Outputs :
-    Also tbd.
 """
 
 ## -- IMPORTS
@@ -42,158 +44,15 @@ def calc_groups_from_exp_time(max_exptime_per_int, t_frame):
         before it's oversaturated. 
     t_frame : float
         The time per frame.
+
+    Returns
+    -------
+    groups : int
+        The required number of groups.
     """
 
     groups = max_exptime_per_int/t_frame
     return np.floor(groups)
-
-
-def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infile, ta=False):
-    """
-    Interpolates the precalculated pandeia data to estimate the saturation limit.
-
-    Parameters
-    ----------
-    mag : float
-        The magnitude of the source. (Takes between 4.5-12.5)
-    ins : str
-       The instrument, allowable "miri", "niriss", "nirspec", "nircam". 
-    filt : str
-        Filter.
-    sub : str   
-        Subarray.
-    mod : str
-        Phoenix model key.
-    band : str
-        Magnitude band -- unsed rn.
-    t_frame : float
-        Frame time.
-    sat_lvl : float 
-        The maximum fullwell saturation we'll allow.
-    infile : str
-        The data file to use.
-    ta : bool, optional
-        Whether or not we're running this for TA.
-
-    Returns
-    -------
-    n_group : int
-        The number of groups that won't oversaturate the detector.
-    """
-    # Create the dictionaries for each filter and select out the prerun data
-    with open(infile) as f:
-        dat = json.load(f)
-    
-    ta_or_sci = 'sci_sat'
-    
-    if ta:
-        ta_or_sci = 'ta_sat'
-
-    mags = dat['mags']
-    sat = dat[ta_or_sci][ins][filt][sub][mod]
-    
-    # Interpolate the given magnitude
-    log_sat = np.log10(sat)
-    func_log = interpolate.interp1d(mags, log_sat)
-    func = interpolate.interp1d(mags, sat)
-    max_log_sat = func_log(mag)
-    max_sat_test = func(mag)
-    max_sat = 10**(max_log_sat)
-
-    # Figure out what it means in wake of the given sat lvl
-    max_exptime = sat_lvl/max_sat
-
-    # Calculate the nearest number of groups
-    n_group = calc_groups_from_exp_time(max_exptime, t_frame)
-    
-    return n_group, max_sat
-
-
-def map_to_ta_modes(ins, max_group, min_group):
-    """Turns the min/max groups into the closest allowable
-    TA group mode.
-
-    Parameters
-    ----------
-    ins : str
-        Instrument.
-    max_group : int
-        The maximum number of groups without oversaturating.
-    
-    min_group : int
-        The groups needed to hit the target SNR.
-    
-    Returns
-    -------
-    min_ta_groups : int
-        The min possible groups to hit target SNR.
-    max_ta_groups : int
-        The max possible groups before saturation.
-    """
-
-    # Allowable group modes for each ins
-    groups = {'miri': [3, 5, 9, 15, 23, 33, 45, 59, 75, 93, 113, 135, 159, 185, 243, 275, 513],
-              'niriss': [3, 5, 7, 9, 1, 13, 15, 17, 19],
-              'nirspec': [3], 
-              'nircam': [3, 5, 9, 17, 33, 65]
-              }
-    
-    # Split the diff and match 'em up. 
-    allowable_groups = groups[ins]
-    min_ta_groups = min(allowable_groups, key=lambda x:abs(x-min_group))
-    max_ta_groups = min(allowable_groups, key=lambda x:abs(x-max_group))
-    
-    # Unless it was oversaturated from the get-go OR there aren't enough groups
-    # for SNR
-    if min_group == 0:
-        min_ta_groups = 0
-        max_ta_groups = 0
-    if min_group > max(allowable_groups):
-        min_ta_groups = -1
-        max_ta_groups = 0
-    
-    # BOTH ARE FLIPPED RN -- I WILL FLIP BOTH BACK SOON...
-    return max_ta_groups, min_ta_groups
-
-
-def min_groups(mag, ins, filt, sub, mod, band, infile):
-    """Estimates the minimum number of groups to reach 
-    target acq sat requirements.
-
-    Parameters
-    ----------
-    mag : float 
-        Magnitude of star.
-    ins : str
-        Instrument.
-    filt : str
-        Filter.
-    sub : str
-        Subarray.
-    mod : str
-        Phoenix model key.
-    band : str, currently unused?
-        The band -- right now only k sooo?
-    infile : str
-        The file with the pandeia data.
-    
-    Returns
-    -------
-    min_groups : int
-        The minimum number of groups to reach target snr.
-    """
-
-    with open(infile) as f:
-        dat = json.load(f)
-    
-    # Match to closest magnitude
-    mags = dat['mags']
-    closest_mag = min(mags, key=lambda x:abs(x-mag))
-    index = mags.index(closest_mag)
-    
-    # Match to data 
-    min_groups = dat['ta_snr'][ins][filt][sub][mod][index]
-    return min_groups
 
 
 def calc_n_int(transit_time, n_group, n_reset, t_frame, n_frame):
@@ -257,7 +116,8 @@ def calc_t_duration(n_group, n_int, n_reset, t_frame, n_frame=1):
         Reset frames per integration.
     t_frame : float
         Frame time (in seconds).
-    n_frame : Frames per group -- always one except brown dwarves.
+    n_frame : int, optional
+        Frames per group -- always one except brown dwarves.
 
     Returns
     -------
@@ -300,6 +160,8 @@ def calc_t_frame(n_col, n_row, n_amp, ins):
         Number of rows.
     n_amp : int
         Amplifiers reading data.
+    ins : str
+        The instrument key.
 
     Returns:
     t_frame : float
@@ -363,6 +225,195 @@ def calc_t_ramp(t_int, n_reset, t_frame):
     return t_ramp
 
 
+def convert_sat(sat_max, sat_mode, ins, infile, ta=False):
+    """ Converts full well fraction to a saturation in counts OR provides the 
+    max fullwell for TA mode.
+
+    Parameters
+    ----------
+    sat_max : float
+        Either a full well fraction or counts.
+    sat_mode : str
+        'well' or 'counts'.
+    ins : str
+        The instrument.
+    infile : str
+        The path to the data file.
+    ta : bool, optional
+        Whether or not it's TA mode.
+    
+    Returns
+    -------
+    sat_max : float
+        The fullwell to use in counts.
+    """
+
+    with open(infile) as f:
+        dat = json.load(f)
+
+    ins_dict = dat['fullwell'] 
+    
+    if sat_mode == 'well':
+        sat_max = sat_max*ins_dict[ins]
+    
+    if ta:
+        sat_max = ins_dict[ins]
+    
+    return sat_max
+    
+
+def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infile, ta=False):
+    """
+    Interpolates the precalculated pandeia data to estimate the saturation limit.
+
+    Parameters
+    ----------
+    mag : float
+        The magnitude of the source. (Takes between 4.5-12.5)
+    ins : str
+       The instrument, allowable "miri", "niriss", "nirspec", "nircam". 
+    filt : str
+        Filter.
+    sub : str   
+        Subarray.
+    mod : str
+        Phoenix model key.
+    band : str
+        Magnitude band -- unsed rn.
+    t_frame : float
+        Frame time.
+    sat_lvl : float 
+        The maximum fullwell saturation we'll allow.
+    infile : str
+        The data file to use.
+    ta : bool, optional
+        Whether or not we're running this for TA.
+
+    Returns
+    -------
+    n_group : int
+        The number of groups that won't oversaturate the detector.
+    max_sat : int
+        The maximum saturation level reached by that number of groups.
+    """
+    
+    # Create the dictionaries for each filter and select out the prerun data
+    with open(infile) as f:
+        dat = json.load(f)
+    
+    ta_or_sci = 'sci_sat'
+    
+    if ta:
+        ta_or_sci = 'ta_sat'
+
+    mags = dat['mags']
+    sat = dat[ta_or_sci][ins][filt][sub][mod]
+    
+    # Interpolate the given magnitude
+    log_sat = np.log10(sat)
+    func_log = interpolate.interp1d(mags, log_sat)
+    func = interpolate.interp1d(mags, sat)
+    max_log_sat = func_log(mag)
+    max_sat_test = func(mag)
+    max_sat = 10**(max_log_sat)
+
+    # Figure out what it means in wake of the given sat lvl
+    max_exptime = sat_lvl/max_sat
+
+    # Calculate the nearest number of groups
+    n_group = calc_groups_from_exp_time(max_exptime, t_frame)
+    
+    return n_group, max_sat
+
+
+def map_to_ta_modes(ins, max_group, min_group):
+    """Turns the min/max groups into the closest allowable
+    TA group mode.
+
+    Parameters
+    ----------
+    ins : str
+        Instrument.
+    max_group : int
+        The maximum number of groups without oversaturating.
+    
+    min_group : int
+        The groups needed to hit the target SNR.
+    
+    Returns
+    -------
+    min_ta_groups : int
+        The min possible groups to hit target SNR.
+    max_ta_groups : int
+        The max possible groups before saturation.
+    """
+
+    # Allowable group modes for each ins
+    groups = {'miri': [3, 5, 9, 15, 23, 33, 45, 59, 75, 93, 113, 135, 159, 185, 243, 275, 513],
+              'niriss': [3, 5, 7, 9, 1, 13, 15, 17, 19],
+              'nirspec': [3], 
+              'nircam': [3, 5, 9, 17, 33, 65]
+              }
+    
+    # Match the literal min and max groups to the nearest mode. 
+    allowable_groups = groups[ins]
+    min_ta_groups = min(allowable_groups, key=lambda x:abs(x-min_group))
+    max_ta_groups = min(allowable_groups, key=lambda x:abs(x-max_group))
+    
+    # Unless it was oversaturated from the get-go OR there aren't enough groups
+    # for SNR
+    if min_group == 0:
+        min_ta_groups = 0
+        max_ta_groups = 0
+    if min_group > max(allowable_groups):
+        min_ta_groups = -1
+        max_ta_groups = 0
+    
+    # BOTH ARE FLIPPED RN -- I WILL FLIP BOTH BACK SOON...
+    return max_ta_groups, min_ta_groups
+
+
+def min_groups(mag, ins, filt, sub, mod, band, infile):
+    """Estimates the minimum number of groups to reach 
+    target acq sat requirements.
+
+    Parameters
+    ----------
+    mag : float 
+        Magnitude of star.
+    ins : str
+        Instrument.
+    filt : str
+        Filter.
+    sub : str
+        Subarray.
+    mod : str
+        Phoenix model key.
+    band : str, currently unused?
+        The band -- right now only k sooo?
+    infile : str
+        The file with the pandeia data.
+    
+    Returns
+    -------
+    min_groups : int
+        The minimum number of groups to reach target snr.
+    """
+
+    with open(infile) as f:
+        dat = json.load(f)
+    
+    # Match to closest magnitude
+    mags = dat['mags']
+    closest_mag = min(mags, key=lambda x:abs(x-mag))
+    index = mags.index(closest_mag)
+    
+    # Match to data 
+    min_groups = dat['ta_snr'][ins][filt][sub][mod][index]
+    
+    return min_groups
+
+
 def perform_calculation(params, n_frame=1, n_skip=0):
     """Calculates all of the outputs and puts them in a dictionary for easy access. 
 
@@ -400,7 +451,7 @@ def perform_calculation(params, n_frame=1, n_skip=0):
     t_duration_ta_min = calc_t_duration(min_ta_groups, 1, 1, ta_frame_time)
     t_duration_ta_max = calc_t_duration(max_ta_groups, 1, 1, ta_frame_time)
 
-    ## -- THE OTHER STUFF I GUESS??
+    ## -- Science obs
     
     # Figure out the rows/cols/amps/px_size and sat
     ins_params = set_params_from_ins(params['ins'], params['subarray'])
@@ -422,7 +473,8 @@ def perform_calculation(params, n_frame=1, n_skip=0):
     else:
         params['n_group'] = int(float(params['n_group']))
     
-    
+    ## -- Aditional helpful params
+
     # Calculate times/ramps/etc
     t_int = calc_t_int(params['n_group'], frame_time, n_frame, n_skip)
     t_ramp = calc_t_ramp(t_int, n_reset, frame_time)
@@ -461,80 +513,6 @@ def perform_calculation(params, n_frame=1, n_skip=0):
     return params 
 
 
-## -- INS CONVERSION THINGS
-
-def convert_sat(sat_max, sat_mode, ins, infile, ta=False):
-    """ Converts full well fraction to a saturation in counts OR provides the 
-    max fullwell for TA mode.
-
-    Parameters
-    ----------
-    sat_max : float
-        Either a full well fraction or counts.
-    sat_mode : str
-        'well' or 'counts'.
-    ins : str
-        The instrument.
-    infile : str
-        The path to the data file.
-    ta : bool, optional
-        Whether or not it's TA mode.
-    
-    Returns
-    -------
-    sat_max : float
-        The fullwell to use in counts.
-    """
-
-    with open(infile) as f:
-        dat = json.load(f)
-
-    ins_dict = dat['fullwell'] 
-    
-    if sat_mode == 'well':
-        sat_max = sat_max*ins_dict[ins]
-    
-    if ta:
-        sat_max = ins_dict[ins]
-    
-    return sat_max
-    
-
-def set_t_frame(infile, ins, sub, ta=False):
-    """ Assign the appropriate frame time based on the ins
-    and subarray. For now, modes are implied.
-
-    Parameters
-    ----------
-    infile: str
-        The path to the data file.
-    ins : str
-        The instrument : 'miri', 'niriss', 'nirspec', or 
-        'nircam'.
-    sub : str
-        The subarray -- too lazy to write out the options 
-        here.
-    ta : bool   
-        Whether this is for TA or not.
-
-    Returns
-    -------
-    t_frame : float
-        The frame time for this ins/sub combo.
-    """
-    
-    # Read in dict with frame times
-    with open(infile) as f:
-        frame_time = json.load(f)['frame_time']
-    
-    if ta:
-        t_frame = frame_time[ins]['ta'][sub]
-    else:
-        t_frame = frame_time[ins][sub]
-
-    return t_frame
-
-
 def set_params_from_ins(ins, subarray):
     """Sets/collects the running parameters from the instrument.
     
@@ -544,6 +522,7 @@ def set_params_from_ins(ins, subarray):
         Instrument, options are nircam, niriss, nirpec, and miri.
     subarray : str
         Subarray mode.
+
     Returns
     -------
     rows : int  
@@ -604,9 +583,42 @@ def set_params_from_ins(ins, subarray):
     return rows, cols, amps, px_size, ft, n_reset
     
 
+def set_t_frame(infile, ins, sub, ta=False):
+    """ Assign the appropriate frame time based on the ins
+    and subarray. For now, modes are implied.
+
+    Parameters
+    ----------
+    infile: str
+        The path to the data file.
+    ins : str
+        The instrument : 'miri', 'niriss', 'nirspec', or 
+        'nircam'.
+    sub : str
+        The subarray -- too lazy to write out the options 
+        here.
+    ta : bool   
+        Whether this is for TA or not.
+
+    Returns
+    -------
+    t_frame : float
+        The frame time for this ins/sub combo.
+    """
+    
+    # Read in dict with frame times
+    with open(infile) as f:
+        frame_time = json.load(f)['frame_time']
+    
+    if ta:
+        t_frame = frame_time[ins]['ta'][sub]
+    else:
+        t_frame = frame_time[ins][sub]
+
+    return t_frame
+
+
 ## -- RUN
 
-if __name__ == "__main__":
-    
-    print('Hey.')
-    
+# There's no function call right now because these inputs are ornery. 
+# I can add one if someone feels strongly.
