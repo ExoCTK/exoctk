@@ -3,7 +3,6 @@
 """
 A Python wrapper for the SVO Filter Profile Service
 """
-from __future__ import print_function
 from astropy.utils.exceptions import AstropyWarning
 from glob import glob
 import astropy.table as at
@@ -18,7 +17,7 @@ import pkg_resources
 import numpy as np
 import urllib
 import os
-from . import core
+from . import utils
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 WL_KEYS = ['FWHM', 'WavelengthCen', 'WavelengthEff', 'WavelengthMax',
@@ -119,7 +118,7 @@ class Filter(object):
             
             # Get a spectrum of Vega
             vega = np.genfromtxt(pkg_resources.resource_filename('ExoCTK', 'data/core/vega.txt'), unpack=True)[:2]
-            vega = core.rebin_spec(vega, x)*q.erg/q.s/q.cm**2/q.AA
+            vega = utils.rebin_spec(vega, x)*q.erg/q.s/q.cm**2/q.AA
             self.ZeroPoint = (np.trapz((vega[1]*f).to(q.erg/q.s/q.cm**2/q.AA), x=x)/np.trapz(f, x=x)).to(q.erg/q.s/q.cm**2/q.AA).value
             
             # Calculate the filter's properties

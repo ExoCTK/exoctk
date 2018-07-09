@@ -3,8 +3,6 @@
 """
 A module for creating and managing grids of model spectra
 """
-from __future__ import print_function
-
 from glob import glob
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
