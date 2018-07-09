@@ -5,25 +5,10 @@ A module for utility funtions
 """
 from __future__ import print_function
 
-from glob import glob
 from astropy.io import fits
-from astropy.utils.exceptions import AstropyWarning
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import zoom
-from functools import partial
-import multiprocessing
-import astropy.table as at
-import astropy.units as q
 import matplotlib.pyplot as plt
-import pickle
-import warnings
 import numpy as np
-import os
-import time
-import h5py
-
-
-warnings.simplefilter('ignore', category=AstropyWarning)
 
 
 def interp_flux(mu, flux, params, values):
