@@ -13,7 +13,8 @@ from matplotlib import rc
 from scipy.optimize import curve_fit
 from . import limb_darkening_plot as lp
 from .. import svo
-from .. import core
+from .. import utils
+from .. import modelgrid
 
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
 rc('text', usetex=True)
@@ -24,7 +25,8 @@ def ld_profile(name='quadratic', latex=False):
     Define the function to fit the limb darkening profile
 
     Reference:
-        https://www.cfa.harvard.edu/~lkreidberg/batman/tutorial.html#limb-darkening-options
+        https://www.cfa.harvard.edu/~lkreidberg/batman/
+        tutorial.html#limb-darkening-options
 
     Parameters
     ----------
@@ -122,7 +124,7 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         The logarithm of the surface gravity
     FeH: float
         The logarithm of the metallicity
-    model_grid: core.ModelGrid object
+    model_grid: modelgrid.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
         be calculated
     profiles: str, list
@@ -150,14 +152,14 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
     np.ndarray
         The list of limb darkening coefficients, mu values, and effective
         radius calculated from the model of the given parameters from the
-        input core.ModelGrid
+        input modelgrid.ModelGrid
 
     Example
     -------
     from ExoCTK.limb_darkening import limb_darkening_fit as lf
-    from ExoCTK import core
+    from ExoCTK import modelgrid
     fits_files = '/user/jfilippazzo/Models/ACES/default/'
-    model_grid = core.ModelGrid(fits_files, resolution=700)
+    model_grid = modelgrid.ModelGrid(fits_files, resolution=700)
     results = lf.ldc(4500, 5.0, 0.0, model_grid, ['quadratic','linear'])
     """
     # Get the model, interpolating if necessary
@@ -326,7 +328,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05,
 
     Parameters
     ----------
-    model_grid: core.ModelGrid object
+    model_grid: modelgrid.ModelGrid object
         The grid of synthetic spectra from which the coefficients will
         be calculated
     profile: str
@@ -345,7 +347,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05,
     -------
     list
         The list of limb darkening coefficients, mu values, and effective
-        radii calculated from the input core.ModelGrid
+        radii calculated from the input modelgrid.ModelGrid
 
     """
     # Get the arguments for the limb darkening profile
@@ -415,7 +417,8 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05,
             if isinstance(v, (list, str, int, float, tuple)):
                 if isinstance(v, (list, tuple)):
                     v = repr(v)
-                hdr.append((k.upper()[:8], v, 'core.ModelGrid() attribute'))
+                strng = 'modelgrid.ModelGrid() attribute'
+                hdr.append((k.upper()[:8], v, strng))
 
         # FITS file format
         if write_to.endswith('.fits'):
@@ -425,7 +428,7 @@ def ldc_grid(model_grid, profile, write_to='', mu_min=0.05,
                                                [coeff_grid, mu_grid, r_grid])}
 
             # Write the FITS file
-            core.writeFITS(write_to, extensions, headers=hdr)
+            utils.writeFITS(write_to, extensions, headers=hdr)
 
         # ASCII? Numpy? JSON?
         else:
