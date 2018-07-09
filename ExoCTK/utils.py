@@ -3,8 +3,6 @@
 """
 A module for utility funtions
 """
-from __future__ import print_function
-
 from astropy.io import fits
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
