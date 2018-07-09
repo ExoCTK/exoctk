@@ -14,7 +14,6 @@ from functools import partial
 import multiprocessing
 import astropy.table as at
 import astropy.units as q
-import matplotlib.pyplot as plt
 import pickle
 import warnings
 import numpy as np
@@ -371,7 +370,7 @@ class ModelGrid(object):
             mu_index = range(flux.shape[-2])
             start = time.time()
             pool = multiprocessing.Pool(processes)
-            func = partial(interp_flux, flux=flux, params=params,
+            func = partial(utils.interp_flux, flux=flux, params=params,
                            values=values)
             new_flux, generators = zip(*pool.map(func, mu_index))
             pool.close()
