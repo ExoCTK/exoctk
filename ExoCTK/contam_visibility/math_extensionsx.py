@@ -1,10 +1,9 @@
 """This module provides simple extensions to the Python mathematical
-    library."""
-""" 2018/06/26 Made PEP8 compliant and added
-    sind() and cosd() - Joe Filippazzo"""
-""" Version 1 August 23, 2010 RLH - Added OBLIQUITY."""
-""" Version 0 August 6, 2010 RLH  - Created"""
-
+library.
+2018/06/26 Made PEP8 compliant and added
+sind() and cosd() - Joe Filippazzo
+Version 1 August 23, 2010 RLH - Added OBLIQUITY.
+Version 0 August 6, 2010 RLH  - Created"""
 from copy import deepcopy
 from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp
 
