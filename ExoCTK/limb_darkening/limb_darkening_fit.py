@@ -11,8 +11,8 @@ import astropy.units as q
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from scipy.optimize import curve_fit
+from svo_filters import svo
 from . import limb_darkening_plot as lp
-from .. import svo
 from .. import utils
 from .. import modelgrid
 

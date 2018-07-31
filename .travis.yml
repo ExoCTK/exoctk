@@ -37,7 +37,7 @@ env:
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
         - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx pandas lmfit'
-        - PIP_DEPENDENCIES='bibtexparser batman-package astroquery'
+        - PIP_DEPENDENCIES='bibtexparser batman-package astroquery svo_filters'
 
     matrix:
         - PYTHON_VERSION=3.5 SETUP_CMD='install'
