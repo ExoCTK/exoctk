@@ -11,8 +11,24 @@ idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
 
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
-    # binComp: [deltaRA, deltaDEC, J, H, K]
+    """Produce a SOSS field simulation for a target
 
+    Parameters
+    ----------
+    ra: float
+        The RA of the target
+    dec: float
+        The Dec of the target
+    binComp: sequence
+        The parameters of a binary companion
+    dimX: int
+        The subarray size
+
+    Returns
+    -------
+    np.ndarray
+        The simulated data cube
+    """
     # stars in large field around target
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
@@ -50,9 +66,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     # number of stars
     nStars = allRA.size
-
-    # cooTar = crd.SkyCoord(ra=allRA[targetIndex], dec=allDEC[targetIndex],
-    #                       unit=(u.deg, u.deg))
 
     # Restoring model parameters
     modelParam = readsav(os.path.join(idlsave_path, 'modelsInfo.sav'),
@@ -141,22 +154,22 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
             # add V2 & V3 axes
             l, hw, hl = 250, 50, 50
-            adx, ady =- l*np.cos(-0.57 / radeg), -l*np.sin(-0.57 / radeg)
+            adx, ady = -l*np.cos(-0.57 / radeg), -l*np.sin(-0.57 / radeg)
             ax.arrow(2500, 1800, adx, ady, head_width=hw, head_length=hl,
                      length_includes_head=True, fc='k')  # V3
             plt.text(2500+1.4*adx, 1800+1.4*ady, "V3", va='center',
                      ha='center')
-            adx, ady =- l*np.cos((-0.57-90)/radeg), -l*np.sin((-0.57-90)/radeg)
+            adx, ady = -l*np.cos((-0.57-90)/radeg), -l*np.sin((-0.57-90)/radeg)
             ax.arrow(2500, 1800, adx, ady, head_width=hw, head_length=hl,
                      length_includes_head=True, fc='k')  # V2
             plt.text(2500+1.4*adx, 1800+1.4*ady, "V2", va='center',
                      ha='center')
             # add North and East
-            adx, ady =- l*np.cos(APA/radeg), -l*np.sin(APA/radeg)
+            adx, ady = -l*np.cos(APA/radeg), -l*np.sin(APA/radeg)
             ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl,
                      length_includes_head=True, fc='k')  # N
             plt.text(2500+1.4*adx, 1300+1.4*ady, "N", va='center', ha='center')
-            adx, ady=-l*np.cos((APA-90)/radeg), -l*np.sin((APA-90)/radeg)
+            adx, ady = -l*np.cos((APA-90)/radeg), -l*np.sin((APA-90)/radeg)
             ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl,
                      length_includes_head=True, fc='k')  # E
             plt.text(2500+1.4*adx, 1300+1.4*ady, "E", va='center', ha='center')
@@ -211,9 +224,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             if (intx != 0) or (inty != 0):
                 mod = models[k, my0:my1, mx0:mx1]
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
-
-    # fits.writeto(cubeName, simuCube, clobber = True)
-    # print(cubeName)
 
     return simuCube
 
