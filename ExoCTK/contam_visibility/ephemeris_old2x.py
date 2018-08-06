@@ -15,12 +15,12 @@ MIN_SUN_ANGLE = 84.8 * D2R  # minimum Sun angle, in radians
 MAX_SUN_ANGLE = 135.0 * D2R  # maximum Sun angle, in radians
 SUN_ANGLE_PAD = 0.5 * D2R   # pad away from Sun angle limits
 
-Qecl2eci = qx.QX(23.439291*DR2)  # At J2000 equinox
+Qecl2eci = qx.QX(23.439291*D2R)  # At J2000 equinox
 
 
 class Ephemeris:
     """A class for the ephemeris of an observation
-    
+
     History
     -------
     07/31/2008 Added functions for sun position
@@ -31,7 +31,7 @@ class Ephemeris:
     """
     def __init__(self, ephem_file, cnvrt=False):
         """Eph constructor
-        
+
         Parameters
         ----------
         ephem_file: str
@@ -92,7 +92,6 @@ class Ephemeris:
         pathname: str (optional)
             The path to a file to hold the report
         """
-
         num_to_report = min(limit, len(self.datelist))
 
         if (pathname):
@@ -120,7 +119,7 @@ class Ephemeris:
         """Computes the position of the telescope at a given date using the
         grid of positions of the ephemeris as a starting point and
         applying a linear interpolation between the ephemeris grid points
-        
+
         Parameters
         ----------
         adate: datetime
@@ -143,7 +142,7 @@ class Ephemeris:
 
     def Vsun_pos(self, adate):
         """The vector of the sun at the given date
-        
+
         Parameters
         ----------
         adate: datetime
@@ -160,7 +159,7 @@ class Ephemeris:
 
     def sun_pos(self, adate):
         """The coordinates of the sun at the given date
-        
+
         Parameters
         ----------
         adate: datetime
@@ -181,7 +180,7 @@ class Ephemeris:
 
     def normal_pa(self, adate, tgt_c1, tgt_c2):
         """Calculate the V3 position
-        
+
         Parameters
         ----------
         adate: datetime

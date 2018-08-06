@@ -16,41 +16,44 @@ import math
 
 D2R = math.pi / 180.  # degrees to radians
 R2D = 180. / math.pi  # radians to degrees
-PI2 = 2. * math.pi   # 2 pi
+PI2 = 2. * math.pi  # 2 pi
 
 
 def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
-    """
-    # -----------------------------------------------------------
-    # METHOD         f_computeVisibilityPeriods()
-    # TYPE           function
-    #
-    # DESCRIPTION    function that will compute the visibility
-    #                periods for a given (RA,DEC) over a given
-    #                time period.
-    #
-    # SYNTAX    f_computeVisibilityPeriods(ephemeris, mjdmin,
-    #                    mjdmax, ra, dec)
-    #
-    # ephemeris: input ephemeris object
-    # mjdmin: beginning of the search interval (modified
-    #    Julian date). It must be covered by the ephemeris.
-    # mjdmax: end of the search interval (modified
-    #    Julian date). It must be covered by the ephemeris.
-    # ra: input RA coordinate (equatorial coordinate, in rad)
-    # dec: input DEC coordinate (equatorial coordinate, in rad)
-    #
-    # Returns two lists containing the start end end of each
-    # visibility period and a list containing a status flag:
-    # flag = 0 visibility period fully in the search interval
-    # flag = -1 start of the visibility period truncated by
-    # the start of the search interval
-    # flag = -2 end of the visibility period truncated by
-    # the end of the search interval
-    # flag = +1 the search interval is fully included in
-    # the visibility period
-    #
-    # -----------------------------------------------------------
+    """Returns two lists containing the start end end of each
+    visibility period and a list containing a status flag:
+
+    flag = 0 visibility period fully in the search interval
+    flag = -1 start of the visibility period truncated by
+           the start of the search interval
+    flag = -2 end of the visibility period truncated by
+           the end of the search interval
+    flag = +1 the search interval is fully included in
+           the visibility period
+
+    Parameters
+    ----------
+    ephemeris: Ephemeris
+        The input ephemeris object
+    mjdmin: float
+        The beginning of the search interval (modified
+        Julian date). It must be covered by the ephemeris.
+    mjdmax: float
+        The end of the search interval (modified
+        Julian date). It must be covered by the ephemeris.
+    ra: float
+        The input RA coordinate (equatorial coordinate, in rad)
+    dec: float
+        The input DEC coordinate (equatorial coordinate, in rad)
+
+    Example
+    -------
+    >>> f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec)
+
+    Returns
+    -------
+    tuple
+        The lists of visibility period starts and ends with flags
     """
     # ===========================================================
     # Paranoid checks
@@ -77,20 +80,17 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
     # ===========================================================
     # Scanning the search period
     # ===========================================================
-    # Flag used to track the beginning and the end of a
-    # visibility period
+    # Flag used to track the beginning and the end of a visibility period
     iflip = False
     wstart = mjdmin
     startList = []
     endList = []
     statusList = []
     # Scannning step size (must be small enough to make sure that
-    # it cannot contain a full vsibility period (we would miss
-    # it)
+    # it cannot contain a full vsibility period (we would miss it)
     scanningStepSize = 0.1
     span = int((mjdmax - mjdmin) / scanningStepSize)
-    # Initialisation (first step of the scan is outside from the
-    # loop
+    # Initialisation (first step of the scan is outside from the loop
     iflag_old = ephemeris.in_FOR(mjdmin, ra, dec)
     for i in range(span):
         # Current date (the last step may be partial to remain
@@ -100,18 +100,14 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
             currentdate = mjdmax
         iflag = ephemeris.in_FOR(currentdate, ra, dec)
         # Checking if we are reaching the beginning or the end of a
-        # visibility period
-        # (in which case the iflag value will change)
+        # visibility period (in which case the iflag value will change)
         if iflag != iflag_old:
             # Setting the iflip flag to True to keep track of the change
-            # (in order to
-            # detect CVZ object which are permanenetly visible)
+            # (in order to detect CVZ object which are permanenetly visible)
             # If iflag = True we are starting a visibility period and use
-            # a bisection method
-            # to find the exact transition date. This assumes that there is
-            # a single
-            # transition in the interval => it looks like a step size of
-            # 0.1 day is
+            # a bisection method to find the exact transition date
+            # This assumes that there is a single transition in the
+            # interval => it looks like a step size of 0.1 day is
             # sufficient to ensure that.
             if (iflag):
                 step = currentdate-scanningStepSize
@@ -132,8 +128,7 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
             iflag_old = iflag
 
     # If there was a transition and we end up with a valid date, we close the
-    # interval with the
-    # end of the search interval
+    # interval with the end of the search interval
     if (iflag and iflip):
         startList.append(wstart)
         endList.append(currentdate)
