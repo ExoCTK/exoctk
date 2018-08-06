@@ -1,11 +1,12 @@
-from astroquery.irsa import Irsa
-from scipy.io import readsav
-import matplotlib.pyplot as plt
 import astropy.coordinates as crd
 import astropy.units as u
+import glob
+import matplotlib.pyplot as plt
 import numpy as np
 import os
-import glob
+
+from astroquery.irsa import Irsa
+from scipy.io import readsav
 
 idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
 
@@ -51,7 +52,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     targetIndex = np.argmin(distance)  # the target
 
     # add any missing companion
-    # cubeNameSuf = ''
     if binComp != '':
         deg2rad = np.pi/180
         bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
@@ -62,7 +62,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         Kmag = np.append(Kmag, binComp[4])
         J_Hobs = Jmag-Hmag
         H_Kobs = Hmag-Kmag
-        # cubeNameSuf = '_custom'
 
     # number of stars
     nStars = allRA.size
@@ -109,6 +108,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     PAmin = 0  # instrument PA, degrees
     PAmax = 360
     dPA = 1  # degrees
+
     # Set of IPA values to cover
     PAtab = np.arange(PAmin, PAmax, dPA)    # degrees
     nPA = len(PAtab)

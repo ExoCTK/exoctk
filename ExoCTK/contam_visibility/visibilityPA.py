@@ -9,17 +9,18 @@ Usage: python visibilityPA.py RA DEC [targetName]
 -makes use of (and hacks) several scripts created by Pierre Ferruit
  that are part of the JWST Python tools JWSTpylib and JWSTpytools
 """
-from . import ephemeris_old2x as EPH
-
-import pkg_resources
 import datetime
 import math
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
+import pkg_resources
+
 from matplotlib.ticker import MultipleLocator
+
+from . import ephemeris_old2x as EPH
 
 
 D2R = math.pi/180.  # degrees to radians
@@ -229,8 +230,6 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         # Top
         err_y = np.concatenate([paMin[i0_top:i1_top+1],
                                 paMaxTmp[i0_top:i1_top+1][::-1]])
-        # err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],
-        # [d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
         err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
                                 gdMaskednum[i0_top:i1_top+1][::-1]])
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
@@ -238,8 +237,6 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         # Bottom
         err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
                                 paMax[i0_bot:i1_bot+1][::-1]])
-        # err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],
-        # [d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
         err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
                                 gdMaskednum[i0_bot:i1_bot+1][::-1]])
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
