@@ -12,7 +12,8 @@ def resolve_target(targetName):
     Returns
     -------
     tuple
-        The ra and dec of the target"""
+        The ra and dec of the target
+    """
     try:
         target_info = Simbad.query_object(targetName)
         targetRA = target_info['RA']
