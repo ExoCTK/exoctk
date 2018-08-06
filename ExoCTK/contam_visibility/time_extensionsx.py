@@ -3,9 +3,9 @@ Standard for time representation in this project is fractional days.
 Dates are represented as modified Julian dates (mjd).
 An mjd gives the number of days since midnight on November 17, 1858.
 """
+import string
 
 from math import ceil, floor
-import string
 
 # Constant for converting Julian dates to modified Julian dates
 MJD_BASELINE = 2400000.5

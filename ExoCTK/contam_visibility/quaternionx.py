@@ -1,6 +1,5 @@
 # ! /usr/bin/env python
 # quaternion module
-
 """Version 4 September 9, 2010 WMK
 Flipped sign of the angle in the QX, QY, QZ, QJX, QJY, QJZ, set_values,
 set_as_QX, ... functions to be consistent with the corrected multiplication.
@@ -29,6 +28,7 @@ PEP Compliant
 Joe Filippazzo - 2018/06/26
 """
 from math import radians, asin, cos, sin, sqrt, pi, degrees, atan2
+
 from . import math_extensionsx as math2
 from .astro_funcx import unit_limit
 

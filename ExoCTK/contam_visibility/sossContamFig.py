@@ -1,13 +1,15 @@
-import numpy as np
-from astropy.io import fits
-from . import visibilityPA as vpa
 import os
-import sys
+import numpy as np
 import pkg_resources
+import sys
+
+from astropy.io import fits
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import Range1d, LinearColorMapper, Label
 from bokeh.palettes import inferno
+
+from . import visibilityPA as vpa
 
 
 def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
@@ -49,7 +51,6 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
     cube = cube[2:, :, :]  # all the angles
 
     plotPAmin, plotPAmax = paRange
-    # suffix = '_PA'+str(plotPAmin)+'-'+str(plotPAmax)
 
     # start calculations
     loc = 'data/contam_visibility/lambda_order1-2.txt'
@@ -192,7 +193,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
         s1.add_layout(Label(x=l.mean(), y=y3+0.02, x_units='data',
                       y_units='data', text='K', render_mode='css',
                       text_font_size='8pt'))
-        #
+
         l = np.array([1.1384, 1.1409])
         s1.line(l[0], [y4, y4+0.02], line_color='black')
         s1.line(l[1], [y4, y4+0.02], line_color='black')
@@ -352,6 +353,5 @@ if __name__ == "__main__":
 
     goodPA, badPA, _ = vpa.checkVisPA(ra, dec, targetName)
 
-    # cubeName='cubes/cube_RA'+ra+'DEC'+dec+cubeNameSuf+'.fits'
     contam(cubeName, targetName=targetName, paRange=[pamin, pamax],
            badPA=badPA, tmpDir=tmpDir)
