@@ -27,6 +27,18 @@ R2D = 180./math.pi  # radians to degrees
 
 
 def convert_ddmmss_to_float(astring):
+    """Convert sexigesimal to decimal degrees
+
+    Parameters
+    ----------
+    astring: str
+        The sexigesimal coordinate
+
+    Returns
+    -------
+    float
+        The converted coordinate
+    """
     aline = astring.split(':')
     d = float(aline[0])
     m = float(aline[1])
@@ -35,8 +47,27 @@ def convert_ddmmss_to_float(astring):
     return hour_or_deg
 
 
-def checkVisPA(ra, dec, targetName=None, ephFileName=None, save=False,
-               fig=None):
+def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
+    """Check the visibility at a range of position angles
+
+    Parameters
+    ----------
+    ra: float
+        The RA of the target
+    dec: float
+        The Dec of the target
+    targetName: str
+        The target name
+    ephFileName: str
+        The filename of the ephemeris file
+    fig: matplotlib.pyplot.figure, bokeh.plotting.figure
+        The figure to plot to
+
+    Returns
+    -------
+    tuple
+        The good and bad position angles and the plotted figure
+    """
     if ephFileName is None:
         eph_file = 'data/contam_visibility/JWST_ephem_short.txt'
         ephFileName = pkg_resources.resource_filename('ExoCTK', eph_file)
@@ -109,32 +140,6 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, save=False,
     if paGood[-1][1] < 360.:
         paBad.append([paGood[-1][1], 360.])
 
-    # print results to file
-    """
-    if save:
-        fName='visibilityPA-'+targetName+'.txt'
-        fic=open(fName, 'w')
-
-        fic.write('# Date    MJD          VIS?  PAnom   PArange\n')
-        for i in range(vis.size):
-            tmp1='{:7.3f}'.format(paNom[i]) if vis[i] else 7*'-'
-            tmp2='{:7.3f}--{:7.3f}'.format(paMin[i], paMax[i]) if
-    vis[i] else 16*'-'
-            # fic.write(gd[i].strftime("%y-%m-%d")+' {:f} {:5s} {:7.3f}
-    {:7.3f}--{:7.3f} \n'.format(mjd[i], str(vis[i]), paNom[i], paMin[i],
-    paMax[i]))
-            fic.write(gd[i].strftime("%y-%m-%d")+' {:f} {:5s} {} {} \n'.
-    format(mjd[i], str(vis[i]), tmp1, tmp2))
-
-        fic.write("\n")
-        fic.write("Accessible PA ranges: ")
-        fic.write(', '.join([str(x) for x in paGood]))
-        fic.write("\n")
-        fic.write("Non-accessible PA ranges: ")
-        fic.write(', '.join([str(x) for x in paBad]))
-        fic.write("\n")
-        fic.close()
-    """
     # Make a figure
     if fig is None or fig == True:
         fig = plt.gcf()
