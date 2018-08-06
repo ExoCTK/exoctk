@@ -15,20 +15,30 @@ MIN_SUN_ANGLE = 84.8 * D2R  # minimum Sun angle, in radians
 MAX_SUN_ANGLE = 135.0 * D2R  # maximum Sun angle, in radians
 SUN_ANGLE_PAD = 0.5 * D2R   # pad away from Sun angle limits
 
-obliquity_of_the_ecliptic = 23.439291  # At J2000 equinox
-obliquity_of_the_ecliptic *= D2R
-Qecl2eci = qx.QX(obliquity_of_the_ecliptic)
+Qecl2eci = qx.QX(23.439291*DR2)  # At J2000 equinox
 
 
 class Ephemeris:
-    # 07/31/2008 Added functions for sun position
-    # 12/05/2008 Switched to spline fit.
-    # 07/29/2010 Added OP window calc
-    # 08/03/2010 Got rid of degrees trig functions
-    #           Removed in_FOR, is_valid_att etc. as those are S/C dependent
-
-    def __init__(self, afile, cnvrt=False):
-        """Eph constructor, cnvrt True converts into Ecliptic frame """
+    """A class for the ephemeris of an observation
+    
+    History
+    -------
+    07/31/2008 Added functions for sun position
+    12/05/2008 Switched to spline fit.
+    07/29/2010 Added OP window calc
+    08/03/2010 Got rid of degrees trig functions
+              Removed in_FOR, is_valid_att etc. as those are S/C dependent
+    """
+    def __init__(self, ephem_file, cnvrt=False):
+        """Eph constructor
+        
+        Parameters
+        ----------
+        ephem_file: str
+            The path to the ephemeris file
+        cnvrt: bool
+            Converts into Ecliptic frame
+        """
         if cnvrt:
             print("Using Ecliptic Coordinates")
         else:
@@ -40,11 +50,11 @@ class Ephemeris:
         self.amin = 0.
         self.amax = 0.
         aV = qx.Vector(0., 0., 0.)
-        if afile.find("l2_halo_FDF_060619.trh") > -1:
+        if ephem_file.find("l2_halo_FDF_060619.trh") > -1:
             ascale = 0.001
         else:
             ascale = 1.0
-        fin = open(afile, 'r')
+        fin = open(ephem_file, 'r')
         finLines = fin.readlines()
         for item in finLines[2:]:
             item = item.strip()
@@ -70,21 +80,18 @@ class Ephemeris:
             if self.amin == 0.:
                 self.amin = adate
         self.amax = adate
-        # # yp = spline(xa, ya, 0., 0.)
-        # Saving spline parameters
-        # self.xlistp = spline(self.datelist, self.xlist, 1.e31, 1.e31)
-        # self.ylistp = spline(self.datelist, self.ylist, 1.e31, 1.e31)
-        # self.zlistp = spline(self.datelist, self.zlist, 1.e31, 1.e31)
         fin.close()
-        # print len(self.datelist), len(self.xlist), len(self.ylist),
-        # len(self.zlist)
 
     def report_ephemeris(self, limit=100000, pathname=None):
         """Prints a formatted report of the ephemeris.
 
-        If a limit is specified, no more than the maximum number of records
-        are reported.
-        pathname = optional path to a file to hold the report."""
+        Parameters
+        ----------
+        limit: int (optional)
+            The number of records to report
+        pathname: str (optional)
+            The path to a file to hold the report
+        """
 
         num_to_report = min(limit, len(self.datelist))
 
@@ -113,6 +120,16 @@ class Ephemeris:
         """Computes the position of the telescope at a given date using the
         grid of positions of the ephemeris as a starting point and
         applying a linear interpolation between the ephemeris grid points
+        
+        Parameters
+        ----------
+        adate: datetime
+            The date of the observation
+
+        Returns
+        -------
+        Vector
+            The position of the telescope as a Vector object
         """
         cal_days = adate - self.datelist[0]
         indx = int(cal_days)
@@ -125,11 +142,35 @@ class Ephemeris:
         return qx.Vector(x, y, z)
 
     def Vsun_pos(self, adate):
+        """The vector of the sun at the given date
+        
+        Parameters
+        ----------
+        adate: datetime
+            The date of the observation
+
+        Returns
+        -------
+        Vector
+            The position of the sun as a Vector object
+        """
         Vsun = -1. * self.pos(adate)
         Vsun = Vsun / Vsun.length()
         return Vsun
 
     def sun_pos(self, adate):
+        """The coordinates of the sun at the given date
+        
+        Parameters
+        ----------
+        adate: datetime
+            The date of the observation
+
+        Returns
+        -------
+        tuple
+            The coordinates of the sun
+        """
         Vsun = -1. * self.pos(adate)
         Vsun = Vsun / Vsun.length()
         coord2 = math.asin(unit_limit(Vsun.z))
@@ -139,7 +180,22 @@ class Ephemeris:
         return (coord1, coord2)
 
     def normal_pa(self, adate, tgt_c1, tgt_c2):
-        """ tgt_c1, tgt_c2 are RA & DEC in radians """
+        """Calculate the V3 position
+        
+        Parameters
+        ----------
+        adate: datetime
+            The date of the observation
+        tgt_c1: float
+            The RA in radians
+        tgt_c2: float
+            The Dec in radians
+
+        Returns
+        -------
+        float
+            The V3 position
+        """
         (sun_c1, sun_c2) = self.sun_pos(adate)
         sun_pa = astro_func.pa(tgt_c1, tgt_c2, sun_c1, sun_c2)
         V3_pa = sun_pa + math.pi  # We want -V3 pointed towards sun.
@@ -152,8 +208,16 @@ class Ephemeris:
     def long_term_attitude(self, date):
         """Defines a long-term safe attitude as of a given date.
 
-        date = date of computation, as an mjd."""
+        Parameters
+        ----------
+        date: float
+             The date of computation, as an mjd
 
+        Returns
+        -------
+        Attitude
+            The Attitude object at the given date
+        """
         # Retrieve Sun's position and transform to ecliptic coordinates.
         (sun_ra, sun_dec) = self.sun_pos(date)   # RA range 0-PI2
         vSun = qx.CelestialVector(sun_ra, sun_dec, degrees=False)
@@ -180,8 +244,24 @@ class Ephemeris:
         return(qx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
 
     def is_valid(self, date, ngc_1, ngc_2, V3pa):
-        """Indicates whether an attitude is valid at a given date."""
+        """Indicates whether an attitude is valid at a given date.
 
+        Parameters
+        ----------
+        date: float
+            The date of the observation
+        ngc_1: flaot
+            The RA of the reference in radians
+        ngc_2: float
+            The Dec of the reference in radians
+        V3pa: float
+            The V3 position of the telescope
+
+        Returns
+        -------
+        bool
+            Is it a valid PA
+        """
         # First check that the date is within the time interval of
         # the ephemeris.
         if ((date < self.amin) or (date > self.amax)):
@@ -204,7 +284,22 @@ class Ephemeris:
         return False
 
     def in_FOR(self, date, ngc_1, ngc_2):
-        """ ngc_1 & ngc_2 are ra & dec in radians"""
+        """Test if in the FOR
+
+        Parameters
+        ----------
+        date: float
+            The date of the observation
+        ngc_1: flaot
+            The RA of the reference in radians
+        ngc_2: float
+            The Dec of the reference in radians
+
+        Returns
+        -------
+        bool
+            Is it in the FOR
+        """
         (sun_1, sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1, ngc_2, sun_1, sun_2)
         # sun pitch is always equal or greater than sun angle (V1 to sun)
@@ -213,7 +308,25 @@ class Ephemeris:
         return True
 
     def bisect_by_FOR(self, in_date, out_date, ngc_1, ngc_2):
-        """ in and out of FOR, assumes only one "root" in interval"""
+        """Find the midpoint in time between in and out of FOR,
+        assumes only one "root" in interval
+
+        Parameters
+        ----------
+        in_date: float
+            The in date of the observation
+        out_date: float
+            The out date of the observation
+        ngc_1: flaot
+            The RA of the reference in radians
+        ngc_2: float
+            The Dec of the reference in radians
+
+        Returns
+        -------
+        float
+            The midpoint in time
+        """
         delta_days = 200.
         mid_date = (in_date+out_date)/2.
         while delta_days > 0.000001:
@@ -234,7 +347,27 @@ class Ephemeris:
         return mid_date
 
     def bisect_by_attitude(self, in_date, out_date, ngc_1, ngc_2, pa):
-        """in and out of FOR, assumes only one "root" in interval"""
+        """Find the midpoint in time between in and out of FOR,
+        assumes only one "root" in interval
+
+        Parameters
+        ----------
+        in_date: float
+            The in date of the observation
+        out_date: float
+            The out date of the observation
+        ngc_1: flaot
+            The RA of the reference in radians
+        ngc_2: float
+            The Dec of the reference in radians
+        pa: float
+            The position angle
+
+        Returns
+        -------
+        float
+            The midpoint in time
+        """
         icount = 0
         delta_days = 200.
         mid_date = (in_date+out_date)/2.
@@ -252,9 +385,29 @@ class Ephemeris:
         return mid_date
 
     def OP_window(self, adate, ngc_1, ngc_2, pa, mdelta, pdelta):
-        """ Attitude at adate must be valid, else returns (0, 0).
+        """Attitude at adate must be valid, else returns (0, 0).
         If valid, returns (adate-mdelta, adate+pdelta) or the constraint
-        window, which ever is smaller.
+        window, which ever is smaller
+
+        Parameters
+        ----------
+        date: float
+            The date of the observation
+        ngc_1: flaot
+            The RA of the reference in radians
+        ngc_2: float
+            The Dec of the reference in radians
+        pa: float
+            The position angle
+        mdelta: float
+            Delta time on low end
+        pdelta: float
+            Delta time on high end
+
+        Returns
+        -------
+        tuple
+            The OP window
         """
         if self.is_valid(adate, ngc_1, ngc_2, pa):
             if self.is_valid(adate-mdelta, ngc_1, ngc_2, pa):
