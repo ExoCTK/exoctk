@@ -1,8 +1,8 @@
 # ! /usr/bin/env python
 # Module ephemeris.py
+import math
 import sys
 import time
-import math
 
 from . import time_extensionsx as time2
 from . import quaternionx as qx
@@ -19,7 +19,7 @@ Qecl2eci = qx.QX(23.439291*D2R)  # At J2000 equinox
 
 
 class Ephemeris:
-    """A class for the ephemeris of an observation
+    """A class for the ephemeris of an observation.
 
     History
     -------
@@ -30,14 +30,14 @@ class Ephemeris:
               Removed in_FOR, is_valid_att etc. as those are S/C dependent
     """
     def __init__(self, ephem_file, cnvrt=False):
-        """Eph constructor
+        """Ephemeris constructor
 
         Parameters
         ----------
         ephem_file: str
-            The path to the ephemeris file
-        cnvrt: bool
-            Converts into Ecliptic frame
+            The path to the ephemeris file.
+        cnvrt: bool, optional
+            Converts into Ecliptic frame.
         """
         if cnvrt:
             print("Using Ecliptic Coordinates")
@@ -82,15 +82,16 @@ class Ephemeris:
         self.amax = adate
         fin.close()
 
+        
     def report_ephemeris(self, limit=100000, pathname=None):
         """Prints a formatted report of the ephemeris.
 
         Parameters
         ----------
-        limit: int (optional)
-            The number of records to report
+        limit: int, optional
+            The number of records to report.
         pathname: str (optional)
-            The path to a file to hold the report
+            The path to a file to hold the report.
         """
         num_to_report = min(limit, len(self.datelist))
 
@@ -115,6 +116,7 @@ class Ephemeris:
         if (pathname):
             dest.close()   # Clean up
 
+            
     def pos(self, adate):
         """Computes the position of the telescope at a given date using the
         grid of positions of the ephemeris as a starting point and
@@ -122,24 +124,25 @@ class Ephemeris:
 
         Parameters
         ----------
-        adate: datetime
-            The date of the observation
+        adate: datetime.datetime object
+            The date of the observation.
 
         Returns
         -------
-        Vector
+        qx.Vector object
             The position of the telescope as a Vector object
         """
         cal_days = adate - self.datelist[0]
-        indx = int(cal_days)
-        if (indx == len(self.datelist)-1):
-            indx = indx - 1
-        frac = cal_days - indx
-        x = (self.xlist[indx+1] - self.xlist[indx])*frac + self.xlist[indx]
-        y = (self.ylist[indx+1] - self.ylist[indx])*frac + self.ylist[indx]
-        z = (self.zlist[indx+1] - self.zlist[indx])*frac + self.zlist[indx]
+        index = int(cal_days)
+        if (index == len(self.datelist)-1):
+            index = index - 1
+        frac = cal_days - index
+        x = (self.xlist[index+1] - self.xlist[index])*frac + self.xlist[index]
+        y = (self.ylist[index+1] - self.ylist[index])*frac + self.ylist[index]
+        z = (self.zlist[index+1] - self.zlist[index])*frac + self.zlist[index]
         return qx.Vector(x, y, z)
 
+    
     def Vsun_pos(self, adate):
         """The vector of the sun at the given date
 
@@ -157,18 +160,19 @@ class Ephemeris:
         Vsun = Vsun / Vsun.length()
         return Vsun
 
+    
     def sun_pos(self, adate):
         """The coordinates of the sun at the given date
 
         Parameters
         ----------
-        adate: datetime
-            The date of the observation
+        adate: datetime.datetime object
+            The date of the observation.
 
         Returns
         -------
         tuple
-            The coordinates of the sun
+            The coordinates of the sun.
         """
         Vsun = -1. * self.pos(adate)
         Vsun = Vsun / Vsun.length()
@@ -178,22 +182,23 @@ class Ephemeris:
             coord1 += PI2
         return (coord1, coord2)
 
+    
     def normal_pa(self, adate, tgt_c1, tgt_c2):
         """Calculate the V3 position
 
         Parameters
         ----------
-        adate: datetime
-            The date of the observation
+        adate: datetime.datetime object
+            The date of the observation.
         tgt_c1: float
-            The RA in radians
+            The RA in radians.
         tgt_c2: float
-            The Dec in radians
+            The Dec in radians.
 
         Returns
         -------
         float
-            The V3 position
+            The V3 position.
         """
         (sun_c1, sun_c2) = self.sun_pos(adate)
         sun_pa = astro_func.pa(tgt_c1, tgt_c2, sun_c1, sun_c2)
@@ -204,18 +209,19 @@ class Ephemeris:
             V3_pa -= PI2
         return V3_pa
 
+    
     def long_term_attitude(self, date):
         """Defines a long-term safe attitude as of a given date.
 
         Parameters
         ----------
         date: float
-             The date of computation, as an mjd
+             The date of computation, as an mjd.
 
         Returns
         -------
         Attitude
-            The Attitude object at the given date
+            The Attitude object at the given date.
         """
         # Retrieve Sun's position and transform to ecliptic coordinates.
         (sun_ra, sun_dec) = self.sun_pos(date)   # RA range 0-PI2
@@ -242,24 +248,25 @@ class Ephemeris:
         pa = self.normal_pa(date, vec1.ra, vec1.dec)
         return(qx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
 
+    
     def is_valid(self, date, ngc_1, ngc_2, V3pa):
         """Indicates whether an attitude is valid at a given date.
 
         Parameters
         ----------
         date: float
-            The date of the observation
+            The date of the observation.
         ngc_1: flaot
-            The RA of the reference in radians
+            The RA of the reference in radians.
         ngc_2: float
-            The Dec of the reference in radians
+            The Dec of the reference in radians.
         V3pa: float
-            The V3 position of the telescope
+            The V3 position of the telescope.
 
         Returns
         -------
         bool
-            Is it a valid PA
+            Is it a valid PA.
         """
         # First check that the date is within the time interval of
         # the ephemeris.
@@ -282,22 +289,23 @@ class Ephemeris:
                 return True
         return False
 
+    
     def in_FOR(self, date, ngc_1, ngc_2):
         """Test if in the FOR
 
         Parameters
         ----------
         date: float
-            The date of the observation
+            The date of the observation.
         ngc_1: flaot
-            The RA of the reference in radians
+            The RA of the reference in radians.
         ngc_2: float
-            The Dec of the reference in radians
+            The Dec of the reference in radians.
 
         Returns
         -------
         bool
-            Is it in the FOR
+            Is it in the FOR.
         """
         (sun_1, sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1, ngc_2, sun_1, sun_2)
@@ -306,6 +314,7 @@ class Ephemeris:
             return False
         return True
 
+    
     def bisect_by_FOR(self, in_date, out_date, ngc_1, ngc_2):
         """Find the midpoint in time between in and out of FOR,
         assumes only one "root" in interval
@@ -313,18 +322,18 @@ class Ephemeris:
         Parameters
         ----------
         in_date: float
-            The in date of the observation
+            The in date of the observation.
         out_date: float
-            The out date of the observation
+            The out date of the observation.
         ngc_1: flaot
-            The RA of the reference in radians
+            The RA of the reference in radians.
         ngc_2: float
-            The Dec of the reference in radians
+            The Dec of the reference in radians.
 
         Returns
         -------
         float
-            The midpoint in time
+            The midpoint in time.
         """
         delta_days = 200.
         mid_date = (in_date+out_date)/2.
@@ -345,6 +354,7 @@ class Ephemeris:
             mid_date = mid_date - 0.000001
         return mid_date
 
+    
     def bisect_by_attitude(self, in_date, out_date, ngc_1, ngc_2, pa):
         """Find the midpoint in time between in and out of FOR,
         assumes only one "root" in interval
@@ -352,20 +362,20 @@ class Ephemeris:
         Parameters
         ----------
         in_date: float
-            The in date of the observation
+            The in date of the observation.
         out_date: float
-            The out date of the observation
+            The out date of the observation.
         ngc_1: flaot
-            The RA of the reference in radians
+            The RA of the reference in radians.
         ngc_2: float
-            The Dec of the reference in radians
+            The Dec of the reference in radians.
         pa: float
-            The position angle
+            The position angle.
 
         Returns
         -------
         float
-            The midpoint in time
+            The midpoint in time.
         """
         icount = 0
         delta_days = 200.
@@ -383,30 +393,31 @@ class Ephemeris:
         # print " bisected >", icount
         return mid_date
 
+    
     def OP_window(self, adate, ngc_1, ngc_2, pa, mdelta, pdelta):
         """Attitude at adate must be valid, else returns (0, 0).
         If valid, returns (adate-mdelta, adate+pdelta) or the constraint
-        window, which ever is smaller
+        window, which ever is smaller.
 
         Parameters
         ----------
         date: float
-            The date of the observation
+            The date of the observation.
         ngc_1: flaot
-            The RA of the reference in radians
+            The RA of the reference in radians.
         ngc_2: float
-            The Dec of the reference in radians
+            The Dec of the reference in radians.
         pa: float
-            The position angle
+            The position angle.
         mdelta: float
-            Delta time on low end
+            Delta time on low end.
         pdelta: float
-            Delta time on high end
+            Delta time on high end.
 
         Returns
         -------
         tuple
-            The OP window
+            The OP window.
         """
         if self.is_valid(adate, ngc_1, ngc_2, pa):
             if self.is_valid(adate-mdelta, ngc_1, ngc_2, pa):
@@ -426,14 +437,14 @@ class Ephemeris:
 
 
 def unit_limit(x):
-    """ forces value to be in [-1, 1]
+    """ Forces value to be in [-1, 1].
 
     Parameters
     ----------
     x: float, int
         The value to adjust
 
-    Retruns
+    Returns
     -------
     float
         The adjusted value
