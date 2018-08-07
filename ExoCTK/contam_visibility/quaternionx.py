@@ -43,10 +43,15 @@ class GalacticPole:
     def __init__(self, latitude, longitude, ascending_node):
         """Initializes the coordinates of the galactic pole.
 
-        latitude = latitude of pole, in degrees
-        longitude = longitude of pole, in degrees
-        ascending_node = ascending node of pole, in degrees."""
-
+        Parameters
+        ----------
+        latitude: float
+            Latitude of pole, in degrees
+        longitude: float
+            Longitude of pole, in degrees
+        ascending_node: float
+            Ascending node of pole, in degrees
+        """
         # Arguments specified in degrees, but values represented in radians.
         self.latitude = radians(latitude)
         self.longitude = radians(longitude)
@@ -67,54 +72,181 @@ NGP = GalacticPole(192.859508, 27.128336, 32.932)
 
 def QX(angle):
     """Creates rotation quaternion about X axis, rotates a vector about
-    this axis"""
+    this axis
+
+    Parameters
+    ----------
+    angle: float
+        The angle to rotate by
+
+    Result
+    ------
+    Quarternion
+        The rotated quaternion
+    """
     return Quaternion(Vector(sin(angle/2.), 0., 0.), cos(angle/2.))
 
 
 def QY(angle):
     """Creates rotation quaternion about Y axis, rotates a vector about
-    this axis"""
+    this axis
+
+    Parameters
+    ----------
+    angle: float
+        The angle to rotate by
+
+    Result
+    ------
+    Quarternion
+        The rotated quaternion
+    """
     return Quaternion(Vector(0., sin(angle/2.), 0.), cos(angle/2.))
 
 
 def QZ(angle):
     """Creates rotation quaternion about Z axis, rotates a vector about
-    this axis"""
+    this axis
+
+    Parameters
+    ----------
+    angle: float
+        The angle to rotate by
+
+    Result
+    ------
+    Quarternion
+        The rotated quaternion
+    """
     return Quaternion(Vector(0., 0., sin(angle/2.)), cos(angle/2.))
 
 
 def Qmake_a_point(V):
-    """Creates a pure Q, i.e. defines a pointing not a rotation"""
+    """Creates a pure Q, i.e. defines a pointing not a rotation
+
+    Parameters
+    ----------
+    V: Vector
+        The vector
+
+    Returns
+    -------
+    Quaternion
+        The point as a quaternion
+    """
     return Quaternion(V, 0.)
 
 
 def cvt_pt_Q_to_V(Q):
-    """Converts a pure (pointing) Q to a unit position Vector"""
+    """Converts a pure (pointing) Q to a unit position Vector
+
+    Parameters
+    ----------
+    Q: Quaternion
+        The quaternion to convert to a Vector
+
+    Returns
+    -------
+    Vector
+        The point as a vector
+    """
     return Vector(Q.q1, Q.q2, Q.q3)
 
 
 # The following functions are dependent upon the spacecraft definitions
 # and perhaps should be moved to that module
 def Qmake_body2inertial(coord1, coord2, V3pa):
-    """Creates a rotation Q, going from the body frame to inertial"""
+    """Creates a rotation Q, going from the body frame to inertial
+
+    Parameters
+    ----------
+    coord1: float
+        The first coordinate
+    coord2: float
+        The second coordinate
+    V3pa: float
+        The V3 position
+
+    Returns
+    -------
+    Quaternion
+        The rotation quaternion
+    """
     return QZ(coord1)*QY(-coord2)*QX(-V3pa)
 
 
 def Qmake_v2v3_2body(v2, v3):
     """Creates a rotation Q, going from v2 and v3 in the body frame to
-    inertial"""
+    inertial
+
+    Parameters
+    ----------
+    v2: float
+        The V2 position
+    V3: float
+        The V3 position
+
+    Returns
+    -------
+    Quaternion
+        The rotation quaternion
+    """
     return QY(v3)*QZ(-v2)
 
 
 def Qmake_v2v3_2inertial(coord1, coord2, V3pa, v2, v3):
     """Creates a rotation Q, going from v2 and v3 in the body frame to
-    inertial"""
+    inertial
+
+    Parameters
+    ----------
+    coord1: float
+        The first coordinate
+    coord2: float
+        The second coordinate
+    V3pa: float
+        The V3 position
+    v2: float
+        The V2 position
+    v3: float
+        The V3 position
+
+    Returns
+    -------
+    Quaternion
+        The rotation quaternion
+    """
     return QZ(coord1)*QY(-coord2)*QX(-V3pa)*QY(v3)*QZ(-v2)
 
 
 def Qmake_aperture2inertial(coord1, coord2, APA, xoff, yoff, s, YapPA,
                             V3ref, V2ref):
-    """Creates a rotation Q, going from the target in aperture frame to body"""
+    """Creates a rotation Q, going from the target in aperture frame to body
+
+    Parameters
+    ----------
+    coord1: float
+        The first coordinate
+    coord2: float
+        The second coordinate
+    APA: float
+        The apature position
+    xoff: float
+        The x offset
+    yoff: float
+        The y offset
+    s: float
+        The multiplicative factor
+    V2ref: float
+        The V2 position
+    V3ref: float
+        The V3 position
+
+    Returns
+    -------
+    Quaternion
+        The rotation quaternion
+    """
     term1 = QZ(coord1)*QY(-coord2)*QX(-APA)*QY(-yoff)
     term2 = QZ(s*xoff)*QX(YapPA)*QY(V3ref)*QZ(-V2ref)
     return term1*term2
@@ -122,7 +254,18 @@ def Qmake_aperture2inertial(coord1, coord2, APA, xoff, yoff, s, YapPA,
 
 def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
     """Creates a angle tuple from Q, assuming body frame to inertial Q and
-    321 rotation sequence"""
+    321 rotation sequence
+
+    Parameters
+    ----------
+    Q: Quaternion
+        The quaternion
+
+    Returns
+    -------
+    tuple
+        The coordinates and position angle
+    """
     # Conversion from Euler symmetric parameters to matrix elements and
     # matrix elements to rotation angles is given in Isaac's papers
     r11 = Q.q1*Q.q1 - Q.q2*Q.q2 - Q.q3*Q.q3 + Q.q4*Q.q4
@@ -141,7 +284,22 @@ def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
 
 
 def cvt_v2v3_using_body2inertial_Q_to_c1c2pa_tuple(Q, v2, v3):
-    """Given Q and v2, v3 gives pos on sky and V3 PA """
+    """Given Q and v2, v3 gives pos on sky and V3 PA
+
+    Parameters
+    ----------
+    Q: Quaternion
+        The quaternion
+    v2: float
+        The V2 position
+    v3: float
+        The V3 position
+
+    Returns
+    -------
+    tuple
+        The coordinates and position angle
+    """
     Vp_body = Vector(0., 0., 0.)
     Vp_body.set_xyz_from_angs(v2, v3)
     Vp_eci_pt = Q.cnvrt(Vp_body)
@@ -167,7 +325,22 @@ def cvt_v2v3_using_body2inertial_Q_to_c1c2pa_tuple(Q, v2, v3):
 
 
 def cvt_c1c2_using_body2inertial_Q_to_v2v3pa_tuple(Q, coord1, coord2):
-    """Given Q and a position, returns v2, v3, V3PA tuple """
+    """Given Q and a position, returns v2, v3, V3PA tuple
+
+    Parameters
+    ----------
+    Q: Quaternion
+        The quaternion
+    coord1: float
+        The first coordinate
+    coord2: float
+        The second coordinate
+
+    Returns
+    -------
+    tuple
+        The coordinates and position angle
+    """
     Vp_eci = Vector(1., 0., 0.)
     Vp_eci.set_xyz_from_angs(coord1, coord2)
     Vp_body_pt = Q.inv_cnvrt(Vp_eci)
@@ -189,9 +362,17 @@ def cvt_c1c2_using_body2inertial_Q_to_v2v3pa_tuple(Q, coord1, coord2):
 
 
 class Quaternion:
-    """This representation is used by Wertz and Markley """
+    """This representation is used by Wertz and Markley"""
     def __init__(self, V, q4):
-        """Quaternion constructor """
+        """Quaternion constructor
+
+        Parameters
+        ----------
+        V: Vector
+            The vector to construct the quaternion with
+        q4: Vector
+            The fourth vector
+        """
         self.q1 = V.x
         self.q2 = V.y
         self.q3 = V.z
@@ -221,7 +402,18 @@ class Quaternion:
         return Quaternion(Vector(-self.q1, -self.q2, -self.q3), self.q4)
 
     def __mul__(self, rs):
-        """Defines Q*Q for quaternion multiplication """
+        """Defines Q*Q for quaternion multiplication
+
+        Parameters
+        ----------
+        rs: Quaternion
+            The quaternion to multiply
+
+        Returns
+        -------
+        Quaternion
+            The multiplied Quaternion
+        """
         Q = Quaternion(Vector(0., 0., 0.), 0.)
         # Q.V = rs.V*self.q4 + self.V*rs.q4 + cross(self.V, rs.V)
         Q.q1 = rs.q1*self.q4 + self.q1*rs.q4 + (self.q2*rs.q3 - self.q3*rs.q2)
@@ -232,21 +424,51 @@ class Quaternion:
 
     def cnvrt(self, V):
         """Rotates a vector from the starting frame to the ending frame
-        defined by the Q """
+        defined by the Q
+
+        Parameters
+        ----------
+        V: Vector
+            The vector to rotate
+
+        Returns
+        -------
+        Vector
+            The rotated Vector
+        """
         QV = Qmake_a_point(V)
         QV = self * QV * self.conjugate()
         return Vector(QV.q1, QV.q2, QV.q3)
 
     def inv_cnvrt(self, V):
         """Rotates a vector from the ending frame to the starting frame
-        defined by the Q"""
+        defined by the Q
+
+        Parameters
+        ----------
+        V: Vector
+            The vector to invert
+
+        Returns
+        -------
+        Vector
+            The inverted Vector
+        """
         QV = Qmake_a_point(V)
         QV = self.conjugate() * QV * self
         return Vector(QV.q1, QV.q2, QV.q3)
 
     def set_values(self, V, angle):
         """Sets quaterion values using a direction vector and a rotation of
-        the coordinate frame about it."""
+        the coordinate frame about it
+
+        Parameters
+        ----------
+        V: Vector
+            The direction Vector
+        angle: float
+            The angle of rotation
+        """
         S = sin(-angle/2.)
         self.q1 = V.x * S
         self.q2 = V.y * S
@@ -254,28 +476,54 @@ class Quaternion:
         self.q4 = cos(angle/2.)
 
     def set_as_QX(self, angle):
-        """Sets quaterion in place like QX function"""
+        """Sets quaterion in place like QX function
+
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        """
         self.q1 = sin(-angle/2.)
         self.q2 = 0.
         self.q3 = 0.
         self.q4 = cos(angle/2.)
 
     def set_as_QY(self, angle):
-        """Sets quaterion in place like QY function"""
+        """Sets quaterion in place like QY function
+
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        """
         self.q1 = 0.
         self.q2 = sin(-angle/2.)
         self.q3 = 0.
         self.q4 = cos(angle/2.)
 
     def set_as_QZ(self, angle):
-        """Sets quaterion in place like QZ function"""
+        """Sets quaterion in place like QZ function
+
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        """
         self.q1 = 0.
         self.q2 = 0.
         self.q3 = sin(-angle/2.)
         self.q4 = cos(angle/2.)
 
     def set_as_mult(self, QQ1, QQ2):
-        """Sets self as QQ1*QQ2 in place for quaternion multiplication """
+        """Sets self as QQ1*QQ2 in place for quaternion multiplication
+
+        Parameters
+        ----------
+        QQ1: Quaternion
+            The first quaternion
+        QQ2: Quaternion
+            The second quaternion
+        """
         a = QQ1.q2*QQ2.q3 - QQ1.q3*QQ2.q2
         b = QQ1.q3*QQ2.q1 - QQ1.q1*QQ2.q3
         c = QQ1.q1*QQ2.q2 - QQ1.q2*QQ2.q1
@@ -286,13 +534,26 @@ class Quaternion:
         self.q4 = QQ1.q4*QQ2.q4 - d
 
     def set_as_point(self, V):
+        """Set V as a point
+
+        Parameters
+        ----------
+        V: Vector
+            The vector to set as a point
+        """
         self.q1 = V.x
         self.q2 = V.y
         self.q3 = V.z
         self.q4 = 0.
 
     def set_equal(self, Q):
-        """Assigns values from other Q to this one. """
+        """Assigns values from other Q to this one
+
+        Parameters
+        ----------
+        Q: Quaternion
+            The quaternion value to set
+        """
         self.q1 = Q.q1
         self.q2 = Q.q2
         self.q3 = Q.q3
@@ -311,8 +572,20 @@ class NumericList(list):
     def __mul__(L1, L2):
         """Take the dot product of two numeric lists.
         Not using Vector for this because it is limited to three dimensions.
-        Lists must have the same number of elements."""
+        Lists must have the same number of elements
 
+        Parameters
+        ----------
+        L1: sequence
+            The first list
+        L2: sequence
+            The second list
+
+        Returns
+        -------
+        float
+            The sum of the lists
+        """
         return(sum(map(lambda x, y: x*y, L1, L2)))
 
 
@@ -328,14 +601,18 @@ class Matrix(list):
         """Constructor for a matrix.
 
         This accepts a list of rows.
-        It is assumed the rows are all of the same length."""
+        It is assumed the rows are all of the same length
 
+        Parameters
+        ----------
+        rows: sequence
+            The rows of the matrix
+        """
         for row in rows:
             self.append(NumericList(row))  # copy list
 
     def __str__(self):
         """Returns a string representation of the matrix."""
-
         return_str = 'Matrix:'
 
         for row_index in range(len(self)):
@@ -352,18 +629,51 @@ class Matrix(list):
     def element(self, row_index, col_index):
         """Returns an element of the matrix indexed by row and column.
 
-        Indices begin with 0."""
+        Indices begin with 0
 
+        Parameters
+        ----------
+        row_index: int
+            The row index
+        col_index: int
+            The column index
+
+        Returns
+        -------
+        float
+            The matrix value
+        """
         return ((self[row_index])[col_index])
 
     def row(self, row_index):
-        """Returns a specified row of the matrix."""
+        """Returns a specified row of the matrix
+
+        Parameters
+        ----------
+        row_index: int
+            The row index
+
+        Returns
+        -------
+        list
+            The row values
+        """
 
         return(self[row_index])
 
     def column(self, col_index):
-        """Returns a specified column of the matrix as a numeric list."""
+        """Returns a specified column of the matrix as a numeric list
 
+        Parameters
+        ----------
+        col_index: int
+            The column index
+
+        Returns
+        -------
+        list
+            The column values
+        """
         return(NumericList([row[col_index] for row in self]))
 
     def num_rows(self):
@@ -385,6 +695,18 @@ class Matrix(list):
         """Multiplies two Matrix objects and returns the resulting matrix.
 
         Number of rows in m1 must equal the number of columns in m2.
+
+        Parameters
+        ----------
+        m1: Matrix
+            The first matrix
+        m2: Matrix
+            The second matrix
+
+        Returns
+        -------
+        Matrix
+            The resultant matrix
         """
         result_rows = []
 
@@ -410,13 +732,22 @@ class Vector:
         """Constructor for a three-dimensional vector.
 
         Note that two-dimensional vectors can be constructed by omitting one
-        of the coordinates, which will default to 0."""
+        of the coordinates, which will default to 0
 
+        Parameters
+        ----------
+        x: float
+            The x coordinate
+        y: float
+            The y coordinate
+        z: float
+            The z coordinate
+        """
         self.x = x     # Cartesian x coordinate
         self.y = y     # Cartesian y coordinate
         self.z = z     # Cartesian z coordinate
 
-    def __str__(self):  # Called when used in print statement
+    def __str__(self):
         """Returns a string representation of the vector."""
         return('Vector: x: %.3f, y: %.3f, z: %.3f' % (self.x, self.y, self.z))
 
@@ -424,8 +755,17 @@ class Vector:
         """Assigns new value to vector.
 
         Arguments are now optional to permit this to be used with 2D vectors
-        or to modify any subset of coordinates."""
+        or to modify any subset of coordinates
 
+        Parameters
+        ----------
+        x: float
+            The x coordinate
+        y: float
+            The y coordinate
+        z: float
+            The z coordinate
+        """
         if x is not None:
             self.x = x
         if y is not None:
@@ -444,63 +784,162 @@ class Vector:
 
     def __mul__(self, rs):
         """Implements Vector * scalar.  Can then use '*' syntax in multiplying
-        a vector by a scalar rs. """
+        a vector by a scalar rs
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to multiply
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.x * rs
         y = self.y * rs
         z = self.z * rs
         return (Vector(x, y, z))
 
     def __rmul__(self, ls):
-        """Implements float * Vector """
+        """Implements float * Vector
+
+        Parameters
+        ----------
+        ls: float
+            The scalar to multiply
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.x * ls
         y = self.y * ls
         z = self.z * ls
         return (Vector(x, y, z))
 
     def __add__(self, rs):
-        """Implements Vector + Vector """
+        """Implements Vector + Vector
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to add
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.x + rs.x
         y = self.y + rs.y
         z = self.z + rs.z
         return (Vector(x, y, z))
 
     def __sub__(self, rs):
-        """Implements Vector - Vector """
+        """Implements Vector - Vector
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to subtract
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.x - rs.x
         y = self.y - rs.y
         z = self.z - rs.z
         return (Vector(x, y, z))
 
     def __truediv__(self, rs):
-        """Implements Vector / float """
+        """Implements Vector / float
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to divide
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.x / rs
         y = self.y / rs
         z = self.z / rs
         return (Vector(x, y, z))
 
     def __imul__(self, rs):
-        """Implements Vector *= float """
+        """Implements Vector *= float
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to multiply
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         self.x *= rs
         self.y *= rs
         self.z *= rs
         return (self)
 
     def __iadd__(self, rs):
-        """Implements Vector += vector """
+        """Implements Vector += vector
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to add
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         self.x += rs.x
         self.y += rs.y
         self.z += rs.z
         return (self)
 
     def __isub__(self, rs):
-        """Implements Vector -= vector """
+        """Implements Vector -= vector
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to subtract
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         self.x -= rs.x
         self.y -= rs.y
         self.z -= rs.z
         return (self)
 
     def __idiv__(self, rs):
-        """Implements Vector /= float """
+        """Implements Vector /= float
+
+        Parameters
+        ----------
+        rs: float
+            The scalar to divide
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         self.x /= rs
         self.y /= rs
         self.z /= rs
@@ -515,12 +954,36 @@ class Vector:
     # Recommend deletion -- better to use a single interface that takes
     # two vectors.
     def dot(self, V2):
-        """returns dot product between two vectors """
+        """returns dot product between two vectors
+
+        Parameters
+        ----------
+        V2: Vector
+            The vector to dot
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         return self.x * V2.x + self.y * V2.y + self.z * V2.z
 
     # Recommend deletion in favor of non-method version.
     def cross(self, V1, V2):
-        """returns cross product of two vectors """
+        """returns cross product of two vectors
+
+        Parameters
+        ----------
+        V1: Vector
+            The vector to cross
+        V2: Vector
+            The vector to cross
+
+        Returns
+        -------
+        Vector
+            The resultant vector
+        """
         x = self.y*V2.z - V1.z*V2.y
         y = self.z*V2.x - V1.x*V2.z
         z = self.x*V2.y - V1.y*V2.x
@@ -528,7 +991,18 @@ class Vector:
 
     # Replace by separation - RLH
     def angle(self, V2):
-        """returns angle between the two vectors in degrees """
+        """returns angle between the two vectors in degrees
+
+        Parameters
+        ----------
+        V2: Vector
+            The vector to measure
+
+        Returns
+        -------
+        float
+            The angle between the two vectors
+        """
         R1 = self.length()
         R2 = V2.length()
         adot = dot(self, V2)
@@ -540,22 +1014,34 @@ class Vector:
     # RLH: What do these add?  We're creating methods just to access
     # individual attributes.
     def rx(self):
+        """The magnitude of x"""
         return self.x
 
     def ry(self):
+        """The magnitude of y"""
         return self.y
 
     def rz(self):
+        """The magnitude of z"""
         return self.z
 
     # RLH: Suggest deletion in favor of __str__, which has the advantage
     # that it is called on print.
     def display(self):
+        """Print the values"""
         return "[%f, %f, %f]" % (self.x, self.y, self.z)
 
     # RLH: Not necessary if CelestialVector is used.
     def set_xyz(self, ra, dec):
-        """Creates a unit vector from spherical coordinates """
+        """Creates a unit vector from spherical coordinates
+
+        Parameters
+        ----------
+        ra: float
+            The right ascension
+        dec: float
+            The declination
+        """
         self.x = math2.cosd(dec) * math2.cosd(ra)
         self.y = math2.cosd(dec) * math2.sind(ra)
         self.z = math2.sind(dec)
@@ -592,8 +1078,19 @@ class CelestialVector (Vector):
         clarity.
 
         A CelestialVector is also an ordinary unit vector, with Cartesian
-        coordinates defined relative to the equatorial plane."""
+        coordinates defined relative to the equatorial plane.
 
+        Parameters
+        ----------
+        ra: float
+            The right ascension
+        dec: float
+            The declination
+        frame: str
+            The frame to use
+        degrees: bool
+            Use degrees
+        """
         if (degrees):
             ra = math2.D2R * ra
             dec = math2.D2R * dec
@@ -610,7 +1107,13 @@ class CelestialVector (Vector):
 
     def __str__(self, verbose=True):
         """Returns a string representation of the vector.  Displays angles
-        in degrees."""
+        in degrees
+
+        Parameters
+        ----------
+        verbose: bool
+            Print some information
+        """
         a = (math2.R2D*self.ra, math2.R2D*self.dec, self.frame)
         celest_info = 'CelestialVector: RA: %.3fD, DEC: %.3fD, frame: %s' % a
 
@@ -622,8 +1125,17 @@ class CelestialVector (Vector):
     def set_eq(self, ra, dec, degrees=False):
         """Modifies a celestial vector with a new RA and DEC.
 
-        degrees = True if units are degrees.  Default is radians."""
+        degrees = True if units are degrees.  Default is radians
 
+        Parameters
+        ----------
+        ra: float
+            The right ascension
+        dec: float
+            The declination
+        degrees: bool
+            Use degrees
+        """
         if (degrees):
             ra = math2.D2R * ra
             dec = math2.D2R * dec
@@ -640,7 +1152,17 @@ class CelestialVector (Vector):
     def update_cartesian(self, x=None, y=None, z=None):
         """Modifies a celestial vector by specifying new Cartesian coordinates.
 
-        Any subset of the Cartesian coordinates may be specifed."""
+        Any subset of the Cartesian coordinates may be specifed
+
+        Parameters
+        ----------
+        x: float
+            The extent in x
+        y: float
+            The extent in y
+        z: float
+            The extent in z
+        """
 
         if x is not None:
             self.x = x
@@ -664,8 +1186,19 @@ class CelestialVector (Vector):
         The x-rotation rotates the y-axis toward the z-axis.
         The y-rotation rotates the z-axis toward the x-axis.
         The z-rotation rotates the x-axis toward the y-axis.
-        """
 
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        axis: str
+            The axis to rotate about, ['x', 'y', 'z']
+
+        Returns
+        -------
+        Vector
+            The rotated vector
+        """
         if (axis == 'x'):
             rot_matrix = Matrix([[1, 0, 0], [0, cos(angle), -sin(angle)],
                                  [0, sin(angle), cos(angle)]])
@@ -699,8 +1232,20 @@ class CelestialVector (Vector):
 
         Note: This function is more general than rotate_about_axis above and
         could be used in its place.  However, rotate_about_axis is faster and
-        clearer when the rotation axis is one of the Cartesian axes."""
+        clearer when the rotation axis is one of the Cartesian axes
 
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        eigenaxis: Vector
+            The eigenaxis to rotate about
+
+        Returns
+        -------
+        Vector
+            The rotated vector
+        """
         cos_ang = cos(angle)    # Used repeatedly below
         sin_ang = sin(angle)
 
@@ -728,8 +1273,20 @@ class CelestialVector (Vector):
         """Rotates a vector about arbitrary eigenaxis using quaternion.
 
         This is an alternative formulation for rotate_about_eigenaxis.
-        Interface is the same as rotate_about_eigenaxis."""
+        Interface is the same as rotate_about_eigenaxis
 
+        Parameters
+        ----------
+        angle: float
+            The angle of rotation
+        eigenaxis: Vector
+            The eigenaxis to rotate about
+
+        Returns
+        -------
+        Vector
+            The rotated vector
+        """
         q = Quaternion(eigenaxis, 0.0)
 
         # Need to negate here because set_values performs a negative rotation
@@ -742,8 +1299,18 @@ class CelestialVector (Vector):
 
         and returns result as a new CelestialVector.
         If new coordinate frame is the same as the old, a copy of the vector
-        is returned."""
+        is returned
 
+        Parameters
+        ----------
+        new_frame: str
+            Convert to new frame
+
+        Returns
+        -------
+        Vector
+            The transformed vector
+        """
         result = None
         gal_ec = new_frame == 'gal' and self.frame == 'ec'
         ec_gal = new_frame == 'ec' and self.frame == 'gal'
@@ -764,17 +1331,17 @@ class CelestialVector (Vector):
             arg1 = sin(self.dec) - sin(b)*sin(NGP.longitude)
             arg2 = cos(self.dec)*sin(self.ra - NGP.latitude)*cos(NGP.longitude)
 
-            l = atan2(arg1, arg2) + NGP.anode
+            lng = atan2(arg1, arg2) + NGP.anode
 
-            result = CelestialVector(l, b, degrees=False)
+            result = CelestialVector(lng, b, degrees=False)
 
         elif ((new_frame == 'eq') and (self.frame == 'gal')):
-            l = self.ra   # use l, b notation here for clarity
+            lng = self.ra   # use l, b notation here for clarity
             b = self.dec
-            term1 = cos(b) * cos(NGP.longitude) * sin(l - NGP.anode)
+            term1 = cos(b) * cos(NGP.longitude) * sin(lng - NGP.anode)
             dec = math2.asin2(term1 + sin(b) * sin(NGP.longitude))
-            arg1 = cos(b) * cos(l - NGP.anode)
-            sinterm = sin(NGP.longitude) * sin(l - NGP.anode)
+            arg1 = cos(b) * cos(lng - NGP.anode)
+            sinterm = sin(NGP.longitude) * sin(lng - NGP.anode)
             arg2 = sin(b) * cos(NGP.longitude) - cos(b) * sinterm
             ra = atan2(arg1, arg2) + NGP.latitude
 
@@ -801,7 +1368,18 @@ class CelestialVector (Vector):
         counterclockwise from the North projection onto the plane
         orthogonal to that vector by the specified position angle
         (in radians). See "V3-axis Position Angle", John Isaacs, May 2003 for
-        further discussion."""
+        further discussion
+
+        Parameters
+        ----------
+        pa: float
+            The position angle
+
+        Returns
+        -------
+        Vector
+            The rotated vector
+        """
         x_coord = -cos(self.ra)*sin(self.dec)*cos(pa) - sin(self.ra)*sin(pa)
         y_coord = -sin(self.ra)*sin(self.dec)*cos(pa) + cos(self.ra)*sin(pa)
         z_coord = cos(self.dec)*cos(pa)
@@ -817,7 +1395,18 @@ class CelestialVector (Vector):
         plane orthogonal to the self vector and the projection of v onto
         that plane, defined counterclockwise.
         See "V3-axis Position Angle", John Isaacs, May 2003 for
-        further discussion."""
+        further discussion
+
+        Parameters
+        ----------
+        v: Vector
+            The vector to measure against
+
+        Returns
+        -------
+        float
+            The position angle between the two vectors
+        """
         y_coord = cos(v.dec) * sin(v.ra - self.ra)
         b = cos(v.dec) * sin(self.dec) * cos(v.ra - self.ra)
         x_coord = sin(v.dec) * cos(self.dec) - b
@@ -836,8 +1425,21 @@ class Attitude(CelestialVector):
         """Constructor for an Attitude.
 
         pa = position_angle in degrees(default) or radians if degrees=False
-        is specified. Other arguments are the same as with CelestialVector."""
+        is specified. Other arguments are the same as with CelestialVector
 
+        Parameters
+        ----------
+        ra: float
+            The right ascension
+        dec: float
+            The declination
+        pa: float
+            The position angle
+        frame: str
+            The frame to use
+        degrees: bool
+            Use degrees
+        """
         super(Attitude, self).__init__(ra=ra, dec=dec, frame=frame,
                                        degrees=degrees)
 
@@ -850,8 +1452,13 @@ class Attitude(CelestialVector):
         """Returns a string representation of the attitude.
 
         verbose (optional) = flag indicating whether detailed Vector
-        information should be included."""
+        information should be included
 
+        Parameters
+        ----------
+        verbose: bool
+            Print information
+        """
         att_info = 'Attitude: PA: %.3fD' % (math2.R2D * self.pa)
         att_info = att_info + '\n' + super(Attitude, self).__str__(verbose)
         return att_info
@@ -859,13 +1466,38 @@ class Attitude(CelestialVector):
 
 # Functions that operate on vectors but are not methods.
 def dot(v1, v2):
-    """returns dot product between two vectors, non class member """
+    """returns dot product between two vectors, non class member
 
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The dot product of the vectors
+    """
     return(v1.x * v2.x + v1.y * v2.y + v1.z * v2.z)
 
 
 def cross(v1, v2):
-    """returns cross product between two vectors, non class member """
+    """returns cross product between two vectors, non class member
+
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The cross product of the vectors
+    """
     x = v1.y*v2.z - v1.z*v2.y
     y = v1.z*v2.x - v1.x*v2.z
     z = v1.x*v2.y - v1.y*v2.x
@@ -877,8 +1509,22 @@ def separation(v1, v2, norm=False):
 
     The angle between two normalized vectors is the arc-cosine of the dot
     product. Unless the norm attribute is set to True, it is assumed the
-    vectors are already normalized (for performance)."""
+    vectors are already normalized (for performance)
 
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+    norm: bool
+        Normalize the vectors
+
+    Returns
+    -------
+    float
+        The separation of the vectors
+    """
     if (norm):
         v1 = v1.normalize()
         v2 = v2.normalize()
@@ -896,8 +1542,20 @@ def separation(v1, v2, norm=False):
 
 
 def ra_delta(v1, v2):
-    """Returns difference in right ascension between two CelestialVectors."""
+    """Returns difference in right ascension between two CelestialVectors
 
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The difference in RA
+    """
     delta_ra = v1.ra - v2.ra
 
     # Check for zero crossings.  If the difference exceeds 180 degrees,
@@ -915,24 +1573,58 @@ def ra_separation(v1, v2):
     """Returns separation in right ascension between two CelestialVectors.
     This is accurate only if the difference in declination is small.
 
-    |sep| = DELTA-RA cos DEC."""
+    |sep| = DELTA-RA cos DEC
 
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The separation between RA values
+    """
     delta_ra = ra_delta(v1, v2)
     dec = math2.avg2(v1.dec, v2.dec)  # use average of the two declinations.
     return(delta_ra * cos(dec))
 
 
 def dec_separation(v1, v2):
-    """Returns difference in declination between two CelestialVectors."""
+    """Returns difference in declination between two CelestialVectors
 
+    Parameters
+    ----------
+    v1: Vector
+        The first vector
+    v2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The separation between Dec values
+    """
     return(v1.dec - v2.dec)    # simply take the difference in declination
 
 
 def make_celestial_vector(v):
     """Takes a Vector object and creates an equivalent CelestialVector.
 
-    Input vector v must be a unit vector."""
+    Input vector v must be a unit vector
 
+    Parameters
+    ----------
+    v: Vector
+        The vector to convert
+
+    Returns
+    -------
+    Vector
+        The updated vector
+    """
     result = CelestialVector()
     result.update_cartesian(v.x, v.y, v.z)
     return(result)
@@ -944,14 +1636,37 @@ def projection(v, axis):
     First take cross-product of v and the axis and normalize it.
     Then cross the axis with the result and return a CelestialVector.
     See http://www.euclideanspace.com/maths/geometry/elements/plane/
-    lineOnPlane/index.htm."""
+    lineOnPlane/index.htm
 
+    Parameters
+    ----------
+    v: Vector
+        The vector to convert
+    axis: str
+        The axis to project onto
+
+    Returns
+    -------
+    Vector
+        The updated vector
+    """
     return(make_celestial_vector(cross(axis, (cross(v, axis)).normalize())))
 
 
 def pos_V_to_ra_dec(V):
-    """Returns tuple of spherical angles from unit direction Vector """
-    ra = atan2d(V.y, V.x)
+    """Returns tuple of spherical angles from unit direction Vector
+
+    Parameters
+    ----------
+    V: Vector
+        The vector to analyze
+
+    Returns
+    -------
+    tuple
+        The coordinates of the vector
+    """
+    ra = math2.atan2d(V.y, V.x)
     V.z = min(1., V.z)
     V.z = max(-1., V.z)
     dec = math2.asind(V.z)
@@ -962,7 +1677,20 @@ def pos_V_to_ra_dec(V):
 
 # RLH: Recommend replacement by separation.
 def angle(V1, V2):
-    """returns angle between two vectors in degrees, non class member """
+    """returns angle between two vectors in degrees, non class member
+
+    Parameters
+    ----------
+    V1: Vector
+        The first vector
+    V2: Vector
+        The second vector
+
+    Returns
+    -------
+    float
+        The angle between the vectors
+    """
     R1 = V1.length()
     R2 = V2.length()
     adot = dot(V1, V2)
@@ -973,8 +1701,21 @@ def angle(V1, V2):
 
 
 def vel_ab(U, Vel):
-    """ Takes a unit vector and a velocity vector(km/s) and returns a unit
-    vector modidifed by the velocity abberation."""
+    """Takes a unit vector and a velocity vector(km/s) and returns a unit
+    vector modidifed by the velocity abberation
+
+    Parameters
+    ----------
+    U: Vector
+        The unit vector
+    Vel: Vector
+        The velocity vector to multiply
+
+    Returns
+    -------
+    Vector
+        The modified vector
+    """
     c = 2.9979e5  # speed of light in km/s
     Beta = Vel * (1./c)
     rgamma = sqrt(1.-dot(Beta, Beta))  # This is 1/gamma

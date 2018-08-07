@@ -6,7 +6,7 @@ Version 1 August 23, 2010 RLH - Added OBLIQUITY.
 Version 0 August 6, 2010 RLH  - Created
 """
 from copy import deepcopy
-from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp
+from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp, atan2
 
 R2D = 180.0/pi
 D2R = 1/R2D
@@ -44,6 +44,22 @@ def cosd(x):
         The cos of x in degrees
     """
     return cos(radians(x))
+
+
+def atan2d(x):
+    """Return the arctan in degrees
+
+    Parameters
+    ----------
+    x: float
+        The evaluand
+
+    Returns
+    -------
+    float
+        The arctan of x in degrees
+    """
+    return atan2(radians(x))
 
 
 def really_less_than(x, y):
