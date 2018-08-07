@@ -11,14 +11,14 @@ Usage: python visibilityPA.py RA DEC [targetName]
 """
 import datetime
 import math
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
 import pkg_resources
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+import numpy as np
 
 from . import ephemeris_old2x as EPH
 
@@ -33,12 +33,12 @@ def convert_ddmmss_to_float(astring):
     Parameters
     ----------
     astring: str
-        The sexigesimal coordinate
+        The sexigesimal coordinate.
 
     Returns
     -------
-    float
-        The converted coordinate
+    hour_or_deg : float
+        The converted coordinate.
     """
     aline = astring.split(':')
     d = float(aline[0])
@@ -66,8 +66,15 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     Returns
     -------
-    tuple
-        The good and bad position angles and the plotted figure
+    paGood : float
+        The good position angle.
+    paBad : float
+        The bad position angle.
+    gd : matplotlib.dates object
+       The greogrian date.
+    fig : matplotlib.pyplot object
+        The plotted figure.
+
     """
     if ephFileName is None:
         eph_file = 'data/contam_visibility/JWST_ephem_short.txt'
