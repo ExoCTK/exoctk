@@ -1,8 +1,6 @@
-from scipy.interpolate import CubicSpline
-
 import numpy as np
 import pysynphot as S
-
+from scipy.interpolate import CubicSpline
 
 def colorMod():
     """Calculate the J-H and H-K colors of 2800 < Teff < 6000 model spectra"""
