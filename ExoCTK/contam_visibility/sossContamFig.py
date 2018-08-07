@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import pkg_resources
 import sys
 
@@ -8,6 +7,7 @@ from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import Range1d, LinearColorMapper, Label
 from bokeh.palettes import inferno
+import numpy as np
 
 from . import visibilityPA as vpa
 
@@ -15,29 +15,29 @@ from . import visibilityPA as vpa
 def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
            fig='', to_html=True):
     """
-    Generate the contamination plot
+    Generate the contamination plot.
 
     Parameters
     ----------
     cube: array-like, str
-        The data cube or FITS filename containing the data
+        The data cube or FITS filename containing the data.
     targetName: str
-        The name of the target
+        The name of the target.
     paRange: sequence
-        The position angle range to consider
+        The position angle range to consider.
     badPA: sequence
-        Position angles to exclude
+        Position angles to exclude.
     tmpDir: str
-        A directory to write the files to
+        A directory to write the files to.
     fig: matplotlib.figure, bokeh.figure
-        A figure to add the plots to
+        A figure to add the plots to.
     to_html: bool
-        Return the image as bytes for HTML
+        Return the image as bytes for HTML.
 
     Returns
     -------
-    fig
-        The populated matplotlib or bokeh plot
+    fig : matplotlib.pyplot or bokeh object
+        The populated matplotlib or bokeh plot.
     """
     # Get data from FITS file
     if isinstance(cube, str):
