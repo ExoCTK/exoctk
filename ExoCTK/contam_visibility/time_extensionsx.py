@@ -4,7 +4,6 @@ Dates are represented as modified Julian dates (mjd).
 An mjd gives the number of days since midnight on November 17, 1858.
 """
 import string
-
 from math import ceil, floor
 
 # Constant for converting Julian dates to modified Julian dates
@@ -12,12 +11,12 @@ MJD_BASELINE = 2400000.5
 
 
 def is_leap_year(year):
-    """Returns True if the year is a leap year, False otherwise
+    """Returns True if the year is a leap year, False otherwise.
 
     Parameters
     ----------
     year: int
-        The year to check
+        The year to check.
 
     Returns
     -------
@@ -28,17 +27,17 @@ def is_leap_year(year):
 
 
 def days_in_year(year):
-    """Returns the number of days in a year
+    """Returns the number of days in a year.
 
     Parameters
     ----------
     year: int
-        The year to search
+        The year to search.
 
     Returns
     -------
-    int
-        The number of days that year
+    days : int
+        The number of days that year.
     """
     days = 365
 
@@ -57,14 +56,14 @@ def leap_years(year1, year2):
     Parameters
     ----------
     year1: int
-        The start year
+        The start year.
     year2: int
-        The end year
+        The end year.
 
     Returns
     -------
     int
-        The number of leap years between year1 and year2
+        The number of leap years between year1 and year2.
     """
 
     # Find next years after year1 that are divisible by 4, 100, and 400
@@ -84,17 +83,17 @@ def leap_years(year1, year2):
 
 
 def integer_days(time):
-    """Takes a time in fractional days and returns integer component
+    """Takes a time in fractional days and returns integer component.
 
     Parameters
     ----------
     time: float
-        The float time
+        The float time.
 
     Returns
     -------
     int
-        The integer time
+        The integer time.
     """
     # If time is negative, integer days is a larger negative number
     return(int(floor(time)))
@@ -102,86 +101,86 @@ def integer_days(time):
 
 def seconds_into_day(time):
     """Takes a time in fractional days and returns number of seconds since
-    the start of the current day
+    the start of the current day.
 
     Parameters
     ----------
     time: float
-        The time as a float
+        The time as a float.
 
     Returns
     -------
     int
-        The day's duration in seconds
+        The day's duration in seconds.
     """
     return(int(round(86400.0 * (time % 1))))
 
 
 def days_to_seconds(days):
     """Takes a time in fractional days and converts it into integer
-    seconds
+    seconds.
 
     Parameters
     ----------
     days: float
-        The number of days as a float
+        The number of days as a float.
 
     Returns
     -------
     int
-        The number of seconds in as many days
+        The number of seconds in as many days.
     """
     return(int(round(86400 * days)))
 
 
 def seconds_to_days(seconds):
     """Takes a time in integer seconds and converts it into fractional
-    days
+    days.
 
     Parameters
     ----------
     seconds: int
-        The number of seconds
+        The number of seconds.
 
     Returns
     -------
     float
-        The number of days as a float
+        The number of days as a float.
     """
     return(seconds / 86400.0)
 
 
 def round_to_second(time):
-    """Rounds a time in days to the nearest second
+    """Rounds a time in days to the nearest second.
 
     Parameters
     ----------
     time: int
-        The number of days as a float
+        The number of days as a float.
 
     Returns
     -------
     float
-        The number of seconds in as many days
+        The number of seconds in as many days.
     """
     return(round(time * 86400)/86400.0)
 
 
 def display_time(time, force_hours=False):
     """Returns a string representation of a time specified in fractional
-    days
+    days.
 
     Parameters
     ----------
     time: float
-        The time as a float
+        The time as a float.
     force_hours: bool
-        Force the hour calculation
+        Force the hour calculation.
 
     Returns
     -------
     str
-        The time as a string
+        The time as a string.
     """
     # round to nearest second before extracting fields
     time = round_to_second(time)
@@ -225,17 +224,17 @@ def display_time(time, force_hours=False):
 def time_from_string(time_string):
     """Takes a string of the form ddd:hh:mm:ss and converts it to fractional
     days. All subfields above seconds are optional and may be omitted if the
-    subfield and all higher-order ones are zero
+    subfield and all higher-order ones are zero.
 
     Parameters
     ----------
     time_string: str
-        The time as a string
+        The time as a string.
 
     Returns
     -------
     float
-        The fractional days
+        The fractional days.
     """
     # extract fields
     fields = (string.split(time_string, ':'))
@@ -257,17 +256,17 @@ def time_from_string(time_string):
 
 def display_date(mjd):
     """Returns a string representation of the date represented by a
-    modified Julian date
+    modified Julian date.
 
     Parameters
     ----------
     mjd: float
-        The modified julian day
+        The modified julian day.
 
     Returns
     -------
     str
-        The MJD as a string
+        The MJD as a string.
     """
     # adjust to number of days since Dec. 31, 1857
     int_days = int(floor(321.0 + mjd))
@@ -289,26 +288,25 @@ def display_date(mjd):
 def compute_mjd(year, day_of_year, hour, minute, second):
     """Computes a modified Julian date from a date specified as a year,
     day of year, hour, minute, and second.
-
-    Arguments should be integers
+    Arguments should be integers.
 
     Parameters
     ----------
     year: int
-        The year
+        The year.
     day_of_year: int
-        The day
+        The day.
     hour: int
-        The hour
+        The hour.
     minute: int
-        The minute
+        The minute.
     second: int
-        The second
+        The second.
 
     Returns
     -------
     float
-        The modified julian day
+        The modified julian day.
     """
     fractional_days = (hour * 3600 + minute * 60 + second)/86400.0
     mjd_years = year - 1859
@@ -319,17 +317,17 @@ def compute_mjd(year, day_of_year, hour, minute, second):
 
 
 def mjd_from_string(time_string):
-    """Takes a string of the form yyyy.ddd:hh:mm:ss and returns an mjd
+    """Takes a string of the form yyyy.ddd:hh:mm:ss and returns an mjd.
 
     Parameters
     ----------
     time_string: str
-        The MJD as a string
+        The MJD as a string.
 
     Returns
     -------
     float
-        The modified julian day
+        The modified julian day.
     """
     years = int(time_string[0:4])
     days = int(time_string[5:8])
@@ -341,49 +339,49 @@ def mjd_from_string(time_string):
 
 
 def mjd_to_jd(mjd):
-    """Converts a modified Julian date to a true Julian date
+    """Converts a modified Julian date to a true Julian date.
 
     Parameters
     ----------
     mjd: float
-        The modified julian day
+        The modified julian day.
 
     Returns
     -------
     float
-        The true Julian day
+        The true Julian day.
     """
     return(MJD_BASELINE + mjd)
 
 
 def jd_to_mjd(jd):
-    """Converts a Julian date to a modified Julian date
+    """Converts a Julian date to a modified Julian date.
 
     Parameters
     ----------
     jd: float
-        The true Julian day
+        The true Julian day.
 
     Returns
     -------
     float
-        The modified Julian day
+        The modified Julian day.
     """
     return (jd - MJD_BASELINE)
 
 
 class Interval(object):
-    """Class to represent a simple temporal interval
+    """Class to represent a simple temporal interval.
     """
     def __init__(self, start, end):
-        """Constructor for an interval
+        """Constructor for an interval.
 
         Parameters
         ----------
         start: float
-            The start time
+            The start time.
         end: float
-            The end time
+            The end time.
         """
         self.start = start
         self.end = end
@@ -411,17 +409,17 @@ class Interval(object):
 
         Returns 'before' if the interval ends at or before the time,
         'after' if the interval begins at or after the time,
-        'includes' if the time occurs during the interval
+        'includes' if the time occurs during the interval.
 
         Parameters
         ----------
         time: float
-            The time
+            The time.
 
         Returns
         -------
-        str
-            The temporal relationship
+        rel : str
+            The temporal relationship.
         """
         if (self.end_time() <= time):
             rel = 'before'
@@ -435,19 +433,19 @@ class Interval(object):
 
 class FlexibleInterval(Interval):
     """Class to represent an interval with flexibility on when it can
-    start and end
+    start and end.
     """
     def __init__(self, est, lst, let):
-        """Constructor for a FlexibileInterval
+        """Constructor for a FlexibileInterval.
 
         Parameters
         ----------
         est: float
-            Earliest start time (mjd)
+            Earliest start time (mjd).
         lst: float
-            Latest start time (mjd)
+            Latest start time (mjd).
         let: float
-            Latest end time (mjd)
+            Latest end time (mjd).
         """
         self.est = est
         self.lst = lst
