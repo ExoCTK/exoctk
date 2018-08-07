@@ -15,17 +15,17 @@ OBLIQUITY = 23.43929 * D2R  # Obliquity of Earth's orbit, in radians
 
 
 def sind(x):
-    """Return the sin in degrees
+    """Return the sin in degrees.
 
     Parameters
     ----------
     x: float
-        The evaluand
+        The evaluand.
 
     Returns
     -------
     float
-        The sin of x in degrees
+        The sin of x in degrees.
     """
     return sin(radians(x))
 
@@ -36,12 +36,12 @@ def cosd(x):
     Parameters
     ----------
     x: float
-        The evaluand
+        The evaluand.
 
     Returns
     -------
     float
-        The cos of x in degrees
+        The cos of x in degrees.
     """
     return cos(radians(x))
 
@@ -52,31 +52,31 @@ def atan2d(x):
     Parameters
     ----------
     x: float
-        The evaluand
+        The evaluand.
 
     Returns
     -------
     float
-        The arctan of x in degrees
+        The arctan of x in degrees.
     """
     return atan2(radians(x))
 
 
 def really_less_than(x, y):
     """Safe less-than function that returns true if and only if x is
-    "significantly" less than y
+    "significantly" less than y.
 
     Parameters
     ----------
     x: float
-        The first number
+        The first number.
     y: float
-        The second number
+        The second number.
 
     Returns
     -------
     bool
-        True if x is less, else False
+        True if x is less, else False.
     """
     return(x < y - EPSILON)
 
@@ -88,14 +88,14 @@ def really_greater_than(x, y):
     Parameters
     ----------
     x: float
-        The first number
+        The first number.
     y: float
-        The second number
+        The second number.
 
     Returns
     -------
     bool
-        True if x is greater, else False
+        True if x is greater, else False.
     """
     return(x > y + EPSILON)
 
@@ -109,12 +109,12 @@ def asin2(val):
     Parameters
     ----------
     val: float
-        The evaluand
+        The evaluand.
 
     Returns
     -------
     float
-        The arcsin of the value
+        The arcsin of the value.
     """
     return(asin(max(-1.0, min(1.0, val))))
 
@@ -126,12 +126,12 @@ def acos2(val):
     Parameters
     ----------
     val: float
-        The evaluand
+        The evaluand.
 
     Returns
     -------
     float
-        The arccos of the value
+        The arccos of the value.
     """
     return(acos(max(-1.0, min(1.0, val))))
 
@@ -142,12 +142,12 @@ def avg(l):
     Parameters
     ----------
     l: sequence
-        The list of numbers
+        The list of numbers.
 
     Returns
     -------
     float
-        The average
+        The average.
     """
     return(sum(l) / float(len(l)))
 
@@ -158,14 +158,14 @@ def avg2(num1, num2):
     Parameters
     ----------
     num1: float
-        The first number
+        The first number.
     num2: float
-        The second number
+        The second number.
 
     Returns
     -------
     float
-        The average
+        The average.
     """
     return((num1 + num2)/2.0)
 
@@ -176,15 +176,15 @@ def output_as_percentage(num, fractional_digits=1):
     Parameters
     ----------
     num: float
-        The number to make into a percentage
+        The number to make into a percentage.
     fractional_digits: int
         Number of digits to output as fractions of a percent.
-        If not supplied, there is no reduction in precision
+        If not supplied, there is no reduction in precision.
 
     Returns
     -------
     str
-        The percentage
+        The percentage.
     """
     if (fractional_digits is not None):
         format_str = '%%.%.df' % (fractional_digits)  # creates format string
@@ -200,15 +200,15 @@ def percent_str(num, fractional_digits=1):
     Parameters
     ----------
     num: float
-        The number to make into a percentage
+        The number to make into a percentage.
     fractional_digits: int
         Number of digits to output as fractions of a percent.
-        If not supplied, there is no reduction in precision
+        If not supplied, there is no reduction in precision.
 
     Returns
     -------
     str
-        The percentage
+        The percentage.
     """
     return(output_as_percentage(100 * num, fractional_digits))
 
@@ -219,12 +219,12 @@ def variance(l):
     Parameters
     ----------
     l: sequence
-        The list to take the variance of
+        The list to take the variance of.
 
     Returns
     -------
     float
-        The variance
+        The variance.
     """
     # Returns the sample variance (n-1 formula).
     mean = avg(l)
@@ -238,12 +238,12 @@ def stdev(l):
     Parameters
     ----------
     l: sequence
-        The list to take the standard deviation of
+        The list to take the standard deviation of.
 
     Returns
     -------
     float
-        The standard deviation
+        The standard deviation.
     """
     # Simply take the square root of the sample variance.
     return(sqrt(variance(l)))
@@ -252,17 +252,17 @@ def stdev(l):
 def factorial(num):
     """Returns the factorial of a nonnegative integer.
     This function is provided in math module starting with Python 2.6,
-    but implement anyway for compatibility with older systems
+    but implement anyway for compatibility with older systems.
 
     Parameters
     ----------
     num: int
-        The number to factorialize
+        The number to factorialize.
 
     Returns
     -------
     int
-        The factorial
+        The factorial.
     """
     result = 1   # factorial of 0 is defined as 1
 
@@ -277,14 +277,14 @@ def conditional_probability(p_joint, p_B):
     Parameters
     ----------
     p_joint: float
-        P(A,B)
+        P(A,B).
     p_B: float
-        Probability of event B
+        Probability of event B.
 
     Returns
     -------
     float
-        The probability
+        The probability.
     """
     return(p_joint / p_B)
 
@@ -294,12 +294,12 @@ class Polynomial(object):
     def __init__(self, coefficients):
         """Constructor for a polynomial.
         Coefficients = a list of coefficients, starting with order 0 and
-        increasing
+        increasing.
 
         Parameters
         ----------
         coefficients: sequence
-            The list of coefficients, starting with order 0 and increasing
+            The list of coefficients, starting with order 0 and increasing.
         """
         self.coefficients = coefficients
 
@@ -320,12 +320,12 @@ class Polynomial(object):
         Parameters
         ----------
         value: float
-            The evaluand (it's a word, look it up.)
+            The evaluand.
 
         Returns
         -------
         float
-            The result of the evaluated equation
+            The result of the evaluated equation.
         """
         result = 0
 
@@ -348,9 +348,9 @@ class LinearEquation(Polynomial):
         Parameters
         ----------
         coeff0: float
-            Additive constant
+            Additive constant.
         coeff1: float
-            Multiplicative coefficient
+            Multiplicative coefficient.
         """
         self.coefficients = [coeff0, coeff1]
 
@@ -358,17 +358,17 @@ class LinearEquation(Polynomial):
         """Applies a linear equation to an input value.
 
         This is intended to be faster than the more general method with
-        Polynomial
+        Polynomial.
 
         Parameters
         ----------
         value: float
-            The evaluand (it's a word, look it up.)
+            The evaluand.
 
         Returns
         -------
         float
-            The result of the evaluated equation
+            The result of the evaluated equation.
         """
         return(value * self.coefficients[1] + self.coefficients[0])
 
@@ -381,7 +381,7 @@ class HistogramBin(object):
         Parameters
         ----------
         num_items: int
-            Number of items to store (default 1)
+            Number of items to store (default 1).
         """
         self.count += num_items
 
@@ -394,13 +394,13 @@ class DiscreteBin(HistogramBin):
         Parameters
         ----------
         bin_value: float
-            The value of the bin
+            The value of the bin.
         """
         self.bin_value = bin_value
         self.count = 0
 
     def __str__(self):
-        """Returns a printed representation of the bin
+        """Returns a printed representation of the bin.
         """
         # Don't assume a type for the count, as it may not be an integer
         # if normalized.
@@ -412,12 +412,12 @@ class DiscreteBin(HistogramBin):
         Parameters
         ----------
         value: float
-            The value to compare
+            The value to compare.
 
         Returns
         -------
         bool
-            True if matches, else False
+            True if matches, else False.
         """
         return(value == self.bin_value)
 
@@ -431,13 +431,13 @@ class RangeBin(HistogramBin):
         Parameters
         ----------
         min_value: float
-            Minimum value for the bin
+            Minimum value for the bin.
         max_value: float
-            Maximum value for the bin
+            Maximum value for the bin.
         lower_inclusive: bool
-            True if min_value is inclusive, else False (default)
+            True if min_value is inclusive, else False (default).
         upper_inclusive: bool
-            True if max_value is inclusive, else False (default)
+            True if max_value is inclusive, else False (default).
         """
         self.min_value = min_value
         self.max_value = max_value
@@ -451,12 +451,12 @@ class RangeBin(HistogramBin):
         Parameters
         ----------
         precision: int
-            Number of digits to print after the decimal point
+            Number of digits to print after the decimal point.
 
         Returns
         -------
         str
-            The limits of the bin
+            The limits of the bin.
         """
         if(self.min_value is None):
             if(self.upper_inclusive):
@@ -483,18 +483,17 @@ class RangeBin(HistogramBin):
 
     def istoo_high(self, value):
         """Returns True if the specified value is too high for the bin.
-
-        Assumes the bin has an upper limit
+        Assumes the bin has an upper limit.
 
         Parameters
         ----------
         value: float
-            The value to compare
+            The value to compare.
 
         Returns
         -------
         bool
-            True if too high, else False
+            True if too high, else False.
         """
         # value equal to limit not consideredtoo high
         if(self.upper_inclusive):
@@ -505,17 +504,17 @@ class RangeBin(HistogramBin):
         return(result)
 
     def ismatch(self, value):
-        """Indicates whether the bin matches the value
+        """Indicates whether the bin matches the value.
 
         Parameters
         ----------
         value: float
-            The value to compare
+            The value to compare.
 
         Returns
         -------
         bool
-            True if matches, else False
+            True if matches, else False.
         """
         return(False)   # not really applicable, so always fail
 
@@ -529,12 +528,12 @@ class Histogram(object):
         Parameters
         ----------
         bin_index: int
-            The index to use (starts with 1)
+            The index to use (starts with 1).
 
         Returns
         -------
         int
-            The number of items in the bin
+            The number of items in the bin.
         """
         return(self.bins[bin_index - 1].count)
 
@@ -568,8 +567,8 @@ class Histogram(object):
 
         Returns
         -------
-        Histogram
-            The new histogram
+        new_histogram : Histogram
+            The new histogram.
         """
         if (total is None):
             total = self.num_items()
@@ -591,7 +590,7 @@ class DiscreteHistogram(Histogram):
         Parameters
         ----------
         values: sequence
-            List of the discrete values
+            List of the discrete values.
         """
         self.bins = []
 
@@ -611,7 +610,7 @@ class DiscreteHistogram(Histogram):
         Parameters
         ----------
         value: float
-            The value to retrieve
+            The value to retrieve.
         """
         bin_index = 0
         result = None
@@ -638,9 +637,14 @@ class DiscreteHistogram(Histogram):
         Parameters
         ----------
         value: float
-            The value to store
+            The value to store.
         count: int
-            Number of items with that value to store (default 1)
+            Number of items with that value to store (default 1).
+        
+        Returns
+        -------
+        found : bool
+            Whether or not a match was found.
         """
         bin_index = 0
         found = False
@@ -676,10 +680,10 @@ class ContinuousHistogram(Histogram):
         Parameters
         ----------
         boundaries: sequence
-            List of numbers that separate the bins, in increasing order
+            List of numbers that separate the bins, in increasing order.
         highest_inclusive: bool
             True if highest bin includes the last boundary,
-            False (default) otherwise
+            False (default) otherwise.
         """
         self.bins = []
         self.highest_inclusive = highest_inclusive
@@ -716,9 +720,9 @@ class ContinuousHistogram(Histogram):
         Parameters
         ----------
         value: float
-            The value to store
+            The value to store.
         count: int
-            Number of items with that value to store (default 1)
+            Number of items with that value to store (default 1).
         """
         bin_index = 0
         found = False
@@ -748,12 +752,12 @@ def combine_histograms(histograms):
     Parameters
     ----------
     histograms: sequence
-        A lst of Histogram objects to combine
+        A lst of Histogram objects to combine.
 
     Returns
     -------
     Histogram
-        The combined histogram
+        The combined histogram.
     """
     # Initialize the new histogram with properties of the first histogram
     # in the list.
@@ -779,12 +783,12 @@ def average_histograms(histograms):
     Parameters
     ----------
     histograms: sequence
-        A lst of Histogram objects to combine
+        A lst of Histogram objects to combine.
 
     Returns
     -------
-    Histogram
-        The averaged histogram
+    new_histogram : Histogram
+        The averaged histogram.
     """
     # Make a copy of the first histogram in the list.
     new_histogram = deepcopy(histograms[0])
@@ -808,12 +812,12 @@ class PoissonDistribution(DiscreteHistogram):
         Parameters
         ----------
         k: float
-            The value to compute
+            The value to compute.
 
         Returns
         -------
         float
-            The probability
+            The probability.
         """
         u = self.mean
 
@@ -840,11 +844,11 @@ class PoissonDistribution(DiscreteHistogram):
         Parameters
         ----------
         mean: float
-            Mean parameter for the Poisson distribution
+            Mean parameter for the Poisson distribution.
         max_boundary: float
             The largest parameter for which the probability is to
             be computed. All values larger than max_boundary will be lumped
-            into the highest bin
+            into the highest bin.
         """
         self.mean = mean
         self.bins = []
@@ -879,12 +883,12 @@ class PoissonDistribution(DiscreteHistogram):
         Parameters
         ----------
         value: float
-            The value to retrieve
+            The value to retrieve.
 
         Returns
         -------
-        int
-            The number of items with the given value
+        result : int
+            The number of items with the given value.
         """
         # If the value exceeds max_boundary, return None.  Otherwise just
         # use the value as an index into the list of bins.
@@ -902,12 +906,12 @@ class PoissonDistribution(DiscreteHistogram):
         Parameters
         ----------
         value: float
-            The value between 0 and the max_boundary of the distribution
+            The value between 0 and the max_boundary of the distribution.
 
         Returns
         -------
         float
-            The probability
+            The probability.
         """
         return(sum([self.bins[i].count for i in range(value + 1)]))
 
@@ -921,7 +925,7 @@ class StatisticalList(list):
         Parameters
         ----------
         data: sequence
-            List of inputs to list
+            List of inputs to list.
         """
         # If data were provided, copy into the list.
         if (data is not None):
@@ -954,12 +958,12 @@ class StatisticalList(list):
         ----------
         min_value: float
             Minimum value for cutoff of histogram (defaults to
-            minimum in list)
+            minimum in list).
         max_value: float
             Maximum value for cutoff of histogram (defaults to
-            maximum in list)
+            maximum in list).
         max_bins: int
-            Maximum number of bins in histogram
+            Maximum number of bins in histogram.
         """
         # first sort the list in increasing order -- note this is destructive
         self.sort()
@@ -1042,7 +1046,7 @@ class Circle(object):
         Parameters
         ----------
         radius: float
-            The radius of the circle
+            The radius of the circle.
         """
         self.radius = radius
 
@@ -1066,9 +1070,9 @@ class Rectangle(object):
         Parameters
         ----------
         length: float
-            The length of the rectangle
+            The length of the rectangle.
         width: float
-            The width of the rectangle
+            The width of the rectangle.
         """
         self.length = length
         self.width = width
@@ -1091,7 +1095,7 @@ class Rectangle(object):
         Parameters
         ----------
         motion_length: float
-            Distance of motion (same units as rectangle length and width)
+            Distance of motion (same units as rectangle length and width).
         motion_angle: float
             Angle in radians between the direction of motion and long
             direction of rectangle.
@@ -1099,7 +1103,7 @@ class Rectangle(object):
         Returns
         -------
         float
-            The area
+            The area.
         """
         # Compute the x and y distances to the edge.  A position
         # within the rectangle is only motion-tolerant if it exceeds
@@ -1118,7 +1122,7 @@ class Square(Rectangle):
         Parameters
         ----------
         side: float
-            The length of the square side
+            The length of the square side.
         """
         self.side = side
 
@@ -1137,12 +1141,12 @@ class Square(Rectangle):
         Parameters
         ----------
         excluded_width: float
-            The width of the strip to remove
+            The width of the strip to remove.
 
         Returns
         -------
         float
-            The area
+            The area.
         """
         # Return the area of a square that is reduced in side length by twice
         # the specified width, because both sides are affected.
