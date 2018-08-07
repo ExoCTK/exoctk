@@ -34,7 +34,7 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
     Parameters
     ----------
     ephemeris: Ephemeris
-        The input ephemeris object
+        The input ephemeris object.
     mjdmin: float
         The beginning of the search interval (modified
         Julian date). It must be covered by the ephemeris.
@@ -42,9 +42,9 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
         The end of the search interval (modified
         Julian date). It must be covered by the ephemeris.
     ra: float
-        The input RA coordinate (equatorial coordinate, in rad)
+        The input RA coordinate (equatorial coordinate, in rad).
     dec: float
-        The input DEC coordinate (equatorial coordinate, in rad)
+        The input DEC coordinate (equatorial coordinate, in rad).
 
     Example
     -------
@@ -53,7 +53,7 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
     Returns
     -------
     tuple
-        The lists of visibility period starts and ends with flags
+        The lists of visibility period starts and ends with flags.
     """
     if (ephemeris.amin > mjdmin):
         print("""f_computeVisibilityPeriods(): the start of the search\
@@ -163,7 +163,7 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
     Parameters
     ----------
     ephemeris: Ephemeris
-        The input ephemeris object
+        The input ephemeris object.
     mjdmin: float
         The beginning of the search interval (modified
         Julian date). It must be covered by the ephemeris.
@@ -171,11 +171,11 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
         The end of the search interval (modified
         Julian date). It must be covered by the ephemeris.
     ra: float
-        The input RA coordinate (equatorial coordinate, in rad)
+        The input RA coordinate (equatorial coordinate, in rad).
     dec: float
-        The input DEC coordinate (equatorial coordinate, in rad)
+        The input DEC coordinate (equatorial coordinate, in rad).
     pa: float
-        The position angle
+        The position angle.
 
     Example
     -------
@@ -306,7 +306,7 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
     Parameters
     ----------
     ephemeris: Ephemeris
-        The input ephemeris object
+        The input ephemeris object.
     mjdmin: float
         The beginning of the search interval (modified
         Julian date). It must be covered by the ephemeris.
@@ -314,11 +314,11 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
         The end of the search interval (modified
         Julian date). It must be covered by the ephemeris.
     ra: float
-        The input RA coordinate (equatorial coordinate, in rad)
+        The input RA coordinate (equatorial coordinate, in rad).
     dec: float
-        The input DEC coordinate (equatorial coordinate, in rad)
+        The input DEC coordinate (equatorial coordinate, in rad).
     pa: float
-        The position angle
+        The position angle.
 
     Example
     -------
@@ -328,7 +328,7 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
     Returns
     -------
     tuple
-        The lists of visibility period starts and ends with flags
+        The lists of visibility period starts and ends with flags.
     """
     if (ephemeris.amin > mjdmin):
         print("""f_computeDurationOfVisibilityPeriodWithPA(): the start of\
@@ -372,7 +372,7 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
         raise ValueError
 
     # ===========================================================
-    # Lookign for the start of the visibility period
+    # Looking for the start of the visibility period
     # ===========================================================
     scanningStepSize = 0.1
     iflipLeft = False
