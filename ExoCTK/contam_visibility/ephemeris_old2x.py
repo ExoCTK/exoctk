@@ -4,9 +4,9 @@ import math
 import sys
 import time
 
-from . import time_extensionsx as time2
-from . import quaternionx as qx
 from . import astro_funcx as astro_func
+from . import quaternionx as qx
+from . import time_extensionsx as time2
 
 D2R = math.pi/180.  # degrees to radians
 R2D = 180. / math.pi  # radians to degrees
@@ -90,7 +90,7 @@ class Ephemeris:
         ----------
         limit: int, optional
             The number of records to report.
-        pathname: str (optional)
+        pathname: str, optional
             The path to a file to hold the report.
         """
         num_to_report = min(limit, len(self.datelist))
@@ -442,11 +442,11 @@ def unit_limit(x):
     Parameters
     ----------
     x: float, int
-        The value to adjust
+        The value to adjust.
 
     Returns
     -------
     float
-        The adjusted value
+        The adjusted value.
     """
     return min(max(-1., x), 1.)
