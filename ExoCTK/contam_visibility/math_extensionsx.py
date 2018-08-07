@@ -1,12 +1,12 @@
 """This module provides simple extensions to the Python mathematical
-    library."""
-""" 2018/06/26 Made PEP8 compliant and added
-    sind() and cosd() - Joe Filippazzo"""
-""" Version 1 August 23, 2010 RLH - Added OBLIQUITY."""
-""" Version 0 August 6, 2010 RLH  - Created"""
-
+library.
+2018/06/26 Made PEP8 compliant and added
+sind() and cosd() - Joe Filippazzo
+Version 1 August 23, 2010 RLH - Added OBLIQUITY.
+Version 0 August 6, 2010 RLH  - Created
+"""
 from copy import deepcopy
-from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp
+from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp, atan2
 
 R2D = 180.0/pi
 D2R = 1/R2D
@@ -15,26 +15,88 @@ OBLIQUITY = 23.43929 * D2R  # Obliquity of Earth's orbit, in radians
 
 
 def sind(x):
-    """Rrturn the sin in degrees"""
+    """Return the sin in degrees.
+
+    Parameters
+    ----------
+    x: float
+        The evaluand.
+
+    Returns
+    -------
+    float
+        The sin of x in degrees.
+    """
     return sin(radians(x))
 
 
 def cosd(x):
-    """Rrturn the sin in degrees"""
+    """Return the cos in degrees
+
+    Parameters
+    ----------
+    x: float
+        The evaluand.
+
+    Returns
+    -------
+    float
+        The cos of x in degrees.
+    """
     return cos(radians(x))
+
+
+def atan2d(x):
+    """Return the arctan in degrees
+
+    Parameters
+    ----------
+    x: float
+        The evaluand.
+
+    Returns
+    -------
+    float
+        The arctan of x in degrees.
+    """
+    return atan2(radians(x))
 
 
 def really_less_than(x, y):
     """Safe less-than function that returns true if and only if x is
-    "significantly" less than y."""
+    "significantly" less than y.
 
+    Parameters
+    ----------
+    x: float
+        The first number.
+    y: float
+        The second number.
+
+    Returns
+    -------
+    bool
+        True if x is less, else False.
+    """
     return(x < y - EPSILON)
 
 
 def really_greater_than(x, y):
-    """Safe greater-than function , pithat returns true if and only if x is
-    "significantly" greater than y."""
+    """Safe greater-than function that returns true if and only if x is
+    "significantly" greater than y
 
+    Parameters
+    ----------
+    x: float
+        The first number.
+    y: float
+        The second number.
+
+    Returns
+    -------
+    bool
+        True if x is greater, else False.
+    """
     return(x > y + EPSILON)
 
 
@@ -42,30 +104,88 @@ def asin2(val):
     """Safe version of asin that handles invalid arguments.
 
     Arguments greater than 1 are truncated to 1; arguments less than -1 are
-    set to -1."""
+    set to -1.
+
+    Parameters
+    ----------
+    val: float
+        The evaluand.
+
+    Returns
+    -------
+    float
+        The arcsin of the value.
+    """
     return(asin(max(-1.0, min(1.0, val))))
 
 
 def acos2(val):
     """Safe version of acos that handles invalid arguments in the same way as
-    asin2."""
+    asin2
+
+    Parameters
+    ----------
+    val: float
+        The evaluand.
+
+    Returns
+    -------
+    float
+        The arccos of the value.
+    """
     return(acos(max(-1.0, min(1.0, val))))
 
 
 def avg(l):
-    """Returns the average of a list of numbers."""
+    """Returns the average of a list of numbers
+
+    Parameters
+    ----------
+    l: sequence
+        The list of numbers.
+
+    Returns
+    -------
+    float
+        The average.
+    """
     return(sum(l) / float(len(l)))
 
 
 def avg2(num1, num2):
-    """Returns the average of two numbers."""
+    """Returns the average of two numbers
+
+    Parameters
+    ----------
+    num1: float
+        The first number.
+    num2: float
+        The second number.
+
+    Returns
+    -------
+    float
+        The average.
+    """
     return((num1 + num2)/2.0)
 
 
 def output_as_percentage(num, fractional_digits=1):
     """Output a percentage neatly.
-    fractional_digits = number of digits to output as fractions of a percent.
-    If None is supplied, there is no reduction in precision."""
+
+    Parameters
+    ----------
+    num: float
+        The number to make into a percentage.
+    fractional_digits: int
+        Number of digits to output as fractions of a percent.
+        If not supplied, there is no reduction in precision.
+
+    Returns
+    -------
+    str
+        The percentage.
+    """
     if (fractional_digits is not None):
         format_str = '%%.%.df' % (fractional_digits)  # creates format string
     else:
@@ -76,13 +196,36 @@ def output_as_percentage(num, fractional_digits=1):
 
 def percent_str(num, fractional_digits=1):
     """Output a number as a percentage.
-    fractional_digits = number of digits to output as fractions of a percent.
-    If not supplied, there is no reduction in precision."""
+
+    Parameters
+    ----------
+    num: float
+        The number to make into a percentage.
+    fractional_digits: int
+        Number of digits to output as fractions of a percent.
+        If not supplied, there is no reduction in precision.
+
+    Returns
+    -------
+    str
+        The percentage.
+    """
     return(output_as_percentage(100 * num, fractional_digits))
 
 
 def variance(l):
-    """Variance of a list of numbers that represent sample values."""
+    """Variance of a list of numbers that represent sample values
+
+    Parameters
+    ----------
+    l: sequence
+        The list to take the variance of.
+
+    Returns
+    -------
+    float
+        The variance.
+    """
     # Returns the sample variance (n-1 formula).
     mean = avg(l)
     sumsq = sum([(i - mean)**2 for i in l])
@@ -90,7 +233,18 @@ def variance(l):
 
 
 def stdev(l):
-    """Standard deviation of a list of numbers that represent sample values."""
+    """Standard deviation of a list of numbers that represent sample values
+
+    Parameters
+    ----------
+    l: sequence
+        The list to take the standard deviation of.
+
+    Returns
+    -------
+    float
+        The standard deviation.
+    """
     # Simply take the square root of the sample variance.
     return(sqrt(variance(l)))
 
@@ -98,7 +252,18 @@ def stdev(l):
 def factorial(num):
     """Returns the factorial of a nonnegative integer.
     This function is provided in math module starting with Python 2.6,
-    but implement anyway for compatibility with older systems."""
+    but implement anyway for compatibility with older systems.
+
+    Parameters
+    ----------
+    num: int
+        The number to factorialize.
+
+    Returns
+    -------
+    int
+        The factorial.
+    """
     result = 1   # factorial of 0 is defined as 1
 
     for i in range(2, num + 1):
@@ -108,8 +273,19 @@ def factorial(num):
 
 def conditional_probability(p_joint, p_B):
     """Returns probability of event A given event B.
-    p_joint = P(A,B)
-    p_B = probability of event B."""
+
+    Parameters
+    ----------
+    p_joint: float
+        P(A,B).
+    p_B: float
+        Probability of event B.
+
+    Returns
+    -------
+    float
+        The probability.
+    """
     return(p_joint / p_B)
 
 
@@ -118,8 +294,13 @@ class Polynomial(object):
     def __init__(self, coefficients):
         """Constructor for a polynomial.
         Coefficients = a list of coefficients, starting with order 0 and
-        increasing."""
+        increasing.
 
+        Parameters
+        ----------
+        coefficients: sequence
+            The list of coefficients, starting with order 0 and increasing.
+        """
         self.coefficients = coefficients
 
     def __str__(self):
@@ -134,7 +315,18 @@ class Polynomial(object):
         return(return_string)
 
     def apply(self, value):
-        """Returns the result of applying a polynomial to an input value."""
+        """Returns the result of applying a polynomial to an input value
+
+        Parameters
+        ----------
+        value: float
+            The evaluand.
+
+        Returns
+        -------
+        float
+            The result of the evaluated equation.
+        """
         result = 0
 
         # For each index, raise the input to the power given by that index
@@ -153,17 +345,31 @@ class LinearEquation(Polynomial):
         """Constructor for a linear equation to provide a more 'natural'
         interface without using a list.
 
-        Coeff0 = additive constant
-        Coeff1 = multiplicative coefficient
-        Coeff0 is first for consistency with list order in Polynomial
-        coefficient list."""
+        Parameters
+        ----------
+        coeff0: float
+            Additive constant.
+        coeff1: float
+            Multiplicative coefficient.
+        """
         self.coefficients = [coeff0, coeff1]
 
     def apply(self, value):
         """Applies a linear equation to an input value.
 
         This is intended to be faster than the more general method with
-        Polynomial."""
+        Polynomial.
+
+        Parameters
+        ----------
+        value: float
+            The evaluand.
+
+        Returns
+        -------
+        float
+            The result of the evaluated equation.
+        """
         return(value * self.coefficients[1] + self.coefficients[0])
 
 
@@ -171,26 +377,48 @@ class HistogramBin(object):
     """Class to represent a bin within a histogram."""
     def store_items(self, num_items=1):
         """Stores a given number of items in the bin.
-        num_items = number of items to store (default 1)."""
+
+        Parameters
+        ----------
+        num_items: int
+            Number of items to store (default 1).
+        """
         self.count += num_items
 
 
 class DiscreteBin(HistogramBin):
     """Class to represent a bin with a fixed value."""
     def __init__(self, bin_value):
-        """Constructor for a fixed-value bin."""
+        """Constructor for a fixed-value bin
 
+        Parameters
+        ----------
+        bin_value: float
+            The value of the bin.
+        """
         self.bin_value = bin_value
         self.count = 0
 
     def __str__(self):
-        """Returns a printed representation of the bin."""
+        """Returns a printed representation of the bin.
+        """
         # Don't assume a type for the count, as it may not be an integer
         # if normalized.
         return('%s: % s items' % (self.bin_value, self.count))
 
     def ismatch(self, value):
-        """Returns True if the value matches the bin, False otherwise."""
+        """Returns True if the value matches the bin, False otherwise
+
+        Parameters
+        ----------
+        value: float
+            The value to compare.
+
+        Returns
+        -------
+        bool
+            True if matches, else False.
+        """
         return(value == self.bin_value)
 
 
@@ -200,12 +428,17 @@ class RangeBin(HistogramBin):
                  upper_inclusive=True):
         """Constructor for a range bin.
 
-        min_value = minimum value for the bin.
-        max_value = maximum value for the bin
-        lower_inclusive = True if min_value is inclusive, False (default)
-        otherwise.
-        upper_inclusive = True (default) if max_value is inclusive, False
-        otherwise."""
+        Parameters
+        ----------
+        min_value: float
+            Minimum value for the bin.
+        max_value: float
+            Maximum value for the bin.
+        lower_inclusive: bool
+            True if min_value is inclusive, else False (default).
+        upper_inclusive: bool
+            True if max_value is inclusive, else False (default).
+        """
         self.min_value = min_value
         self.max_value = max_value
         self.lower_inclusive = lower_inclusive
@@ -215,7 +448,16 @@ class RangeBin(HistogramBin):
     def describe_limits(self, precision=2):
         """Returns a printed representation of the limits of the bin.
 
-        precision = number of digits to print after the decimal point."""
+        Parameters
+        ----------
+        precision: int
+            Number of digits to print after the decimal point.
+
+        Returns
+        -------
+        str
+            The limits of the bin.
+        """
         if(self.min_value is None):
             if(self.upper_inclusive):
                 result = '<= % . * f:' % (precision, self.max_value)
@@ -233,15 +475,26 @@ class RangeBin(HistogramBin):
         return(result)
 
     def __str__(self):
-        """Returns a printed representation of the bin."""
+        """Returns a printed representation of the bin
+        """
         # Don't assume a type for the count, as it may not be an integer
         # if normalized.
         return('%s % s items' % (self.describe_limits(), self.count))
 
     def istoo_high(self, value):
         """Returns True if the specified value is too high for the bin.
+        Assumes the bin has an upper limit.
 
-        Assumes the bin has an upper limit."""
+        Parameters
+        ----------
+        value: float
+            The value to compare.
+
+        Returns
+        -------
+        bool
+            True if too high, else False.
+        """
         # value equal to limit not consideredtoo high
         if(self.upper_inclusive):
             result = (value > self.max_value)
@@ -251,7 +504,18 @@ class RangeBin(HistogramBin):
         return(result)
 
     def ismatch(self, value):
-        """Indicates whether the bin matches the value."""
+        """Indicates whether the bin matches the value.
+
+        Parameters
+        ----------
+        value: float
+            The value to compare.
+
+        Returns
+        -------
+        bool
+            True if matches, else False.
+        """
         return(False)   # not really applicable, so always fail
 
 
@@ -261,18 +525,26 @@ class Histogram(object):
     def retrieve_count(self, bin_index):
         """Returns the number of items stored in a given bin of the histogram.
 
-        Bin_index starts with 1."""
+        Parameters
+        ----------
+        bin_index: int
+            The index to use (starts with 1).
 
+        Returns
+        -------
+        int
+            The number of items in the bin.
+        """
         return(self.bins[bin_index - 1].count)
 
     def num_items(self):
-        """Returns the total number of items stored in the histogram."""
-
+        """Returns the total number of items stored in the histogram
+        """
         return(sum([bin.count for bin in self.bins]))
 
     def __str__(self):
-        """Returns a printed representation of the histogram."""
-
+        """Returns a printed representation of the histogram.
+        """
         # Don't assume a type for the total, as it may not be an integer
         # if normalized.
         v = (len(self.bins), self.num_items())
@@ -287,9 +559,17 @@ class Histogram(object):
         """Takes a histogram and returns a new histogram that normalizes all
         its values.
 
-        total = number of items to divide each bin by for the normalization.
-        If not supplied, it defaults to the total in the histogram."""
+        Parameters
+        ----------
+        total: int
+            Number of items to divide each bin by for the normalization.
+            If not supplied, it defaults to the total in the histogram.
 
+        Returns
+        -------
+        new_histogram : Histogram
+            The new histogram.
+        """
         if (total is None):
             total = self.num_items()
 
@@ -307,8 +587,11 @@ class DiscreteHistogram(Histogram):
     def __init__(self, values):
         """Initializes a histogram with discrete values.
 
-        values = list of the discrete values."""
-
+        Parameters
+        ----------
+        values: sequence
+            List of the discrete values.
+        """
         self.bins = []
 
         # Create a DiscreteBin object for each value and add it to the list.
@@ -316,14 +599,19 @@ class DiscreteHistogram(Histogram):
             self.bins.append(DiscreteBin(value))
 
     def retrieve_values(self):
-        """Returns the list of bin values of a discrete histogram."""
-
+        """Returns the list of bin values of a discrete histogram
+        """
         return([bin.bin_value for bin in self.bins])
 
     def retrieve_count_by_value(self, value):
         """Returns the count matching a certain value.  If not found,
-        return None."""
+        return None
 
+        Parameters
+        ----------
+        value: float
+            The value to retrieve.
+        """
         bin_index = 0
         result = None
 
@@ -344,8 +632,20 @@ class DiscreteHistogram(Histogram):
         Count = number of items with that value to store (default 1).
 
         Returns True if a match was found and the value could be stored,
-        False otherwise."""
+        False otherwise
 
+        Parameters
+        ----------
+        value: float
+            The value to store.
+        count: int
+            Number of items with that value to store (default 1).
+        
+        Returns
+        -------
+        found : bool
+            Whether or not a match was found.
+        """
         bin_index = 0
         found = False
 
@@ -367,13 +667,6 @@ class ContinuousHistogram(Histogram):
     def __init__(self, boundaries, highest_inclusive=False):
         """Initializes a continuous histogram.
 
-        boundaries = list of numbers that separate the bins, in increasing
-        order.
-        highest_inclusive = True if highest bin includes the last boundary,
-        False (default) otherwise.
-        Number of boundaries must be at least 2 if highest_inclusive = True,
-        at least 1 otherwise.
-
         Default behavior with highest_inclusive = False:
            Bin 0 is defined by x <= boundaries[0].
            For i > 0, bin i is defined by boundaries[i-1] < x <= boundaries[i].
@@ -382,8 +675,16 @@ class ContinuousHistogram(Histogram):
         Behavior with highest_exclusive = True:
            Bins below n are defined in the same way as above.
            Bin n is defined by boundaries[n-2] < x < boundaries[n-1].
-           Bin n+1 is defined by x >= boundaries[n-1]."""
+           Bin n+1 is defined by x >= boundaries[n-1].
 
+        Parameters
+        ----------
+        boundaries: sequence
+            List of numbers that separate the bins, in increasing order.
+        highest_inclusive: bool
+            True if highest bin includes the last boundary,
+            False (default) otherwise.
+        """
         self.bins = []
         self.highest_inclusive = highest_inclusive
         lower_lim = None
@@ -408,16 +709,21 @@ class ContinuousHistogram(Histogram):
             self.bins[-1].lower_inclusive = True
 
     def retrieve_boundaries(self):
-        """Returns the list of boundaries of a continuous histogram."""
-
+        """Returns the list of boundaries of a continuous histogram.
+        """
         # Return upper limits of all bins except the last.
         return([bin.max_value for bin in self.bins[:-1]])
 
     def store_items(self, value, count=1):
         """Stores a value in the continuous histogram.
 
-        Count = number of items with that value to store (default 1)."""
-
+        Parameters
+        ----------
+        value: float
+            The value to store.
+        count: int
+            Number of items with that value to store (default 1).
+        """
         bin_index = 0
         found = False
 
@@ -441,8 +747,18 @@ def combine_histograms(histograms):
     """Takes a list of histograms and returns a new Histogram object that sums
     the values in each bin.
 
-    All histograms in the list must be identical except for the count."""
+    All histograms in the list must be identical except for the count.
 
+    Parameters
+    ----------
+    histograms: sequence
+        A lst of Histogram objects to combine.
+
+    Returns
+    -------
+    Histogram
+        The combined histogram.
+    """
     # Initialize the new histogram with properties of the first histogram
     # in the list.
     if (isinstance(histograms[0], ContinuousHistogram)):
@@ -462,8 +778,18 @@ def combine_histograms(histograms):
 def average_histograms(histograms):
     """Takes a list of histogram objects and simply averages all the bin values.
 
-    All histograms in the list must be identical except for the count."""
+    All histograms in the list must be identical except for the count.
 
+    Parameters
+    ----------
+    histograms: sequence
+        A lst of Histogram objects to combine.
+
+    Returns
+    -------
+    new_histogram : Histogram
+        The averaged histogram.
+    """
     # Make a copy of the first histogram in the list.
     new_histogram = deepcopy(histograms[0])
 
@@ -481,15 +807,25 @@ class PoissonDistribution(DiscreteHistogram):
         """Computes the probability that the Poisson distribution takes on
         the value k.
 
-        Value must be a nonnegative integer."""
+        Value must be a nonnegative integer.
 
+        Parameters
+        ----------
+        k: float
+            The value to compute.
+
+        Returns
+        -------
+        float
+            The probability.
+        """
         u = self.mean
 
         return((u**k * exp(-u)) / factorial(k))
 
     def generate_distribution(self):
-        """Populates a Poisson distribution up to the maximum bin."""
-
+        """Populates a Poisson distribution up to the maximum bin.
+        """
         cum = 0
 
         # For each value from 0 up to the next-to-last, compute the
@@ -505,11 +841,15 @@ class PoissonDistribution(DiscreteHistogram):
     def __init__(self, mean, max_boundary):
         """Constructor function for the Poisson distribution.
 
-        Mean = mean parameter for the Poisson distribution.
-        max_boundary = the largest parameter for which the probability is to
-        be computed. All values larger than max_boundary will be lumped into
-        the highest bin."""
-
+        Parameters
+        ----------
+        mean: float
+            Mean parameter for the Poisson distribution.
+        max_boundary: float
+            The largest parameter for which the probability is to
+            be computed. All values larger than max_boundary will be lumped
+            into the highest bin.
+        """
         self.mean = mean
         self.bins = []
 
@@ -525,7 +865,6 @@ class PoissonDistribution(DiscreteHistogram):
 
     def __str__(self):
         """Inspector function for Poisson distribution."""
-
         poisson_info = 'PoissonDistribution: Mean: % .2f\n' % (self.mean)
         generic_info = super(self.__class__, self).__str__()
 
@@ -533,15 +872,24 @@ class PoissonDistribution(DiscreteHistogram):
 
     def retrieve_values(self):
         """Returns the list of bin values for the Poisson distribution."""
-
         return(list(range(len(self.bins) - 1)))   # leave out last bin
 
     def retrieve_count_by_value(self, value):
         """Returns the number of items in the histogram that have the
         designated value.
 
-        Value must be an integer between 0 and max_boundary."""
+        Value must be an integer between 0 and max_boundary.
 
+        Parameters
+        ----------
+        value: float
+            The value to retrieve.
+
+        Returns
+        -------
+        result : int
+            The number of items with the given value.
+        """
         # If the value exceeds max_boundary, return None.  Otherwise just
         # use the value as an index into the list of bins.
         if (value > len(self.bins) - 2):
@@ -555,28 +903,38 @@ class PoissonDistribution(DiscreteHistogram):
         """Returns the probability that a random variable will have a value no
         greater than the one specified.
 
-        value = integer (must be between 0 and the max_boundary of the
-        distribution)."""
+        Parameters
+        ----------
+        value: float
+            The value between 0 and the max_boundary of the distribution.
 
+        Returns
+        -------
+        float
+            The probability.
+        """
         return(sum([self.bins[i].count for i in range(value + 1)]))
 
 
-class StatisticalList (list):
+class StatisticalList(list):
     """Numeric list class with statistical attributes."""
 
     def __init__(self, data=None):
         """Initializes a statistical list.
 
-        data = list of inputs to list."""
-
+        Parameters
+        ----------
+        data: sequence
+            List of inputs to list.
+        """
         # If data were provided, copy into the list.
         if (data is not None):
             for i in range(len(data)):
                 self.append(data[i])
 
     def compute_variance(self):
-        """Computes the variance of a statistical list."""
-
+        """Computes the variance of a statistical list.
+        """
         mean = self.mean
 
         # Variance is defined as the sum of the squares of the differences
@@ -586,8 +944,8 @@ class StatisticalList (list):
         return(sum([(n - mean)**2 for n in self]) / (len(self) - 1))
 
     def compute_rms(self):
-        """Computes the rms value of a statistical list."""
-
+        """Computes the rms value of a statistical list.
+        """
         # Simply sum the squares, divide by n, and take the square root.
         return(sqrt(avg([n**2 for n in self])))
 
@@ -596,11 +954,17 @@ class StatisticalList (list):
         """Computes statistics for a StatisticalList object; must contain at
         least one element.
 
-        min_value = minimum value for cutoff of histogram (defaults to
-        minimum in list).
-        max_value = maximum value for cutoff of histogram (defaults to
-        maximum in list).
-        max_bins = maximum number of bins in histogram."""
+        Parameters
+        ----------
+        min_value: float
+            Minimum value for cutoff of histogram (defaults to
+            minimum in list).
+        max_value: float
+            Maximum value for cutoff of histogram (defaults to
+            maximum in list).
+        max_bins: int
+            Maximum number of bins in histogram.
+        """
         # first sort the list in increasing order -- note this is destructive
         self.sort()
 
@@ -677,18 +1041,23 @@ class Circle(object):
     """Class to represent a circle."""
 
     def __init__(self, radius):
-        """Initialize a circle with a specified radius."""
+        """Initialize a circle with a specified radius.
 
+        Parameters
+        ----------
+        radius: float
+            The radius of the circle.
+        """
         self.radius = radius
 
     def __str__(self):
-        """Inspector method for the circle."""
-
+        """Inspector method for the circle.
+        """
         return('Circle: radius = % .2f' % (self.radius))
 
     def area(self):
-        """Returns the area of the circle."""
-
+        """Returns the area of the circle.
+        """
         return(pi * self.radius**2)
 
 
@@ -696,28 +1065,46 @@ class Rectangle(object):
     """Class to represent a rectangle."""
 
     def __init__(self, length, width):
-        """Initialize a rectangle with a specified length and width."""
+        """Initialize a rectangle with a specified length and width.
 
+        Parameters
+        ----------
+        length: float
+            The length of the rectangle.
+        width: float
+            The width of the rectangle.
+        """
         self.length = length
         self.width = width
 
     def __str__(self):
-        """Inspector method for the rectangle."""
+        """Inspector method for the rectangle.
+        """
         dims = (self.length, self.width)
         return('Rectangle: length = % .2f, width = % .2f' % dims)
 
     def area(self):
-        """Returns the area of the rectangle."""
-
+        """Returns the area of the rectangle.
+        """
         return(self.length * self.width)
 
     def motion_tolerant_area(self, motion_length, motion_angle):
         """Returns the area within a rectangle that can tolerate a motion in
         a known direction while remaining within the rectangle.
 
-        length = distance of motion (same units as rectangle length and width).
-        angle = angle in radians between the direction of motion and long
-        direction of rectangle."""
+        Parameters
+        ----------
+        motion_length: float
+            Distance of motion (same units as rectangle length and width).
+        motion_angle: float
+            Angle in radians between the direction of motion and long
+            direction of rectangle.
+
+        Returns
+        -------
+        float
+            The area.
+        """
         # Compute the x and y distances to the edge.  A position
         # within the rectangle is only motion-tolerant if it exceeds
         # both of these distances.  The effective length is thus reduced
@@ -727,24 +1114,40 @@ class Rectangle(object):
         return ((self.length - delta_x) * (self.width - delta_y))
 
 
-class Square (Rectangle):
+class Square(Rectangle):
     """Class to represent a square."""
     def __init__(self, side):
-        """Initialize a square with a specified side length."""
+        """Initialize a square with a specified side length.
+
+        Parameters
+        ----------
+        side: float
+            The length of the square side.
+        """
         self.side = side
 
         # call superclass method with length and width
         super(self.__class__, self).__init__(side, side)
 
     def __str__(self):
-        """Inspector method for the square."""
-
+        """Inspector method for the square.
+        """
         return('Square: side = % .2f' % (self.side))
 
     def inner_area(self, excluded_width):
         """Returns the area of the square after removing a strip of specified
-        width along each edge."""
+        width along each edge.
 
+        Parameters
+        ----------
+        excluded_width: float
+            The width of the strip to remove.
+
+        Returns
+        -------
+        float
+            The area.
+        """
         # Return the area of a square that is reduced in side length by twice
         # the specified width, because both sides are affected.
         return(Square(self.side - 2 * excluded_width).area())
