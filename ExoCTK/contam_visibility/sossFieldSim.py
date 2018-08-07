@@ -1,14 +1,15 @@
-import astropy.coordinates as crd
-import astropy.units as u
 import glob
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 
 from astroquery.irsa import Irsa
+import astropy.coordinates as crd
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy.io import readsav
 
-idlsave_path = os.environ.get('EXOCTK_CONTAM_DIR')
+
+IDLSAVE_PATH = os.environ.get('EXOCTK_CONTAM_DIR')
 
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
@@ -17,18 +18,18 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     Parameters
     ----------
     ra: float
-        The RA of the target
+        The RA of the target.
     dec: float
-        The Dec of the target
+        The Dec of the target.
     binComp: sequence
-        The parameters of a binary companion
+        The parameters of a binary companion.
     dimX: int
-        The subarray size
+        The subarray size.
 
     Returns
     -------
-    np.ndarray
-        The simulated data cube
+    simuCub : np.ndarray
+        The simulated data cube.
     """
     # stars in large field around target
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
@@ -67,7 +68,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     nStars = allRA.size
 
     # Restoring model parameters
-    modelParam = readsav(os.path.join(idlsave_path, 'modelsInfo.sav'),
+    modelParam = readsav(os.path.join(IDLSAVE_PATH, 'modelsInfo.sav'),
                          verbose=False)
     models = modelParam['models']
     modelPadX = modelParam['modelpadx']
@@ -120,7 +121,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
     # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-    saveFiles = glob.glob(os.path.join(idlsave_path, '*.sav'))[:-1]
+    saveFiles = glob.glob(os.path.join(IDLSAVE_PATH, '*.sav'))[:-1]
     # pdb.set_trace()
 
     # Big loop to generate a simulation at each instrument PA
