@@ -3,15 +3,17 @@
 """
 A module to calculate limb darkening coefficients from a grid of model spectra
 """
-import numpy as np
 import inspect
 import datetime
+
 import astropy.table as at
 import astropy.units as q
 import matplotlib.pyplot as plt
 from matplotlib import rc
+import numpy as np
 from scipy.optimize import curve_fit
 from svo_filters import svo
+
 from . import limb_darkening_plot as lp
 from .. import utils
 from .. import modelgrid
@@ -106,7 +108,7 @@ def ld_profile(name='quadratic', latex=False):
         return
 
 
-def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
+def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.01,
         bandpass='', grid_point='', plot=False, save=False, **kwargs):
     """
     Calculates the limb darkening coefficients for a given synthetic spectrum.
@@ -214,13 +216,19 @@ def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=1E-6,
         ld_avg = np.nanmean(ld, axis=0)
         muz = np.interp(ld_min, ld_avg, mu) if any(ld_avg < ld_min) else 0
         mu = (mu - muz) / (1 - muz)
-        grid_point['scaled_mu'] = mu
-        grid_point['ld_raw'] = ld
+        
+        # Save the values
+        grid_point['raw_mu'] = mu
+        grid_point['raw_ld'] = ld
 
         # Trim to useful mu range
         # mu_raw = mu.copy()
         imu, = np.where(mu > mu_min)
         mu, ld = mu[imu], ld[:, imu]
+        
+        # Save the values
+        grid_point['scaled_mu'] = mu
+        grid_point['scaled_ld'] = ld
 
         # Add raw data and inputs
         grid_point['flux'] = flux

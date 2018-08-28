@@ -61,8 +61,10 @@ def ld_plot(ldfuncs, grid_point, fig=None,
     mu = grid_point['mu']
     mu_min = grid_point['mu_min']
     profiles = grid_point['profiles']
-    mu_raw = grid_point['scaled_mu']
-    ld_raw = grid_point['ld_raw'][slc]
+    scaled_mu = grid_point['scaled_mu']
+    scaled_ld = grid_point['scaled_ld']
+    mu_raw = grid_point['raw_mu']
+    ld_raw = grid_point['raw_ld'][slc]
     mu_vals = np.linspace(0, 1, 1000)
 
     # Make profile list and get colors
@@ -132,7 +134,7 @@ def ld_plot(ldfuncs, grid_point, fig=None,
             else:
 
                 # Plot the fitted points
-                fig.circle(mu, ld_raw[n], fill_color='black')
+                fig.circle(mu_raw, ld_raw[n], fill_color='black')
 
                 # Plot the mu cutoff
                 fig.line([mu_min, mu_min], [0, 1], legend='cutoff',
