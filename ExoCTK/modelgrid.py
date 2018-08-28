@@ -302,7 +302,7 @@ class ModelGrid(object):
                 spec_dict['wave'] = wave
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
-                spec_dict['r_eff'] = ''
+                spec_dict['r_eff'] = None
                 # spec_dict['abund'] = abund
 
             # If not on the grid, interpolate to it
