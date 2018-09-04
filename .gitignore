@@ -60,3 +60,7 @@ distribute-*.tar.gz
 
 # Mac OSX
 .DS_Store
+
+
+ExoCTK/notebooks/*.eps
+ExoCTK/notebooks/*.p
