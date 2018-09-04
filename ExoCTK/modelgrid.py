@@ -211,11 +211,11 @@ class ModelGrid(object):
         # Customize from the get-go
         if kwargs:
             self.customize(**kwargs)
-            
+
     def export(self, filepath, **kwargs):
         """Export the model with the given parameters to a FITS file
         at the given filepath
-        
+
         Parameters
         ----------
         filepath: str
@@ -223,27 +223,27 @@ class ModelGrid(object):
         """
         if not filepath.endswith('.fits'):
             raise IOError("Target file must have a .fits extension.")
-            
+
         # Get the model
         model = self.get(**kwargs)
-        
+
         # Get a dummy FITS file
         ffile = resource_filename('ExoCTK', 'data/core/ModelGrid_tmp.fits')
         hdu = fits.open(ffile)
-        
+
         # Replace the data
         hdu[0].data = model['flux']
         hdu[1].data = model['mu']
         hdu[0].header['PHXTEFF'] = model['Teff']
         hdu[0].header['PHXLOGG'] = model['logg']
         hdu[0].header['PHXM_H'] = model['FeH']
-        
+
         # Update the wavelength
         wave = model['wave']
         hdu[0].header['CRVAL1'] = min(wave)
         hdu[0].header['CDELT1'] = np.mean(np.diff(wave))
         hdu[0].header['CUNIT1'] = 'Micron'
-        
+
         # Write the file
         hdu.writeto(filepath)
 
