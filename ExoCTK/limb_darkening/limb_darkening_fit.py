@@ -108,6 +108,200 @@ def ld_profile(name='quadratic', latex=False):
         return
 
 
+class LDC:
+    """A class to hold all the LDCs you want to run"""
+    def __init__(self, model_grid):
+        """Initialize an LDC object
+        
+        Parameters
+        ----------
+        model_grid: ExoCTK.modelgrid.ModelGrid
+            The grid of synthetic spectra from which the coefficients will
+            be calculated
+        """
+        # Set the model grid
+        if not isinstance(model_grid, modelgrid.ModelGrid):
+            raise TypeError("'model_grid' must be a ExoCTK.modelgrid.ModelGrid object.")
+
+        self.model_grid = model_grid
+
+        # Table for results
+        columns = ['Teff', 'logg', 'FeH', 'profile', 'wave', 'wave_min',
+                   'wave_max', 'mu', 'scaled_mu', 'ld', 'scaled_ld', 'flux',
+                   'coeffs']
+        dtypes = [float, float, float, '|S20', object, float, float, object,
+                  object, object, object, object, object]
+        self.results = at.Table(names=columns, dtype=dtypes)
+
+
+    def calculate(self, Teff, logg, FeH, profile, mu_min=0.05, ld_min=0.01,
+                  bandpass=None, **kwargs):
+        """
+        Calculates the limb darkening coefficients for a given synthetic spectrum.
+        If the model grid does not contain a spectrum of the given parameters, the
+        grid is interpolated to those parameters.
+
+        Reference for limb-darkening laws:
+            http://www.astro.ex.ac.uk/people/sing/David_Sing/Limb_Darkening.html
+
+        Parameters
+        ----------
+        Teff: int
+            The effective temperature of the model
+        logg: float
+            The logarithm of the surface gravity
+        FeH: float
+            The logarithm of the metallicity
+        profile: str
+            The name of the limb darkening profile function to use,
+            including 'uniform', 'linear', 'quadratic', 'square-root',
+            'logarithmic', 'exponential', and '4-parameter'
+        mu_min: float
+            The minimum mu value to consider
+        ld_min: float
+            The minimum limb darkening value to consider
+        bandpass: svo_filters.svo.Filter() (optional)
+            The photometric filter through which the limb darkening
+            is to be calculated
+        """
+        # See if the model has already been calculated
+        rows = self.results[(self.results['Teff'] == Teff) &
+                            (self.results['logg'] == logg) &
+                            (self.results['FeH'] == FeH)]
+
+        # Get the grid point if not present
+        if len(rows) == 0:
+            grid_point = self.model_grid.get(Teff, logg, FeH)
+
+        else:
+            grid_point = {i:j for i,j in zip(rows.colnames, rows[0])}
+
+        # Retrieve the wavelength, flux, mu, and effective radius
+        wave = grid_point.get('wave')
+        flux = grid_point.get('flux')
+        mu = grid_point.get('mu').squeeze()
+        radius = grid_point.get('r_eff')
+
+        # Check if a bandpass is provided
+        if isinstance(bandpass, svo.Filter):
+
+            # Make sure the bandpass has coverage
+            bp_min = bandpass.WavelengthMin*q.Unit(bandpass.WavelengthUnit)
+            bp_max = bandpass.WavelengthMax*q.Unit(bandpass.WavelengthUnit)
+            mg_min = self.model_grid.wave_rng[0]*self.model_grid.wl_units
+            mg_max = self.model_grid.wave_rng[-1]*self.model_grid.wl_units
+            if bp_min < mg_min or bp_max > mg_max:
+                print('Bandpass {} not covered by'.format(bandpass.filterID))
+                print('model grid of wavelength range', self.model_grid.wave_rng)
+
+                return
+
+            else:
+                # Apply the filter
+                flux = bandpass.apply([wave, flux])
+
+                # Make rsr curve 3 dimensions if there is only one
+                # wavelength bin, then get wavelength only
+                bp = bandpass.rsr
+                if len(bp.shape) == 2:
+                    bp = bp[None, :]
+                wave = bp[:, 0, :]
+
+        # Calculate mean intensity vs. mu
+        wave = wave[None, :] if len(wave.shape) == 1 else wave
+        flux = flux[None, :] if len(flux.shape) == 2 else flux
+        mean_i = np.nanmean(flux, axis=-1)
+        mean_i[mean_i == 0] = np.nan
+
+        # Calculate limb darkening, I[mu]/I[1] vs. mu
+        ld = mean_i/mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
+
+        # Rescale mu values to make f(mu=0)=ld_min
+        # for the case where spherical models extend beyond limb
+        ld_avg = np.nanmean(ld, axis=0)
+        muz = np.interp(ld_min, ld_avg, mu) if any(ld_avg < ld_min) else 0
+        mu = (mu - muz) / (1 - muz)
+
+        # Save the values
+        grid_point['raw_mu'] = mu
+        grid_point['raw_ld'] = ld
+
+        # Trim to useful mu range
+        # mu_raw = mu.copy()
+        imu, = np.where(mu > mu_min)
+        mu, ld = mu[imu], ld[:, imu]
+
+        # Save the values
+        grid_point['scaled_mu'] = mu
+        grid_point['scaled_ld'] = ld
+
+        # Add raw data and inputs
+        grid_point['flux'] = flux
+        grid_point['wave'] = wave
+        grid_point['mu_min'] = mu_min
+        grid_point['r_eff'] = radius
+        grid_point['bandpass'] = bandpass
+        grid_point['profile'] = profile
+
+        if isinstance(bandpass, svo.Filter):
+            grid_point['n_bins'] = bandpass.n_bins
+            grid_point['pixels_per_bin'] = bandpass.pixels_per_bin
+            grid_point['centers'] = bandpass.centers.round(5)
+
+        else:
+            grid_point['n_bins'] = 1
+            grid_point['pixels_per_bin'] = wave.shape[-1]
+            grid_point['centers'] = np.array([(wave[-1]+wave[0])/2.]).round(5)
+
+        # Define the limb darkening profile function
+        ldfunc = ld_profile(profile)
+
+        if not ldfunc:
+            return
+
+        else:
+
+            # Fit limb darkening to get limb darkening
+            # coefficients for each wavelength bin
+            all_coeffs, all_errs = [], []
+            cen = grid_point['centers'][0]
+            c = range(len(inspect.signature(ldfunc).parameters) - 1)
+            for w, l in zip(cen, ld):
+                coeffs, cov = curve_fit(ldfunc, mu, l, method='lm')
+                err = np.sqrt(np.diag(cov))
+                all_coeffs.append([w] + list(coeffs))
+                all_errs.append(list(err))
+
+            # Make a table of coefficients
+            all_coeffs = list(zip(*all_coeffs))
+            c_cols = ['wavelength'] + ['c{}'.format(n + 1) for n in c]
+            c_table = at.Table(all_coeffs, names=c_cols)
+
+            # Make a table of errors
+            all_errs = list(zip(*all_errs))
+            e_cols = ['e{}'.format(n + 1) for n in c]
+            e_table = at.Table(all_errs, names=e_cols)
+
+            # Combine, format, and store tables
+            cols = ['wavelength'] + ','.join(['c{0},e{0}'.format(n + 1)
+                                              for n in c]).split(',')
+            coeff_list = at.hstack([c_table, e_table])
+            grid_point['coeffs'] = coeff_list[cols]
+            for k in c_cols[1:] + e_cols:
+                grid_point['coeffs'][k].format = '%.3f'
+
+        # Add the new row to the table
+        grid_point = {i:j for i,j in grid_point.items() if i in self.results.colnames}
+        self.results.add_row(grid_point)
+
+    def plot(self):
+        """Plot the LDCs"""
+        # Make a list of LD functions and plot them
+        ldfuncs = [ld_profile(profile) for profile in profiles]
+        lp.ld_plot(ldfuncs, grid_point, fig=plot, **kwargs)
+        
+
+
 def ldc(Teff, logg, FeH, model_grid, profiles, mu_min=0.05, ld_min=0.01,
         bandpass='', grid_point='', plot=False, save=False, **kwargs):
     """
