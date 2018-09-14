@@ -120,7 +120,7 @@ class LDC:
     ld = lf.LDC(model_grid)
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 5.0, 0.0, 'quadratic', bandpass=bp)
-    ld.calculate(4500, 5.0, 0.0, 'quadratic', bandpass=bp)
+    ld.calculate(4000, 5.0, 0.0, '4-parameter', bandpass=bp)
     ld.plot()
     """
     def __init__(self, model_grid):
@@ -149,10 +149,10 @@ class LDC:
                   float, object, object, object]
         self.results = at.Table(names=columns, dtype=dtypes)
 
-        self.ld_color = {'blue': 'quadratic', 'red': '4-parameter',
-                         'green': 'exponential', 'orange': 'linear',
-                         'cyan': 'square-root', 'magenta': '3-parameter',
-                         'pink': 'logarithmic', 'purple': 'uniform'}
+        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red',
+                         'exponential': 'green', 'linear': 'orange',
+                         'square-root': 'cyan', '3-parameter': 'magenta',
+                         'logarithmic': 'pink', 'uniform': 'purple'}
 
     @staticmethod
     def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
