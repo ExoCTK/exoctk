@@ -20,9 +20,6 @@ from .. import modelgrid
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
 rc('text', usetex=True)
 
-COLORS = ['blue', 'red', 'green', 'orange',
-          'cyan', 'magenta', 'pink', 'purple']
-
 
 def ld_profile(name='quadratic', latex=False):
     """
@@ -151,6 +148,11 @@ class LDC:
                   float, float, float, object, object, float, object, object,
                   float, object, object, object]
         self.results = at.Table(names=columns, dtype=dtypes)
+
+        self.ld_color = {'blue': 'quadratic', 'red': '4-parameter',
+                         'green': 'exponential', 'orange': 'linear',
+                         'cyan': 'square-root', 'magenta': '3-parameter',
+                         'pink': 'logarithmic', 'purple': 'uniform'}
 
     @staticmethod
     def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
@@ -349,10 +351,7 @@ class LDC:
         for row in table:
 
             # Set color for plot
-            color = 'blue' if row['profile'] == 'quadratic' else \
-                    'red' if row['profile'] == '4-parameter' else \
-                    'green' if row['profile'] == 'exponential' else \
-                    'magenta'
+            color = self.ld_color[row['profile']]
 
             # Set label for plot
             label = row['profile']
