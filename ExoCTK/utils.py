@@ -7,6 +7,7 @@ from astropy.io import fits
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 
 def interp_flux(mu, flux, params, values):
@@ -351,18 +352,20 @@ def filter_table(table, **kwargs):
             raise KeyError("No column named {}".format(param))
 
         # Wildcard case
-        if isinstance(value, str) and '*' in value:
+        if isinstance(value, (str, bytes)) and '*' in value:
 
             # Get column data
-            data = np.array(table[param])
+            data = list(map(str, table[param]))
 
             if not value.startswith('*'):
                 value = '^'+value
             if not value.endswith('*'):
                 value = value+'$'
 
-            # Strip souble quotes
-            value = value.replace("'", '').replace('"', '').replace('*', '(.*)')
+            # Strip double quotes and decod
+            value = value.replace("'", '')\
+                         .replace('"', '')\
+                         .replace('*', '(.*)')
 
             # Regex
             reg = re.compile(value, re.IGNORECASE)
@@ -388,7 +391,7 @@ def filter_table(table, **kwargs):
                     value = ['=='+value]
 
             # Turn numbers into strings
-            if isinstance(value, (int, float)):
+            if isinstance(value, (int, float, np.float16)):
                 value = ["=={}".format(value)]
 
             # Iterate through multiple conditions
@@ -397,7 +400,10 @@ def filter_table(table, **kwargs):
                 # Equality
                 if cond.startswith('='):
                     v = cond.replace('=', '')
-                    table = table[table[param] == eval(v)]
+                    if v.replace('.','',1).isdigit():
+                        table = table[table[param] == eval(v)]
+                    else:
+                        table = table[table[param] == v]
 
                 # Less than or equal
                 elif cond.startswith('<='):

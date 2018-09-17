@@ -145,8 +145,9 @@ class LDC:
                    'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld',
                    'ld_min', 'ldfunc', 'flux', 'bandpass']
         dtypes = [float, float, float, '|S20', '|S20', object, object, object,
-                  float, float, float, object, object, float, object, object,
-                  float, object, object, object]
+                  np.float16, np.float16, np.float16, object, object,
+                  np.float16, object, object, np.float16, object, object,
+                  object]
         self.results = at.Table(names=columns, dtype=dtypes)
 
         self.ld_color = {'quadratic': 'blue', '4-parameter': 'red',
@@ -225,7 +226,7 @@ class LDC:
         if not ldfunc:
             raise ValueError("No such LD profile:", profile)
 
-        # Get the model
+        # Get the grid point
         grid_point = self.model_grid.get(Teff, logg, FeH)
 
         # Retrieve the wavelength, flux, mu, and effective radius
