@@ -9,6 +9,7 @@ from astropy.utils.exceptions import AstropyWarning
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import zoom
 from functools import partial
+from pkg_resources import resource_filename
 import multiprocessing
 import astropy.table as at
 import astropy.units as q
@@ -54,7 +55,7 @@ class ModelGrid(object):
                  names={'Teff': 'PHXTEFF', 'logg': 'PHXLOGG',
                         'FeH': 'PHXM_H', 'mass': 'PHXMASS',
                         'r_eff': 'PHXREFF', 'Lbol': 'PHXLUM'},
-                 resolution='', wl_units=q.um, **kwargs):
+                 resolution=None, wl_units=q.um, **kwargs):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -80,7 +81,7 @@ class ModelGrid(object):
             model_directory += '*'
 
         # Check for a precomputed pickle of this ModelGrid
-        model_grid = ''
+        model_grid = None
         if model_directory.endswith('/*'):
             # Location of model_grid pickle
             file = model_directory.replace('*', 'model_grid.p')
@@ -89,16 +90,16 @@ class ModelGrid(object):
                 model_grid = pickle.load(open(file, 'rb'))
 
         # Instantiate the precomputed model grid
-        if model_grid:
+        if model_grid is not None:
 
             for k, v in vars(model_grid).items():
                 setattr(self, k, v)
 
             self.flux_file = self.path+'model_grid_flux.hdf5'
-            self.flux = ''
-            self.wavelength = ''
-            self.r_eff = ''
-            self.mu = ''
+            self.flux = None
+            self.wavelength = None
+            self.r_eff = None
+            self.mu = None
 
             del model_grid
 
@@ -111,13 +112,13 @@ class ModelGrid(object):
 
             # Create some attributes
             self.path = os.path.dirname(model_directory)+'/'
-            self.refs = ''
+            self.refs = None
             self.wave_rng = (0, 40)
             self.flux_file = self.path+'model_grid_flux.hdf5'
-            self.flux = ''
-            self.wavelength = ''
-            self.r_eff = ''
-            self.mu = ''
+            self.flux = None
+            self.wavelength = None
+            self.r_eff = None
+            self.mu = None
 
             # Save the refs to a References() object
             if bibcode:
@@ -211,7 +212,42 @@ class ModelGrid(object):
         if kwargs:
             self.customize(**kwargs)
 
-    def get(self, Teff, logg, FeH, resolution='', interp=True):
+    def export(self, filepath, **kwargs):
+        """Export the model with the given parameters to a FITS file
+        at the given filepath
+
+        Parameters
+        ----------
+        filepath: str
+            The path to the target FITS file
+        """
+        if not filepath.endswith('.fits'):
+            raise IOError("Target file must have a .fits extension.")
+
+        # Get the model
+        model = self.get(**kwargs)
+
+        # Get a dummy FITS file
+        ffile = resource_filename('ExoCTK', 'data/core/ModelGrid_tmp.fits')
+        hdu = fits.open(ffile)
+
+        # Replace the data
+        hdu[0].data = model['flux']
+        hdu[1].data = model['mu']
+        hdu[0].header['PHXTEFF'] = model['Teff']
+        hdu[0].header['PHXLOGG'] = model['logg']
+        hdu[0].header['PHXM_H'] = model['FeH']
+
+        # Update the wavelength
+        wave = model['wave']
+        hdu[0].header['CRVAL1'] = min(wave)
+        hdu[0].header['CDELT1'] = np.mean(np.diff(wave))
+        hdu[0].header['CUNIT1'] = 'Micron'
+
+        # Write the file
+        hdu.writeto(filepath)
+
+    def get(self, Teff, logg, FeH, resolution=None, interp=True):
         """
         Retrieve the wavelength, flux, and effective radius
         for the spectrum of the given parameters
@@ -288,7 +324,7 @@ class ModelGrid(object):
                 wave = raw_wave[idx]
 
                 # Bin the spectrum if necessary
-                if resolution or self.resolution:
+                if resolution is not None or self.resolution is not None:
 
                     # Calculate zoom
                     z = utils.calc_zoom(resolution or self.resolution, wave)
@@ -302,7 +338,7 @@ class ModelGrid(object):
                 spec_dict['wave'] = wave
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
-                spec_dict['r_eff'] = ''
+                spec_dict['r_eff'] = None
                 # spec_dict['abund'] = abund
 
             # If not on the grid, interpolate to it
@@ -410,9 +446,9 @@ class ModelGrid(object):
             # Delete the old file and clear the flux attribute
             if os.path.isfile(self.flux_file):
                 os.remove(self.flux_file)
-            self.flux = ''
+            self.flux = None
 
-        if isinstance(self.flux, str):
+        if self.flux is None:
 
             print('Loading flux into table...')
 
@@ -443,12 +479,12 @@ class ModelGrid(object):
                                 if d:
 
                                     # Make sure arrays exist
-                                    if isinstance(self.flux, str):
+                                    if self.flux is None:
                                         new_shp = shp+list(d['flux'].shape)
                                         self.flux = np.zeros(new_shp)
-                                    if isinstance(self.r_eff, str):
+                                    if self.r_eff is None:
                                         self.r_eff = np.zeros(shp)
-                                    if isinstance(self.mu, str):
+                                    if self.mu is None:
                                         new_shp = shp+list(d['mu'].shape)
                                         self.mu = np.zeros(new_shp)
 
@@ -461,7 +497,7 @@ class ModelGrid(object):
                                     self.mu[nt, ng, nm] = d['mu'].squeeze()
 
                                     # Get the wavelength array
-                                    if isinstance(self.wavelength, str):
+                                    if self.wavelength is None:
                                         self.wavelength = d['wave']
 
                                     # Garbage collection
