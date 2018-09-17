@@ -89,7 +89,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
         y2 = 0.12
         y3 = 0.17
         y4 = 0.23
-        bad_PA_color = '# dddddd'
+        bad_PA_color = '#dddddd'
         bad_PA_alpha = 0.7
 
         # Order 1
