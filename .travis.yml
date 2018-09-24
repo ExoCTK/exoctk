@@ -53,6 +53,9 @@ env:
 before_install:
     # - git clone git://github.com/spacetelescope/pysynphot.git
 
+git:
+    submodules: false
+ 
 install:
 
     # We now use the ci-helpers package to set up our testing environment.
