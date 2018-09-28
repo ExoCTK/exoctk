@@ -19,25 +19,38 @@ analysis package focused primarily on atmospheric characterization of exoplanets
 User Documentation
 ******************
 
-**Limb Darkening Calculator (LDC)**
+
+**Contamination Visibility Tool**
 
 .. toctree::
    :maxdepth: 1
 
-   ldc/ldcfit/index
-   ldc/ldcplot/index
+   source/ExoCTK.contam_visibility
 
-**Planetary Atmospheres Libraries and Tools (PAL)**
+**Intergrations Groups**
+
+.. toctree::
+  :maxdepth: 1
+
+  source/ExoCTK.integrations_groups
+
+**Lightcurve Fitting Tool**
+
+.. toctree::
+  :maxdepth: 1
+
+  source/ExoCTK.lightcurve_fitting
+
+**Limb Darkening Calculator**
 
 .. toctree::
    :maxdepth: 1
 
-   pal/forward_models
-   pal/exotransmit
+  source/ExoCTK.limb_darkening
 
-**Nuts and bolts of ExoCTK**
+**Nircam Coronography**
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
-   core/index
+  source/ExoCTK.nircam_coronagraphy
