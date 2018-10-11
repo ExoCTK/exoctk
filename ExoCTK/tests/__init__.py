@@ -2,4 +2,4 @@
 """
 This packages contains package tests.
 """
-from . import tests
+# from . import tests
