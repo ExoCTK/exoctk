@@ -51,6 +51,7 @@ env:
 #        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
 
 before_install:
+    - pip install astropy
     # - git clone git://github.com/spacetelescope/pysynphot.git
 
 git:
