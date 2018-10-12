@@ -18,6 +18,7 @@ Use
 """
 
 import os
+from pkg_resources import resource_filename
 
 from svo_filters import Filter
 
