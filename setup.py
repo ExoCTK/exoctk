@@ -42,7 +42,7 @@ LONG_DESCRIPTION = package.__doc__
 # to get from other parts of the setup infrastructure
 
 # VERSION should be PEP440 compatible (http://www.python.org/dev/peps/pep-0440)
-VERSION = metadata.get('version', '0.0.dev')
+VERSION = metadata.get('version', '0.2.0')
 
 # Indicates if this version is a release version
 RELEASE = 'dev' not in VERSION
