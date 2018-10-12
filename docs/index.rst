@@ -33,7 +33,7 @@ User Documentation
 
    source/ExoCTK.contam_visibility
 
-**Intergrations Groups**
+**Integrations Groups**
 
 .. toctree::
   :maxdepth: 1
@@ -58,7 +58,7 @@ LDC calculates limb-darkening coefficients for a specified stellar model, plotti
 
   source/ExoCTK.limb_darkening
 
-**Nircam Coronography**
+**Nircam Coronagraphy**
 
 .. toctree::
   :maxdepth: 1
