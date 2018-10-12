@@ -380,7 +380,7 @@ class ModelGrid(object):
             mu values and the effective radius for the given model
         """
         # Load the fluxes
-        if isinstance(self.flux, str):
+        if self.flux is None:
             self.load_flux()
 
         # Get the flux array
