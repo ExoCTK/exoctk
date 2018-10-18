@@ -9,3 +9,4 @@ echo "Installing packages..."
 pip install numpy astropy
 conda install numpy astropy scipy cython matplotlib numba mock bokeh h5py sphinx pandas lmfit
 pip install bibtexparser astroquery svo_filters batman-package
+echo $PATH
