@@ -21,7 +21,6 @@ env:
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
-  - pip install numpy astropy
 
 install:
   - ci/install_conda.sh
