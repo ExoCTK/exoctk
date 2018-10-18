@@ -4,7 +4,7 @@ Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
 import numpy as np
-# import lmfit
+import lmfit
 import copy
 
 from .parameters import Parameters
