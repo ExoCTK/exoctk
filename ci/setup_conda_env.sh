@@ -6,4 +6,5 @@ source activate exoctk
 
 echo "Installing packages..."
 conda install numpy scipy cython matplotlib numba mock bokeh h5py sphinx pandas lmfit
-pip install numpy astropy bibtexparser batman-package astroquery svo_filters
+pip install numpy astropy bibtexparser astroquery svo_filters
+pip install batman-package
