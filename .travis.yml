@@ -36,7 +36,7 @@ env:
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
         - CONDA_CHANNELS='http://ssb.stsci.edu/astroconda astropy-ci-extras'
-        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba pysynphot mock bokeh h5py sphinx pandas lmfit'
+        - CONDA_DEPENDENCIES='numpy scipy cython matplotlib numba mock bokeh h5py sphinx pandas lmfit'
         - PIP_DEPENDENCIES='bibtexparser batman-package astroquery svo_filters'
 
     matrix:
@@ -51,8 +51,12 @@ env:
 #        # - env: PYTHON_VERSION=3.5 ASTROPY_VERSION=development SETUP_CMD='test'
 
 before_install:
+    - pip install astropy
     # - git clone git://github.com/spacetelescope/pysynphot.git
 
+git:
+    submodules: false
+ 
 install:
 
     # We now use the ci-helpers package to set up our testing environment.

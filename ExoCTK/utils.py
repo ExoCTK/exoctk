@@ -7,6 +7,7 @@ from astropy.io import fits
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 
 def interp_flux(mu, flux, params, values):
@@ -322,6 +323,112 @@ def medfilt(x, window_len):
         y[: -j, -(i+1)] = s[j:]
         y[-j:, -(i+1)] = s[-1]
     return np.median(y[window_len-1: -window_len+1], axis=1)
+
+
+def filter_table(table, **kwargs):
+    """Retrieve the filtered rows
+    
+    Parameters
+    ----------
+    table: astropy.table.Table, pandas.DataFrame
+        The table to filter
+    param: str
+        The parameter to filter by, e.g. 'Teff'
+    value: str, float, int, sequence
+        The criteria to filter by, 
+        which can be single valued like 1400
+        or a range with operators [<,<=,>,>=],
+        e.g. ('>1200','<=1400')
+    
+    Returns
+    -------
+    astropy.table.Table, pandas.DataFrame
+        The filtered table
+    """
+    for param, value in kwargs.items():
+
+        # Check it is a valid column
+        if param not in table.colnames:
+            raise KeyError("No column named {}".format(param))
+
+        # Wildcard case
+        if isinstance(value, (str, bytes)) and '*' in value:
+
+            # Get column data
+            data = list(map(str, table[param]))
+
+            if not value.startswith('*'):
+                value = '^'+value
+            if not value.endswith('*'):
+                value = value+'$'
+
+            # Strip double quotes and decod
+            value = value.replace("'", '')\
+                         .replace('"', '')\
+                         .replace('*', '(.*)')
+
+            # Regex
+            reg = re.compile(value, re.IGNORECASE)
+            keep = list(filter(reg.findall, data))
+
+            # Get indexes
+            idx = np.where([i in keep for i in data])
+
+            # Filter table
+            table = table[idx]
+
+        else:
+
+            # Make single value string into conditions
+            if isinstance(value, str):
+
+                # Check for operator
+                if any([value.startswith(o) for o in ['<', '>', '=']]):
+                    value = [value]
+
+                # Assume eqality if no operator
+                else:
+                    value = ['=='+value]
+
+            # Turn numbers into strings
+            if isinstance(value, (int, float, np.float16)):
+                value = ["=={}".format(value)]
+
+            # Iterate through multiple conditions
+            for cond in value:
+
+                # Equality
+                if cond.startswith('='):
+                    v = cond.replace('=', '')
+                    if v.replace('.','',1).isdigit():
+                        table = table[table[param] == eval(v)]
+                    else:
+                        table = table[table[param] == v]
+
+                # Less than or equal
+                elif cond.startswith('<='):
+                    v = cond.replace('<=', '')
+                    table = table[table[param] <= eval(v)]
+
+                # Less than
+                elif cond.startswith('<'):
+                    v = cond.replace('<', '')
+                    table = table[table[param] < eval(v)]
+
+                # Greater than or equal
+                elif cond.startswith('>='):
+                    v = cond.replace('>=', '')
+                    table = table[table[param] >= eval(v)]
+
+                # Greater than
+                elif cond.startswith('>'):
+                    v = cond.replace('>', '')
+                    table = table[table[param] > eval(v)]
+
+                else:
+                    raise ValueError("'{}' operator not valid.".format(cond))
+
+    return table
 
 
 def find_closest(axes, points, n=1, values=False):
