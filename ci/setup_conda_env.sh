@@ -3,6 +3,7 @@
 echo "Creating a Python $PYTHON_VERSION environment"
 conda create -n exoctk python=$PYTHON_VERSION || exit 1
 source activate exoctk
+conda env list
 
 echo "Installing packages..."
 pip install numpy astropy
