@@ -12,32 +12,55 @@
 ExoCTK Package Documentation
 ############################
 
-Welcome to the ExoCTK documentation! The Exoplanet Characterization Toolkit (ExoCTK) is an open-source, modular data
-analysis package focused primarily on atmospheric characterization of exoplanets.
+ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. 
+
+The subpackages currently included are:
+
+Transit light-­curve fitting tools (TLC)
+
+Limb-­darkening calculator (LDC)
+
 
 ******************
 User Documentation
 ******************
 
-**Limb Darkening Calculator (LDC)**
+
+**Contamination Visibility Tool**
 
 .. toctree::
    :maxdepth: 1
 
-   ldc/ldcfit/index
-   ldc/ldcplot/index
+   source/ExoCTK.contam_visibility
 
-**Planetary Atmospheres Libraries and Tools (PAL)**
+**Integrations Groups**
+
+.. toctree::
+  :maxdepth: 1
+
+  source/ExoCTK.integrations_groups
+
+**Lightcurve Fitting Tool**
+
+TLC fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+
+.. toctree::
+  :maxdepth: 1
+
+  source/ExoCTK.lightcurve_fitting
+
+**Limb Darkening Calculator**
+
+LDC calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength. It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 .. toctree::
    :maxdepth: 1
 
-   pal/forward_models
-   pal/exotransmit
+  source/ExoCTK.limb_darkening
 
-**Nuts and bolts of ExoCTK**
+**Nircam Coronagraphy**
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
-   core/index
+  source/ExoCTK.nircam_coronagraphy
