@@ -1,4 +1,4 @@
-name: ExoCTK
+name: exoctk
 
 channels:
     - astropy
@@ -6,11 +6,11 @@ channels:
 
 dependencies:
     - astropy
-    - Cython
     - matplotlib
     - numpy
     - scipy
     - numba
     - h5py
     - pip:
+        - svo_filters
         - batman-package
