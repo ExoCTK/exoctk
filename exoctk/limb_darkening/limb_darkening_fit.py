@@ -115,7 +115,8 @@ class LDC:
     from ExoCTK.limb_darkening import limb_darkening_fit as lf
     from ExoCTK import modelgrid
     from svo_filters import Filter
-    fits_files = '/user/jfilippazzo/Models/ACES/default/'
+    from pkg_resources import resource_filename
+    fits_files = resource_filename('exoctk', 'data/core/modelgrid/')
     model_grid = modelgrid.ModelGrid(fits_files, resolution=700)
     ld = lf.LDC(model_grid)
     bp = Filter('WFC3_IR.G141', n_bins=5)
