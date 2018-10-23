@@ -22,8 +22,8 @@ from pkg_resources import resource_filename
 
 from svo_filters import Filter
 
-from ExoCTK import modelgrid as mg
-from ExoCTK.limb_darkening import limb_darkening_fit as ldf
+from exoctk import modelgrid as mg
+from exoctk.limb_darkening import limb_darkening_fit as ldf
 
 
 MODELGRID = mg.ModelGrid(resource_filename('ExoCTK', 'data/core/modelgrid/'))
