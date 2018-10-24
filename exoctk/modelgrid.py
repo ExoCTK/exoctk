@@ -53,8 +53,7 @@ class ModelGrid(object):
     """
     def __init__(self, model_directory, bibcode='2013A & A...553A...6H',
                  names={'Teff': 'PHXTEFF', 'logg': 'PHXLOGG',
-                        'FeH': 'PHXM_H', 'mass': 'PHXMASS',
-                        'r_eff': 'PHXREFF', 'Lbol': 'PHXLUM'},
+                        'FeH': 'PHXM_H', 'mass': 'PHXMASS', 'Lbol': 'PHXLUM'},
                  resolution=None, wl_units=q.um, **kwargs):
         """
         Initializes the model grid by creating a table with a column
@@ -78,7 +77,7 @@ class ModelGrid(object):
         # Make sure we can use glob if a directory
         # is given without a wildcard
         if '*' not in model_directory:
-            model_directory += '*'
+            model_directory = os.path.join(model_directory, '*')
 
         # Check for a precomputed pickle of this ModelGrid
         model_grid = None
@@ -95,10 +94,9 @@ class ModelGrid(object):
             for k, v in vars(model_grid).items():
                 setattr(self, k, v)
 
-            self.flux_file = self.path+'model_grid_flux.hdf5'
+            self.flux_file = os.path.join(self.path, 'model_grid_flux.hdf5')
             self.flux = None
             self.wavelength = None
-            self.r_eff = None
             self.mu = None
 
             del model_grid
@@ -114,10 +112,9 @@ class ModelGrid(object):
             self.path = os.path.dirname(model_directory)+'/'
             self.refs = None
             self.wave_rng = (0, 40)
-            self.flux_file = self.path+'model_grid_flux.hdf5'
+            self.flux_file = os.path.join(self.path, 'model_grid_flux.hdf5')
             self.flux = None
             self.wavelength = None
-            self.r_eff = None
             self.mu = None
 
             # Save the refs to a References() object
@@ -188,7 +185,7 @@ class ModelGrid(object):
             if model_directory.endswith('/*'):
                 self.file = file
                 try:
-                    pickle.dump(self, open(self.file, 'wb'))
+                    pickle.dump(self.__dict__, open(self.file, 'wb'))
                 except IOError:
                     print('Could not write model grid to', self.file)
 
@@ -338,8 +335,6 @@ class ModelGrid(object):
                 spec_dict['wave'] = wave
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
-                spec_dict['r_eff'] = None
-                # spec_dict['abund'] = abund
 
             # If not on the grid, interpolate to it
             else:
@@ -419,14 +414,9 @@ class ModelGrid(object):
             interp_mu = RegularGridInterpolator(params, self.mu)
             mu = interp_mu(np.array(values)).squeeze()
 
-            # Interpolate r_eff value
-            interp_r = RegularGridInterpolator(params, self.r_eff)
-            r_eff = interp_r(np.array(values)).squeeze()
-
             # Make a dictionary to return
             grid_point = {'Teff': Teff, 'logg': logg, 'FeH': FeH,
-                          'mu': mu, 'r_eff': r_eff,
-                          'flux': new_flux, 'wave': self.wavelength,
+                          'mu': mu,  'flux': new_flux, 'wave': self.wavelength,
                           'generators': generators}
 
             return grid_point
@@ -482,18 +472,12 @@ class ModelGrid(object):
                                     if self.flux is None:
                                         new_shp = shp+list(d['flux'].shape)
                                         self.flux = np.zeros(new_shp)
-                                    if self.r_eff is None:
-                                        self.r_eff = np.zeros(shp)
                                     if self.mu is None:
                                         new_shp = shp+list(d['mu'].shape)
                                         self.mu = np.zeros(new_shp)
 
                                     # Add data to respective arrays
                                     self.flux[nt, ng, nm] = d['flux']
-                                    if d['r_eff'] is None:
-                                        self.r_eff[nt, ng, nm] = np.nan
-                                    else:
-                                        self.r_eff[nt, ng, nm] = d['r_eff']
                                     self.mu[nt, ng, nm] = d['mu'].squeeze()
 
                                     # Get the wavelength array
@@ -514,7 +498,6 @@ class ModelGrid(object):
 
                 # Load the flux into an HDF5 file
                 f = h5py.File(self.flux_file, "w")
-                # dset = f.create_dataset('flux', data=self.flux)
                 f.create_dataset('flux', data=self.flux)
                 f.close()
                 # del dset
@@ -594,9 +577,6 @@ class ModelGrid(object):
             self.mu = self.mu[T_idx[0]: T_idx[-1]+1,
                               G_idx[0]: G_idx[-1]+1,
                               M_idx[0]: M_idx[-1]+1]
-            self.r_eff = self.r_eff[T_idx[0]: T_idx[-1]+1,
-                                    G_idx[0]: G_idx[-1]+1,
-                                    M_idx[0]: M_idx[-1]+1]
 
         # Update the parameter attributes
         self.Teff_vals = np.unique(self.data['Teff'])
