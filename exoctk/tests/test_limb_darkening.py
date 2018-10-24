@@ -26,7 +26,7 @@ from exoctk import modelgrid as mg
 from exoctk.limb_darkening import limb_darkening_fit as ldf
 
 
-MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/*'))
+MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/'))
 
 
 def test_ldc_object():
