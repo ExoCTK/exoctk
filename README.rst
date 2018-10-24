@@ -1,4 +1,4 @@
-.. image:: /exoctk/data/images/exoctk_logo.png
+.. image:: /exoctk/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
     :scale: 50%
 
