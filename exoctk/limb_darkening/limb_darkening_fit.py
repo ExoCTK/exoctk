@@ -13,11 +13,12 @@ from matplotlib import rc
 import numpy as np
 from scipy.optimize import curve_fit
 from svo_filters import svo
+import bokeh.plotting as bkp
 
 from .. import utils
 from .. import modelgrid
 
-rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
+rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
 rc('text', usetex=True)
 
 
@@ -112,16 +113,16 @@ class LDC:
 
     Example
     -------
-    from ExoCTK.limb_darkening import limb_darkening_fit as lf
-    from ExoCTK import modelgrid
+    from exoctk.limb_darkening import limb_darkening_fit as lf
+    from exoctk import modelgrid
     from svo_filters import Filter
     from pkg_resources import resource_filename
     fits_files = resource_filename('exoctk', 'data/core/modelgrid/')
     model_grid = modelgrid.ModelGrid(fits_files, resolution=700)
     ld = lf.LDC(model_grid)
     bp = Filter('WFC3_IR.G141', n_bins=5)
-    ld.calculate(4000, 5.0, 0.0, 'quadratic', bandpass=bp)
-    ld.calculate(4000, 5.0, 0.0, '4-parameter', bandpass=bp)
+    ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
+    ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
     ld.plot()
     """
     def __init__(self, model_grid):
@@ -129,13 +130,13 @@ class LDC:
 
         Parameters
         ----------
-        model_grid: ExoCTK.modelgrid.ModelGrid
+        model_grid: exoctk.modelgrid.ModelGrid
             The grid of synthetic spectra from which the coefficients will
             be calculated
         """
         # Set the model grid
         if not isinstance(model_grid, modelgrid.ModelGrid):
-            raise TypeError("'model_grid' must be a ExoCTK.modelgrid.ModelGrid\
+            raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid\
                              object.")
 
         self.model_grid = model_grid
@@ -335,13 +336,15 @@ class LDC:
                       self.results.colnames}
             self.results.add_row(result)
 
-    def plot(self, fig=None, **kwargs):
+    def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
 
         Parameters
         ----------
         fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
             An existing figure to plot on
+        show: bool
+            Show the figure
         """
         # Separate plotting kwargs from parameter kwargs
         pwargs = {i: j for i, j in kwargs.items() if i in self.results.columns}
@@ -410,3 +413,12 @@ class LDC:
                 evals = np.append(dn_err, up_err[::-1])
                 fig.patch(vals, evals, color=color, fill_alpha=0.2,
                           line_alpha=0)
+
+        if show:
+            if isinstance(fig, matplotlib.figure.Figure):
+                plt.xlabel('$\mu$')
+                plt.ylabel('$I(\mu)/I(\mu = 1)$')
+                plt.legend(loc=0, frameon=False)
+                plt.show()
+            else:
+                bkp.show(fig)
