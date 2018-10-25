@@ -27,4 +27,6 @@ install:
   - ci/setup_conda_env.sh
   - source activate exoctk
   - python setup.py install
-  - pytest -s
+
+script:
+  - python -m pytest ./exoctk/tests/*
