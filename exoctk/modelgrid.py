@@ -91,7 +91,7 @@ class ModelGrid(object):
         # Instantiate the precomputed model grid
         if model_grid is not None:
 
-            for k, v in vars(model_grid).items():
+            for k, v in model_grid.items():
                 setattr(self, k, v)
 
             self.flux_file = os.path.join(self.path, 'model_grid_flux.hdf5')
@@ -447,6 +447,8 @@ class ModelGrid(object):
                 # Load the flux from the HDF5 file
                 f = h5py.File(self.flux_file, "r")
                 self.flux = f['flux'][:]
+                self.mu = f['mu'][:]
+                self.wavelength = f['wave'][:]
                 f.close()
 
             else:
@@ -499,6 +501,8 @@ class ModelGrid(object):
                 # Load the flux into an HDF5 file
                 f = h5py.File(self.flux_file, "w")
                 f.create_dataset('flux', data=self.flux)
+                f.create_dataset('mu', data=self.mu)
+                f.create_dataset('wave', data=self.wavelength)
                 f.close()
                 # del dset
                 print("100.00 percent complete!", end='\n')
