@@ -8,7 +8,7 @@
 
 # Directories
 __pycache__
-ExoCTK/__pycache__
+exoctk/__pycache__
 
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
@@ -62,5 +62,7 @@ distribute-*.tar.gz
 .DS_Store
 
 
-ExoCTK/notebooks/*.eps
-ExoCTK/notebooks/*.p
+exoctk/notebooks/*.eps
+exoctk/notebooks/*.p
+exoctk/data/core/modelgrid/model_grid.p
+exoctk/data/core/modelgrid/model_grid_flux.hdf5
