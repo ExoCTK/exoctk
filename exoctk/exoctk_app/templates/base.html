@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-114336976-1"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+
+          gtag('config', 'UA-114336976-1');
+        </script>
+        
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>ExoPlanet Characterization Tool Kit</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width">
+
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/static/css/custom.css">
+        <link rel="icon" type="image/png" href="/static/images/favicon.gif">
+        <script type="text/javascript" async
+                src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <link rel="stylesheet" href="/static/css/bootstrap-submenu.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-responsive.min.css">
+
+        <link rel="stylesheet" href="https://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css" type="text/css" />
+        <link rel="stylesheet" href="https://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css" type="text/css" />
+        
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js" type="text/javascript"></script>
+        <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+        <script src="/static/js/vendor/bootstrap-submenu.min.js"></script>
+        <script src="/static/js/vendor/docs.js"></script>
+        <style>
+        
+        body {
+            padding-top: 50px;
+            padding-bottom: 40px;
+        }
+        @media (min-width:980px) and (max-width:1199px) {
+            .no-overflow {
+                width:11.5vw;
+                overflow:hidden;
+                white-space:nowrap;
+                text-overflow:ellipsis;
+            }
+        }
+        </style>
+
+    </head>
+    <body>
+        
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                            aria-expanded="false" aria-controls="navbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="/">ExoCTK</a>
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Observation Planning <span class="caret"></span></a>
+                         <ul class="dropdown-menu">
+                                <li><a href="integrations_groups">Groups and Integrations Calculator</a></li>
+                                <li><a href="contam_visibility">Contamination Overlap</a></li>
+                        </ul>
+                        </li>
+                        <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Forward Modeling <span class="caret"></span></a>
+                         <ul class="dropdown-menu">
+                                <li><a href="fortney">Fortney Grid</a></li>
+                        </ul>
+                        </li>
+                        <li><a href="limb_darkening">Limb Darkening Calculator</a></li>
+                        
+                        <li class="dropdown">
+                        <a tabindex="0" href="https://exoctk.stsci.edu" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false" data-submenu>PandExo <span class="caret"></span></a>
+                         <ul class="dropdown-menu">
+                                <li><a href="https://exoctk.stsci.edu/pandexo/">Home</a></li>
+                                <li class="dropdown-submenu">
+                                    <a tabindex="0">JWST</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a tabindex="0" href="https://exoctk.stsci.edu/pandexo/calculation/new">New Calculation</a></li>
+                                        <li><a tabindex="0" href="https://exoctk.stsci.edu/pandexo/dashboard">Dashboard</a></li>
+                                    </ul>
+                                </li>
+                                <li class="dropdown-submenu">
+                                    <a tabindex="0">HST</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a tabindex="0" href="https://exoctk.stsci.edu/pandexo/calculation/newHST">New Calculation</a></li>
+                                        <li><a tabindex="0" href="https://exoctk.stsci.edu/pandexo/dashboardhst">Dashboard</a></li>
+                                    </ul>
+                                </li>
+                                <li><a href="https://natashabatalha.github.io/PandExo/">DOCS</a></li>
+                        </ul>
+                        </li>            
+                
+                        <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                            aria-haspopup="true" aria-expanded="false">ExoCTK Data <span class="caret"></span></a>
+                     <ul class="dropdown-menu">
+                         <li><a href="{{ url_for('integrations_groups_download') }}">Integrations Calculator</a></li>
+                         <!-- <li><a href="https://github.com/elizakempton/Exo_Transmit">Exo-Transmit</a></li> -->
+                         <li><a href="{{ url_for('fortney_download') }}">Fortney Grid</a></li>
+                     </ul>
+                    </ul>
+                    </li>
+                </div>
+            </div>
+        </nav>
+
+        
+            <div class="container">
+
+                <p>
+                    <img src="/static/images/ExoCTK_logo.gif" width="450px" />
+                    {% block content %}
+                    {% endblock %}
+                </p>
+
+            </div>
+            
+            <hr>
+
+        <footer>
+            
+            <div class='container'>
+                <img src="/static/images/STScI_logo.png" width="120px" />
+
+                <div style="float:right; width:120px;text-align:center;">
+                    <p>
+                        Running<br>
+                        <a href='https://github.com/ExoCTK/exoctk/releases/tag/v0.2'>exoctk v0.2</a>{{version|safe}}
+                    </p>
+                    <p style='font-size:0.8em'>
+                        <a href='admin' style='color:#aaaaaa;'>Admin Area</a>
+                    </p>
+                </div>
+                
+            </div>
+        </footer> 
+            
+    </body>
+</html>

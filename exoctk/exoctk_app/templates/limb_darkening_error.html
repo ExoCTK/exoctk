@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+        <h1>Limb Darkening Calculator</h1>
+
+        <div class=metanav>
+            <p>
+            
+            The Limb Darkening Calculator calculates limb-darkening coefficients for a specified stellar model, plotting results versus intensity ratio and wavelength. It uses high
+            spectral resolution stellar atmospheric models, which are a neccesisty given JWST's expected precision. 
+            </p>
+
+            
+            <h3>Input</h3>
+            <table style="border-spacing: 10px; border-collapse: separate;">
+            <tr>
+                <td>Teff</td>
+                <td>{{teff|safe}}</td>
+            </tr>
+            <tr>
+                <td>log(g)</td>
+                <td>{{logg|safe}}</td>
+            </tr>
+            <tr>
+                <td>Fe/H</td>
+                <td>{{feh|safe}}</td>
+            </tr>
+            <tr>
+                <td>Bandpass</td>
+                <td>{{band|safe}}</td>
+            </tr>
+            <tr>
+                <td>Profile</td>
+                <td>{{profile|safe}}</td>
+            </tr>
+            <tr>
+                <td>Models</td>
+                <td>Phoenix Aces</td>
+            </tr>
+            </table>
+            
+            <h3>Result</h3>
+            <p style='color:red;'><strong>{{message | safe}}</strong></p>
+            
+            <br>
+
+        </div>
+
+{% endblock %}

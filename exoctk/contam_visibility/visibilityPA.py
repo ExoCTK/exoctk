@@ -78,7 +78,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     """
     if ephFileName is None:
         eph_file = 'data/contam_visibility/JWST_ephem_short.txt'
-        ephFileName = pkg_resources.resource_filename('ExoCTK', eph_file)
+        ephFileName = pkg_resources.resource_filename('exoctk', eph_file)
     if ra.find(':') > -1:  # format is hh:mm:ss.s or  dd:mm:ss.s
         ra = convert_ddmmss_to_float(ra) * 15. * D2R
         dec = convert_ddmmss_to_float(dec) * D2R

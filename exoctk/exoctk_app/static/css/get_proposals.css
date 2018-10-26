@@ -1,0 +1,72 @@
+#myGoSearchBar, #myCalSearchBar {
+    width: 255px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    padding: 12px 12px 12px 12px;
+    border: 1px solid #dddddd;
+    margin-bottom: .6cm;
+}
+
+#myGoTable, #myCalTable {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    border-collapse: collapse;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 1cm;
+}
+
+#myCalTable th, #myCalTable td, #myGoTable th, #myGoTable td {
+    border: 1px solid black;
+    text-align: left;
+    padding: 8px;
+}
+
+#myGoTable tr:nth-child(even), #myCalTable tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+#myGoTable tr.header, #myGoTable tr:hover, #myCalTable tr.header, #myCalTable tr:hover {
+    background-color: #B6EDFF;
+}
+
+#myTitle {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 20pt;
+    text-align; center;
+}
+
+
+#myBody {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    text-align: center;
+    width: 600px;
+}
+
+#myHeader {
+    margin-top: .5cm;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15pt;
+    text-align: center;
+    width: 600px;
+    margin-bottom: 1cm;
+}
+
+#myImage {
+    width: 500px;
+    margin-bottom: 1cm
+}
+
+#mySmollImage {
+    width: 300px;
+    margin-bottom: 1cm
+}
+
+#myTableTitle {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 12pt;
+    text-align: center;
+    margin-bottom: .3cm;
+}
+

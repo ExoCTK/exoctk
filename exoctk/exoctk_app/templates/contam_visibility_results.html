@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <body>
+        {{ vis_js|indent(4)|safe }}
+        {{ vis_css|indent(4)|safe }}
+        {{ vis_script|safe }}
+        {{ contam_js|indent(4)|safe }}
+        {{ contam_css|indent(4)|safe }}
+        {{ contam_script|safe }}
+        
+    	<h1>Contamination & Visibility Calculator</h1>
+        <br>
+
+
+    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. 
+    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of 
+    	nearby stars. For a given target this contamination depends on the 
+    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a 
+    	given target and produces an estimate of the level of contamination as a function of the PA of the 
+    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST 
+    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments. 
+    	</p>
+        <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
+
+    	{% if contamVars['visPA'] ==  True %}
+            <hr>
+    		<h3>Target Visibility</h3>
+    		{{ vis_plot | safe }}
+            <br><br>
+    		<p>Figure explication:</p>
+    		<ul>
+    			<li>The curve indicates the nominal PA of NIRISS as a function of the calendar date.</li>
+    			<li>The shaded region indicates the range of PAs accessible by rolling the telescope.</li>
+    			<li>On dates where there is no curve, the target is inaccessible.</li>
+    			<li>The TXT file provides the same information detailed on a daily basis, with at the end a summary of the accessible and non-accessible PA ranges.</li>
+    		</ul>
+	
+    	{% endif %}
+
+    	{% if contamVars['contam'] == True %}
+            <hr>
+    		<h3>Target Contamination</h3>
+            <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
+            {{ contam_plot | safe }}
+            <br>
+            <div style="width:162px; height:22px; text-align:center;">
+            log(contam. level)
+            </div>
+            <div style="border:1px solid black; width:162px; height:22px;">
+                <div style="border:none; width:20px; height:20px; background-color:#ffffff; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#e6e079; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#e5ac2d; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#ef6425; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#c23a5b; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#6230a9; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#2d2a86; float:left;"></div>
+                <div style="border:none; width:20px; height:20px; background-color:#000000; float:left;"></div>
+            </div>
+            <div style="width:162px; height:22px; text-align:center;">
+-4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>
+            <div style="width:162px; height:22px; text-align:center;">
+good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
+            <br><br>
+    		<p>Figure explication:</p>
+    		<ul>
+    			<li>The two panels on the right are for the order 1 spectrum, while the two panels on the left are for the order 2 spectrum.</li>
+    			<li>In the middle two panels, the color scale encodes the level of contamination of the target spectrum by the surrounding field stars (scale shown below plot). The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
+    			<li>The two panels at the end summarize the middle two panels by showing for each order the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
+    			<li>The semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
+    			<li>The top two panels show the locations of various spectral features.</li>
+    		</ul>
+
+    	{% endif %}
+	
+    	<br>
+	
+   	<form action="/contam_visibility">
+    		<p><input class="btn btn-success" type = "submit" value = "Try Another Target"></p>
+    	</form>
+
+    </body>
+
+{% endblock %}

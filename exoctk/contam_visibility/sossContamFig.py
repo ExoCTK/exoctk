@@ -54,7 +54,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
 
     # start calculations
     loc = 'data/contam_visibility/lambda_order1-2.txt'
-    lam_file = pkg_resources.resource_filename('ExoCTK', loc)
+    lam_file = pkg_resources.resource_filename('exoctk', loc)
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
     ny = trace2dO1.shape[0]
