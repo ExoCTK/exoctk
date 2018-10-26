@@ -26,11 +26,13 @@ from exoctk import modelgrid as mg
 from exoctk.limb_darkening import limb_darkening_fit as ldf
 
 
-MODELGRID = mg.ModelGrid(resource_filename('ExoCTK', 'data/core/modelgrid/'))
+MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/'))
 
 
 def test_ldc_object():
     """Test to see that an LDC object can be loaded"""
+    print('Testing LDC object creation...')
+
     ld_session = ldf.LDC(MODELGRID)
 
     assert isinstance(ld_session, ldf.LDC)
@@ -39,12 +41,14 @@ def test_ldc_object():
 def test_ldc_calculation_no_filter():
     """Test to see if a calculation can be performed with no filter and
     that they are appended to the results table"""
+    print('Testing LDC calculation with no filter bandpass...')
+
     # Make the session
     ld_session = ldf.LDC(MODELGRID)
 
     # Run the calculations
-    ld_session.calculate(Teff=4000, logg=5, FeH=0, profile='quadratic')
-    ld_session.calculate(Teff=4000, logg=5, FeH=0, profile='4-parameter')
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='4-parameter')
 
     assert len(ld_session.results) == 2
 
@@ -52,6 +56,8 @@ def test_ldc_calculation_no_filter():
 def test_ldc_calculation_filter():
     """Test to see if a calculation can be performed with a filter and
     that they are appended to the results table"""
+    print('Testing LDC calculation using a filter bandpass...')
+
     # Make the session
     ld_session = ldf.LDC(MODELGRID)
 
@@ -59,9 +65,9 @@ def test_ldc_calculation_filter():
     filt = Filter('2MASS.H')
 
     # Run the calculations
-    ld_session.calculate(Teff=4000, logg=5, FeH=0, profile='quadratic',
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic',
                          bandpass=filt)
-    ld_session.calculate(Teff=4000, logg=5, FeH=0, profile='4-parameter',
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='4-parameter',
                          bandpass=filt)
 
     assert len(ld_session.results) == 2
@@ -74,8 +80,17 @@ def test_ldc_calculation_interpolation():
     # Make the session
     ld_session = ldf.LDC(MODELGRID)
 
-    # Run the calculations
-    ld_session.calculate(Teff=4023, logg=5, FeH=0, profile='quadratic')
-    ld_session.calculate(Teff=4000, logg=5.1, FeH=0, profile='quadratic')
+    # Run the calculations with one parameter off grid...
+    ld_session.calculate(Teff=4023, logg=4.5, FeH=0, profile='quadratic')
+    ld_session.calculate(Teff=4000, logg=4.1, FeH=0, profile='quadratic')
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=-0.1, profile='quadratic')
 
-    assert len(ld_session.results) == 2
+    # ...and two parameters off grid...
+    ld_session.calculate(Teff=4023, logg=4.1, FeH=0, profile='quadratic')
+    ld_session.calculate(Teff=4023, logg=4.5, FeH=-0.1, profile='quadratic')
+    ld_session.calculate(Teff=4000, logg=4.1, FeH=-0.1, profile='quadratic')
+
+    # ...and all three parameters off grid.
+    ld_session.calculate(Teff=4023, logg=4.1, FeH=-0.1, profile='quadratic')
+
+    assert len(ld_session.results) == 7
