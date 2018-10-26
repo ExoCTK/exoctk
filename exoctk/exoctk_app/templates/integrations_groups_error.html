@@ -1,0 +1,23 @@
+{%extends "base.html" %}
+
+{% block content %}
+
+<link rel="stylesheet" href="/../static/css/custom.css">
+
+<div class="span500">
+
+            <h1>Something's amiss...</h1>
+            
+
+            <div class="span100">
+            
+            <p> Your chosen tool did not complete for the following reason:
+            <br></br>
+            {{ err }} 
+             </p>
+
+            </div>
+
+</div>
+
+{% endblock %}

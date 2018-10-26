@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<link rel="stylesheet" href="/../static/css/custom.css">
+
+<div class="span500">
+
+            <h1>Groups & Integrations Calculator</h1>
+            <p> Please know that at present this tool is likely to
+            overestimate saturation on direct comparison to the ETC. (This
+            means we may predict less groups -- and put you in LESS danger of
+            oversaturating your observation.)</p> 
+            <div class="span200">
+            <h2> Source Specifics </h2>
+            <div class="span100">
+
+                <table id="myTable">
+                    <tr class="header">
+                        <th>Magnitude (vega) </th>
+                        <th>Band</th>
+                        <th>Phoenix Model Key</th>
+                        <th>Transit Observation Time (hours) </th>
+                    </tr>
+                    <tr>
+                        <td>{{ results_dict['mag'] }}</td>
+                        <td>{{ results_dict['band'] }}</td>
+                        <td>{{ results_dict['mod'] }}</td>
+                        <td>{{ results_dict['obs_time'] }}</td>
+                    </td>
+                </table>
+            </div>
+
+            <h2> Target Acquisition </h2>
+            <div class="span100">
+                
+                <h4> Input and Instrument Parameters</h4>
+            
+                    <center>
+                    <table id="myTable">
+                        <tr class="header">
+                            <th>Instrument</th>
+                            <th>Filter</th>
+                            <th>Subarray</th>
+                            <th> Frame Time (seconds per frame) </th>
+                        </tr>
+                        <tr>
+                            <td>{{ results_dict['ins'] }}</td>
+                            <td>{{ results_dict['filt_ta'] }}</td>
+                            <td>{{ results_dict['subarray_ta'] }}</td>
+                            <td>{{ results_dict['ta_t_frame'] }}</td>
+                        </tr>
+                    </table>
+                    </center>
+            </div>
+
+            <div class="span100">
+                <h4> APT Ready Outputs and Useful Tidbits </h4>
+            <b> <font color="red">{{ zero_group_error }}</font></b>
+                    
+                    <center>
+                    <table id="myTable">
+                        <tr class="header">
+                            <th> Integrations </th>
+                            <th> Groups (min) </th>
+                            <th> Groups (max) </th>
+                            <th> Total Duration Time with min (seconds) </th>
+                            <th> Total Duration Time with max </th>
+                            <th> Max Saturation Reached with min (counts) </th>
+                            <th> Max Saturation Reached with max </th>
+                        </tr>
+                        <tr>
+                            <td>1 (fixed for target acquisition)</td>
+                            <td>{{ results_dict['max_ta_groups'] }}</td>
+                            <td>{{ results_dict['min_ta_groups'] }}</td>
+                            <td>{{ results_dict['t_duration_ta_min'] }}</td>
+                            <td>{{ results_dict['t_duration_ta_max'] }}</td>
+                            <td>{{ results_dict['max_sat_ta'] }}</td>
+                            <td>{{ results_dict['min_sat_ta'] }}</td>
+                        </tr>
+                    </table>
+                    </center>
+            </div>
+            </div>
+            
+            <div class="span200">
+            <h2> Science Observation </h2>
+            <div class="span100">    
+            
+                <h4> Input and Instrument Parameters</h4>
+            
+                    <center>
+                    <table id="myTable">
+                        <tr class="header">
+                            <th>Instrument</th>
+                            <th>Filter</th>
+                            <th>Subarray</th>
+                            <th>Maximum Saturation Level</th>
+                            <th> Frame Time </th>
+                        </tr>
+                        <tr>
+                            <td>{{ results_dict['ins'] }}</td>
+                            <td>{{ results_dict['filt'] }}</td>
+                            <td>{{ results_dict['subarray'] }}</td>
+                            <td>{{ results_dict['sat_max']}}</td>
+                            <td>{{ results_dict['t_frame'] }}</td>
+                        </tr>
+                    </table>
+                    </center>
+            </div>
+
+            <div class="span100">
+                    <h4> APT Ready Outputs and Useful Tidbits </h4>
+            <b> <font color="red">{{ one_group_error }}</font></b>
+                    <center>
+                    <table id="myTable">
+                        <tr class="header">
+                            <th> Integrations </th>
+                            <th> Groups </th>
+                            <th> Integration Time (seconds) </th>
+                            <th> Photon Collection Time (hours) </th>
+                            <th> Total Duration Time (hours) </th>
+                            <th> Observation Efficiency </th>
+                            <th> Maximum Sat Reached </th> 
+                        </tr>
+                        <tr>
+                            <td>{{ results_dict['n_int'] }}</td>
+                            <td>{{ results_dict['n_group'] }}</td>
+                            <td>{{ results_dict['t_int'] }}</td>
+                            <td>{{ results_dict['t_exp'] }}</td>
+                            <td>{{ results_dict['t_duration'] }}</td>
+                            <td>{{ results_dict['obs_eff'] }}</td>
+                            <td>{{ results_dict['max_sat_prediction'] }}</td>  
+                        </tr>
+                    </table>
+                    </center>
+            
+            </div>
+            </div>
+            
+
+</div>
+
+{% endblock %}
