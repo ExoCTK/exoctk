@@ -19,12 +19,12 @@ Limb Darkening Calculator
 -------------------------
 The `limb_darkening` tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
-.. figure:: /exoctk/data/images/LDC_demo.png
+.. figure:: /exoctk/data/images/limb_darkening.png
     :alt: LDC Demo
     :scale: 100%
     :align: center
     
-    Limb darkening coefficients for the Phoenix ACES atmosphere models in the 1.5-1.7 micron range with (blue) and without (green) the 2MASS H band filter applied.
+    Coefficients of the quadratic and 4-parameter limb darkening profiles for the Phoenix ACES stellar atmosphere model [4000, 4.5, 0] through the WFC3_IR.G141 grism.
 
 .. |build-status| image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
     :alt: build status
