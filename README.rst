@@ -13,11 +13,11 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 
 Transit light-­curve fitting tools
 ---------------------------------
-The `lightcurve_fitting` tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+The ``lightcurve_fitting`` tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
 
 Limb Darkening Calculator
 -------------------------
-The `limb_darkening` tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
+The ``limb_darkening`` tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 .. figure:: /exoctk/data/images/LDC_demo.png
     :alt: LDC Demo
@@ -30,7 +30,7 @@ The `limb_darkening` tool calculates limb-darkening coefficients for a specified
 
 The Groups and Integrations Calculator
 --------------------------------------
-The `groups_integrations` tool is a JWST observation planning tool designed with
+The ``groups_integrations`` tool is a JWST observation planning tool designed with
 exoplanet observations in mind. Given a potential observation (which requires 
 transit time, and an estimate of model and magnitude for the
 host star, and specifics of instrument setup) it's simple to get an optimized
