@@ -26,6 +26,23 @@ The `limb_darkening` tool calculates limb-darkening coefficients for a specified
     
     Limb darkening coefficients for the Phoenix ACES atmosphere models in the 1.5-1.7 micron range with (blue) and without (green) the 2MASS H band filter applied.
 
+
+
+The Groups and Integrations Calculator
+--------------------------------------
+The `groups_integrations` tool is a JWST observation planning tool designed with
+exoplanet observations in mind. Given a potential observation (which requires 
+transit time, and an estimate of model and magnitude for the
+host star, and specifics of instrument setup) it's simple to get an optimized
+groups and integrations plan for the observation. The example notebook also
+outlines cases for batch demos -- testing many transits/sources in a given instrument
+setup, or figuring out which instrument setup is best for a given transit. 
+
+The Groups and Integrations Calculator runs with pre-sampled `pandeia` data in
+the background -- so it can have the power of those carefully built instrument
+models, but still run 100 times faster. 
+
+
 .. |build-status| image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
     :alt: build status
     :scale: 100%
