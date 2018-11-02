@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <body>
+        {{ js|indent(4)|safe }}
+        {{ css|indent(4)|safe }}
+        {{ script|safe }}
+        {{ filt_script|safe }}
+
+        <h1>Limb Darkening Calculator</h1>
+
+        <div class=metanav>
+            <p>
+            
+            The Limb Darkening calculates limb-darkening coefficients for a specified stellar model, plotting results versus intensity ratio and wavelength. It uses high
+            spectral resolution stellar atmospheric models, which are a neccesisty given JWST's expected precision. 
+            </p>
+
+            <div style='float:left; width:500px;'>
+                <h3>Input</h3>
+                <br>
+                
+                    <table class='table'>
+                        <tr>
+                            <td>Teff</td>
+                            <td>{{teff|safe}}</td>
+                        </tr>
+                        <tr>
+                            <td>log(g)</td>
+                            <td>{{logg|safe}}</td>
+                        </tr>
+                        <tr>
+                            <td>Fe/H</td>
+                            <td>{{feh|safe}}</td>
+                        </tr>
+                        <tr>
+                            <td>Bandpass</td>
+                            <td>{{band|safe}}</td>
+                        </tr>
+                        <tr>
+                            <td>Profiles</td>
+                            <td>{{profile|safe}}</td>
+                        </tr>
+                        <tr>
+                            <td>Models</td>
+                            <td>{{models|safe}}</td>
+                        </tr>
+                    </table>
+
+            </div>
+            <div style='float:right; width:450px;margin-top:40px;'>
+                {{filt_plot|safe}}
+            </div>
+            <div class='clearfix'></div>
+            
+            <br>
+            
+            <h3>Result</h3>
+            
+            <div style='clear:both;margin:40px 0px'>
+                {{ plot|safe }}
+            </div>
+            <div style="clear:both;"></div>
+            <br>
+
+            <div>
+
+                <form id='exportform' method='post' action='download' >
+                    <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
+                    <input class="btn" type='submit' value='Download Coefficient Tables' />
+                </form>
+
+            </div>
+            
+            <br></br>
+
+            {% for tab in table %}
+                {{ tab|safe }}
+            <br>
+            {% endfor %}
+
+            <!-- <form id='formatselect' method='post' action='savefile' >
+                <p>Save to a file:
+                    <select name="format">
+                        <option value="ascii">ASCII</option>
+                        <option value="votable">VOTable</option>
+                    </select>
+                    <input type='submit' value='Save' />
+                </p>
+            </form> -->
+
+        </div>
+        
+    </body>
+
+{% endblock %}
