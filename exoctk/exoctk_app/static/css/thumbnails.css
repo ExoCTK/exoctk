@@ -1,0 +1,94 @@
+button {
+    margin:0 -1px 4px -1px;
+}
+button:active, button:focus, .btn, .active, select, select:active, select:focus {
+    outline:0!important;
+}
+@media (min-width:769px) {
+    #filterOptions, #sortOptions {
+        display: -webkit-box;      /* OLD - iOS 6-, Safari 3.1-6 */
+        display: -moz-box;         /* OLD - Firefox 19- (buggy but mostly works) */
+        display: -ms-flexbox;      /* TWEENER - IE 10 */
+        display: -webkit-flex;     /* NEW - Chrome */
+        display: flex;
+        -webkit-justify-content: space-between;
+        justify-content: space-between;
+        -webkit-align-items:center;
+        align-items:center;
+    }
+    .form-group {
+        width:100%;
+    }
+    .form-group:not(:last-child) {
+        margin-right:1em;
+    }
+}
+@media(max-width:768px) {
+    .form-group {
+        display:inline-block;
+        margin-right:1em;
+    }
+}
+select {
+    width:100%;
+}
+@media (max-width:768px) {
+    .text-right {
+        text-align:left;
+    }
+}
+#thumbnail_array {
+    padding:1em 0;
+}
+.thumb {
+    width:128px;
+    height:128px;
+    margin:0 1px 1px 0px;
+    overflow:hidden;
+    float:left;
+}
+.thumb .overlay {
+    position:relative;
+    border:1px solid #000;
+    width:118px;
+    height:120px;
+    padding:3px 4px;
+    background:#fff;
+    opacity:0;
+    z-index:0;
+    font-size:small;
+    transition: opacity .25s;
+    -moz-transition: opacity .25s;
+    -webkit-transition: opacity .25s;
+}
+.thumb:hover .overlay {
+    opacity:0.9;
+}
+.thumb a {
+    position:relative;
+    margin-top:-151px;
+    padding:0;
+    height:0;
+}
+.thumb img {
+    position:relative;
+    margin-top:-151px;
+    padding-top:48px;
+    padding-left:48px;
+    z-index:1;
+}
+div#onload {
+    padding:1em 0;
+    display: none;
+}
+div#loading {
+    text-align:center;
+    z-index: 1000;
+}
+input[type='radio'] {
+    padding:0;
+}
+label.inline {
+    margin:-10px 0 0 0;
+    padding:0 0 0 20px;
+}

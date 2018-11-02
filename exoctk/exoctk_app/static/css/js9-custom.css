@@ -1,0 +1,34 @@
+.row [class*="span"].center, .center {
+    margin: 0 auto;
+    float: none;
+}
+select.proj_menu {
+    width:auto;
+}
+.drag-handle {
+    height:16px;
+    padding:7px;
+}
+#panner .drag-handle {
+    height:9px;
+    padding:7px;
+}
+#fileMenuJS9Menubar, #analysisMenuJS9Menubar {
+    display:none;
+}
+
+div[class^="ImExam"] {
+    margin-bottom:4px;
+}
+div[class^="ImExam"], div[class^="JS9"] {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif!important;
+}
+div[class^="ImExam"] p, div[class^="JS9"] p {
+    padding:0;
+    margin:0;
+}
+#select button, #select a.btn {
+    padding:3px;
+    font-size:1em;
+    line-height:1em;
+}

@@ -1,0 +1,77 @@
+@media screen and (max-width: 767px) {
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    float: none;
+    text-align: center;
+  }
+  .dataTables_wrapper .dataTables_paginate {
+    margin-top: 0.5em;
+  }
+}
+@media screen and (max-width: 640px) {
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter {
+    float: none;
+    text-align: center;
+  }
+  .dataTables_wrapper .dataTables_filter {
+    margin-top: 0.5em;
+  }
+}
+
+a               { color: #377BA8; text-decoration: none; }
+a:hover         { text-decoration: underline; }
+h1, h2          { font-family: 'Helvetica Neue', sans-serif; margin: 0; }
+/*h1              { border-bottom: 2px solid #eee; }*/
+h2              { font-size: 1.2em; }
+.page           { background: white; padding: 0.8em; margin: 1em auto;}
+.error          { background: #F0D6D6; padding: 0.5em; margin: 2em auto; width: 35em; border: 5px solid #ccc;
+                  padding: 0.8em; }
+
+#footer      { color: #A9A9A9; }
+#footer a    { color: #808080; text-decoration: none; }
+#footer a:hover  { text-decoration: underline; }
+
+/* Header (image and menu items) */
+#header       { background: #ffffff;}
+
+#header ul { list-style-type: none; margin: 0; padding: 0; overflow: hidden;
+               border:1px; border-color: #000000; background-color: #1E68AD; }
+#header li { float: left; }
+#header li a { display: block; color: white; text-align: center;
+                 padding: 14px 16px; text-decoration: none; }
+#header li a:hover { background-color: #eeeeee; color: #373737; }
+
+/* Table style for results pages */
+.page table.results {border-collapse: collapse;}
+.page table.results tr td {border: 1px solid black; padding: 15px; text-align: left; word-wrap:break-word;}
+.page table.results tr:nth-child(even) {background-color: #f2f2f2}
+.page table.results th {background-color: #cccccc; border: 1px solid black; padding: 15px; text-align: left;}
+
+.page table {border-spacing: 10px; border-collapse: separate;}
+
+/* Hover box for Browse page */
+a span {
+    display: none;
+    position: absolute;
+    color: #000;
+    background: #dcdcdc;
+    border:1px solid #377BA8; border-radius: 10px;
+    padding: 5px; width: 200px;
+    left:50px; z-index: 9; }
+a {position: relative; }
+a:hover span {display: block; text-align: center; }
+
+/* Summary page layout */
+.basicinfo {
+    width: 60%;
+    float: left;
+    margin: 0px 10px 0px 10px;
+}
+#aladin-lite-div {
+    width: 400px;
+    height: 400px;
+    float: right;
+    margin: 10px 10px 10px 10px;
+}
+.clearfix { clear:both }

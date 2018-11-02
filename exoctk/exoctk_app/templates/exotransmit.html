@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  <body>
+    {{ js_resources|indent(4)|safe }}
+
+    {{ css_resources|indent(4)|safe }}
+
+    {{ plot_script|indent(4)|safe }}
+    {{sim_script|safe}}
+    {{obs_script|safe}}
+
+
+    <div class="page">
+        <h1>Exo-Transmit</h1>
+
+            <div class=metanav>
+                <p>
+                Exo-Transmit calculates the transmission spectrum of an exoplanet atmosphere given specified
+                input information about the planetary and stellar radii, the planet's surface gravity, the
+                atmospheric temperature-pressure (T-P) profile, the location (in terms of pressure) of any
+                cloud layers, the composition of the atmosphere, and opacity data for the atoms and molecules
+                that make up the atmosphere.
+                </p>
+                <p>
+                The code solves the equation of radiative transfer for absorption of starlight passing
+                through the planet's atmosphere as it transits, accounting for the oblique path of light
+                through the planetary atmosphere along an Earth-bound observer's line of sight.  The fraction
+                of light absorbed (or blocked) by the planet plus its atmosphere is calculated as a function
+                of wavelength to produce the wavelength-dependent transmission spectrum.  Funtionality is
+                provided to simulate the presence of atmospheric aerosols in two ways:  (1) an optically
+                thick (gray) cloud deck can be generated at a user-specified height in the atmosphere, and
+                (2) the nominal Rayleigh scattering can be increased by a specified factor.
+                </p>
+
+            </div>
+        <!--<div class="nav">-->
+          <!--<div class="container">-->
+            <!--<ul class="pull-left">-->
+                <!--<li><a href="index">ExoCTK</a></li>-->
+                <!--<li><a href="ldc">Limb Darkening Caluclator</a></li>-->
+                <!--<li><a href="tot">Transit Observation Tools</a></li>-->
+                <!--<li><a href="exotransmit">Exo-Transmit</a></li>-->
+            <!--</ul>-->
+          <!--</div>-->
+        <!--</div>-->
+        <!-- A simple form for changing the graph -->
+    
+        <div class='form-group'>
+            <h3>Parameters</h3>
+            <form name="eos_menu" method='GET'>
+            
+                <hr class="col-md-12">
+
+                <div class='form-group'>
+                    <label for="eos" class="col-sm-2 control-label">Chemistry Template</label>
+                    <div class="col-sm-10">
+                        <select class='form-control' name="eos">
+                            {% for fname in eos_files %}
+                                <option {{"selected" if eos|indent(4)|safe == fname }} value={{ fname }}>{{ process_eos(fname) }}</option>
+                            {% endfor %}
+                        </select>
+                        <span id="helpBlock" class="help-block">The stellar effective temperature</span>
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+
+                <div class='form-group'>
+                    <label for="tp" class="col-sm-2 control-label">T-P Profile</label>
+                    <div class="col-sm-10">
+                        <select class='form-control' name="tp">
+                            {% for fname in tp_files %}
+                                <option {{"selected" if tp|indent(4)|safe == fname }} value={{ fname }}>{{ process_tp(fname) }}</option>
+                            {% endfor %}
+                        </select>
+                        <!-- <span id="helpBlock" class="help-block">Description</span> -->
+                </div>
+            
+                <hr class="col-md-12">
+
+                <div class='form-group'>
+                    <label for="g" class="col-sm-2 control-label">Planet Surface Gravity</label>
+                    <div class="col-sm-10">
+                        <div class='input-group'>
+                            <input type="text" name="g" value="{{ g }}" class='form-control' size="10" rows="1">
+                            <div class="input-group-addon" style='width:60px'>\(\small\text{m}/\text{s}^2\)</div>
+                        </div>
+                        <!-- <span id="helpBlock" class="help-block">Description</span> -->
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+            
+                <div class='form-group'>
+                    <label for="R_p" class="col-sm-2 control-label">Planet Radius</label>
+                    <div class="col-sm-10">
+                        <div class='input-group'>
+                            <input type="text" name="R_p" value="{{ R_p }}" class='form-control' size="10" rows="1">
+                            <div class="input-group-addon" style='width:60px'>\(\small R_\text{Jup}\)</div>
+                        </div>
+                        <!-- <span id="helpBlock" class="help-block">Description</span> -->
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+            
+                <div class='form-group'>
+                    <label for="R_s" class="col-sm-2 control-label">Star Radius</label>
+                    <div class="col-sm-10">
+                        <div class='input-group'>
+                            <input type="text" name="R_s" value="{{ R_s }}" class='form-control' size="10" rows="1">
+                            <div class="input-group-addon" style='width:60px'>\(\small R_\odot\)</div>
+                        </div>
+                        <!-- <span id="helpBlock" class="help-block">Description</span> -->
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+            
+                <div class='form-group'>
+                    <label for="P" class="col-sm-2 control-label">Pressure of Cloud Layer</label>
+                    <div class="col-sm-10">
+                        <div class='input-group'>
+                            <input type="text" name="P" value="{{ P }}" class='form-control' size="10" rows="1">
+                            <div class="input-group-addon" style='width:60px'>\(\small \text{bar}\)</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">Use 0 for no clouds</span>
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+            
+                <div class='form-group'>
+                    <label for="Rayleigh" class="col-sm-2 control-label">Rayleigh Scattering Augmentation Factor</label>
+                    <div class="col-sm-10">
+                        <div class='input-group'>
+                            <input type="text" name="Rayleigh" value="{{ Rayleigh }}" class='form-control' size="10" rows="1">
+                            <div class="input-group-addon" style='width:60px'></div>
+                        </div>
+                        <!-- <span id="helpBlock" class="help-block">Description</span> -->
+                    </div>
+                </div>
+            
+                <hr class="col-md-12">
+            
+                <div class='form-group col-md-12'>
+                    <div class='input-group'>
+                        <input class="btn btn-success" type='submit' value='Submit'></p>
+                    </div>
+                </div>
+                                
+            </form>
+        </div>
+    
+    <div class='form-group col-md-12'>
+        <br><br><br>
+        <h3>Results</h3>
+
+        <br>
+        <div class='form-group col-md-12'>
+            <div style="display:table; margin:0 auto;">
+                {{ plot_div|indent(4)|safe }}
+            </div>
+        </div>
+        <br>
+
+        <div class='form-group col-md-12'>
+            <form action="/exotransmit_result" method="post">
+                <input type="hidden" name="data_file" value="{{ table_string }}" />
+                <input class="btn btn-success" type='submit' value='Save File'></p>
+            </form>
+        </div>
+    
+    </div>
+    
+    <div class='form-group col-md-12'>
+        <br><br><br>
+        <h3>References</h3>
+        <br>
+        <p>When publishing results based on usage of Exo-Transmit please cite:</p>
+        <ul style="list-style-type:none">
+        <li><a href="http://adsabs.harvard.edu/abs/2016arXiv161103871K">Kempton, E. M.-R., Lupu, R. E., Owusu-Asare, A., Slough, P., & Cale, B., 2016, arXiv:1611.03871</a></li>
+        </ul>
+
+        <p>If using the opacity data included with Exo-Transmit please additionally cite the following three papers:</p>
+        <ul style="list-style-type:none">
+        <li><a href="http://adsabs.harvard.edu/abs/2008ApJS..174..504F">Freedman, R. S., Marley, M. S., & Lodders, K., 2008, ApJS, 174, 504-513</a></li>
+        <li><a href="http://adsabs.harvard.edu/abs/2014ApJS..214...25F">Freedman, R. S., Lustig-Yaeger, J., Fortney, J. J., et al., 2014, ApJS, 214, 25</a></li>
+        <li><a href="http://adsabs.harvard.edu/abs/2014ApJ...784...27L">Lupu, R. E., Zahnle, K., Marley, M. S., et al., 2014, ApJ, 784, 27</a></li>
+        </ul>
+    </div>
+</div>
+</div>
+ </body>
+
+{% endblock%}

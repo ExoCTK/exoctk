@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600');
+
+body {
+    font-family: 'Open Sans', "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding-top: 50px;
+}
+
+#myTable{
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    border-collapse: collapse;
+    margin-left: 0px;
+    margin-right: auto;
+    margin-bottom: 1cm;
+}
+
+#myTable th, #myTable td{
+    border: 1px solid black;
+    text-align: left;
+    padding: 8px;
+}
+
+
+#myTable tr.header{
+    background-color: #B6EDFF;
+}
+
+#myTitle {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 20pt;
+    text-align; center;
+}
+
+
+#myBody {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    text-align: center;
+    width: 600px;
+}
+
+#myHeader {
+    margin-top: .5cm;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15pt;
+    text-align: center;
+    width: 600px;
+    margin-bottom: 1cm;
+}
+
+#myImage {
+    width: 500px;
+    margin-bottom: 1cm
+}
+
+#mySmollImage {
+    width: 300px;
+    margin-bottom: 1cm
+}
+
+#myTableTitle {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 12pt;
+    text-align: center;
+    margin-bottom: .3cm;
+}
+
+/* Table style for results pages */
+.page table.results {border-collapse: collapse;}
+.page table.results tr td {border: 1px solid black; padding: 15px; text-align: left; word-wrap:break-word;}
+.page table.results tr:nth-child(even) {background-color: #f2f2f2}
+.page table.results th {background-color: #cccccc; border: 1px solid black; padding: 15px; text-align: left;}
+
+.page table {border-spacing: 10px; border-collapse: separate;}
