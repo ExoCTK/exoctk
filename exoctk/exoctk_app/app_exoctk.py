@@ -1,34 +1,24 @@
-## -- IMPORTS
 import datetime
-import glob
 import os
 import json
-import shutil
 
 import astropy.constants as constants
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
-import astropy.units as u 
-import bokeh
+import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
-from bokeh.core.properties import Override
 from bokeh.embed import components
-from bokeh.models import ColumnDataSource, FuncTickFormatter
-from bokeh.models import HoverTool, Label, Range1d
+from bokeh.models import Range1d
 from bokeh.models.widgets import Panel, Tabs
-from bokeh.plotting import figure, output_file, show, save
+from bokeh.plotting import figure
 import flask
-from flask import current_app, Flask, make_response, redirect, render_template
-from flask import request, send_file, send_from_directory, Response
+from flask import Flask, Response
+from flask import request, send_file, make_response, render_template
 from functools import wraps
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sqlalchemy import *
-import sqlite3
 
-import exoctk
 from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
@@ -41,7 +31,7 @@ import log_exoctk
 from svo_filters import svo
 
 
-## -- FLASK SET UP (?)
+# FLASK SET UP
 app_exoctk = Flask(__name__)
 
 # define the cache config keys, remember that it can be done in a settings file
@@ -54,21 +44,24 @@ FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # Load the database to log all form submissions
-dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
-if not os.path.isfile(dbpath):
-    log_exoctk.create_db(dbpath)
+if EXOCTKLOG_DIR is None:
+    dbpath = '::memory::'
+else:
+    dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
+    if not os.path.isfile(dbpath):
+        log_exoctk.create_db(dbpath)
 DB = log_exoctk.load_db(dbpath)
 
 # register the cache instance and binds it on to your app
 # cache = Cache(app_exoctk)
 
 # Nice colors for plotting
-COLORS = ['blue', 'red', 'green', 'orange', 
+COLORS = ['blue', 'red', 'green', 'orange',
           'cyan', 'magenta', 'pink', 'purple']
 
 # Supported profiles
-PROFILES = ['uniform', 'linear', 'quadratic', 
-            'square-root', 'logarithmic', 'exponential', 
+PROFILES = ['uniform', 'linear', 'quadratic',
+            'square-root', 'logarithmic', 'exponential',
             '3-parameter', '4-parameter']
 
 # Redirect to the index
@@ -85,23 +78,23 @@ def index():
 def limb_darkening():
     # Get all the available filters
     filters = svo.filters()['Band']
-    
+
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b,\
                 ' selected' if b=='Kepler.K' else '') for b in filters])
-    
+
     return render_template('limb_darkening.html', filters=filt_list)
-    
+
 # Load the LDC results page
 @app_exoctk.route('/limb_darkening_results', methods=['GET', 'POST'])
 def limb_darkening_results():
-    
+
     # Log the form inputs
     try:
-        log_exoctk.log_form_input(request.form, 'ldc', DB)
+        log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
     except:
         pass
-        
+
     # Get the input from the form
     modeldir = request.form['modeldir']
     profiles = list(filter(None,[request.form.get(pf) for pf in PROFILES]))
@@ -114,7 +107,7 @@ def limb_darkening_results():
     # Get models from local directory if necessary
     if modeldir=='default':
         modeldir = MODELGRID_DIR
-    
+
     # Throw error if input params are invalid
     try:
         teff = int(request.form['teff'])
@@ -126,81 +119,81 @@ def limb_darkening_results():
         logg = str(request.form['logg']).replace('<', '&lt')
         feh = str(request.form['feh']).replace('<', '&lt')
         message = 'Could not calculate limb darkening with the above input parameters.'
-        
+
         return render_template('limb_darkening_error.html', teff=teff, logg=logg, feh=feh, \
                     band=bandpass or 'None', profile=', '.join(profiles), models=modeldir, \
                     message=message)
-                    
+
     n_bins = request.form.get('n_bins')
     pixels_per_bin = request.form.get('pixels_per_bin')
     wl_min = request.form.get('wave_min')
     wl_max = request.form.get('wave_max')
-    
+
     model_grid = ModelGrid(modeldir, resolution=500)
-    
+
     # No data, redirect to the error page
     if not hasattr(model_grid, 'data'):
         message = 'Could not find a model grid to load. Please check your path.'
-    
+
         return render_template('limb_darkening_error.html', teff=teff, logg=logg, feh=feh, \
                     band=bandpass or 'None', profile=', '.join(profiles), models=model_grid.path, \
                     message=message)
-        
+
     else:
-        
+
         if len(model_grid.data)==0:
-        
+
             message = 'Could not calculate limb darkening with the above input parameters.'
-        
+
             return render_template('limb_darkening_error.html', teff=teff, logg=logg, feh=feh, \
                         band=bandpass or 'None', profile=', '.join(profiles), models=model_grid.path, \
                         message=message)
-                    
+
     # Trim the grid to the correct wavelength
     # to speed up calculations, if a bandpass is given
     min_max = model_grid.wave_rng
-        
+
     try:
-        
+
         kwargs = {'n_bins':int(n_bins)} if n_bins else \
                  {'pixels_per_bin':int(pixels_per_bin)} if pixels_per_bin else {}
-             
+
         if wl_min and wl_max:
             kwargs['wl_min'] = float(wl_min)*u.um
             kwargs['wl_max'] = float(wl_max)*u.um
-        
+
         # Make filter object
         bandpass = svo.Filter(bandpass, **kwargs)
         min_max = (bandpass.WavelengthMin,bandpass.WavelengthMax)
         n_bins = bandpass.n_bins
         bp_name = bandpass.filterID
-        
+
         # Get the filter plot
         TOOLS = 'box_zoom,resize,reset'
         bk_plot = figure(tools=TOOLS, title=bp_name, plot_width=400, plot_height=300,
                          x_range=Range1d(bandpass.WavelengthMin,bandpass.WavelengthMax))
-                     
+
         bk_plot.line(*bandpass.raw, line_width=5, color='black', alpha=0.1)
         try:
             for i,(x,y) in enumerate(bandpass.rsr):
                 bk_plot.line(x, y, color=(COLORS*5)[i])
         except:
             bk_plot.line(*bandpass.raw)
-        
+
         bk_plot.xaxis.axis_label = 'Wavelength [um]'
         bk_plot.yaxis.axis_label = 'Throughput'
-        
+
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
         filt_script, filt_plot = components(bk_plot)
 
     except:
         message = 'Insufficient filter information. Please complete the form and try again!'
-    
+
         return render_template('limb_darkening_error.html', teff=teff, logg=logg, feh=feh, \
                     band=bandpass or 'None', profile=', '.join(profiles), models=model_grid.path, \
                     message=message)
-                    
+
     # Trim the grid to nearby grid points to speed up calculation
     full_rng = [model_grid.Teff_vals,model_grid.logg_vals,model_grid.FeH_vals]
     trim_rng = find_closest(full_rng, [teff,logg,feh], n=1, values=True)
@@ -234,52 +227,52 @@ def limb_darkening_results():
             return render_template('limb_darkening_error.html', teff=teff, logg=logg, feh=feh, \
                     band=bp_name, profile=', '.join(profiles), models=model_grid.path,\
                     message=message)
-                         
+
     # Calculate the coefficients for each profile
     ld = lf.LDC(model_grid)
     for prof in profiles:
         ld.calculate(teff, logg, feh, prof, bandpass=bandpass)
-                    
+
     # Draw a figure for each wavelength bin
     tabs = []
     for wav in np.unique(ld.results['wave_eff']):
         dat = ld.results[ld.results['wave_eff'] == wav]
-        
+
         # Plot it
         TOOLS = 'box_zoom,box_select,crosshair,resize,reset,hover'
         fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
                      plot_width=800, plot_height=400)
         ld.plot(wave_eff=wav, fig=fig)
-                                    
+
         # Plot formatting
         fig.legend.location = 'bottom_right'
         fig.xaxis.axis_label = 'mu'
         fig.yaxis.axis_label = 'Intensity'
-        
+
         tabs.append(Panel(child=fig, title=str(wav)))
-                
+
     final = Tabs(tabs=tabs)
-    
+
     # Get HTML
     script, div = components(final)
-    
+
     # Store the tables as a string
     file_as_string = str(ld.results[[c for c in ld.results.dtype.names if
                                      ld.results.dtype[c] != object]])
-    
+
     # # Format mu and r_eff vals
     # r_eff = '{:.4f} R_\odot'.format(grid_point['r_eff']*1.438e-11)
     # mu_eff = '{:.4f}'.format(0)
     r_eff = mu_eff = ''
-    
+
     # Make a table for each profile with a row for each wavelength bin
     profile_tables = []
     for profile in profiles:
-        
+
         # Make LaTeX for polynomials
         latex = lf.ld_profile(profile, latex=True)
         poly = '\({}\)'.format(latex).replace('*','\cdot').replace('\e','e')
-        
+
         # Make the table into LaTeX
         table = filter_table(ld.results, profile=profile)
         co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
@@ -288,17 +281,17 @@ def limb_darkening_results():
         table = table[['wave_min','wave_max']+co_cols]
         table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
         table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
-        
+
         # Add the results to the lists
         html_table = '\n'.join(table.pformat(max_width=500, html=True))\
                      .replace('<table','<table id="myTable" class="table table-striped table-hover"')
-        
+
         # Add the table title
         header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile,poly)
         html_table = header+html_table
 
         profile_tables.append(html_table)
-        
+
     return render_template('limb_darkening_results.html', teff=teff, logg=logg, feh=feh, \
                 band=bp_name, mu=mu_eff, profile=', '.join(profiles), \
                 r=r_eff, models=model_grid.path, table=profile_tables, \
@@ -318,13 +311,13 @@ def groups_integrations():
     # Print out pandeia sat values
     with open(INTEGRATIONS_DIR) as f:
         sat_data = json.load(f)['fullwell']
-    
+
     return render_template('groups_integrations.html', sat_data=sat_data)
 
 # Load the integrations and groups results
 @app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
 def groups_integrations_results():
-    
+
     # Read in parameters from form
     params = {}
     for key in dict(request.form).keys():
@@ -332,7 +325,7 @@ def groups_integrations_results():
     print(params)
     try:
         err = 0
-    
+
         # Specific error catching
         if params['n_group'].isdigit():
             params['n_group'] = int(params['n_group'])
@@ -343,13 +336,13 @@ def groups_integrations_results():
              err = "You need to double check your group input. Please put the number of groups per integration or 'optimize' and we can calculate it for you."
         if (False in [params['mag'].isdigit(), params['obs_time'].isdigit()]) and ('.' not in params['mag']) and ('.' not in params['obs_time']):
             err = 'Your magnitude or observation time is not a number, or you left the field blank.'
-    
+
         else:
             if (4.5 > float(params['mag'])) or (12.5 < float(params['mag'])):
                 err = 'Looks like we do not have useful approximations for your magnitude. Could you give us a number between 5.5-12.5?'
             if float(params['obs_time']) <= 0:
                 err = 'You have a negative transit time -- I doubt that will be of much use to anyone.'
-    
+
         if float(params['sat_max']) <= 0:
             err = 'You put in an underwhelming saturation level. There is something to be said for being too careful...'
         if (params['sat_mode'] == 'well') and float(params['sat_max']) > 1:
@@ -357,7 +350,7 @@ def groups_integrations_results():
 
         if type(err) == str:
             return render_template('groups_integrations_error.html', err=err)
-    
+
         # Only create the dict if the form input looks okay
         # Make sure everything is the right type
         ins = params['ins']
@@ -368,17 +361,17 @@ def groups_integrations_results():
                 params[key] = float(params[key])
             if key in str_params:
                 params[key] = str(params[key])
-    
+
         # Also get the data path in there
-        params['infile'] = INTEGRATIONS_DIR 
-    
+        params['infile'] = INTEGRATIONS_DIR
+
         # Rename the ins-mode params to more general counterparts
         params['filt'] = params['{}_filt'.format(ins)]
         params['filt_ta'] = params['{}_filt_ta'.format(ins)]
         params['subarray'] = params['{}_subarray'.format(ins)]
         params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
         results = perform_calculation(params)
-    
+
         if type(results) == dict:
             results_dict = results
             one_group_error = ""
@@ -407,18 +400,18 @@ def groups_integrations_results():
                     results_dict['subarray_ta'] = 'SUBTASOSS -- FAINT'
             results_dict['subarray'] = results_dict['subarray'].upper()
             results_dict['subarray_ta'] = results_dict['subarray_ta'].upper()
-     
+
             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
             results_dict['ins'] = form_dict[results_dict['ins']]
-      
+
             return render_template('groups_integrations_results.html',
                     results_dict=results_dict, one_group_error=one_group_error,
                                    zero_group_error=zero_group_error)
-        
+
         else:
-            err = results 
+            err = results
             return render_template('groups_integrations_error.html', err=err)
-    
+
     except IOError:
         err = 'One of you numbers is NOT a number! Please try again!'
     except Exception as e:
@@ -430,6 +423,12 @@ def groups_integrations_results():
 # Load the contam and visibility page
 @app_exoctk.route('/contam_visibility', methods = ['GET', 'POST'])
 def contam_visibility():
+
+    # Log the form inputs
+    try:
+        log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+    except:
+        pass
 
     contamVars = {}
     if request.method == 'POST':
@@ -443,9 +442,9 @@ def contam_visibility():
             contamVars['binComp'] = list(map(float, request.form['bininfo'].split(',')))
         else:
             contamVars['binComp'] = request.form['bininfo']
-        
+
         radec = ', '.join([contamVars['ra'], contamVars['dec']])
-        
+
         if contamVars['PAmax']=='':
             contamVars['PAmax'] = 359
         if contamVars['PAmin']=='':
@@ -453,48 +452,48 @@ def contam_visibility():
 
         if request.form['submit'] == 'Resolve Target':
             contamVars['ra'], contamVars['dec'] = resolve.resolve_target(tname)
-            
+
             return render_template('contam_visibility.html', contamVars = contamVars)
-            
+
         else:
-            
+
             try:
 
                 contamVars['visPA'] = True
-    
+
                 # Make plot
                 TOOLS = 'crosshair,resize,reset,hover,save'
                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime', title=contamVars['tname'] or radec)
                 pG, pB, dates, vis_plot = vpa.checkVisPA(contamVars['ra'], contamVars['dec'], tname, fig=fig)
-    
+
                 # Format x axis
                 day0 = datetime.date(2019, 6, 1)
                 vis_plot.x_range = Range1d(day0,day0+datetime.timedelta(days=367))
-    
+
                 # Get scripts
                 vis_js = INLINE.render_js()
                 vis_css = INLINE.render_css()
                 vis_script, vis_div = components(vis_plot)
 
                 if request.form['submit'] == 'Calculate Visibility and Contamination':
-        
+
                     contamVars['contam'] = True
-                    
+
                     # Make field simulation
                     contam_cube = fs.sossFieldSim(contamVars['ra'], contamVars['dec'], binComp=contamVars['binComp'])
                     contam_plot = cf.contam(contam_cube, contamVars['tname'] or radec, paRange=[int(contamVars['PAmin']),int(contamVars['PAmax'])], badPA=pB, fig='bokeh')
-                    
-                    
+
+
                     # Get scripts
                     contam_js = INLINE.render_js()
                     contam_css = INLINE.render_css()
                     contam_script, contam_div = components(contam_plot)
-                
+
                 else:
-                
+
                     contamVars['contam'] = False
                     contam_script = contam_div = contam_js = contam_css = ''
-            
+
                 return render_template('contam_visibility_results.html', contamVars=contamVars, \
                         vis_plot=vis_div, vis_script=vis_script, vis_js=vis_js, vis_css=vis_css,\
                         contam_plot=contam_div, contam_script=contam_script, contam_js=contam_js, contam_css=contam_css)
@@ -505,12 +504,12 @@ def contam_visibility():
 
     return render_template('contam_visibility.html', contamVars = contamVars)
 
-    
+
 # Save the results to file
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
     file_as_string = eval(request.form['file_as_string'])
-    
+
     response = make_response(file_as_string)
     response.headers["Content-type"] = 'text; charset=utf-8'
     response.headers["Content-Disposition"] = "attachment; filename=ExoXTK_results.txt"
@@ -533,10 +532,10 @@ def fortney():
     """
     Pull up Forntey Grid plot the results and download
     """
-    
+
     # Grab the inputs arguments from the URL
     args = flask.request.args
-    
+
     temp,chem,cloud,pmass,m_unit,reference_radius,r_unit,rstar,rstar_unit = _param_fort_validation(args)
     #get sqlite database
 
@@ -552,29 +551,29 @@ def fortney():
         reference_radius = float(reference_radius)
         rplan = (reference_radius*u.Unit(r_unit)).to(u.km)
 
-        #clouds 
-        if cloud.find('flat') != -1: 
+        #clouds
+        if cloud.find('flat') != -1:
             flat = int(cloud[4:])
-            ray = 0 
-        elif cloud.find('ray') != -1: 
+            ray = 0
+        elif cloud.find('ray') != -1:
             ray = int(cloud[3:])
-            flat = 0 
-        elif int(cloud) == 0: 
-            flat = 0 
-            ray = 0     
+            flat = 0
+        elif int(cloud) == 0:
+            flat = 0
+            ray = 0
         else:
-            flat = 0 
-            ray = 0 
+            flat = 0
+            ray = 0
             print('No cloud parameter not specified, default no clouds added')
-        
-        #chemistry 
-        if chem == 'noTiO': 
+
+        #chemistry
+        if chem == 'noTiO':
             noTiO = True
-        if chem == 'eqchem': 
+        if chem == 'eqchem':
             noTiO = False
             #grid does not allow clouds for cases with TiO
-            flat = 0 
-            ray = 0 
+            flat = 0
+            ray = 0
 
         fort_grav = 25.0*u.m/u.s/u.s
 
@@ -586,15 +585,15 @@ def fortney():
         wave_planet=np.array(pd.read_sql_table(df['name'].values[0],db)['wavelength'])[::-1]
         r_lambda=np.array(pd.read_sql_table(df['name'].values[0],db)['radius'])*u.km
         z_lambda = r_lambda- (1.25*u.R_jup).to(u.km) #all fortney models have fixed 1.25 radii
-        
-        #scale with planetary mass 
+
+        #scale with planetary mass
         pmass=float(pmass)
         mass = (pmass*u.Unit(m_unit)).to(u.kg)
         gravity = constants.G*(mass)/(rplan.to(u.m))**2.0 #convert radius to m for gravity units
         #scale lambbda (this technically ignores the fact that scaleheight is altitude dependent)
         #therefore, it will not be valide for very very low gravities
         z_lambda = z_lambda*fort_grav/gravity
-        
+
         #create new wavelength dependent R based on scaled ravity
         r_lambda = z_lambda + rplan
         #finally compute (rp/r*)^2
@@ -602,10 +601,10 @@ def fortney():
 
         x=wave_planet
         y=flux_planet[::-1]
-    else:   
+    else:
         df= pd.read_sql_table('t1000g25_noTiO',db)
         x, y = df['wavelength'], df['radius']**2.0/7e5**2.0
-    
+
     tab = at.Table(data=[x, y])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
@@ -615,12 +614,12 @@ def fortney():
     fig.line(x, 1e6*(y-np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Rel. Transit Depth (ppm)'
-    
+
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
-    
+
     script, div = components(fig)
-    
+
     html = flask.render_template(
                                  'fortney.html',
                                  plot_script=script,
@@ -671,23 +670,23 @@ def requires_auth(f):
             return authenticate()
         return f(*args, **kwargs)
     return decorated
-    
+
 @app_exoctk.route('/admin')
 @requires_auth
 def secret_page():
-    
+
     tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
     print(tables)
-    
+
     log_tables = []
     for table in tables:
-        
+
         try:
             data = log_exoctk.view_log(DB, table)
-        
+
             # Add the results to the lists
             html_table = '\n'.join(data.pformat(max_width=500, html=True)).replace('<table','<table id="myTable" class="table table-striped table-hover"')
-        
+
         except:
             html_table = '<p>No data to display</p>'
 
@@ -696,7 +695,7 @@ def secret_page():
         html_table = header+html_table
 
         log_tables.append(html_table)
-    
+
     return render_template('admin_page.html', tables=log_tables)
 
 
