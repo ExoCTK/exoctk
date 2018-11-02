@@ -10,33 +10,17 @@ from astropy.extern.six.moves import StringIO
 import astropy.table as at
 import astropy.units as u 
 import bokeh
-from bokeh import mpl
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.core.properties import Override
 from bokeh.embed import components
-from bokeh.models import ColumnDataSource
-from bokeh.models import FuncTickFormatter
-from bokeh.models import HoverTool
-from bokeh.models import Label
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel
-from bokeh.models.widgets import Tabs
-from bokeh.mpl import to_bokeh
-from bokeh.plotting import figure
-from bokeh.plotting import output_file
-from bokeh.plotting import show
-from bokeh.plotting import save
+from bokeh.models import ColumnDataSource, FuncTickFormatter
+from bokeh.models import HoverTool, Label, Range1d
+from bokeh.models.widgets import Panel, Tabs
+from bokeh.plotting import figure, output_file, show, save
 import flask
-from flask import current_app
-from flask import Flask
-from flask import make_response
-from flask import redirect
-from flask import render_template
-from flask import request
-from flask import send_file
-from flask import send_from_directory
-from flask import Response
+from flask import current_app, Flask, make_response, redirect, render_template
+from flask import request, send_file, send_from_directory, Response
 from functools import wraps
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +34,7 @@ from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
-from exoctk.integrations_groups.integrations_groups import perform_calculation
+from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table
 import log_exoctk
@@ -70,7 +54,7 @@ FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # Load the database to log all form submissions
-dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR,'exoctk_log.db'))
+dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
 if not os.path.isfile(dbpath):
     log_exoctk.create_db(dbpath)
 DB = log_exoctk.load_db(dbpath)
@@ -328,18 +312,18 @@ def limb_darkening_error():
 
 
 # Load the integrations and groups page
-@app_exoctk.route('/integrations_groups', methods=['GET', 'POST'])
-def integrations_groups():
+@app_exoctk.route('/groups_integrations', methods=['GET', 'POST'])
+def groups_integrations():
 
     # Print out pandeia sat values
     with open(INTEGRATIONS_DIR) as f:
         sat_data = json.load(f)['fullwell']
     
-    return render_template('integrations_groups.html', sat_data=sat_data)
+    return render_template('groups_integrations.html', sat_data=sat_data)
 
 # Load the integrations and groups results
-@app_exoctk.route('/integrations_groups_results', methods=['GET', 'POST'])
-def integrations_groups_results():
+@app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
+def groups_integrations_results():
     
     # Read in parameters from form
     params = {}
@@ -372,7 +356,7 @@ def integrations_groups_results():
             err = 'You are saturating past the full well. Is that a good idea?'
 
         if type(err) == str:
-            return render_template('integrations_groups_error.html', err=err)
+            return render_template('groups_integrations_error.html', err=err)
     
         # Only create the dict if the form input looks okay
         # Make sure everything is the right type
@@ -427,19 +411,19 @@ def integrations_groups_results():
             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
             results_dict['ins'] = form_dict[results_dict['ins']]
       
-            return render_template('integrations_groups_results.html',
+            return render_template('groups_integrations_results.html',
                     results_dict=results_dict, one_group_error=one_group_error,
                                    zero_group_error=zero_group_error)
         
         else:
             err = results 
-            return render_template('integrations_groups_error.html', err=err)
+            return render_template('groups_integrations_error.html', err=err)
     
     except IOError:
         err = 'One of you numbers is NOT a number! Please try again!'
     except Exception as e:
         err = 'This is not an error we anticipated, but the error caught was : ' + str(e)
-        return render_template('integrations_groups_error.html', err=err)
+        return render_template('groups_integrations_error.html', err=err)
 
 
 
@@ -517,7 +501,7 @@ def contam_visibility():
 
             except IOError:#Exception as e:
                 err = 'The following error occurred: ' + str(e)
-                return render_template('integrations_groups_error.html', err=err)
+                return render_template('groups_integrations_error.html', err=err)
 
     return render_template('contam_visibility.html', contamVars = contamVars)
 
@@ -655,9 +639,9 @@ def save_fortney_result():
                           headers={"Content-disposition":
                           "attachment; filename=fortney.dat"})
 
-@app_exoctk.route('/integrations_groups_download')
-def integrations_groups_download():
-    return send_file(INTEGRATIONS_DIR, mimetype="text/json", attachment_filename='integrations_groups_input_data.json', as_attachment=True)
+@app_exoctk.route('/groups_integrations_download')
+def groups_integrations_download():
+    return send_file(INTEGRATIONS_DIR, mimetype="text/json", attachment_filename='groups_integrations_input_data.json', as_attachment=True)
 
 
 @app_exoctk.route('/fortney_download')
