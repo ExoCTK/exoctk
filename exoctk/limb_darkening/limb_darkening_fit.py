@@ -239,16 +239,16 @@ class LDC:
         # Use tophat oif no bandpass
         if bandpass is None:
             units = self.model_grid.wl_units
-            bandpass = svo.Filter('tophat', wl_min=np.min(wave)*units,
-                                  wl_max=np.max(wave)*units)
+            bandpass = svo.Filter('tophat', wave_min=np.min(wave)*units,
+                                  wave_max=np.max(wave)*units)
 
         # Check if a bandpass is provided
         if not isinstance(bandpass, svo.Filter):
             raise TypeError("Invalid bandpass of type", type(bandpass))
 
         # Make sure the bandpass has coverage
-        bp_min = bandpass.WavelengthMin*q.Unit(bandpass.WavelengthUnit)
-        bp_max = bandpass.WavelengthMax*q.Unit(bandpass.WavelengthUnit)
+        bp_min = bandpass.wave_min
+        bp_max = bandpass.wave_max
         mg_min = self.model_grid.wave_rng[0]*self.model_grid.wl_units
         mg_max = self.model_grid.wave_rng[-1]*self.model_grid.wl_units
         if bp_min < mg_min or bp_max > mg_max:
