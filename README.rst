@@ -8,32 +8,23 @@ Introduction
 ------------
 ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. The subpackages included are:
 
-* Transit Lightcurve Fitting Tool
-* Limb-­darkening Calculator
-* Groups and Integrations Calculator
+* Transit light-­curve fitting tools
+* Limb-­darkening calculator
 
 Transit light-­curve fitting tools
 ---------------------------------
 The ``lightcurve_fitting`` tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
 
-.. figure:: /exoctk/data/images/lightcurve_fitting.png
-    :alt: lightcurve_fitting Demo
-    :scale: 50%
-    :align: center
-    
-    The filled circles show the raw data and the red line shows the best fit transit+linear composite model.
-
-
 Limb Darkening Calculator
 -------------------------
-The ``limb_darkening`` tool calculates limb darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
+The ``limb_darkening`` tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength.  It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 .. figure:: /exoctk/data/images/limb_darkening.png
-    :alt: limb_darkening Demo
-    :scale: 50%
+    :alt: LDC Demo
+    :scale: 100%
     :align: center
     
-    Solid lines show the best fit quadratic and 4-parameter limb darkening profiles for the Phoenix ACES stellar atmosphere model [4000, 4.5, 0] through the WFC3_IR.G141 grism (open circles).
+    Coefficients of the quadratic and 4-parameter limb darkening profiles for the Phoenix ACES stellar atmosphere model [4000, 4.5, 0] through the WFC3_IR.G141 grism.
 
 
 
