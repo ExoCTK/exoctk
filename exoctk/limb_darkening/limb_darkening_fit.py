@@ -295,6 +295,11 @@ class LDC:
             # Calculate errors from covariance matrix diagonal
             errs = np.sqrt(np.diag(cov))
 
+            if bandpass.centers.shape == (2,):
+                wave_eff = bandpass.centers[0]
+            else:
+                wave_eff = bandpass.centers[0, n].round(5)
+
             # Make a dictionary or the results
             result = {}
             result['Teff'] = Teff
@@ -316,7 +321,7 @@ class LDC:
             result['n_bins'] = bandpass.n_bins
             result['pixels_per_bin'] = bandpass.pixels_per_bin
             result['wave_min'] = wave[n, 0].round(5)
-            result['wave_eff'] = bandpass.centers[0, n].round(5)
+            result['wave_eff'] = wave_eff
             result['wave_max'] = wave[n, -1].round(5)
 
             # Add the coeffs
