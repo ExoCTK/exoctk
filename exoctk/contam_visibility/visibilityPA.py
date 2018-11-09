@@ -37,7 +37,7 @@ def convert_ddmmss_to_float(astring):
     hour_or_deg = (s/60.+m)/60.+d
     return hour_or_deg
 
-def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_filename('ExoCTK', 'data/contam_visibility/JWST_ephem_short.txt'), save=False, fig=''):
+def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), save=False, fig=''):
 
     if ra.find(':')>-1:  #format is hh:mm:ss.s or  dd:mm:ss.s
         ra = convert_ddmmss_to_float(ra) * 15. * D2R
@@ -224,7 +224,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
 
     return paGood, paBad, gd, fig
 
-def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName=pkg_resources.resource_filename('ExoCTK', 'data/contam_visibility/JWST_ephem_short.txt'), save=False, fig=''):
+def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), fig=''):
     """using gtvt to find PAmin and PAmax for NIRISS
     yay
 
