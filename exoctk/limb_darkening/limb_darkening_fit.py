@@ -295,8 +295,8 @@ class LDC:
             # Calculate errors from covariance matrix diagonal
             errs = np.sqrt(np.diag(cov))
 
-            if bandpass.centers.shape == (2,):
-                wave_eff = bandpass.centers[0]
+            if bandpass.centers.ndim == 1:
+                wave_eff = bandpass.centers[0].round(5)
             else:
                 wave_eff = bandpass.centers[0, n].round(5)
 
