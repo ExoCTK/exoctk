@@ -263,13 +263,13 @@ class LDC:
         # Make rsr curve 3 dimensions if there is only one
         # wavelength bin, then get wavelength only
         bp = bandpass.rsr
-        if len(bp.shape) == 2:
+        if bp.ndim == 2:
             bp = bp[None, :]
         wave = bp[:, 0, :]
 
         # Calculate mean intensity vs. mu
-        wave = wave[None, :] if len(wave.shape) == 1 else wave
-        flux = flux[None, :] if len(flux.shape) == 2 else flux
+        wave = wave[None, :] if wave.ndim == 1 else wave
+        flux = flux[None, :] if flux.ndim == 2 else flux
         mean_i = np.nanmean(flux, axis=-1)
         mean_i[mean_i == 0] = np.nan
 
