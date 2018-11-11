@@ -73,6 +73,27 @@ def test_ldc_calculation_filter():
     assert len(ld_session.results) == 2
 
 
+def test_ldc_calculation_grism():
+    """Test to see if a calculation can be performed with a grism and
+    that they are appended to the results table"""
+    print('Testing LDC calculation using a filter grism...')
+
+    # Make the session
+    ld_session = ldf.LDC(MODELGRID)
+
+    # Make a filter
+    filt = Filter('2MASS.H', n_bins=10)
+
+    # Run the calculations
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic',
+                         bandpass=filt)
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='4-parameter',
+                         bandpass=filt)
+
+    # Two profiles split into 10 measurements = 20 calculations
+    assert len(ld_session.results) == 20
+
+
 def test_ldc_calculation_interpolation():
     """Test to see if a calculation can be performed with no filter and
     an interpolated grid point and that they are appended to the results
