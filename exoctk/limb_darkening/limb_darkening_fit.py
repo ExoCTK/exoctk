@@ -239,16 +239,16 @@ class LDC:
         # Use tophat oif no bandpass
         if bandpass is None:
             units = self.model_grid.wl_units
-            bandpass = svo.Filter('tophat', wl_min=np.min(wave)*units,
-                                  wl_max=np.max(wave)*units)
+            bandpass = svo.Filter('tophat', wave_min=np.min(wave)*units,
+                                  wave_max=np.max(wave)*units)
 
         # Check if a bandpass is provided
         if not isinstance(bandpass, svo.Filter):
             raise TypeError("Invalid bandpass of type", type(bandpass))
 
         # Make sure the bandpass has coverage
-        bp_min = bandpass.WavelengthMin*q.Unit(bandpass.WavelengthUnit)
-        bp_max = bandpass.WavelengthMax*q.Unit(bandpass.WavelengthUnit)
+        bp_min = bandpass.wave_min
+        bp_max = bandpass.wave_max
         mg_min = self.model_grid.wave_rng[0]*self.model_grid.wl_units
         mg_max = self.model_grid.wave_rng[-1]*self.model_grid.wl_units
         if bp_min < mg_min or bp_max > mg_max:
@@ -263,13 +263,13 @@ class LDC:
         # Make rsr curve 3 dimensions if there is only one
         # wavelength bin, then get wavelength only
         bp = bandpass.rsr
-        if len(bp.shape) == 2:
+        if bp.ndim == 2:
             bp = bp[None, :]
         wave = bp[:, 0, :]
 
         # Calculate mean intensity vs. mu
-        wave = wave[None, :] if len(wave.shape) == 1 else wave
-        flux = flux[None, :] if len(flux.shape) == 2 else flux
+        wave = wave[None, :] if wave.ndim == 1 else wave
+        flux = flux[None, :] if flux.ndim == 2 else flux
         mean_i = np.nanmean(flux, axis=-1)
         mean_i[mean_i == 0] = np.nan
 
@@ -294,6 +294,7 @@ class LDC:
 
             # Calculate errors from covariance matrix diagonal
             errs = np.sqrt(np.diag(cov))
+            wave_eff = bandpass.centers[0, n].round(5)
 
             # Make a dictionary or the results
             result = {}
@@ -316,7 +317,7 @@ class LDC:
             result['n_bins'] = bandpass.n_bins
             result['pixels_per_bin'] = bandpass.pixels_per_bin
             result['wave_min'] = wave[n, 0].round(5)
-            result['wave_eff'] = bandpass.centers[0, n].round(5)
+            result['wave_eff'] = wave_eff
             result['wave_max'] = wave[n, -1].round(5)
 
             # Add the coeffs
