@@ -3,7 +3,7 @@
 """
 The Exoplanet Characterization Tool Kit is a collection of packages used to reduce and analyze observations of transiting exoplanets
 """
-from .modelgrid import *
+from .modelgrid import ModelGrid
 from .utils import *
 from . import contam_visibility
 from . import groups_integrations
