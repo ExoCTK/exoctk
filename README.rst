@@ -8,8 +8,12 @@ Introduction
 ------------
 ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. The subpackages included are:
 
-* Transit light-­curve fitting tools
-* Limb-­darkening calculator
+* Transit light-­curve fitting tools: [Webtools](https://exoctk.stsci.edu/); [Read the Docs](https://exoctk.readthedocs.io/en/latest/).
+* Limb-­darkening calculator: [Webtool](https://exoctk.stsci.edu/limb_darkening); [Read the Docs](https://exoctk.readthedocs.io/en/latest/).
+
+Below, one can find basic information on these packages. They are also available through interactive tools at our [website](https://exoctk.stsci.edu/).
+
+For more in-depth information on the available codes themselves please reference our [Read the Docs documentation] (https://exoctk.readthedocs.io/en/latest/) that is in the process of being updated. 
 
 Transit light-­curve fitting tools
 ---------------------------------
