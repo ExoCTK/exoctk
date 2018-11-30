@@ -182,12 +182,10 @@ def limb_darkening_results():
                          x_range=Range1d(bandpass.WavelengthMin,
                                          bandpass.WavelengthMax))
 
-        bk_plot.line(*bandpass.raw, line_width=5, color='black', alpha=0.1)
-        try:
-            for i, (x, y) in enumerate(bandpass.rsr):
-                bk_plot.line(x, y, color=(COLORS * 5)[i])
-        except:
-            bk_plot.line(*bandpass.raw)
+        bk_plot.line(bandpass.raw[0], bandpass.raw[1], line_width=5,
+                     color='black', alpha=0.1)
+        for i, (x, y) in enumerate(bandpass.rsr):
+            bk_plot.line(x, y, color=(COLORS * 5)[i])
 
         bk_plot.xaxis.axis_label = 'Wavelength [um]'
         bk_plot.yaxis.axis_label = 'Throughput'
