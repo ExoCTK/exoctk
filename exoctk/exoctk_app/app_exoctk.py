@@ -171,24 +171,9 @@ def limb_darkening_results():
 
         # Make filter object
         bandpass = svo.Filter(bandpass, **kwargs)
+        bk_plot = bandpass.plot(draw=False)
         min_max = (bandpass.WavelengthMin, bandpass.WavelengthMax)
         n_bins = bandpass.n_bins
-        bp_name = bandpass.filterID
-
-        # Get the filter plot
-        TOOLS = 'box_zoom, resize, reset'
-        bk_plot = figure(tools=TOOLS, title=bp_name, plot_width=400,
-                         plot_height=300,
-                         x_range=Range1d(bandpass.WavelengthMin,
-                                         bandpass.WavelengthMax))
-
-        bk_plot.line(bandpass.raw[0], bandpass.raw[1], line_width=5,
-                     color='black', alpha=0.1)
-        for i, (x, y) in enumerate(bandpass.rsr):
-            bk_plot.line(x, y, color=(COLORS * 5)[i])
-
-        bk_plot.xaxis.axis_label = 'Wavelength [um]'
-        bk_plot.yaxis.axis_label = 'Throughput'
 
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
