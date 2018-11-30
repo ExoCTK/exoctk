@@ -1,9 +1,19 @@
-
 import math
 import os
 
 import argparse
 import numpy as np
+import requests
+
+
+def build_target_url(target_name):
+    '''build restful api url based on target name
+    '''
+    # Building the URL will be tricky, we should use
+    # as much source code as we can from the archives group..
+    # Name matching, filtering, etc.
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/Wasp-6%20b/properties/"
+    return target_url
 
 def calculate_phase(period, t0, obsDur, winSize):
     minphase = 1.0 -((obsDur + winSize)/2.0/24/period)
@@ -12,11 +22,24 @@ def calculate_phase(period, t0, obsDur, winSize):
     return minphase, maxphase
 
 def get_transit_details(target_name):
-    ''' This function will use the target name to get the transit 
-    details from exoplanets.org or somewhere.'''
+    '''send request to exomast restful api for target information.
+    '''
 
+    target_url = build_target_url(target_name)
+    r = requests.get(target_url)
 
+    if r.status_code == 200:
+        target_data = r.json()
+    else:
+        print('Whoops, no data for this target!')
 
+    # Requests from restapi can have multiple catalogs.
+    # Discussion about which one we should use should 
+    # be had in the future.
+    for item in target_data:
+        print(item['catalog_name'], item['orbital_period'])
+
+    # are t0, obsDur, and winSize available via ExoMAST api?
     return period, t0, obsDur, winSize 
 
 
