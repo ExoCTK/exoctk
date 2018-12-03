@@ -171,8 +171,11 @@ def limb_darkening_results():
 
         # Make filter object
         bandpass = svo.Filter(bandpass, **kwargs)
+        bp_name = bandpass.name
         bk_plot = bandpass.plot(draw=False)
-        min_max = (bandpass.WavelengthMin, bandpass.WavelengthMax)
+        bk_plot.plot_width = 580
+        bk_plot.plot_height = 280
+        min_max = (bandpass.wave_min.value, bandpass.wave_max.value)
         n_bins = bandpass.n_bins
 
         js_resources = INLINE.render_js()
@@ -234,7 +237,7 @@ def limb_darkening_results():
     for wav in np.unique(ld.results['wave_eff']):
 
         # Plot it
-        TOOLS = 'box_zoom, box_select, crosshair, resize, reset, hover'
+        TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
         fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
                      plot_width=800, plot_height=400)
         ld.plot(wave_eff=wav, fig=fig)
@@ -463,7 +466,7 @@ def contam_visibility():
                 contamVars['visPA'] = True
 
                 # Make plot
-                TOOLS = 'crosshair, resize, reset, hover, save'
+                TOOLS = 'crosshair, reset, hover, save'
                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
                              x_axis_type='datetime',
                              title=contamVars['tname'] or radec)
