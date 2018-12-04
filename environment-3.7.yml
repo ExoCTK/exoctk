@@ -15,7 +15,7 @@ dependencies:
   - cffi=1.11.5
   - chardet=3.0.4
   - click=7.0
-  - cryptography=2.4.1
+  - cryptography
   - cycler=0.10.0
   - cython=0.29
   - docutils=0.14
@@ -36,7 +36,7 @@ dependencies:
   - libtiff=4.0.9
   - llvmlite=0.26.0
   - markupsafe=1.1.0
-  - matplotlib=3.0.1
+  - matplotlib
   - mkl=2018.0.3
   - mkl_fft=1.0.6
   - mkl_random=1.0.1
