@@ -27,7 +27,6 @@ before_install:
 install:
   - ci/install_conda.sh
   - ci/setup_conda_env.sh
-  - source activate exoctk
   - python setup.py install
 
 script:
