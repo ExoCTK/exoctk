@@ -1,5 +1,5 @@
 #!/bin/bash
 
-echo "Creating conda environment"
-conda env create -f environment.yml || exit 1
-source activate exoctk
+echo "Creating conda environment for $PYTHON_VERSION"
+conda env create -f "environment-${PYTHON_VERSION}.yml" || exit 1
+source activate "exoctk-${PYTHON_VERSION}"

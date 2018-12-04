@@ -1,4 +1,4 @@
-name: exoctk
+name: exoctk-3.7
 channels:
   - defaults
 dependencies:
@@ -9,7 +9,7 @@ dependencies:
   - attrs=18.2.0
   - babel=2.6.0
   - blas=1.0
-  - bokeh=1.0.1
+  - bokeh=1.0.2
   - ca-certificates=2018.03.07
   - certifi=2018.10.15
   - cffi=1.11.5
@@ -25,7 +25,7 @@ dependencies:
   - hdf5=1.10.2
   - idna=2.7
   - imagesize=1.1.0
-  - intel-openmp=2019.0
+  - intel-openmp=2019.1
   - itsdangerous=1.1.0
   - jinja2=2.10
   - jpeg=9b
@@ -37,20 +37,20 @@ dependencies:
   - libgfortran=3.0.1
   - libpng=1.6.35
   - libtiff=4.0.9
-  - llvmlite=0.25.0
+  - llvmlite=0.26.0
   - markupsafe=1.1.0
   - matplotlib=3.0.1
-  - mkl=2019.0
+  - mkl=2018.0.3
   - mkl_fft=1.0.6
   - mkl_random=1.0.1
   - mock=2.0.0
   - more-itertools=4.3.0
   - ncurses=6.1
-  - numba=0.40.0
+  - numba=0.41.0
   - numpy=1.15.4
   - numpy-base=1.15.4
   - olefile=0.46
-  - openssl=1.1.1
+  - openssl=1.1.1a
   - packaging=18.0
   - pandas=0.23.4
   - pbr=5.1.1
@@ -64,13 +64,13 @@ dependencies:
   - pyopenssl=18.0.0
   - pyparsing=2.3.0
   - pysocks=1.6.8
-  - pytest=4.0.0
+  - pytest=4.0.1
   - pytest-arraydiff=0.2
   - pytest-astropy=0.4.0
   - pytest-doctestplus=0.2.0
-  - pytest-openfiles=0.3.0
+  - pytest-openfiles=0.3.1
   - pytest-remotedata=0.3.1
-  - python=3.6.7
+  - python=3.7.1
   - python-dateutil=2.7.5
   - pytz=2018.7
   - pyyaml=3.13
@@ -101,8 +101,8 @@ dependencies:
     - entrypoints==0.2.3
     - future==0.17.1
     - html5lib==1.0.1
-    - keyring==16.1.0
-    - lmfit==0.9.11
+    - keyring==17.0.0
+    - lmfit==0.9.12
     - svo-filters==0.2.16
     - uncertainties==3.0.3
     - webencodings==0.5.1
