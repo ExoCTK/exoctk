@@ -1,6 +1,7 @@
 import datetime
 import os
 import json
+from pkg_resources import resource_filename
 
 import astropy.constants as constants
 from astropy.extern.six.moves import StringIO
@@ -40,7 +41,6 @@ app_exoctk.config['CACHE_TYPE'] = 'null'
 
 
 MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
-INTEGRATIONS_DIR = os.environ.get('INTEGRATIONS_DIR')
 FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
@@ -308,7 +308,7 @@ def groups_integrations():
     """The groups and integrations calculator form page"""
 
     # Print out pandeia sat values
-    with open(INTEGRATIONS_DIR) as f:
+    with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
 
     return render_template('groups_integrations.html', sat_data=sat_data)
@@ -367,7 +367,7 @@ def groups_integrations_results():
                 params[key] = str(params[key])
 
         # Also get the data path in there
-        params['infile'] = INTEGRATIONS_DIR
+        params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
 
         # Rename the ins-mode params to more general counterparts
         params['filt'] = params['{}_filt'.format(ins)]
@@ -676,7 +676,7 @@ def save_fortney_result():
 def groups_integrations_download():
     """Download the groups and integrations calculator data"""
 
-    return send_file(INTEGRATIONS_DIR, mimetype="text/json",
+    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json",
                      attachment_filename='groups_integrations_input_data.json',
                      as_attachment=True)
 
@@ -766,6 +766,6 @@ def secret_page():
 
 
 if __name__ == '__main__':
-    os.chmod('/internal/data1/app_data/.astropy/cache/', 777) 
+    # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
     app_exoctk.run(host='0.0.0.0', port=port, debug=True)
