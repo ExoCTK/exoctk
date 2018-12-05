@@ -4,15 +4,15 @@ import os
 import argparse
 import numpy as np
 import requests
+import urllib
 
 
 def build_target_url(target_name):
     '''build restful api url based on target name
     '''
-    # Building the URL will be tricky, we should use
-    # as much source code as we can from the archives group..
-    # Name matching, filtering, etc.
-    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/Wasp-6%20b/properties/"
+    # Encode the target name string.
+    encode_target_name = urllib.parse.quote(target_name, encoding='utf-8')
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/{}/properties/".format(encode_target_name)
     return target_url
 
 def calculate_phase(period, t0, obsDur, winSize):
@@ -21,26 +21,43 @@ def calculate_phase(period, t0, obsDur, winSize):
     
     return minphase, maxphase
 
+def get_canonical_name(target_name):
+    """Get ExoMAST prefered name for exoplanet.
+    """
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
+    params = {"name":target_name}
+    
+    r = requests.get(target_url, params=params)
+    planetnames = r.json()
+    canonical_name = planetnames['canonicalName']
+    
+    return canonical_name
+
 def get_transit_details(target_name):
     '''send request to exomast restful api for target information.
     '''
 
-    target_url = build_target_url(target_name)
-    r = requests.get(target_url)
+    canonical_name = get_canonical_name(target_name)
 
+    target_url = build_target_url(canonical_name)
+    
+    r = requests.get(target_url)
+    
     if r.status_code == 200:
         target_data = r.json()
     else:
         print('Whoops, no data for this target!')
 
-    # Requests from restapi can have multiple catalogs.
-    # Discussion about which one we should use should 
-    # be had in the future.
     for item in target_data:
-        print(item['catalog_name'], item['orbital_period'])
+         print(item['catalog_name'], item['orbital_period'])
+
+    # NExSci has more up-to-date options for exoplanet data so we will use that
+    # catalog by default.
+    # cats = [d['catalog_name'] for d in target_data if 'nexsci' in d]
+    # print(cats)
 
     # are t0, obsDur, and winSize available via ExoMAST api?
-    return period, t0, obsDur, winSize 
+    # return period, t0, obsDur, winSize 
 
 
 def phase_overlap_constraint(period, t0, obsDur, winSize, target_name):
@@ -68,13 +85,13 @@ def phase_overlap_constraint(period, t0, obsDur, winSize, target_name):
         maxphase : float
             The maximum phase constraint. '''
 
-    if target_name == parser.get_default('target_name'):
+    if target_name == target_name:
         print("Using the default values:")
         print(target_name)
         print(parser.get_default('target_name'))
         minphase, maxphase = calculate_phase(period, t0, obsDur, winSize)
 
-    elif target_name != parser.get_default('target_name') and period != parser.get_default('period') or t0 != parser.get_default('t0') or obsDur != parser.get_default('obsDur') or winSize != parser.get_default('winSize'):
+    elif target_name != target_name and period != period or t0 != t0 or obsDur != obsDur or winSize != winSize:
         print(target_name)
         print(parser.get_default('target_name'))
         print("Using your input values for calculations:")
@@ -145,7 +162,7 @@ def parse_args():
         action='store',
         type=str,
         help=target_name_help,
-        default='WASP-17b')
+        default='WASP-17 b')
 
     # Parse args
     args = parser.parse_args()
@@ -154,7 +171,7 @@ def parse_args():
     
 
 if __name__ == '__main__':
-    
+
     args = parse_args()
 
     phase_overlap_constraint(args.period, args.t0, args.obsDur, args.winSize, args.target_name)
