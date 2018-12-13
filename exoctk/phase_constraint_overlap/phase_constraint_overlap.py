@@ -174,7 +174,7 @@ def phase_constraint_overlap(period, t0, obsDur, winSize, target_name):
             The maximum phase constraint. '''
 
     if winSize == None:
-        winSize = 1.0 
+        winSize = 1.0  # Default value.
 
     if obsDur == None:
         if period == None:
