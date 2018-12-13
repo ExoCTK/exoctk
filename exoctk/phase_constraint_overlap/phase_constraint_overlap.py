@@ -25,15 +25,13 @@ def build_target_url(target_name):
 
     return target_url
 
-def calculate_phase(period, t0, obsDur, winSize):
+def calculate_phase(period, obsDur, winSize):
     ''' Function to calculate the min and max phase. 
 
         Parameters
         ----------
         period : float
             The period of the transit in days. 
-        t0 : float
-            The start time in BJD or HJD.
         obsdur : float
             The duration of the observation in hours.
         winSize : float
@@ -46,10 +44,27 @@ def calculate_phase(period, t0, obsDur, winSize):
         maxphase : float
             The maximum phase constraint. '''
 
-    minphase = 1.0 -((obsDur + winSize)/2.0/24/period)
-    maxphase = 1.0 -((obsDur - winSize)/2.0/24/period)
+    minphase = 1.0 - ((obsDur + winSize)/2.0/24/period)
+    maxphase = 1.0 - ((obsDur - winSize)/2.0/24/period)
     
     return minphase, maxphase
+
+def calculate_obsDur(transitDur):
+    ''' Function to calculate the min and max phase. 
+
+        Parameters
+        ----------
+        transitDur : float
+            The duration of the transit in hours.
+
+        Returns
+        -------
+        obsdur : float
+            The duration of the observation in hours. '''
+
+    obsDur = np.min((6, 3*transitDur+1))
+
+    return obsDur
 
 def get_canonical_name(target_name):
     '''Get ExoMAST prefered name for exoplanet.
@@ -83,6 +98,10 @@ def get_transit_details(target_name):
 
         Returns
         -------
+        period : float
+            The period of the transit in days. 
+        transitDur : float
+            The duration of the transit in hours. 
 
     '''
 
@@ -106,7 +125,7 @@ def get_transit_details(target_name):
     # print(cats)
 
     # are t0, obsDur, and winSize available via ExoMAST api?
-    # return period, t0, obsDur, winSize 
+    # return period, transitDur, t0
 
 
 def phase_overlap_constraint(period, t0, obsDur, winSize, target_name):
@@ -134,93 +153,24 @@ def phase_overlap_constraint(period, t0, obsDur, winSize, target_name):
         maxphase : float
             The maximum phase constraint. '''
 
-    if target_name == target_name:
-        print("Using the default values:")
-        print(target_name)
-        print(parser.get_default('target_name'))
-        minphase, maxphase = calculate_phase(period, t0, obsDur, winSize)
+    if winSize == None:
+        winSize = 1.0 
 
-    elif target_name != target_name and period != period or t0 != t0 or obsDur != obsDur or winSize != winSize:
-        print(target_name)
-        print(parser.get_default('target_name'))
-        print("Using your input values for calculations:")
-        minphase, maxphase = calculate_phase(period, t0, obsDur, winSize)
+    if obsDur == None:
+        if period == None:
+            period, transitDur, t0 = get_transit_details(target_name)
+        obsDur = calculate_obsDur(transitDur)
 
-    else:
-        print("Have a different Target Name, but same defaults. Retriving variables from exoplanets.org for that target name:")
-        #period,t0,obsDur,winSize = get_transit_details(target_name)
-        minphase, maxphase = calculate_phase(period, t0, obsDur, winSize)
+    minphase, maxphase = calculate_phase(period, t0, obsDur, winSize)
     
-    print(minphase,maxphase)
-
-def parse_args():
-    """Parses command line arguments.
-    Returns
-    -------
-    args : obj
-        An ``argparse`` object containing all of the added arguments.
-    """
-
-    # Create help string
-    period_help = 'The period of the transit in days.'
-    t0_help = 'The starting time of the transit in BJD or HJD.'
-    obsDur_help = 'The duration of the observation in hours.'
-    transitDur_help = 'The duration of the transit in hours.'
-    winSize_help = 'The window size of the transit in hours.'
-    target_name_help = 'The name of the transiting target.'
-
-    # Add time arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p --period',
-        dest='period',
-        action='store',
-        type=float,
-        help=period_help,
-        default=3.7354845)
-    
-    parser.add_argument('-t --t0',
-        dest='t0',
-        action='store',
-        type=float,
-        help=t0_help,
-        default= 2454592.80154)
-
-    parser.add_argument('-odur --obsDur',
-        dest='obsDur',
-        action='store',
-        type=float,
-        help=obsDur_help,
-        default= 34447.38/3600.)
-    
-    parser.add_argument('-tdur --transitDur',
-        dest='transitDur',
-        action='store',
-        type=float,
-        help=transitDur_help)
-        
-    parser.add_argument('-w --winSize',
-        dest='winSize',
-        action='store',
-        type=float,
-        required=False,
-        help=winSize_help,
-        default=1.0)
-
-    parser.add_argument('-n --target_name',
-        dest='target_name',
-        action='store',
-        type=str,
-        help=target_name_help,
-        default='WASP-17 b')
-
-    # Parse args
-    args = parser.parse_args()
-
-    return args
-    
+    print(minphase, maxphase) # Is this the return that we want? Do we need to use t0 for something? 
 
 if __name__ == '__main__':
 
-    args = parse_args()
+    target_name = None
+    period = None
+    t0 = None 
+    obsDur= None 
+    winSize= None 
 
-    phase_overlap_constraint(args.period, args.t0, args.obsDur, args.winSize, args.target_name)
+    phase_overlap_constraint(target_name, period, t0, obsDur, winSize)
