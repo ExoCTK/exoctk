@@ -8,22 +8,62 @@ import urllib
 
 
 def build_target_url(target_name):
-    '''build restful api url based on target name
+    '''Build restful api url based on target name.
+
+    Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+        target_url : string
     '''
     # Encode the target name string.
     encode_target_name = urllib.parse.quote(target_name, encoding='utf-8')
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/{}/properties/".format(encode_target_name)
+
     return target_url
 
 def calculate_phase(period, t0, obsDur, winSize):
+    ''' Function to calculate the min and max phase. 
+
+        Parameters
+        ----------
+        period : float
+            The period of the transit in days. 
+        t0 : float
+            The start time in BJD or HJD.
+        obsdur : float
+            The duration of the observation in hours.
+        winSize : float
+            The window size of transit in hours. Default is 1 hour.
+
+        Returns
+        -------
+        minphase : float
+            The minimum phase constraint.
+        maxphase : float
+            The maximum phase constraint. '''
+
     minphase = 1.0 -((obsDur + winSize)/2.0/24/period)
     maxphase = 1.0 -((obsDur - winSize)/2.0/24/period)
     
     return minphase, maxphase
 
 def get_canonical_name(target_name):
-    """Get ExoMAST prefered name for exoplanet.
-    """
+    '''Get ExoMAST prefered name for exoplanet.
+
+        Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+        canonical_name : string
+    '''
+
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
     params = {"name":target_name}
     
@@ -34,7 +74,16 @@ def get_canonical_name(target_name):
     return canonical_name
 
 def get_transit_details(target_name):
-    '''send request to exomast restful api for target information.
+    '''Send request to exomast restful api for target information.
+        
+        Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+
     '''
 
     canonical_name = get_canonical_name(target_name)
