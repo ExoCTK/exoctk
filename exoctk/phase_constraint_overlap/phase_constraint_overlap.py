@@ -1,7 +1,27 @@
+#! /usr/bin/env python
+
+""" Provide phase overlap constraints for transits. 
+
+This script will provide the min and max phases for a transit based
+on the target name provided. 
+
+Authors
+-------
+    Catherine Martlin, 2018
+    Mees Fix, 2018
+
+Use
+---
+    This script is can be executed as such:
+    ::
+        python phase_constraint_overlap.py 
+
+    However, it will mostly be used through the webapp interface. 
+"""
+
 import math
 import os
 
-import argparse
 import numpy as np
 import requests
 import urllib
@@ -128,7 +148,7 @@ def get_transit_details(target_name):
     # return period, transitDur, t0
 
 
-def phase_overlap_constraint(period, t0, obsDur, winSize, target_name):
+def phase_constraint_overlap(period, t0, obsDur, winSize, target_name):
     ''' The main function to calculate the phase overlap constraints.
         We will update to allow a user to just plug in the target_name 
         and get the other variables.
@@ -173,4 +193,4 @@ if __name__ == '__main__':
     obsDur= None 
     winSize= None 
 
-    phase_overlap_constraint(target_name, period, t0, obsDur, winSize)
+    phase_constraint_overlap(target_name, period, t0, obsDur, winSize)
