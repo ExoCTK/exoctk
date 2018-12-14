@@ -8,6 +8,8 @@ from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
 import re
+import requests
+import urllib
 
 
 def interp_flux(mu, flux, params, values):
@@ -471,3 +473,79 @@ def find_closest(axes, points, n=1, values=False):
             return
 
     return results
+
+def build_target_url(target_name):
+    '''Build restful api url based on target name.
+
+    Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+        target_url : string
+    '''
+    # Encode the target name string.
+    encode_target_name = urllib.parse.quote(target_name, encoding='utf-8')
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/{}/properties/".format(encode_target_name)
+
+    return target_url
+
+def get_canonical_name(target_name):
+    '''Get ExoMAST prefered name for exoplanet.
+
+        Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+        canonical_name : string
+    '''
+
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
+    
+    # Create params dict for url parsing. Easier than trying to format yourself.
+    params = {"name":target_name}
+    
+    r = requests.get(target_url, params=params)
+    planetnames = r.json()
+    canonical_name = planetnames['canonicalName']
+    
+    return canonical_name
+
+def get_target_data(target_name):
+    '''Send request to exomast restful api for target information.
+        
+        Parameters
+        ----------
+        target_name : string
+            The name of the target transit. 
+
+        Returns
+        -------
+        period : float
+            The period of the transit in days. 
+        transitDur : float
+            The duration of the transit in hours. 
+
+    '''
+
+    canonical_name = get_canonical_name(target_name)
+
+    target_url = build_target_url(canonical_name)
+    
+    r = requests.get(target_url)
+    
+    if r.status_code == 200:
+        target_data = r.json()
+    else:
+        print('Whoops, no data for this target!')
+
+    # Some exoplanets have multiple catalog entries
+    # Temporary... Need to write a parser to select catalog
+    target_data = target_data[0]
+    
+    return target_data

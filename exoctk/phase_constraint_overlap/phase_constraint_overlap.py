@@ -30,24 +30,7 @@ import numpy as np
 import requests
 import urllib
 
-
-def build_target_url(target_name):
-    '''Build restful api url based on target name.
-
-    Parameters
-        ----------
-        target_name : string
-            The name of the target transit. 
-
-        Returns
-        -------
-        target_url : string
-    '''
-    # Encode the target name string.
-    encode_target_name = urllib.parse.quote(target_name, encoding='utf-8')
-    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/{}/properties/".format(encode_target_name)
-
-    return target_url
+from exoctk.utils import get_target_data
 
 def calculate_phase(period, obsDur, winSize):
     ''' Function to calculate the min and max phase. 
@@ -90,69 +73,6 @@ def calculate_obsDur(transitDur):
 
     return obsDur
 
-def get_canonical_name(target_name):
-    '''Get ExoMAST prefered name for exoplanet.
-
-        Parameters
-        ----------
-        target_name : string
-            The name of the target transit. 
-
-        Returns
-        -------
-        canonical_name : string
-    '''
-
-    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
-    
-    # Create params dict for url parsing. Easier than trying to format yourself.
-    params = {"name":target_name}
-    
-    r = requests.get(target_url, params=params)
-    planetnames = r.json()
-    canonical_name = planetnames['canonicalName']
-    
-    return canonical_name
-
-def get_transit_details(target_name):
-    '''Send request to exomast restful api for target information.
-        
-        Parameters
-        ----------
-        target_name : string
-            The name of the target transit. 
-
-        Returns
-        -------
-        period : float
-            The period of the transit in days. 
-        transitDur : float
-            The duration of the transit in hours. 
-
-    '''
-
-    canonical_name = get_canonical_name(target_name)
-
-    target_url = build_target_url(canonical_name)
-    
-    r = requests.get(target_url)
-    
-    if r.status_code == 200:
-        target_data = r.json()
-    else:
-        print('Whoops, no data for this target!')
-
-    # Some exoplanets have multiple catalog entries
-    # Temporary... Need to write a parser to select catalog
-    target_data = target_data[0]
-    
-    period = target_data['orbital_period']
-    t0 = target_data['transit_time']
-    transit_duration = target_data['transit_duration']
-    obs_duration = np.min((6, 3*transit_duration + 1))
-
-    return period, t0, obs_duration
-
 
 def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, window_size=None):
     ''' The main function to calculate the phase overlap constraints.
@@ -181,7 +101,12 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
 
     if obs_duration == None:
         if period == None:
-            period, transit_dur, t0 = get_transit_details(target_name)
+            data = get_target_data(target_name)
+            
+            period = data['orbital_period']
+            transit_dur = data['transit_duration']
+            t0 = data['transit_time']
+
         obs_duration = calculate_obsDur(transit_dur)
 
     minphase, maxphase = calculate_phase(period, obs_duration, window_size)
@@ -189,6 +114,7 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
     # Is this the return that we want? Do we need to use t0 for something? 
     print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
 
+# Need to make entry point for this!
 if __name__ == '__main__':
     args = docopt(__doc__, version='0.1')
 
