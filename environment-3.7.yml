@@ -92,7 +92,6 @@ dependencies:
   - pip:
     - asteval==0.9.13
     - astroquery==0.3.8
-    - batman-package==2.4.6
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
     - entrypoints==0.2.3
@@ -103,3 +102,4 @@ dependencies:
     - svo-filters==0.2.16
     - uncertainties==3.0.3
     - webencodings==0.5.1
+    - git+git://github.com/lkreidberg/batman.git
