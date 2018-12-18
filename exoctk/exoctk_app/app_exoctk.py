@@ -1,6 +1,7 @@
 import datetime
 import os
 import json
+from pkg_resources import resource_filename
 
 import astropy.constants as constants
 from astropy.extern.six.moves import StringIO
@@ -40,7 +41,6 @@ app_exoctk.config['CACHE_TYPE'] = 'null'
 
 
 MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
-INTEGRATIONS_DIR = os.environ.get('INTEGRATIONS_DIR')
 FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
@@ -171,26 +171,12 @@ def limb_darkening_results():
 
         # Make filter object
         bandpass = svo.Filter(bandpass, **kwargs)
-        min_max = (bandpass.WavelengthMin, bandpass.WavelengthMax)
+        bp_name = bandpass.name
+        bk_plot = bandpass.plot(draw=False)
+        bk_plot.plot_width = 580
+        bk_plot.plot_height = 280
+        min_max = (bandpass.wave_min.value, bandpass.wave_max.value)
         n_bins = bandpass.n_bins
-        bp_name = bandpass.filterID
-
-        # Get the filter plot
-        TOOLS = 'box_zoom, resize, reset'
-        bk_plot = figure(tools=TOOLS, title=bp_name, plot_width=400,
-                         plot_height=300,
-                         x_range=Range1d(bandpass.WavelengthMin,
-                                         bandpass.WavelengthMax))
-
-        bk_plot.line(*bandpass.raw, line_width=5, color='black', alpha=0.1)
-        try:
-            for i, (x, y) in enumerate(bandpass.rsr):
-                bk_plot.line(x, y, color=(COLORS * 5)[i])
-        except:
-            bk_plot.line(*bandpass.raw)
-
-        bk_plot.xaxis.axis_label = 'Wavelength [um]'
-        bk_plot.yaxis.axis_label = 'Throughput'
 
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
@@ -251,7 +237,7 @@ def limb_darkening_results():
     for wav in np.unique(ld.results['wave_eff']):
 
         # Plot it
-        TOOLS = 'box_zoom, box_select, crosshair, resize, reset, hover'
+        TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
         fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
                      plot_width=800, plot_height=400)
         ld.plot(wave_eff=wav, fig=fig)
@@ -322,7 +308,7 @@ def groups_integrations():
     """The groups and integrations calculator form page"""
 
     # Print out pandeia sat values
-    with open(INTEGRATIONS_DIR) as f:
+    with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
 
     return render_template('groups_integrations.html', sat_data=sat_data)
@@ -381,7 +367,7 @@ def groups_integrations_results():
                 params[key] = str(params[key])
 
         # Also get the data path in there
-        params['infile'] = INTEGRATIONS_DIR
+        params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
 
         # Rename the ins-mode params to more general counterparts
         params['filt'] = params['{}_filt'.format(ins)]
@@ -480,7 +466,7 @@ def contam_visibility():
                 contamVars['visPA'] = True
 
                 # Make plot
-                TOOLS = 'crosshair, resize, reset, hover, save'
+                TOOLS = 'crosshair, reset, hover, save'
                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
                              x_axis_type='datetime',
                              title=contamVars['tname'] or radec)
@@ -690,7 +676,7 @@ def save_fortney_result():
 def groups_integrations_download():
     """Download the groups and integrations calculator data"""
 
-    return send_file(INTEGRATIONS_DIR, mimetype="text/json",
+    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json",
                      attachment_filename='groups_integrations_input_data.json',
                      as_attachment=True)
 
@@ -780,5 +766,6 @@ def secret_page():
 
 
 if __name__ == '__main__':
+    # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
     app_exoctk.run(host='0.0.0.0', port=port, debug=True)
