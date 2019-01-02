@@ -17,8 +17,11 @@ import flask
 from flask import Flask, Response
 from flask import request, send_file, make_response, render_template
 from functools import wraps
+import h5py
 import numpy as np
 import pandas as pd
+from sqlalchemy import create_engine
+from svo_filters import svo
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
@@ -29,8 +32,6 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table
 import log_exoctk
-from svo_filters import svo
-from sqlalchemy import create_engine
 
 
 # FLASK SET UP
@@ -680,7 +681,17 @@ def rescale_generic_grid(input_args):
     ----------
     input_args : dict
         A dictionary of the form output from the generic grid form.
-    
+        If manual input must include : 
+        rs : The radius of the star.
+        rp : The radius of the planet.
+        gp : The gravity.
+        tp : The temperature.
+        condensation : local or rainout
+        metallicity 
+        c_o : carbon/oxygen ratio
+        haze
+        cloud
+        
     Returns
     -------
     wv : np.array
@@ -705,6 +716,7 @@ def rescale_generic_grid(input_args):
                          ('gp', [5, 50]),
                          ('tp', [400, 2600])]
         
+        inputs = {} 
         # First check the scaling
         for tup in scaling_space:
             key, space = tup
@@ -712,26 +724,28 @@ def rescale_generic_grid(input_args):
             if val >= space[0] and val <= space[1]:
                 inputs[key] = val
             else:
+                print('This parameter was unfit : {}'.format(key))
                 error_message = 'One of the scaling parameters was out of range.'
                 break
         
         # Map to nearest model key
-        sort_temp = (np.abs(inputs['tp'] - value)).argmin()
-        sort_grav = (np.abs(inputs['gp'] - value)).argmin()
-        temp_range = list(np.arange(400, 2700, 100))
-        grav_range = [5, 10, 20, 50]
+        temp_range = np.arange(400, 2700, 100)
+        grav_range = np.array([5, 10, 20, 50])
+        sort_temp = (np.abs(inputs['tp'] - temp_range)).argmin()
+        sort_grav = (np.abs(inputs['gp'] - grav_range)).argmin()
         model_temp = temp_range[sort_temp]
         input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
         model_grav = grav_range[sort_grav]
         input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
-        
+        print(model_temp, model_grav)
+
         # Check the model parameters
         str_temp_range = ['0{}'.format(elem)[-4:] for elem in temp_range]
         model_space = [('condensation', ['local', 'rainout']), 
                        ('model_temperature', str_temp_range),
                        ('model_gravity', ['05', '10', '20', '50']),
                        ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
-                       ('c_o', ['0.35', '0.56', '0.7', '1.0']),
+                       ('c_o', ['0.35', '0.56', '0.70', '1.00']),
                        ('haze', ['0001', '0010', '0150', '1100']),
                        ('cloud', ['0.00', '0.06', '0.20','1.00'])]
         
@@ -747,9 +761,12 @@ def rescale_generic_grid(input_args):
         model_key = model_key[:-1]
     
 
-    except KeyError:
-        error_message = 'One of the parameters to make up the model was missing.'
+    
+    #except KeyError:
+    #    print('KeyError')
+    #    error_message = 'One of the parameters to make up the model was missing.'
     except ValueError:
+        print('ValueError')
         error_message = 'One of the paramters was the wrong type.'
     
     # Define constants
@@ -761,7 +778,7 @@ def rescale_generic_grid(input_args):
 
     closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                      'model_temperature': model_temp}
-
+    generic_db = '/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5'
     with h5py.File(generic_db, 'r') as f:
         model_wv = f['/wavelength'][...]
         model_spectra = f['/spectra/{}'.format(model_key)][...]
