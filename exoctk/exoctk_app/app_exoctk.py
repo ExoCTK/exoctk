@@ -672,6 +672,173 @@ def save_fortney_result():
                           headers={"Content-disposition": "attachment; filename=fortney.dat"})
 
 
+def rescale_generic_grid(input_args):
+    """ Pulls a model from the generic grid, rescales it, 
+    and returns the model and wavelength.
+
+    Parameters
+    ----------
+    input_args : dict
+        A dictionary of the form output from the generic grid form.
+    
+    Returns
+    -------
+    wv : np.array
+        Array of wavelength bins.
+    spectra : np.array
+        Array of the planetary model spectrum.
+    inputs : dict
+        The dictionary of inputs given to the function.
+    closest_match : dict
+        A dictionary with the parameters/model name of the closest
+        match in the grid.
+    error_message : bool, str
+        Either False, for no error, or a message about what went wrong.
+    """
+    error_message = False
+    
+    try:   
+        # Parameter validation
+        # Set up some nasty tuples first
+        scaling_space = [('rs', [0, 100]),
+                         ('rp', [0, 100]),
+                         ('gp', [5, 50]),
+                         ('tp', [400, 2600])]
+        
+        # First check the scaling
+        for tup in scaling_space:
+            key, space = tup
+            val = input_args[key]
+            if val >= space[0] and val <= space[1]:
+                inputs[key] = val
+            else:
+                error_message = 'One of the scaling parameters was out of range.'
+                break
+        
+        # Map to nearest model key
+        sort_temp = (np.abs(inputs['tp'] - value)).argmin()
+        sort_grav = (np.abs(inputs['gp'] - value)).argmin()
+        temp_range = list(np.arange(400, 2700, 100))
+        grav_range = [5, 10, 20, 50]
+        model_temp = temp_range[sort_temp]
+        input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
+        model_grav = grav_range[sort_grav]
+        input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
+        
+        # Check the model parameters
+        str_temp_range = ['0{}'.format(elem)[-4:] for elem in temp_range]
+        model_space = [('condensation', ['local', 'rainout']), 
+                       ('model_temperature', str_temp_range),
+                       ('model_gravity', ['05', '10', '20', '50']),
+                       ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
+                       ('c_o', ['0.35', '0.56', '0.7', '1.0']),
+                       ('haze', ['0001', '0010', '0150', '1100']),
+                       ('cloud', ['0.00', '0.06', '0.20','1.00'])]
+        
+        model_key = ''
+        for tup in model_space:
+            key, space = tup
+            if input_args[key] in space:
+                inputs[key] = input_args[key]
+                model_key += '{}_'.format(inputs[key])
+            else:
+                error_message = 'One of the model parameters was out of range.'
+                break
+        model_key = model_key[:-1]
+    
+
+    except KeyError:
+        error_message = 'One of the parameters to make up the model was missing.'
+    except ValueError:
+        error_message = 'One of the paramters was the wrong type.'
+    
+    # Define constants
+    kb = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
+    mu = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
+    tau = 0.56 # optical depth
+    rsun = 69580000000 # cm
+    rjup = 6991100000 # cm
+
+    closest_match = {'model_key': model_key, 'model_gravity': model_grav,
+                     'model_temperature': model_temp}
+
+    with h5py.File(generic_db, 'r') as f:
+        model_wv = f['/wavelength'][...]
+        model_spectra = f['/spectra/{}'.format(model_key)][...]
+
+    rp_rs = np.sqrt(model_spectra) * inputs['rp']/inputs['rs']
+    rs_scale = inputs['rs'] * rsun
+    rp_scale = inputs['rp'] * rjup
+    gp_scale = model_grav * 1e2
+
+    h1 = (kb * model_temp) / (mu * gp_scale)
+    rp1 = np.sqrt(rp_rs) * rsun
+    z1 = rp1 - (np.sqrt(rp_rs[2000])*rsun)
+    epsig1 = tau * np.sqrt(kb * model_temp * mu * gp_scale)
+    
+    h2 = (kb * model_temp) / (mu * inputs['gp'])
+    z2 = h2 * np.log10(epsig1/tau * np.sqrt(2 * np.pi * rp_scale)) * np.exp(z1/h1)
+    r2 = z2 + rp_scale
+
+    sort = np.argsort(model_wv)
+    wv = model_wv[sort]
+    r2 = r2[sort]
+
+    spectra = (r2/rs_scale)**2
+    
+    return wv, spectra, inputs, closest_match, error_message
+
+
+@app_exoctk.route('/generic', methods=['GET', 'POST'])
+def generic():
+    """
+    Pull up Generic Grid plot the results and download
+    """
+
+    # Grab the inputs arguments from the URL
+    args = dict(flask.request.args)
+    
+    # Build rescaled model
+    wv, spectra, inputs, closest_match, error_message = rescale_generic_grid(args)
+
+    # Build file out
+    tab = at.Table(data=[wv, spectra])
+    fh = StringIO()
+    tab.write(fh, format='ascii.no_header')
+    table_string = fh.getvalue()
+    
+    # Plot rescaled
+    fig = figure(plot_width=1100, plot_height=400, responsive=False)
+    fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
+    fig.xaxis.axis_label = 'Wavelength (um)'
+    fig.yaxis.axis_label = 'Transmission Spectra (ppm)'
+    
+    js_resources = INLINE.render_js()
+    css_resources = INLINE.render_css()
+
+    script, div = components(fig)
+
+    html = flask.render_template('generic.html',
+                                 input_parameters = inputs,
+                                 closest_parameters = closest_match,
+                                 error_msg=error_message,
+                                 plot_script=script,
+                                 plot_div=div,
+                                 js_resources=js_resources,
+                                 css_resources=css_resources,
+                                 )
+    return encode_utf8(html)
+
+
+@app_exoctk.route('/generic_result', methods=['POST'])
+def save_generic_result():
+    """Save the results of the generic grid"""
+
+    table_string = flask.request.form['data_file']
+    return flask.Response(table_string, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename=generic.dat"})
+
+
 @app_exoctk.route('/groups_integrations_download')
 def groups_integrations_download():
     """Download the groups and integrations calculator data"""
