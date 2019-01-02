@@ -761,47 +761,48 @@ def rescale_generic_grid(input_args):
         model_key = model_key[:-1]
     
 
+        # Define constants
+        kb = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
+        mu = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
+        tau = 0.56 # optical depth
+        rsun = 69580000000 # cm
+        rjup = 6991100000 # cm
+ 
+        closest_match = {'model_key': model_key, 'model_gravity': model_grav,
+                         'model_temperature': model_temp}
+        generic_db = '/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5'
+        with h5py.File(generic_db, 'r') as f:
+            model_wv = f['/wavelength'][...]
+            model_spectra = f['/spectra/{}'.format(model_key)][...]
+ 
+        rp_rs = np.sqrt(model_spectra) * inputs['rp']/inputs['rs']
+        rs_scale = inputs['rs'] * rsun
+        rp_scale = inputs['rp'] * rjup
+        gp_scale = model_grav * 1e2
+ 
+        h1 = (kb * model_temp) / (mu * gp_scale)
+        rp1 = np.sqrt(rp_rs) * rsun
+        z1 = rp1 - (np.sqrt(rp_rs[2000])*rsun)
+        epsig1 = tau * np.sqrt(kb * model_temp * mu * gp_scale)
+        
+        h2 = (kb * model_temp) / (mu * inputs['gp'])
+        z2 = h2 * np.log10(epsig1/tau * np.sqrt(2 * np.pi * rp_scale)) * np.exp(z1/h1)
+        r2 = z2 + rp_scale
+ 
+        sort = np.argsort(model_wv)
+        wv = model_wv[sort]
+        r2 = r2[sort]
+ 
+        spectra = (r2/rs_scale)**2
     
-    #except KeyError:
-    #    print('KeyError')
-    #    error_message = 'One of the parameters to make up the model was missing.'
-    except ValueError:
-        print('ValueError')
-        error_message = 'One of the paramters was the wrong type.'
+    except KeyError:
+        error_message = 'One of the parameters to make up the model was missing.'
+        model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
+        with h5py.File('/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5') as f:
+            wv = f['/wavelength'][...]
+            spectra = f['/spectra/{}'.format(model_key)][...]
+        closest_match = 'NOTHING'
     
-    # Define constants
-    kb = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
-    mu = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-    tau = 0.56 # optical depth
-    rsun = 69580000000 # cm
-    rjup = 6991100000 # cm
-
-    closest_match = {'model_key': model_key, 'model_gravity': model_grav,
-                     'model_temperature': model_temp}
-    generic_db = '/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5'
-    with h5py.File(generic_db, 'r') as f:
-        model_wv = f['/wavelength'][...]
-        model_spectra = f['/spectra/{}'.format(model_key)][...]
-
-    rp_rs = np.sqrt(model_spectra) * inputs['rp']/inputs['rs']
-    rs_scale = inputs['rs'] * rsun
-    rp_scale = inputs['rp'] * rjup
-    gp_scale = model_grav * 1e2
-
-    h1 = (kb * model_temp) / (mu * gp_scale)
-    rp1 = np.sqrt(rp_rs) * rsun
-    z1 = rp1 - (np.sqrt(rp_rs[2000])*rsun)
-    epsig1 = tau * np.sqrt(kb * model_temp * mu * gp_scale)
-    
-    h2 = (kb * model_temp) / (mu * inputs['gp'])
-    z2 = h2 * np.log10(epsig1/tau * np.sqrt(2 * np.pi * rp_scale)) * np.exp(z1/h1)
-    r2 = z2 + rp_scale
-
-    sort = np.argsort(model_wv)
-    wv = model_wv[sort]
-    r2 = r2[sort]
-
-    spectra = (r2/rs_scale)**2
     
     return wv, spectra, inputs, closest_match, error_message
 
@@ -825,8 +826,8 @@ def generic():
     table_string = fh.getvalue()
     
     # Plot rescaled
-    fig = figure(plot_width=1100, plot_height=400, responsive=False)
-    fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
+    fig = figure(plot_width=1100, plot_height=400)
+    fig.line(wv, 1e6 * (spectra - np.mean(spectra)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Transmission Spectra (ppm)'
     
