@@ -17,7 +17,7 @@ dependencies:
     - bibtexparser
     - bokeh
     - pandas
-    - sphinx_astropy
+    - sphinx-astropy
     - pip:
         - svo_filters
         - batman-package
