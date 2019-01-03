@@ -706,8 +706,7 @@ def rescale_generic_grid(input_args):
     error_message : bool, str
         Either False, for no error, or a message about what went wrong.
     """
-    error_message = False
-    
+    error_message = ''
     try:   
         # Parameter validation
         # Set up some nasty tuples first
@@ -720,12 +719,12 @@ def rescale_generic_grid(input_args):
         # First check the scaling
         for tup in scaling_space:
             key, space = tup
-            val = input_args[key]
+            val = float(input_args[key])
             if val >= space[0] and val <= space[1]:
                 inputs[key] = val
             else:
                 print('This parameter was unfit : {}'.format(key))
-                error_message = 'One of the scaling parameters was out of range.'
+                error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
                 break
         
         # Map to nearest model key
@@ -772,9 +771,10 @@ def rescale_generic_grid(input_args):
                          'model_temperature': model_temp}
         generic_db = '/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5'
         with h5py.File(generic_db, 'r') as f:
-            model_wv = f['/wavelength'][...]
-            model_spectra = f['/spectra/{}'.format(model_key)][...]
- 
+            # Can't use the final NaN value
+            model_wv = f['/wavelength'][...][:-1]
+            model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
+            
         rp_rs = np.sqrt(model_spectra) * inputs['rp']/inputs['rs']
         rs_scale = inputs['rs'] * rsun
         rp_scale = inputs['rp'] * rjup
@@ -799,8 +799,8 @@ def rescale_generic_grid(input_args):
         error_message = 'One of the parameters to make up the model was missing.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
         with h5py.File('/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5') as f:
-            wv = f['/wavelength'][...]
-            spectra = f['/spectra/{}'.format(model_key)][...]
+            wv = f['/wavelength'][...][:-1]
+            spectra = f['/spectra/{}'.format(model_key)][...][:-1]
         closest_match = 'NOTHING'
     
     
@@ -815,10 +815,12 @@ def generic():
 
     # Grab the inputs arguments from the URL
     args = dict(flask.request.args)
-    
+    for key in args:
+        args[key] = args[key][0]
+    print(args) 
     # Build rescaled model
     wv, spectra, inputs, closest_match, error_message = rescale_generic_grid(args)
-
+    
     # Build file out
     tab = at.Table(data=[wv, spectra])
     fh = StringIO()
@@ -827,7 +829,17 @@ def generic():
     
     # Plot rescaled
     fig = figure(plot_width=1100, plot_height=400)
-    fig.line(wv, 1e6 * (spectra - np.mean(spectra)), color='Black', line_width=0.5)
+    fig.x_range.end = 0
+    fig.x_range.end = 10
+    #fig.x_range.start = wv[0]
+    #fig.x_range.end = wv[-1]
+    #y = 1e6 * (spectra - np.mean(spectra))
+    #fig.y_range.start = np.min(y)
+    #fig.y_range.start = np.max(y)
+    #fig.line(wv, y, color='Black', line_width=0.5)
+    fig.y_range.start = 0
+    fig.y_range.end = 0
+    fig.line([0, 1, 2, 3, 4, 5, 6], [1, 2.5, 4, 6, 9, 10, 10], color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Transmission Spectra (ppm)'
     
@@ -839,7 +851,7 @@ def generic():
     html = flask.render_template('generic.html',
                                  input_parameters = inputs,
                                  closest_parameters = closest_match,
-                                 error_msg=error_message,
+                                 error_message=error_message,
                                  plot_script=script,
                                  plot_div=div,
                                  js_resources=js_resources,
