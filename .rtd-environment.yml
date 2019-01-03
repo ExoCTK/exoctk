@@ -11,7 +11,6 @@ dependencies:
     - numba
     - h5py
     - cython
-    - pysynphot
     - bibtexparser
     - bokeh
     - pandas
