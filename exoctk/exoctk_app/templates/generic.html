@@ -8,8 +8,6 @@
     {{ css_resources|indent(4)|safe }}
 
     {{ plot_script|indent(4)|safe }}
-    {{sim_script|safe}}
-    {{obs_script|safe}}
 
 
     <div class="page">
@@ -21,102 +19,117 @@ Scaling function for the generic ATMO grid presented in Goyal, J., et al., 2018b
                 </p>
 
             </div>
-    
-    <div class='form-group'>
-                <hr class="col-md-11 col-md-offset-1">
 
-        <form name="fort_menu" method='GET'>
+        <form name="generic" method='GET'>
+        <hr class="col-md-11 col-md-offset-1">
+        <br></br>
+        <h2>Scaling Parameters</h2>
+        <br></br>
+        <div class='form-group'>
+            <label class="col-md-3 control-label" for="tp">Planet Temperature (in K)</label>
+          <div class="col-md-4 form-inline">
+            <input type="text" class="form-control" id="tp" name="tp" style="width: 70%;" value="1.5">
+        </div>
+        </div>
+        <br></br>
         
         <div class='form-group'>
-            <label class="col-md-3 control-label" for="ptemp">Planet Temp (K)</label>
-         <div class="col-md-3">
-            <select id="ptemp" name="ptemp" class="form-control" data-placeholder="Select Temp (K)">
-                <option value=""></option> 
-                {% for i in temp %}
-                    <option {{ i }} value={{ i }}>{{ i }}</option>
-                {% endfor %}               
-            </select>
-        </div>
-        </div>
-        <hr class="col-md-11 col-md-offset-1">
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="pchem">Select Chemistry Type</label>
-         <div class="col-md-3"">
-            <select id="pchem" name="pchem" class="form-control" data-placeholder="Select Chemistry">
-                <option value=""></option> 
-                <option value='noTiO'>Equilibrium Chemistry</option>  
-                <option value='eqchem'>Equilibrium Chemistry, w/ TiO</option>         
-            </select>
-        </div> 
-        </div> 
-        <hr class="col-md-11 col-md-offset-1">
-        <div class='form-group'>
-        <label class="col-md-3 control-label" for="cloud">Clouds or Scattering?</label>
-        <div class="col-md-3">
-            <select id="cloud" name="cloud" class="form-control" data-placeholder="Clouds/Scattering">
-                <option value=""></option> 
-                <option value="0">Nothing</option>  
-                <option value="ray10">Weak Rayleigh</option>  
-                <option value="ray100">Medium Rayleigh</option>             
-                <option value="ray1000">Strong Rayleigh</option>             
-                <option value="flat1">Weak Cloud</option>  
-                <option value="flat10">Medium Cloud</option>             
-                <option value="flat100">Strong Cloud</option>             
-            </select>
-        </div> 
-        </div> 
-
-        <hr class="col-md-11 col-md-offset-1">
-
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="pmass">Planet Mass</label>
+            <label class="col-md-3 control-label" for="gp">Planet Gravity (in g)</label>
           <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="pmass" name="pmass" style="width: 70%;" value="1.5">
-        <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-            <select id="m_unit" name="m_unit" class="form-control">
-                <option value='M_jup'>M<sub>J</sub></option>   
-                <option value='kilogram'>Kg</option>  
-                <option value='g'>g</option>  
-                <option value='M_earth'>M<sub>E</sub></option> 
-                <option value='M_sun'>M<sub>S</sub></option>          
-            </select>
-            </div> 
+            <input type="text" class="form-control" id="gp" name="gp" style="width: 70%;" value="1.5">
         </div>
         </div>
-
+        
         <hr class="col-md-11 col-md-offset-1">
+        <br></br>
+        <h2>Stellar and Planet Parameters</h2>
+        <br></br>
+
         <div class='form-group'>
-            <label class="col-md-3 control-label" for="refrad">Planet Radius</label>
-        <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="refrad" name="refrad" style="width: 70%;" value="1.25">
-            <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-                <select id="r_unit" name="r_unit" class="form-control">
-                <option value='R_jup'>R<sub>J</sub></option>   
-                <option value='kilometer'>Km</option>  
-                <option value='m'>m</option>  
-                <option value='R_earth'>R<sub>E</sub></option> 
-                <option value='R_sun'>R<sub>S</sub></option>  
-                </select>
-            </div>
+            <label class="col-md-3 control-label" for="rp">Planet Radius (in jupiter radius)</label>
+          <div class="col-md-4 form-inline">
+            <input type="text" class="form-control" id="rp" name="rp" style="width: 70%;" value="1.5">
         </div>
-    </div>
-
-        <hr class="col-md-11 col-md-offset-1">
+        </div>
+        <br></br>
+        
+        <div class='form-group'>
+            <label class="col-md-3 control-label" for="rs">Stellar Radius (in solar radius)</label>
+          <div class="col-md-4 form-inline">
+            <input type="text" class="form-control" id="rs" name="rs" style="width: 70%;" value="1.5">
+        </div>
+        </div>
+    
     <div class='form-group'>
-            <label class="col-md-3 control-label" for="rstar">Stellar Radius</label>
-         <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="rstar" name="rstar" style="width: 70%;" value="1">
-            <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-                <select id="rstar_unit" name="rstar_unit" class="form-control">
-                <option value='R_sun'>R<sub>S</sub></option>
-                <option value='kilometer'>Km</option>  
-                <option value='m'>m</option>  
-                <option value='R_earth'>R<sub>E</sub></option> 
-                <option value='R_jup'>R<sub>J</sub></option>  
-                </select>
-            </div>
+        
+        <hr class="col-md-11 col-md-offset-1">
+        <br></br>
+        <h2>Standard Model Parameters</h2>
+        <br></br>
+        
+        <div class='form-group'>
+            <label class="col-md-3 control-label" for="condensation">Pick the local or rainout condensation.</label>
+         <div class="col-md-3">
+            <select id="condensation" name="condensation" class="form-control">
+                    <option value="local">local</option>
+                    <option value="rainout">rainout</option>
+            </select>
         </div>
         </div>
+        <br></br>
+        
+        <div class='form-group'>
+            <label class="col-md-3 control-label" for="metallicity">Pick the metallicity.</label>
+         <div class="col-md-3">
+            <select id="pchem" name="metallicity" class="form-control">
+                <option value="+0.0">0.0</option>  
+                <option value="+1.0">1.0</option>         
+                <option value="+1.7">1.7</option>         
+                <option value="+2.0">2.0</option>         
+                <option value="+2.3">2.3</option>         
+            </select>
+        </div> 
+        </div> 
+        <br></br>
+        
+        <div class='form-group'>
+        <label class="col-md-3 control-label" for="c_o">Pick the Carbon to Oxygen ratio</label>
+        <div class="col-md-3">
+            <select id="c_o" name="c_o" class="form-control">
+                <option value="0.35">0.35</option>  
+                <option value="0.56">0.56</option>  
+                <option value="0.70">0.70</option>             
+                <option value="1.00">1.00</option>             
+            </select>
+        </div> 
+        </div> 
+        <br></br>
+        
+        <div class='form-group'>
+        <label class="col-md-3 control-label" for="haze">Pick the haze value.</label>
+        <div class="col-md-3">
+            <select id="haze" name="haze" class="form-control">
+                <option value="0001">1</option>  
+                <option value="0010">10</option>  
+                <option value="0150">150</option>             
+                <option value="1100">1100</option>             
+            </select>
+        </div> 
+        </div> 
+        <br></br>
+        
+        <div class='form-group'>
+        <label class="col-md-3 control-label" for="cloud">Pick the cloud value.</label>
+        <div class="col-md-3">
+            <select id="cloud" name="cloud" class="form-control">
+                <option value="0.00">0.00</option>  
+                <option value="0.06">0.06</option>  
+                <option value="0.20">0.20</option>             
+                <option value="1.00">1.00</option>             
+            </select>
+        </div> 
+        </div> 
+
  <hr class="col-md-11 col-md-offset-1">
         <div class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
@@ -126,13 +139,15 @@ Scaling function for the generic ATMO grid presented in Goyal, J., et al., 2018b
 
         </form>
     </div>
-
+    <br></br>
+    <h3> {{ error_message }} </h3>
+    <br></br>
     <div style="display:table; margin:0 auto;">
         {{ plot_div|indent(4)|safe }}
     </div>
 
     <div>
-        <form action="/fortney_result" method="post">
+        <form action="/generic_result" method="post">
             <input type="hidden" name="data_file" value="{{ table_string }}" />
             <input class="btn btn-primary" type='submit' value='Save File'></p>
         </form>
