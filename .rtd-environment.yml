@@ -11,6 +11,15 @@ dependencies:
     - scipy
     - numba
     - h5py
+    - cython
+    - pysynphot
+    - sphinx_automodapi
+    - sphinx_rtd_theme
+    - bibtexparser
+    - bokeh
+    - pandas
+    - sphinx_astropy
     - pip:
         - svo_filters
         - batman-package
+        - lmfit
