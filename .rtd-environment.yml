@@ -13,7 +13,6 @@ dependencies:
     - h5py
     - cython
     - pysynphot
-    - sphinx_automodapi
     - sphinx_rtd_theme
     - bibtexparser
     - bokeh
@@ -23,3 +22,4 @@ dependencies:
         - svo_filters
         - batman-package
         - lmfit
+        - sphinx-automodapi
