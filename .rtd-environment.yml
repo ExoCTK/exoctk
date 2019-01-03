@@ -2,7 +2,6 @@ name: exoctk
 
 channels:
     - astropy
-    - http://ssb.stsci.edu/astroconda
 
 dependencies:
     - astropy
@@ -13,13 +12,12 @@ dependencies:
     - h5py
     - cython
     - pysynphot
-    - sphinx_rtd_theme
     - bibtexparser
     - bokeh
     - pandas
     - sphinx-astropy
     - pip:
+        - sphinx_rtd_theme
         - svo_filters
         - batman-package
-        - lmfit
         - sphinx-automodapi
