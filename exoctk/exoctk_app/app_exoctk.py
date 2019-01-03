@@ -828,18 +828,13 @@ def generic():
     table_string = fh.getvalue()
     
     # Plot rescaled
+    fig = figure()
     fig = figure(plot_width=1100, plot_height=400)
-    fig.x_range.end = 0
-    fig.x_range.end = 10
-    #fig.x_range.start = wv[0]
-    #fig.x_range.end = wv[-1]
-    #y = 1e6 * (spectra - np.mean(spectra))
-    #fig.y_range.start = np.min(y)
-    #fig.y_range.start = np.max(y)
-    #fig.line(wv, y, color='Black', line_width=0.5)
-    fig.y_range.start = 0
-    fig.y_range.end = 0
-    fig.line([0, 1, 2, 3, 4, 5, 6], [1, 2.5, 4, 6, 9, 10, 10], color='Black', line_width=0.5)
+    fig.x_range.end = wv[0]
+    fig.x_range.end = wv[-1]
+    y = 1e6 * (spectra - np.mean(spectra))
+    fig.line(wv, spectra, color='Black', line_width=0.5)
+    fig.circle(wv, spectra, color='Green', alpha=0.5, size=2)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Transmission Spectra (ppm)'
     
@@ -852,6 +847,7 @@ def generic():
                                  input_parameters = inputs,
                                  closest_parameters = closest_match,
                                  error_message=error_message,
+                                 table_string=table_string,
                                  plot_script=script,
                                  plot_div=div,
                                  js_resources=js_resources,
