@@ -190,10 +190,26 @@
                 <div class='form-group'>
                     
                     <label for='' class="col-sm-2 control-label">Specify the Stellar Parameters</label>
-                    <div class="col-sm-10">                        
+                    <div class="col-sm-10">
+                        
+                      <!-- You will not be able to see this text. -->
+                        <div class="input-group">
+                            <input type="text" name="targetname" placeholder="WASP-18 b" size="30" maxlength="110"/><br>
+                        </div>
+
+                        <br>
+
+                        <div class="input-group">
+                            <input class="btn btn-success" type="submit" name="submit" value="Retrieve Parameters"/>
+                        </div>
+                        <span id="helpBlock" class="help-block">Enter parameters manually if no target name provided</span>
+
+                        <br>
+                      <!-- You will not be able to see this text. -->
+
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
-                          <input id='teff' type="text" class='form-control' name="teff" size="10" rows="1" value="3624" placeholder="2300 - 7800"/>
+                          <input id='teff' type="text" class='form-control' name="teff" size="10" rows="1" placeholder="6431"/>
                           <div class="input-group-addon" style='width:60px'>K</div>
                         </div>
                         <span id="helpBlock" class="help-block">The stellar effective temperature</span>
@@ -202,7 +218,7 @@
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
-                          <input id='logg' type="text" class='form-control' name="logg" size="10" rows="1" value="5.22" placeholder="3 - 6"/>
+                          <input id='logg' type="text" class='form-control' name="logg" size="10" rows="1" placeholder="4.47"/>
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity</span>
@@ -211,7 +227,7 @@
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\([\text{Fe}/\text{H}]\)</div>
-                          <input id='feh' type="text" class='form-control' name="feh" size="10" rows="1" value="0.0" placeholder="-0.5 - 0.5"/>
+                          <input id='feh' type="text" class='form-control' name="feh" size="10" rows="1" placeholder="0.13"/>
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity</span>
@@ -220,7 +236,7 @@
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>Minimum \(\mu\)</div>
-                          <input id='mu_min' type="text" class='form-control' name="mu_min" size="10" rows="1" value="0.1" placeholder="0 - 1"/>
+                          <input id='mu_min' type="text" class='form-control' name="mu_min" size="10" rows="1" value=0.1 placeholder="0.1"/>
                           <div class="input-group-addon" style='width:60px'></div>
                         </div>
                         <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
