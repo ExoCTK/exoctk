@@ -107,8 +107,9 @@ copyright = '{0}, {1}'.format(
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-__import__(setup_py['name'])
-package = sys.modules[setup_py['name']]
+#__import__(setup_py['name'])
+#package = sys.modules[setup_py['name']]
+package = setup_py['name']
 
 # The short X.Y version.
 version = setup_py['version']
