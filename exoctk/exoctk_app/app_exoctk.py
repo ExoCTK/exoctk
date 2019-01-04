@@ -26,7 +26,7 @@ from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table
+from exoctk.utils import find_closest, filter_table, get_target_data
 import log_exoctk
 from svo_filters import svo
 from sqlalchemy import create_engine
@@ -85,6 +85,18 @@ def limb_darkening():
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
 
+    if request.method == 'POST':
+        if request.form['submit'] == "Retrieve Parameters":
+            target_name = request.form['targetname']
+            data = get_target_data(target_name)
+
+            feh = data['Fe/H']
+            teff = data['Teff']
+            logg = data['stellar_gravity']
+            print(feh, teff, logg)
+            # return render_template('limb_darkening.html')
+
+    
     return render_template('limb_darkening.html', filters=filt_list)
 
 
