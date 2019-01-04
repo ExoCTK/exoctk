@@ -1,13 +1,13 @@
-ExoCTK.nircam\_coronagraphy package
+exoctk.nircam\_coronagraphy package
 ===================================
 
 Submodules
 ----------
 
-ExoCTK.nircam\_coronagraphy.nircam\_coronagraphy module
+exoctk.nircam\_coronagraphy.nircam\_coronagraphy module
 -------------------------------------------------------
 
-.. automodule:: ExoCTK.nircam_coronagraphy.nircam_coronagraphy
+.. automodule:: exoctk.nircam_coronagraphy.nircam_coronagraphy
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ ExoCTK.nircam\_coronagraphy.nircam\_coronagraphy module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK.nircam_coronagraphy
+.. automodule:: exoctk.nircam_coronagraphy
     :members:
     :undoc-members:
     :show-inheritance:
