@@ -20,7 +20,7 @@ Transit light-­curve fitting tools (TLC)
 
 Limb-­darkening calculator (LDC)
 
-The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a `website  <https://exoctk.stsci.edu/>`_the current tools are available through. 
+The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through. 
 
 
 ******************
