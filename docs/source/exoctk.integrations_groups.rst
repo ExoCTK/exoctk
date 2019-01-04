@@ -1,13 +1,13 @@
-ExoCTK.integrations\_groups package
+exoctk.integrations\_groups package
 ===================================
 
 Submodules
 ----------
 
-ExoCTK.integrations\_groups.integrations\_groups module
+exoctk.integrations\_groups.integrations\_groups module
 -------------------------------------------------------
 
-.. automodule:: ExoCTK.integrations_groups.integrations_groups
+.. automodule:: exoctk.integrations_groups.integrations_groups
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ ExoCTK.integrations\_groups.integrations\_groups module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK.integrations_groups
+.. automodule:: exoctk.integrations_groups
     :members:
     :undoc-members:
     :show-inheritance:
