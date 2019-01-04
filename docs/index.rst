@@ -6,7 +6,7 @@
 
 .. only:: html
 
-   .. image:: ../ExoCTK/data/images/ExoCTK_logo.png
+   .. image:: ../exoctk/data/images/ExoCTK_logo.png
 
 ############################
 ExoCTK Package Documentation
@@ -31,14 +31,14 @@ User Documentation
 .. toctree::
    :maxdepth: 1
 
-   source/ExoCTK.contam_visibility
+   source/exoctk.contam_visibility
 
 **Integrations Groups**
 
 .. toctree::
   :maxdepth: 1
 
-  source/ExoCTK.integrations_groups
+  source/exoctk.integrations_groups
 
 **Lightcurve Fitting Tool**
 
@@ -47,7 +47,7 @@ TLC fits large numbers of spectroscopic light curves simultaneously while sharin
 .. toctree::
   :maxdepth: 1
 
-  source/ExoCTK.lightcurve_fitting
+  source/exoctk.lightcurve_fitting
 
 **Limb Darkening Calculator**
 
@@ -56,11 +56,11 @@ LDC calculates limb-darkening coefficients for a specified stellar model, plotti
 .. toctree::
    :maxdepth: 1
 
-  source/ExoCTK.limb_darkening
+  source/exoctk.limb_darkening
 
 **Nircam Coronagraphy**
 
 .. toctree::
   :maxdepth: 1
 
-  source/ExoCTK.nircam_coronagraphy
+  source/exoctk.nircam_coronagraphy
