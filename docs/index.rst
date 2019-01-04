@@ -31,9 +31,9 @@ User Documentation
 **Contamination Visibility Tool**
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
-   exoctk.contam_visibility
+  source/exoctk.contam_visibility
 
 **Integrations Groups**
 
@@ -44,7 +44,7 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 .. toctree::
   :maxdepth: 1
 
-  exoctk.integrations_groups
+  source/exoctk.integrations_groups
 
 **Lightcurve Fitting Tool**
 
@@ -53,7 +53,7 @@ TLC fits large numbers of spectroscopic light curves simultaneously while sharin
 .. toctree::
   :maxdepth: 1
 
-  exoctk.lightcurve_fitting
+  source/exoctk.lightcurve_fitting
 
 **Limb Darkening Calculator**
 
@@ -62,11 +62,11 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 .. toctree::
    :maxdepth: 1
 
-  exoctk.limb_darkening
+  source/exoctk.limb_darkening
 
 **Nircam Coronagraphy**
 
 .. toctree::
   :maxdepth: 1
 
-  exoctk.nircam_coronagraphy
+  source/exoctk.nircam_coronagraphy
