@@ -16,6 +16,7 @@ from .parameters import Parameters
 from ..limb_darkening.limb_darkening_fit import ld_profile
 
 
+# Base class for models, not useful as a standalone model
 class Model:
     def __init__(self, **kwargs):
         """

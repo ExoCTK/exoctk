@@ -1,3 +1,4 @@
 {
+  "exoctk/tests/test_lightcurve_fitting.py::TestLightcurve::test_lightcurve_params": true,
   "exoctk/tests/test_limb_darkening.py": true
 }
