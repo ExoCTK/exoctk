@@ -4,16 +4,24 @@
 
 |build-status| |docs|
 
+
 Introduction
 ------------
 ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. The subpackages included are:
 
-* Transit light-­curve fitting tools
-* Limb-­darkening calculator
+* Transit Lightcurve Fitter
+* Limb Darkening Calculator
+* Groups and Integrations Calculator
 
-Transit light-­curve fitting tools
----------------------------------
+Transit Lightcurve Fitter
+-------------------------
 The ``lightcurve_fitting`` tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+
+.. figure:: /exoctk/data/images/lightcurve_fitting.png
+    :alt: LCF Demo
+    :scale: 100%
+    :align: center
+
 
 Limb Darkening Calculator
 -------------------------
@@ -28,7 +36,7 @@ The ``limb_darkening`` tool calculates limb-darkening coefficients for a specifi
 
 
 
-The Groups and Integrations Calculator
+Groups and Integrations Calculator
 --------------------------------------
 The ``groups_integrations`` tool is a JWST observation planning tool designed with
 exoplanet observations in mind. Given a potential observation (which requires 
