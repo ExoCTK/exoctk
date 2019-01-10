@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
+def lmfitter(time, data, model, unc=None, method='powell', verbose=True, **kwargs):
     """Use lmfit
 
     Parameters
@@ -64,7 +64,7 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
 
     # Fit light curve model to the simulated data
     result = lcmodel.fit(data, weights=1/unc, params=initialParams,
-                         method=method, **indep_vars)
+                         method=method, **indep_vars, **kwargs)
     if verbose:
         print(result.fit_report())
 

@@ -93,7 +93,7 @@ class LightCurve(Model):
         if fitter == 'lmfit':
 
             # Run the fit
-            return lmfitter(self.time, self.flux, model, self.unc)
+            return lmfitter(self.time, self.flux, model, self.unc, **kwargs)
 
     def plot(self):
         """Plot the light curve with all available fits"""
