@@ -860,7 +860,7 @@ def fortney():
     tab.write(fh, format='ascii.no_header')
     table_string = fh.getvalue()
 
-    fig = figure(plot_width=1100, plot_height=400, responsive=False)
+    fig = figure(plot_width=1100, plot_height=400)
     fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Rel. Transit Depth (ppm)'

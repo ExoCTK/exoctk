@@ -137,19 +137,31 @@
         <footer>
             
             <div class='container'>
-                <img src="/static/images/STScI_logo.png" width="120px" />
+                <div class="form-group col-sm-12">
+                    <div class="col-sm-3">
+                        <img src="/static/images/STScI_logo.png" width="120px" />
+                    </div>
 
-                <div style="float:right; width:120px;text-align:center;">
-                    <p>
-                        Running<br>
-                        <a href='https://github.com/ExoCTK/exoctk/releases/tag/v0.2'>exoctk v0.2</a>{{version|safe}}
-                    </p>
-                    <p style='font-size:0.8em'>
-                        <a href='admin' style='color:#aaaaaa;'>Admin Area</a>
-                    </p>
-                </div>
+                    <div class="col-sm-6">
+                        <p style="text-align:center; font-weight:bold; padding-top:1.5em;">
+                            <a style='margin:0 10px 0 0;' href="https://github.com/ExoCTK/exoctk">Source Code</a> &#8226; <a style='margin:0 10px;' href="https://exoctk.readthedocs.io/en/latest/">Documenataion</a> &#8226; <a style='margin:0 0 0 10px;' href="https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks">Notebooks</a>
+                        </p>
+                    </div>
                 
+                    <div class="col-sm-3">
+                        <div style="float:right; width:120px;text-align:center;">
+                            <p>
+                                Running<br>
+                                <a href='https://github.com/ExoCTK/exoctk/releases/tag/v0.2.0'>exoctk v0.2</a>{{version|safe}}
+                            </p>
+                            <p style='font-size:0.8em'>
+                                <a href='admin' style='color:#aaaaaa;'>Admin Area</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
+            
         </footer> 
             
     </body>
