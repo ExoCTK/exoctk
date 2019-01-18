@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-<script src='{{ url_for('static',filename='js/jquery-1.12.0.min.js')}}'></script>
+<script src='{{ url_for('static',filename='js/jquery-1.12.0.min.js')}}></script>
 
 {% block content %}
         
@@ -66,27 +66,33 @@
         
         <div class='form-group'>
             
-            <label for="bandpass" class="col-sm-2 control-label">Choose a Bandpass</label>
-            <div class="col-sm-10">
-        
-                <select class='form-control' name="bandpass" id="filterselect">
-                    <option value="tophat"> Top Hat</option>
-                    <option value="NIRISS.GR700XD.1"> NIRISS.GR700XD.1</option>
-                    {{filters|safe}}
-                </select>
-            </div>
-        </div>
-        
-        <br>
-        
-        <div id='n_bins' class='form-group', style='display:none;'>
-            
-            <label for='' class="col-sm-2 control-label">Grism Details</label>
-            <div class="col-sm-10">                        
-                <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(\lambda_\text{min}\)</div>
-                  <input id='wave_min' type="text" class='form-control' name="wave_min" size="10" rows="1" value="" placeholder=""/>
-                  <div class="input-group-addon" style='width:60px'>\(\mu\)m</div>
+            The Limb Darkening Calculator calculates limb-darkening coefficients for a specified stellar model, plotting results versus intensity ratio and wavelength. It uses high
+            spectral resolution stellar atmospheric models, which are a neccesisty given JWST's expected precision. 
+            </p>
+    
+            <form class='form-horizontal' id='searchform' method='POST'>
+                
+                <hr class="col-md-12">
+                <div class='form-group'>
+                    <label for="modeldir" class="col-sm-2 control-label">Choose a Model Grid</label>
+                    <div class="col-sm-10">
+                        <div class='radio'>
+                            <label>
+                                <input type="radio" name="modeldir" value="default" checked/> Phoenix ACES
+                            </label>
+                        </div>
+                        <div class='radio'>
+                            <label style='color:grey;'>
+                                <input type="radio" name="modeldir" value="/user/jfilippazzo/Models/ATLAS9/default/" disabled/> Kurucz ATLAS9
+                            </label>
+                        </div>
+                        <div class='radio'>
+                            <label style='color:grey;'>
+                                <input type="radio" name="modeldir" value="" disabled/> Local files: <input type="text" name="local_files" size="40" rows="1" value=""/>​​​​​​​​​​​​​​​​​​​​​​
+                            </label>
+                        </div>
+                    </div>
+
                 </div>
                 <span id="helpBlock" class="help-block">The minimum wavelength of the grism to use</span>
                 
@@ -198,12 +204,61 @@
                 </div>
                 <span id="helpBlock" class="help-block">The stellar effective temperature</span>
                 
-                <br>
+                <div class='form-group'>
+                    
+                    <label for='' class="col-sm-2 control-label">Specify the Stellar Parameters</label>
+                    <div class="col-sm-10">
+                        
+                      <!-- You will not be able to see this text. -->
+                        <div class="input-group">
+                          <input type="text" name="targetname" placeholder="WASP-18 b" value="{{ limbVars['targname'] }}" size="30" maxlength="110"/><br>
+                        </div>
 
-                <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
-                  <input id='logg' type="text" class='form-control' name="logg" size="10" rows="1" value="5.22" placeholder="3 - 6"/>
-                  <div class="input-group-addon" style='width:60px'>dex</div>
+                        <br>
+
+                        <div class="input-group">
+                            <input class="btn btn-success" type="submit" name="submit" value="Retrieve Parameters"/>
+                        </div>
+                        <span id="helpBlock" class="help-block">Enter parameters manually if no target name provided</span>
+
+                        <br>
+                      <!-- You will not be able to see this text. -->
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
+                          <input id='teff' type="text" class='form-control' name="teff" size="10" rows="1" placeholder="6431" value="{{ limbVars['teff'] }}"/>
+                          <div class="input-group-addon" style='width:60px'>K</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The stellar effective temperature</span>
+                        
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
+                          <input id='logg' type="text" class='form-control' name="logg" size="10" rows="1" placeholder="4.47" value="{{ limbVars['logg'] }}"/>
+                          <div class="input-group-addon" style='width:60px'>dex</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity</span>
+                        
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\([\text{Fe}/\text{H}]\)</div>
+                          <input id='feh' type="text" class='form-control' name="feh" size="10" rows="1" placeholder="0.13" value="{{ limbVars['feh'] }}"/>
+                          <div class="input-group-addon" style='width:60px'>dex</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity</span>
+                        
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Minimum \(\mu\)</div>
+                          <input id='mu_min' type="text" class='form-control' name="mu_min" size="10" rows="1" value=0.1 placeholder="0.1"/>
+                          <div class="input-group-addon" style='width:60px'></div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
+                    </div>
+
                 </div>
                 <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity</span>
                 
@@ -216,12 +271,16 @@
                 </div>
                 <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity</span>
                 
-                <br>
+                <div class='form-group'>
+                    
+                    <label for='submit' class="col-sm-2 control-label">Submit!</label>
+                    <div class="col-sm-10">
+                      <p>
+                        <input id='submit' class="btn btn-success" type='submit' name="submit" value='Calculate Coefficients'></p>
+                        <span id="helpBlock" class="help-block">This can take up to 20 seconds! Please be patient.</span>
+                      </p>
+                     </div>
 
-                <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>Minimum \(\mu\)</div>
-                  <input id='mu_min' type="text" class='form-control' name="mu_min" size="10" rows="1" value="0.1" placeholder="0 - 1"/>
-                  <div class="input-group-addon" style='width:60px'></div>
                 </div>
                 <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
             </div>
