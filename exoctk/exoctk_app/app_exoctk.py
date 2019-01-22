@@ -682,10 +682,10 @@ def rescale_generic_grid(input_args):
     input_args : dict
         A dictionary of the form output from the generic grid form.
         If manual input must include : 
-        rs : The radius of the star.
-        rp : The radius of the planet.
-        gp : The gravity.
-        tp : The temperature.
+        r_star : The radius of the star.
+        r_planet : The radius of the planet.
+        gravity : The gravity.
+        temperature : The temperature.
         condensation : local or rainout
         metallicity 
         c_o : carbon/oxygen ratio
@@ -710,10 +710,10 @@ def rescale_generic_grid(input_args):
     try:   
         # Parameter validation
         # Set up some nasty tuples first
-        scaling_space = [('rs', [0, 100]),
-                         ('rp', [0, 100]),
-                         ('gp', [5, 50]),
-                         ('tp', [400, 2600])]
+        scaling_space = [('r_star', [0.05, 10000]),
+                         ('r_planet', [0.0,  10000]),
+                         ('gravity', [5.0, 50]),
+                         ('temperature', [400, 2600])]
         
         inputs = {} 
         # First check the scaling
@@ -730,8 +730,8 @@ def rescale_generic_grid(input_args):
         # Map to nearest model key
         temp_range = np.arange(400, 2700, 100)
         grav_range = np.array([5, 10, 20, 50])
-        sort_temp = (np.abs(inputs['tp'] - temp_range)).argmin()
-        sort_grav = (np.abs(inputs['gp'] - grav_range)).argmin()
+        sort_temp = (np.abs(inputs['temperature'] - temp_range)).argmin()
+        sort_grav = (np.abs(inputs['gravity'] - grav_range)).argmin()
         model_temp = temp_range[sort_temp]
         input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
         model_grav = grav_range[sort_grav]
@@ -761,11 +761,11 @@ def rescale_generic_grid(input_args):
     
 
         # Define constants
-        kb = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
-        mu = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-        tau = 0.56 # optical depth
-        rsun = 69580000000 # cm
-        rjup = 6991100000 # cm
+        boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
+        permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
+        optical_depth = 0.56 
+        r_sun = 69580000000 # cm
+        r_jupiter = 6991100000 # cm
  
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
@@ -775,36 +775,50 @@ def rescale_generic_grid(input_args):
             model_wv = f['/wavelength'][...][:-1]
             model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
             
-        rp_rs = np.sqrt(model_spectra) * inputs['rp']/inputs['rs']
-        rs_scale = inputs['rs'] * rsun
-        rp_scale = inputs['rp'] * rjup
-        gp_scale = model_grav * 1e2
- 
-        h1 = (kb * model_temp) / (mu * gp_scale)
-        rp1 = np.sqrt(rp_rs) * rsun
-        z1 = rp1 - (np.sqrt(rp_rs[2000])*rsun)
-        epsig1 = tau * np.sqrt(kb * model_temp * mu * gp_scale)
+        radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
+        r_star = inputs['r_star'] * r_sun
+        r_planet = inputs['r_planet'] * r_jupiter
+        model_grav = model_grav * 1e2
+        inputs['gravity'] = inputs['gravity'] * 1e2
         
-        h2 = (kb * model_temp) / (mu * inputs['gp'])
-        z2 = h2 * np.log10(epsig1/tau * np.sqrt(2 * np.pi * rp_scale)) * np.exp(z1/h1)
-        r2 = z2 + rp_scale
- 
+        # Start with baseline based on model parameters
+        scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
+        print(scale_height)
+        r_planet_base = np.sqrt(radius_ratio) * r_sun
+        print(r_planet_base)
+        altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
+        print(altitude)
+        opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
+                                          (2 * np.pi * r_planet_base)) * \
+                                  np.exp(altitude / scale_height)
+        print(opacity)
+        # Now rescale from baseline
+        solution = {}
+        solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
+        solution['altitude'] = solution['scale_height'] * \
+                               np.log10(opacity/optical_depth * \
+                                        np.sqrt((2 * np.pi * r_planet) / \
+                                                (boltzmann * inputs['temperature'] * inputs['gravity']))) 
+        solution['radius'] = solution['altitude'] + r_planet
+
+        # Sort data
         sort = np.argsort(model_wv)
-        wv = model_wv[sort]
-        r2 = r2[sort]
- 
-        spectra = (r2/rs_scale)**2
+        solution['wv'] = model_wv[sort]
+        solution['radius'] = solution['radius'][sort]
+        solution['spectra'] = (solution['radius']/r_star)**2
     
-    except KeyError:
-        error_message = 'One of the parameters to make up the model was missing.'
+    except (KeyError, ValueError) as e:
+        error_message = 'One of the parameters to make up the model was missing or out of range.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
+        solution = {}
         with h5py.File('/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5') as f:
-            wv = f['/wavelength'][...][:-1]
-            spectra = f['/spectra/{}'.format(model_key)][...][:-1]
-        closest_match = 'NOTHING'
+            solution['wv'] = f['/wavelength'][...][:-1]
+            solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
+        closest_match = {'model_key': model_key, 'model_temperature': 400,
+                'model_gravity': 50}
+        inputs = input_args
     
-    
-    return wv, spectra, inputs, closest_match, error_message
+    return solution, inputs, closest_match, error_message
 
 
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
@@ -819,24 +833,22 @@ def generic():
         args[key] = args[key][0]
     print(args) 
     # Build rescaled model
-    wv, spectra, inputs, closest_match, error_message = rescale_generic_grid(args)
+    solution, inputs, closest_match, error_message = rescale_generic_grid(args)
     
     # Build file out
-    tab = at.Table(data=[wv, spectra])
+    tab = at.Table(data=[solution['wv'], solution['spectra']])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
     table_string = fh.getvalue()
     
-    # Plot rescaled
+    # Plot
     fig = figure()
     fig = figure(plot_width=1100, plot_height=400)
-    fig.x_range.end = wv[0]
-    fig.x_range.end = wv[-1]
-    y = 1e6 * (spectra - np.mean(spectra))
-    fig.line(wv, spectra, color='Black', line_width=0.5)
-    fig.circle(wv, spectra, color='Green', alpha=0.5, size=2)
+    fig.x_range.start = 0.3
+    fig.x_range.end = 5
+    fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
     fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transmission Spectra (ppm)'
+    fig.yaxis.axis_label = 'Transmission Depth (Rp/R*)^2'
     
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
@@ -844,8 +856,8 @@ def generic():
     script, div = components(fig)
 
     html = flask.render_template('generic.html',
-                                 input_parameters = inputs,
-                                 closest_parameters = closest_match,
+                                 inputs= inputs,
+                                 closest_match = closest_match,
                                  error_message=error_message,
                                  table_string=table_string,
                                  plot_script=script,
