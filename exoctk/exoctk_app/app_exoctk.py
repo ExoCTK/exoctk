@@ -842,14 +842,13 @@ def generic():
     table_string = fh.getvalue()
     
     # Plot
-    fig = figure()
-    fig = figure(plot_width=1100, plot_height=400)
+    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
     fig.x_range.start = 0.3
     fig.x_range.end = 5
     fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
     fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transmission Depth (Rp/R*)^2'
-    
+    fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
+
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
 
