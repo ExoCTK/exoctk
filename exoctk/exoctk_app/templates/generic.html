@@ -24,114 +24,114 @@ gravity, and radius values.
             </div>
 
         <form name="generic" method='GET'>
-        <hr class="col-md-11 col-md-offset-1">
-        <br></br>
-        <h2>Scaling Parameters</h2>
-        <br></br>
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="tp">Planet Temperature (in K)</label>
-          <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="tp" name="tp" style="width: 70%;" value="1500">
-        </div>
-        </div>
-        <br></br>
         
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="gp">Planet Gravity (in g)</label>
-          <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="gp" name="gp" style="width: 70%;" value="7.5">
-        </div>
-        </div>
-        
-        <hr class="col-md-11 col-md-offset-1">
-        <br></br>
-        <h2>Stellar and Planet Parameters</h2>
-        <br></br>
+        <hr class="col-md-12">
 
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="rp">Planet Radius (in jupiter radius)</label>
-          <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="rp" name="rp" style="width: 70%;" value="1.5">
+            <div class='form-group'>
+            
+            <label for='mag' class="col-sm-2 control-label">Scaling Parameters</label>
+            <div class="col-sm-10">
+                
+                <div class="input-group">
+                    <input type="text" name="temperature" size="9" rows="1" placeholder="temperature" class='form-control' />
+                    <div class="input-group-addon" style='width:50px'>\(\small \text{K}\)</div>
+                 </div>
+                 <span id="helpBlock" class="help-block">The temperature (in Kelvin) of the planet.</span>
+
+                <div class="input-group">
+                    <input type="text" name="gravity" size="7" rows="1" placeholder="gravity" class='form-control' />
+                    <div class="input-group-addon" style='width:50px'>\(\small \text{$\frac{m}{s^2}$}\)</div>
+                 </div>
+                 <span id="helpBlock" class="help-block">The gravity (in \(\small \text{$\frac{meters}{second^2}$}\)) of the planet.</span>
+            </div>
         </div>
-        </div>
-        <br></br>
         
+        <hr class="col-md-12">
         <div class='form-group'>
-            <label class="col-md-3 control-label" for="rs">Stellar Radius (in solar radius)</label>
-          <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="rs" name="rs" style="width: 70%;" value="1.5">
-        </div>
+            
+            <label for='mag' class="col-sm-2 control-label">Stellar and Planetary Radii</label>
+            <div class="col-sm-10">
+                <div class="input-group">
+                    <input type="text" name="r_planet" size="9" rows="1" placeholder="planetary" class='form-control' />
+                    <div class="input-group-addon" style='width:50px'>\(\small \text{Jupiter radius}\)</div>
+                 </div>
+                 <span id="helpBlock" class="help-block">The radius of the planet (normalized to Jupiter).</span>
+
+                <div class="input-group">
+                    <input type="text" name="r_star" size="7" rows="1" placeholder="stellar" class='form-control' />
+                    <div class="input-group-addon" style='width:50px'>\(\small \text{Solar radius}\)</div>
+                 </div>
+                 <span id="helpBlock" class="help-block">The radius of the star (normalized to the sun).</span>
+            </div>
         </div>
     
-    <div class='form-group'>
-        
-        <hr class="col-md-11 col-md-offset-1">
-        <br></br>
-        <h2>Standard Model Parameters</h2>
-        <br></br>
-        
+        <hr class="col-md-12">
         <div class='form-group'>
-            <label class="col-md-3 control-label" for="condensation">Pick the local or rainout condensation.</label>
-         <div class="col-md-3">
-            <select id="condensation" name="condensation" class="form-control">
+        
+            <label for='mag' class="col-sm-2 control-label">Standard Model Parameters</label>
+            <div class="col-sm-6">
+                
+                <div class="input-group">
+                <select id="condensation" name="condensation" class="form-control">
                     <option value="local">local</option>
                     <option value="rainout">rainout</option>
-            </select>
-        </div>
-        </div>
-        <br></br>
-        
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="metallicity">Pick the metallicity.</label>
-         <div class="col-md-3">
-            <select id="pchem" name="metallicity" class="form-control">
-                <option value="+0.0">0.0</option>  
-                <option value="+1.0">1.0</option>         
-                <option value="+1.7">1.7</option>         
-                <option value="+2.0">2.0</option>         
-                <option value="+2.3">2.3</option>         
-            </select>
-        </div> 
-        </div> 
-        <br></br>
-        
-        <div class='form-group'>
-        <label class="col-md-3 control-label" for="c_o">Pick the Carbon to Oxygen ratio</label>
-        <div class="col-md-3">
-            <select id="c_o" name="c_o" class="form-control">
-                <option value="0.35">0.35</option>  
-                <option value="0.56">0.56</option>  
-                <option value="0.70">0.70</option>             
-                <option value="1.00">1.00</option>             
-            </select>
-        </div> 
-        </div> 
-        <br></br>
-        
-        <div class='form-group'>
-        <label class="col-md-3 control-label" for="haze">Pick the haze value.</label>
-        <div class="col-md-3">
-            <select id="haze" name="haze" class="form-control">
-                <option value="0001">1</option>  
-                <option value="0010">10</option>  
-                <option value="0150">150</option>             
-                <option value="1100">1100</option>             
-            </select>
-        </div> 
-        </div> 
-        <br></br>
-        
-        <div class='form-group'>
-        <label class="col-md-3 control-label" for="cloud">Pick the cloud value.</label>
-        <div class="col-md-3">
+                </select>
+                </div>
+                <span id="helpBlock" class="help-block">Rainout condensation assumes material which condenses is depleted from all layers of
+            the model in the condensate forming layer and above. Local
+            condensation assumes material which condenses is depleted independently in each
+            layer of the model atmosphere. </span> 
+       
+                <div class="input-group">
+                <select id="metallicity" name="metallicity" class="form-control">
+                    <option value="+0.0">1</option>  
+                    <option value="+1.0">10</option>         
+                    <option value="+1.7">50</option>         
+                    <option value="+2.0">100</option>         
+                    <option value="+2.3">200</option>         
+                </select>
+                </div>
+                <span id="helpBlock" class="help-block">Metallicity in solar units.  </span> 
+
+                <div class="input-group">
+                <select id="c_o" name="c_o" class="form-control">
+                    <option value="0.35">0.35</option>  
+                    <option value="0.56">0.56</option>  
+                    <option value="0.70">0.70</option>             
+                    <option value="1.00">1.00</option>             
+                </select>
+                </div>
+                <span id="helpBlock" class="help-block"> The Carbon to Oxygen ratio. (Note that solar is 0.56.) </span>
+            
+                <div class="input-group">
+                <select id="haze" name="haze" class="form-control">
+                    <option value="0001">1</option>  
+                    <option value="0010">10</option>  
+                    <option value="0150">150</option>             
+                    <option value="1100">1100</option>             
+                </select>
+            </div>
+            <span id="helpBlock" class="help-block"> Wavelength dependent scattering opacity. 1 corresponds to
+                normal scattering whereas 1100 corresponds to enhanced scattering from
+                the optical to IR. </span>
+                
+                <div class="input-group">
             <select id="cloud" name="cloud" class="form-control">
                 <option value="0.00">0.00</option>  
                 <option value="0.06">0.06</option>  
                 <option value="0.20">0.20</option>             
                 <option value="1.00">1.00</option>             
             </select>
-        </div> 
-        </div> 
+            </div>
+            <span id="helpBlock" class="help-block"> Uniform scattering opacity with cut off at all wavelengths.
+                0.0 corresponds to no clouds, 1.0 corresponds to full clouds.
+            </span>
+
+            </div>
+        </div>
+        
+    <br></br>
+
 
  <hr class="col-md-11 col-md-offset-1">
         <div class="form-group">
@@ -143,12 +143,43 @@ gravity, and radius values.
         </form>
     </div>
     <br></br>
-    <h3> {{ error_message }} </h3>
-    <br></br>
+
+ <hr class="col-md-15">
     <div style="display:table; margin:0 auto;">
         {{ plot_div|indent(4)|safe }}
     </div>
 
+    <br></br>
+
+    <b> <font color="red">{{ error_message }} 
+            {% if not error_message == '' %}
+                Above is a fun demonstration of
+                what your model could have looked like!
+            {% endif %}
+         </font></b>
+            
+    <br></br>
+    <p class="myBody">
+            The closest match used for your rescale was : 
+            </p>
+    
+            <table id="myTable">
+    <tr class="header">
+        <th></th>
+        <th>temperature</th>
+        <th>gravity</th>
+    </tr>
+    <tr>
+        <td>your input</td>
+        <td>{{ inputs['temperature'] }}</td>
+        <td>{{ inputs['gravity'] }}</td>
+    </tr>
+    <tr>
+        <td>model parameter</td>
+        <td>{{ closest_match['model_temperature'] }}</td>
+        <td>{{ closest_match['model_gravity'] }}\(\small \text * 10^2 \)</td>
+    </tr>
+    </table>
     <div>
         <form action="/generic_result" method="post">
             <input type="hidden" name="data_file" value="{{ table_string }}" />
@@ -157,7 +188,7 @@ gravity, and radius values.
     </div>
     <div>
         <h3>References</h3>
-
+    </div>
     </div>
   </body>
 
