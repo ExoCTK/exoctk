@@ -116,6 +116,7 @@ def limb_darkening_results():
         teff = int(request.form['teff'])
         logg = float(request.form['logg'])
         feh = float(request.form['feh'])
+        mu_min = float(request.form['mu_min'])
     except:
         teff = str(request.form['teff']).replace('<', '&lt')
         logg = str(request.form['logg']).replace('<', '&lt')
@@ -230,7 +231,7 @@ def limb_darkening_results():
     # Calculate the coefficients for each profile
     ld = lf.LDC(model_grid)
     for prof in profiles:
-        ld.calculate(teff, logg, feh, prof, bandpass=bandpass)
+        ld.calculate(teff, logg, feh, prof, mu_min=mu_min, bandpass=bandpass)
 
     # Draw a figure for each wavelength bin
     tabs = []
