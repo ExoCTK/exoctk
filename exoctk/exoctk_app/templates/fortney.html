@@ -2,146 +2,163 @@
 
 {% block content %}
 
-  <body>
-    {{ js_resources|indent(4)|safe }}
+{{ js_resources|indent(4)|safe }}
 
-    {{ css_resources|indent(4)|safe }}
+{{ css_resources|indent(4)|safe }}
 
-    {{ plot_script|indent(4)|safe }}
-    {{sim_script|safe}}
-    {{obs_script|safe}}
+{{ plot_script|indent(4)|safe }}
+{{sim_script|safe}}
+{{obs_script|safe}}
 
-
-    <div class="page">
-        <h1>Fortney Grid</h1>
-
-            <div class="col-md-9">
-                <p>
-                This is the grid of models created in <a href="http://adsabs.harvard.edu/abs/2010ApJ...709.1396F">Fortney et al. 2010</a> and used in <a href="http://adsabs.harvard.edu/abs/2016Natur.529...59S">Sing et al. 2016</a>. Downloaded files are in two column format with Col 1: micron, Col 2: (Rp/R*)<sup>2</sup>. These can be directly uploaded to PandExo. This form is also directly embeded in <a href="http://exoctk.stsci.edu/pandexo/calculation/new">PandExo</a>.  
-
-                </p>
-
-            </div>
+<div class='form-group'>
     
     <div class='form-group'>
-                <hr class="col-md-11 col-md-offset-1">
+        <h1>Fortney Grid</h1>
+        <br>
+        <p>This is the grid of models created in <a href="http://adsabs.harvard.edu/abs/2010ApJ...709.1396F">Fortney et al. 2010</a> and used in <a href="http://adsabs.harvard.edu/abs/2016Natur.529...59S">Sing et al. 2016</a>. Downloaded files are in two column format with Col 1: micron, Col 2: (Rp/R*)<sup>2</sup>. These can be directly uploaded to PandExo. This form is also directly embeded in <a href="http://exoctk.stsci.edu/pandexo/calculation/new">PandExo</a>.  
 
-        <form name="fort_menu" method='GET'>
+        </p>
         
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="ptemp">Planet Temp (K)</label>
-         <div class="col-md-3">
-            <select id="ptemp" name="ptemp" class="form-control" data-placeholder="Select Temp (K)">
-                <option value=""></option> 
-                {% for i in temp %}
-                    <option {{ i }} value={{ i }}>{{ i }}</option>
-                {% endfor %}               
-            </select>
-        </div>
-        </div>
-        <hr class="col-md-11 col-md-offset-1">
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="pchem">Select Chemistry Type</label>
-         <div class="col-md-3"">
-            <select id="pchem" name="pchem" class="form-control" data-placeholder="Select Chemistry">
-                <option value=""></option> 
-                <option value='noTiO'>Equilibrium Chemistry</option>  
-                <option value='eqchem'>Equilibrium Chemistry, w/ TiO</option>         
-            </select>
-        </div> 
-        </div> 
-        <hr class="col-md-11 col-md-offset-1">
-        <div class='form-group'>
-        <label class="col-md-3 control-label" for="cloud">Clouds or Scattering?</label>
-        <div class="col-md-3">
-            <select id="cloud" name="cloud" class="form-control" data-placeholder="Clouds/Scattering">
-                <option value=""></option> 
-                <option value="0">Nothing</option>  
-                <option value="ray10">Weak Rayleigh</option>  
-                <option value="ray100">Medium Rayleigh</option>             
-                <option value="ray1000">Strong Rayleigh</option>             
-                <option value="flat1">Weak Cloud</option>  
-                <option value="flat10">Medium Cloud</option>             
-                <option value="flat100">Strong Cloud</option>             
-            </select>
-        </div> 
-        </div> 
+        <form class='form-horizontal' name="fort_menu" method='GET'>
+            
+            <hr class="col-md-12">
 
-        <hr class="col-md-11 col-md-offset-1">
-
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="pmass">Planet Mass</label>
-          <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="pmass" name="pmass" style="width: 70%;" value="1.5">
-        <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-            <select id="m_unit" name="m_unit" class="form-control">
-                <option value='M_jup'>M<sub>J</sub></option>   
-                <option value='kilogram'>Kg</option>  
-                <option value='g'>g</option>  
-                <option value='M_earth'>M<sub>E</sub></option> 
-                <option value='M_sun'>M<sub>S</sub></option>          
-            </select>
-            </div> 
-        </div>
-        </div>
-
-        <hr class="col-md-11 col-md-offset-1">
-        <div class='form-group'>
-            <label class="col-md-3 control-label" for="refrad">Planet Radius</label>
-        <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="refrad" name="refrad" style="width: 70%;" value="1.25">
-            <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-                <select id="r_unit" name="r_unit" class="form-control">
-                <option value='R_jup'>R<sub>J</sub></option>   
-                <option value='kilometer'>Km</option>  
-                <option value='m'>m</option>  
-                <option value='R_earth'>R<sub>E</sub></option> 
-                <option value='R_sun'>R<sub>S</sub></option>  
-                </select>
+            <div class='form-group'>
+            
+                <label for="ptemp" class="col-sm-2 control-label">Planet Temp (K)</label>
+                <div class="col-sm-3">
+        
+                    <select id="ptemp" name="ptemp" class="form-control" data-placeholder="Select Temp (K)">
+                        <option value=""></option> 
+                        {% for i in temp %}
+                            <option {{ i }} value={{ i }}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-        </div>
-    </div>
-
-        <hr class="col-md-11 col-md-offset-1">
-    <div class='form-group'>
-            <label class="col-md-3 control-label" for="rstar">Stellar Radius</label>
-         <div class="col-md-4 form-inline">
-            <input type="text" class="form-control" id="rstar" name="rstar" style="width: 70%;" value="1">
-            <div class="input-group-btn" style="width: 20%;left: -4px;display: inline-block;">
-                <select id="rstar_unit" name="rstar_unit" class="form-control">
-                <option value='R_sun'>R<sub>S</sub></option>
-                <option value='kilometer'>Km</option>  
-                <option value='m'>m</option>  
-                <option value='R_earth'>R<sub>E</sub></option> 
-                <option value='R_jup'>R<sub>J</sub></option>  
-                </select>
+        
+            <hr class="col-md-12">
+            
+            <div class='form-group'>
+            
+                <label for="pchem" class="col-sm-2 control-label">Chemistry Type</label>
+                <div class="col-sm-3">
+        
+                    <select id="pchem" name="pchem" class="form-control" data-placeholder="Select Chemistry">
+                        <option value=""></option> 
+                        <option value='noTiO'>Equilibrium Chemistry</option>  
+                        <option value='eqchem'>Equilibrium Chemistry, w/ TiO</option>         
+                    </select>
+                </div>
             </div>
-        </div>
-        </div>
- <hr class="col-md-11 col-md-offset-1">
-        <div class="form-group">
-            <div class="col-sm-offset-3 col-sm-9">
-                <button type="submit" class="btn btn-success">Submit</button>
+        
+            <hr class="col-md-12">
+            
+            <div class='form-group'>
+            
+                <label for="cloud" class="col-sm-2 control-label">Clouds or Scattering</label>
+                <div class="col-sm-3">
+        
+                    <select id="cloud" name="cloud" class="form-control" data-placeholder="Clouds/Scattering">
+                        <option value=""></option> 
+                        <option value="0">Nothing</option>  
+                        <option value="ray10">Weak Rayleigh</option>  
+                        <option value="ray100">Medium Rayleigh</option>             
+                        <option value="ray1000">Strong Rayleigh</option>             
+                        <option value="flat1">Weak Cloud</option>  
+                        <option value="flat10">Medium Cloud</option>             
+                        <option value="flat100">Strong Cloud</option>             
+                    </select>
+                </div>
             </div>
-        </div>
+        
+            <hr class="col-md-12">
+            
+            <div class='form-group'>
+            
+                <label for="pmass" class="col-sm-2 control-label">Planet Mass</label>
+                <div class="col-md-3 form-inline">
+                    <input type="text" class="form-control" id="pmass" name="pmass" value="1.5">
+                    <div class="input-group-btn" style="margin-left: 5px; left: -4px;display: inline-block;">
+                        <select id="m_unit" name="m_unit" class="form-control">
+                            <option value='M_jup'>M<sub>J</sub></option>   
+                            <option value='kilogram'>Kg</option>  
+                            <option value='g'>g</option>  
+                            <option value='M_earth'>M<sub>E</sub></option> 
+                            <option value='M_sun'>M<sub>S</sub></option>          
+                        </select>
+                    </div>
+                </div>
+            </div>
+        
+            <hr class="col-md-12">
+            
+            
+            <div class='form-group'>
+            
+                <label for="refrad" class="col-sm-2 control-label">Planet Radius</label>
+                <div class="col-md-3 form-inline">
+                    <input type="text" class="form-control" id="refrad" name="refrad" value="1.25">
+                    <div class="input-group-btn" style="margin-left: 5px; left: -4px;display: inline-block;">
+                        <select id="r_unit" name="r_unit" class="form-control">
+                            <option value='R_jup'>R<sub>J</sub></option>   
+                            <option value='kilometer'>Km</option>  
+                            <option value='m'>m</option>  
+                            <option value='R_earth'>R<sub>E</sub></option> 
+                            <option value='R_sun'>R<sub>S</sub></option>  
+                        </select>
+                    </div>
+                </div>
+            </div>
+        
+            <hr class="col-md-12">
+            
+            <div class='form-group'>
+            
+                <label for="rstar" class="col-sm-2 control-label">Stellar Radius</label>
+                <div class="col-md-3 form-inline">
+                    <input type="text" class="form-control" id="rstar" name="rstar" value="1.0">
+                    <div class="input-group-btn" style="margin-left: 5px; left: -4px;display: inline-block;">
+                        <select id="rstar_unit" name="rstar_unit" class="form-control">
+                            <option value='R_sun'>R<sub>S</sub></option>
+                            <option value='kilometer'>Km</option>  
+                            <option value='m'>m</option>  
+                            <option value='R_earth'>R<sub>E</sub></option> 
+                            <option value='R_jup'>R<sub>J</sub></option>  
+                        </select>
+                    </div>
+                </div>
+            </div>
+        
+            <hr class="col-md-12">
+            
+            <div class='form-group'>
+            
+                <label for="sub" class="col-sm-2 control-label"></label>
+                <div class="col-md-3 form-inline">
+                    <button type="submit" class="btn btn-success">Submit</button>
+                </div>
+            </div>
 
         </form>
     </div>
+</div>
 
-    <div style="display:table; margin:0 auto;">
-        {{ plot_div|indent(4)|safe }}
-    </div>
+<br><br>
 
-    <div>
-        <form action="/fortney_result" method="post">
-            <input type="hidden" name="data_file" value="{{ table_string }}" />
-            <input class="btn btn-primary" type='submit' value='Save File'></p>
-        </form>
-    </div>
-    <div>
-        <h3>References</h3>
+<h1>Results</h1>
+<hr class="col-md-12">
 
-    </div>
-  </body>
+<div style="display:table; margin:20 auto;">
+    {{ plot_div|indent(4)|safe }}
+</div>
+
+<div>
+    <form action="/fortney_result" method="post">
+        <input type="hidden" name="data_file" value="{{ table_string }}" />
+        <input class="btn btn-primary" type='submit' value='Save File'></p>
+    </form>
+</div>
+
 
 {% endblock%}
