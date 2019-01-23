@@ -123,7 +123,7 @@ class LDC:
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
     ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
-    ld.plot()
+    ld.plot(show=True)
     """
     def __init__(self, model_grid):
         """Initialize an LDC object
