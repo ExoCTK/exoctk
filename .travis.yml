@@ -28,6 +28,7 @@ install:
   - ci/install_conda.sh
   - ci/setup_conda_env.sh
   - python setup.py install
+  - echo $PATH
 
 script:
   - pytest
