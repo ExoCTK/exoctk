@@ -21,7 +21,6 @@ dependencies:
   - docutils=0.14
   - flask=1.0.2
   - freetype=2.9.1
-  - gcc=4.8.5
   - h5py=2.8.0
   - hdf5=1.10.2
   - idna=2.7
