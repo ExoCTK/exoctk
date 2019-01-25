@@ -25,5 +25,5 @@ conda update conda
 conda update --all
 conda info -a || exit 1
 
-echo "Installing Numpy"
+echo "Installing numpy"
 conda install numpy
