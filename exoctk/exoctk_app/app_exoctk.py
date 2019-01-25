@@ -84,8 +84,9 @@ def limb_darkening():
 
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-    
+
     if request.method == 'POST':
+        print(request.form['submit'])
         if request.form['submit'] == "Retrieve Parameters":
             target_name = request.form['targetname']
             data = get_target_data(target_name)
@@ -95,11 +96,10 @@ def limb_darkening():
             logg = data['stellar_gravity']
             
             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-            
+
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 
-    if request.method == 'POST':
-        if request.form['submit'] == "Calculate Coefficients":
+        elif request.form['submit'] == "Calculate Coefficients":
             # Log the form inputs
             try:
                 log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
@@ -156,7 +156,7 @@ def limb_darkening():
 
                 if len(model_grid.data) == 0:
 
-                    message = '`Could not` calculate limb darkening with those parameters.'
+                    message = 'Could not calculate limb darkening with those parameters.'
 
                     return render_template('limb_darkening_error.html', teff=teff,
                                         logg=logg, feh=feh,
