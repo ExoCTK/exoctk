@@ -28,7 +28,7 @@ install:
   - ci/install_conda.sh
   - ci/setup_conda_env.sh
   - python setup.py install
-  - echo $PATH
 
 script:
+  - export PATH="$HOME/miniconda3/envs/exoctk-3.5/bin:$PATH"
   - pytest
