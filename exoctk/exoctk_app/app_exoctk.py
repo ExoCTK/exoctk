@@ -120,11 +120,11 @@ def limb_darkening():
 
             # Throw error if input params are invalid
             try:
-                teff = int(request.form['teff'])
+                teff = float(request.form['teff'])
                 logg = float(request.form['logg'])
                 feh = float(request.form['feh'])
                 mu_min = float(request.form['mu_min'])
-            except:
+            except IOError:
                 teff = str(request.form['teff']).replace('<', '&lt')
                 logg = str(request.form['logg']).replace('<', '&lt')
                 feh = str(request.form['feh']).replace('<', '&lt')
