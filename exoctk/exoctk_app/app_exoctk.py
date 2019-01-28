@@ -86,7 +86,6 @@ def limb_darkening():
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
 
     if request.method == 'POST':
-        print(request.form['submit'])
         if request.form['submit'] == "Retrieve Parameters":
             target_name = request.form['targetname']
             data = get_target_data(target_name)
