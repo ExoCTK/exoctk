@@ -84,7 +84,7 @@ def limb_darkening():
 
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-    
+
     if request.method == 'POST':
         if request.form['submit'] == "Retrieve Parameters":
             target_name = request.form['targetname']
@@ -95,11 +95,10 @@ def limb_darkening():
             logg = data['stellar_gravity']
             
             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-            
+
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 
-    if request.method == 'POST':
-        if request.form['submit'] == "Calculate Coefficients":
+        elif request.form['submit'] == "Calculate Coefficients":
             # Log the form inputs
             try:
                 log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
@@ -121,11 +120,11 @@ def limb_darkening():
 
             # Throw error if input params are invalid
             try:
-                teff = int(request.form['teff'])
+                teff = float(request.form['teff'])
                 logg = float(request.form['logg'])
                 feh = float(request.form['feh'])
                 mu_min = float(request.form['mu_min'])
-            except:
+            except IOError:
                 teff = str(request.form['teff']).replace('<', '&lt')
                 logg = str(request.form['logg']).replace('<', '&lt')
                 feh = str(request.form['feh']).replace('<', '&lt')
@@ -156,7 +155,7 @@ def limb_darkening():
 
                 if len(model_grid.data) == 0:
 
-                    message = '`Could not` calculate limb darkening with those parameters.'
+                    message = 'Could not calculate limb darkening with those parameters.'
 
                     return render_template('limb_darkening_error.html', teff=teff,
                                         logg=logg, feh=feh,
