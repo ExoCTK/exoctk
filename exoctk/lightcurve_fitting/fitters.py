@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
+def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=True):
     """Use lmfit
 
     Parameters
@@ -21,6 +21,12 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
         The model to fit
     unc: np.ndarray (optional)
         The uncertainty on the (same shape) data
+    method: str
+        The name of the method to use
+    name: str
+        A name for the best fit model
+    verbose: bool
+        Print some stuff
 
     Returns
     -------
@@ -83,7 +89,7 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
 
     # Make a new model instance
     best_model = copy.copy(model)
-    best_model.name = 'Best Fit'
     best_model.parameters = params
+    best_model.name = ', '.join(['{}:{}'.format(k,v[0].round(2)) for k,v in params.dict.items()])
 
     return best_model
