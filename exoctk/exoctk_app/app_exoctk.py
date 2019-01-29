@@ -774,6 +774,12 @@ def secret_page():
 
     return render_template('admin_page.html', tables=log_tables)
 
+@app_exoctk.route('/lightcurve_fitting')
+def lightcurve_fitting():
+    """A landing page for the lightcurve_fitting tool"""
+
+    return render_template('lightcurve_fitting.html')
+
 
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
