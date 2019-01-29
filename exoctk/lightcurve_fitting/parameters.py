@@ -5,6 +5,7 @@ Email: jfilippazzo@stsci.edu
 """
 import os
 import json
+
 import numpy as np
 
 
