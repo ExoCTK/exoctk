@@ -5,7 +5,7 @@ Email: jfilippazzo@stsci.edu
 """
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from bokeh.plotting import figure, show
 
 from .models import Model
 from .fitters import lmfitter
@@ -39,7 +39,7 @@ class LightCurveFitter:
 
 class LightCurve(Model):
     def __init__(self, time, flux, unc=None, parameters=None, units='MJD',
-                 name=None):
+                 name='My Light Curve'):
         """
         A class to store the actual light curve
 
@@ -54,6 +54,10 @@ class LightCurve(Model):
         parameters: str, object (optional)
             The orbital parameters of the star/planet system,
             may be a path to a JSON file or a parameter object
+        units: str
+            The time units
+        name: str
+            A name for the object
         """
         # Initialize the model
         super().__init__()
@@ -95,13 +99,31 @@ class LightCurve(Model):
             # Run the fit
             return lmfitter(self.time, self.flux, model, self.unc)
 
-    def plot(self):
-        """Plot the light curve with all available fits"""
-        plt.figure()
+    def plot(self, draw=True):
+        """Plot the light curve with all available fits
 
-        plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o',
-                     ls='none', label=self.name)
+        Parameters
+        ----------
+        draw: bool
+            Show the figure, else return it
 
-        plt.xlabel(self.units)
-        plt.ylabel('Flux')
-        plt.legend(loc=0, frameon=False)
+        Returns
+        -------
+        bokeh.plotting.figure
+            The figure
+        """
+        # Make the figure
+        fig = figure()
+
+        # Draw the data
+        fig.circle(self.time, self.flux, legend=self.name)
+
+        # Format axes
+        fig.xaxis.axis_label = str(self.units)
+        fig.yaxis.axis_label = 'Flux'
+
+        # Draw or return
+        if draw:
+            show(fig)
+        else:
+            return fig
