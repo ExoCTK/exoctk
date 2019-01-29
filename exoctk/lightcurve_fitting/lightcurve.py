@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from bokeh.plotting import figure, show
 
-from .models import Model
+from .models import Model, CompositeModel
 from .fitters import lmfitter
 
 
@@ -38,8 +38,7 @@ class LightCurveFitter:
 
 
 class LightCurve(Model):
-    def __init__(self, time, flux, unc=None, parameters=None, units='MJD',
-                 name='My Light Curve'):
+    def __init__(self, time, flux, unc=None, parameters=None, units='MJD', name='My Light Curve'):
         """
         A class to store the actual light curve
 
@@ -84,6 +83,9 @@ class LightCurve(Model):
         self.units = units
         self.name = name
 
+        # Place to save the fit results
+        self.results = []
+
     def fit(self, model, fitter='lmfit', **kwargs):
         """Fit the model to the lightcurve
 
@@ -94,16 +96,32 @@ class LightCurve(Model):
         fitter: str
             The name of the fitter to use
         """
+        # Empty default fit
+        fit_model = None
+
+        # Make sure the model is a CompositeModel
+        if not isinstance(model, type(CompositeModel)):
+            model = CompositeModel([model])
+
         if fitter == 'lmfit':
 
             # Run the fit
-            return lmfitter(self.time, self.flux, model, self.unc)
+            fit_model = lmfitter(self.time, self.flux, model, self.unc)
 
-    def plot(self, draw=True):
+        else:
+            raise ValueError("{} is not a valid fitter.".format(fitter))
+
+        # Store it
+        if fit_model is not None:
+            self.results.append(fit_model)
+
+    def plot(self, fits=True, draw=True):
         """Plot the light curve with all available fits
 
         Parameters
         ----------
+        fits: bool
+            Plot the fit models
         draw: bool
             Show the figure, else return it
 
@@ -118,6 +136,11 @@ class LightCurve(Model):
         # Draw the data
         fig.circle(self.time, self.flux, legend=self.name)
 
+        # Plot fit models
+        if fits and len(self.results) > 0:
+            for model in self.results:
+                model.plot(self.time, fig=fig)
+
         # Format axes
         fig.xaxis.axis_label = str(self.units)
         fig.yaxis.axis_label = 'Flux'
@@ -127,3 +150,7 @@ class LightCurve(Model):
             show(fig)
         else:
             return fig
+
+    def reset(self):
+        """Reset the results"""
+        self.results = []
