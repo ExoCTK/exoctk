@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+        <script src='{{ url_for('static',filename='js/jquery-1.12.0.min.js')}}'></script>
+
+{% block content %}
+
+        <div class='form-group'>
+            <h1>Lightcurve Fitting Tool</h1>
+            <br>
+            <p>
+            
+            The Lightcurve Fitting Tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+            </p>
+    
+            <hr class="col-md-12">
+            
+            <p>
+            More about the tool here.
+            </p>
+
+        </div>
+
+{% endblock %}
