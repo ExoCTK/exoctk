@@ -92,6 +92,6 @@ def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=Tr
     # Make a new model instance
     best_model = copy.copy(model)
     best_model.parameters = params
-    best_model.name = ', '.join(['{}:{}'.format(k,v[0].round(2)) for k,v in params.dict.items()])
+    best_model.name = ', '.join(['{}:{}'.format(k,round(v[0], 2)) for k,v in params.dict.items()])
 
     return best_model
