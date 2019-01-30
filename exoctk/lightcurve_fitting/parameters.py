@@ -120,6 +120,30 @@ class Parameters:
         for param, value in params.items():
             setattr(self, param, value)
 
+    def __add__(self, other):
+        """Add parameters to make a combined model
+
+        Parameters
+        ----------
+        other: ExoCTK.lightcurve_fitting.parameters.Parameters
+            The parameters to  to multiply
+
+        Returns
+        -------
+        ExoCTK.lightcurve_fitting.parameters.Parameters
+            The combined model
+        """
+        # Make sure it is the right type
+        if not type(self) == type(other):
+            raise TypeError('Only another Parameters instance may be multiplied.')
+
+        # Combine the model parameters too
+        kwargs = self.dict
+        kwargs.update(other.dict)
+        newParams = Parameters(**kwargs)
+
+        return newParams
+
     def __setattr__(self, item, value):
         """Maps attributes to values
 

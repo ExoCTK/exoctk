@@ -27,7 +27,7 @@ class Model:
         self._time = None
         self._flux = None
         self._units = q.day
-        self._parameters = None
+        self._parameters = Parameters()
         self.components = None
         self.fmt = None
 
@@ -53,7 +53,10 @@ class Model:
         if not all([hasattr(other, attr) for attr in attrs]):
             raise TypeError('Only another Model instance may be multiplied.')
 
-        return CompositeModel([copy.copy(self), other])
+        # Combine the model parameters too
+        params = self.parameters + other.parameters
+
+        return CompositeModel([copy.copy(self), other], parameters=params)
 
     @property
     def flux(self):
