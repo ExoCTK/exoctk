@@ -1,9 +1,0 @@
-[
-  "exoctk/tests/test_lightcurve_fitting.py::TestLightcurve::test_lightcurve",
-  "exoctk/tests/test_lightcurve_fitting.py::TestModels::test_compositemodel",
-  "exoctk/tests/test_lightcurve_fitting.py::TestModels::test_model",
-  "exoctk/tests/test_lightcurve_fitting.py::TestModels::test_polynomialmodel",
-  "exoctk/tests/test_lightcurve_fitting.py::TestModels::test_transitmodel",
-  "exoctk/tests/test_lightcurve_fitting.py::TestParameters::test_parameter",
-  "exoctk/tests/test_lightcurve_fitting.py::TestParameters::test_parameters"
-]

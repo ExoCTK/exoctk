@@ -1,4 +1,4 @@
-"""Functions used to fit models to light curve data
+"""Funcertaintytions used to fit models to light curve data
 
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=True, **kwargs):
+def lmfitter(time, data, model, uncertainty=None, method='powell', name=None, verbose=True, **kwargs):
     """Use lmfit
 
     Parameters
@@ -19,7 +19,7 @@ def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=Tr
         The observational data
     model: ExoCTK.lightcurve_fitting.models.Model
         The model to fit
-    unc: np.ndarray (optional)
+    uncertainty: np.ndarray (optional)
         The uncertainty on the (same shape) data
     method: str
         The name of the method to use
@@ -66,12 +66,12 @@ def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=Tr
     lcmodel = lmfit.Model(model.eval)
     lcmodel.independent_vars = indep_vars.keys()
 
-    # Set the unc
-    if unc is None:
-        unc = np.ones(len(data))
+    # Set the uncertainty
+    if uncertainty is None:
+        uncertainty = np.ones(len(data))
 
     # Fit light curve model to the simulated data
-    result = lcmodel.fit(data, weights=1/unc, params=initialParams,
+    result = lcmodel.fit(data, weights=1/uncertainty, params=initialParams,
                          method=method, **indep_vars, **kwargs)
     if verbose:
         print(result.fit_report())
@@ -92,6 +92,6 @@ def lmfitter(time, data, model, unc=None, method='powell', name=None, verbose=Tr
     # Make a new model instance
     best_model = copy.copy(model)
     best_model.parameters = params
-    best_model.name = ', '.join(['{}:{}'.format(k,round(v[0], 2)) for k,v in params.dict.items()])
+    best_model.name = ', '.join(['{}:{}'.format(k, round(v[0], 2)) for k, v in params.dict.items()])
 
     return best_model
