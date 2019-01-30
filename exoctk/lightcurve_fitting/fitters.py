@@ -1,4 +1,4 @@
-"""Funcertaintytions used to fit models to light curve data
+"""Functions used to fit models to light curve data
 
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
