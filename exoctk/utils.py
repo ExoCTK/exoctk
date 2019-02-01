@@ -546,11 +546,25 @@ def get_target_data(target_name, request_url=False):
     else:
         print('Whoops, no data for this target!')
 
-    # Some exoplanets have multiple catalog entries
-    # Temporary... Need to write a parser to select catalog
-    target_data = target_data[0]
+    # Some targets have multiple catalogs
+    # nexsci is the first choice.
+    if len(target_data) > 1:
+        # Get catalog names from exomast and make then the keys of a dictionary
+        # and the values are its position in the json object.
+        catalog_dict = {data['catalog_name']: index for index, data in enumerate(target_data)}
+        
+        # Parse based on catalog accuracy.
+        if 'nexsci' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['nexsci']]
+        elif 'exoplanets.org' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['exoplanets.org']]
+        else:
+            target_data = target_data[0]
+    else:
+        target_data = target_data[0]
     
     if request_url:
+        # Strip spaces and non numeric or alphabetic characters and combine.
         url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
         return target_data, url
     else:
