@@ -202,8 +202,7 @@
                         <div class="input-group">
                             <input class="btn btn-success" type="submit" name="submit" value="Retrieve Parameters"/>
                         </div>
-                        <span id="helpBlock" class="help-block">Enter parameters manually if no target name provided</span>
-
+                        <span id="helpBlock" class="help-block"><b>Retrieve parameters from ExoMAST. Fields below must be populated prior to submission!</b></span>
                         <br>
                         
                         
@@ -239,7 +238,11 @@
                           <input id='mu_min' type="text" class='form-control' name="mu_min" size="10" rows="1" value="0.1" placeholder="0 - 1"/>
                           <div class="input-group-addon" style='width:60px'></div>
                         </div>
-                        <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
+                        <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile (Default=0.1)</span>
+                       
+                        <br>
+
+                        <a href="{{limbVars.get('target_url')}}">Visit ExoMAST for more Information on this target.</a>
                     </div>
                 </div>
                 

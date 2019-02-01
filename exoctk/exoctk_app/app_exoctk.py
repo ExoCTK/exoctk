@@ -93,11 +93,14 @@ def limb_darkening():
         target_name = request.args.get('targetname', default='Wasp-18 b')
         target_name = urllib.parse.unquote(target_name, encoding='utf-8') 
         
-        teff = request.args.get('teff', default=3624.0)
-        logg = request.args.get('logg', default=5.22)
-        feh = request.args.get('feh', default=0.0)
+        teff = request.args.get('teff', default=6431.0)
+        logg = request.args.get('logg', default=4.47)
+        feh = request.args.get('feh', default=0.13)
+        target_url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet=WASP18b'
         
-        limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
+        limbVars = {'targname':target_name, 'feh': feh, 
+                    'teff':teff, 'logg':logg, 
+                    'target_url':target_url}
 
         return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 
@@ -111,7 +114,8 @@ def limb_darkening():
             logg = data['stellar_gravity']
             
             limbVars = {'targname':target_name, 'feh': feh, 
-                        'teff':teff, 'logg':logg}
+                        'teff':teff, 'logg':logg,
+                        'target_url':target_url}
 
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 
