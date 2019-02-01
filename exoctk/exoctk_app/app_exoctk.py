@@ -19,6 +19,7 @@ from flask import request, send_file, make_response, render_template, redirect
 from functools import wraps
 import numpy as np
 import pandas as pd
+import urllib
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
@@ -84,6 +85,21 @@ def limb_darkening():
 
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
+
+    if request.method == 'GET':
+        # Dummy url: 0.0.0.0:5000/limb_darkening?targetname=Wasp-39%20b&teff=5400.0&logg=4.4&feh=-0.12
+        
+        # Target name will be decoded ie Wasp-39 b == Wasp-39%20b
+        target_name = request.args.get('targetname', default='Wasp-18 b')
+        target_name = urllib.parse.unquote(target_name, encoding='utf-8') 
+        
+        feh = request.args.get('feh', default=0.0)
+        teff = request.args.get('teff', default=3624.0)
+        logg = request.args.get('logg', default=5.22)
+        
+        limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
+
+        return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 
     if request.method == 'POST':
         if request.form['submit'] == "Retrieve Parameters":
