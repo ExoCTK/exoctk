@@ -93,9 +93,9 @@ def limb_darkening():
         target_name = request.args.get('targetname', default='Wasp-18 b')
         target_name = urllib.parse.unquote(target_name, encoding='utf-8') 
         
-        feh = request.args.get('feh', default=0.0)
         teff = request.args.get('teff', default=3624.0)
         logg = request.args.get('logg', default=5.22)
+        feh = request.args.get('feh', default=0.0)
         
         limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
 
@@ -104,13 +104,14 @@ def limb_darkening():
     if request.method == 'POST':
         if request.form['submit'] == "Retrieve Parameters":
             target_name = request.form['targetname']
-            data = get_target_data(target_name)
+            data, target_url = get_target_data(target_name, request_url=True)
 
             feh = data['Fe/H']
             teff = data['Teff']
             logg = data['stellar_gravity']
             
-            limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
+            limbVars = {'targname':target_name, 'feh': feh, 
+                        'teff':teff, 'logg':logg}
 
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
 

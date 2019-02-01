@@ -516,20 +516,22 @@ def get_canonical_name(target_name):
     
     return canonical_name
 
-def get_target_data(target_name):
+def get_target_data(target_name, request_url=False):
     '''Send request to exomast restful api for target information.
         
         Parameters
         ----------
         target_name : string
             The name of the target transit. 
-
+        request_url: bool
+            bool to return exomast request url.
+        
         Returns
         -------
-        period : float
-            The period of the transit in days. 
-        transitDur : float
-            The duration of the transit in hours. 
+        target_data: json:
+            json object with target data.
+        target_url: string
+            url for data returned from exoMAST. 
 
     '''
 
@@ -548,4 +550,8 @@ def get_target_data(target_name):
     # Temporary... Need to write a parser to select catalog
     target_data = target_data[0]
     
-    return target_data
+    if request_url:
+        url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
+        return target_data, url
+    else:
+        return target_data
