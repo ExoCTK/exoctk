@@ -130,4 +130,4 @@ where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. `
 
 Missing Dependencies?
 ~~~~~~~~~~~~~~~~~~~~~
-If you find that the `exoctk` `conda` is missing a required dependency, please feel free to [submit a GitHub Issue](https://github.com/ExoCTK/exoctk/issues) detailing the problem.
+If you find that the `exoctk` `conda` is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
