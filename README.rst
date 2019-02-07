@@ -65,54 +65,68 @@ models, but still run 100 times faster.
 Installation
 ------------
 
-The following are instructions on how to install the `exoctk` package for both users and contributors.  The `exoctk` repository provides a `conda` environment containing all of the dependencies needed to install and execute the `exoctk` software.
+The following are instructions on how to install the ``exoctk`` package for both users and contributors.  The ``exoctk`` repository provides a ``conda`` environment containing all of the dependencies needed to install and execute the ``exoctk`` software.
 
 Download Anaconda or Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must first have a working installation of `anaconda` or `miniconda` for Python 3.  If you do not yet have this on your system, you can visit the following links for download and installation instructions:
+You must first have a working installation of ``anaconda`` or ``miniconda`` for Python 3.  If you do not yet have this on your system, you can visit the following links for download and installation instructions:
 
-- [Anaconda](https://www.anaconda.com/download/)
-- [Miniconda](https://conda.io/en/latest/miniconda.html)
+- `Anaconda <https://www.anaconda.com/download/>`_
+- `Miniconda <https://conda.io/en/latest/miniconda.html>`_
 
 Package Installation
 ~~~~~~~~~~~~~~~~~~~~
 
-The files needed for the environment installation are available within the `exoctk` package itself.  If you have not done so already, download and install the `exoctk` package, either by `pip`:
+The files needed for the environment installation are available within the `exoctk` package itself.  If you have not done so already, download and install the ``exoctk`` package, either by ``pip``:
 
-```
-pip install exoctk
-```
+::
+
+  pip install exoctk
+
 
 or by cloning the `exoctk` repository directly:
 
-```
-git clone https://github.com/ExoCTK/exoctk.git
-cd exoctk
-python setup.py install
-```
+::
+
+  git clone https://github.com/ExoCTK/exoctk.git
+  cd exoctk
+  python setup.py install
+
 
 Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Following the installation of the `exoctk` package, you can install the `conda` environment via the `env/environment-<PYTHON_VERSION>.yml` files (relative to the parent directory of the repository).  Note that there is are separate environment files for each version of `python` that `exoctk` supports.  First, one should ensure that their version of `conda` is up to date:
+Following the installation of the ``exoctk`` package, you can install the ``conda`` environment via the ``env/environment-<PYTHON_VERSION>.yml`` files (relative to the parent directory of the repository).  Note that there is are separate environment files for each version of ``python`` that ``exoctk`` supports.  First, one should ensure that their version of ``conda`` is up to date:
 
-```
-conda update conda
-```
+::
 
-Next, one should activate the `base` environment:
+  conda update conda
 
-```
-source activate base
-```
 
-Lastly, one can create the `exoctk` `conda` environment via the appropriate `environment-<PYTHON_VERSION>.yml` file:
+Next, one should activate the ``base`` environment:
 
-```
-conda env create -f environment-<PYTHON_VERSION>.yml
-```
+::
 
-where `<PYTHON_VERSION>` is the version of python you are using (e.g. `environment-3.6.yml`
+  source activate base
+
+
+Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file:
+
+::
+
+  conda env create -f environment-<PYTHON_VERSION>.yml
+
+
+where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.6.yml``)
+
+Lastly, one can activate the newly-created environment with:
+
+::
+
+  source activate exoctk-<PYTHON_VERSION>
+  
+where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.6``)
+
 
 Missing Dependencies?
 ~~~~~~~~~~~~~~~~~~~~~
