@@ -1,0 +1,15 @@
+astropy
+matplotlib
+numpy
+scipy
+numba
+h5py
+cython
+bibtexparser
+bokeh
+pandas
+sphinx-astropy
+sphinx_rtd_theme
+svo_filters
+batman-package
+sphinx-automodapi
