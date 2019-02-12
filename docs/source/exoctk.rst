@@ -1,4 +1,4 @@
-ExoCTK package
+exoctk package
 ==============
 
 Subpackages
@@ -6,76 +6,76 @@ Subpackages
 
 .. toctree::
 
-    ExoCTK.contam_visibility
-    ExoCTK.integrations_groups
-    ExoCTK.lightcurve_fitting
-    ExoCTK.limb_darkening
-    ExoCTK.nircam_coronagraphy
-    ExoCTK.tests
+    exoctk.contam_visibility
+    exoctk.integrations_groups
+    exoctk.lightcurve_fitting
+    exoctk.limb_darkening
+    exoctk.nircam_coronagraphy
+    exoctk.tests
 
 Submodules
 ----------
 
-ExoCTK.conftest module
+exoctk.conftest module
 ----------------------
 
-.. automodule:: ExoCTK.conftest
+.. automodule:: exoctk.conftest
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.cython\_version module
+exoctk.cython\_version module
 -----------------------------
 
-.. automodule:: ExoCTK.cython_version
+.. automodule:: exoctk.cython_version
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.helpers module
+exoctk.helpers module
 ---------------------
 
-.. automodule:: ExoCTK.helpers
+.. automodule:: exoctk.helpers
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.modelgrid module
+exoctk.modelgrid module
 -----------------------
 
-.. automodule:: ExoCTK.modelgrid
+.. automodule:: exoctk.modelgrid
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.references module
+exoctk.references module
 ------------------------
 
-.. automodule:: ExoCTK.references
+.. automodule:: exoctk.references
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.setup\_package module
+exoctk.setup\_package module
 ----------------------------
 
-.. automodule:: ExoCTK.setup_package
+.. automodule:: exoctk.setup_package
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.utils module
+exoctk.utils module
 -------------------
 
-.. automodule:: ExoCTK.utils
+.. automodule:: exoctk.utils
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.version module
+exoctk.version module
 ---------------------
 
-.. automodule:: ExoCTK.version
+.. automodule:: exoctk.version
     :members:
     :undoc-members:
     :show-inheritance:
@@ -84,7 +84,7 @@ ExoCTK.version module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK
+.. automodule:: exoctk
     :members:
     :undoc-members:
     :show-inheritance:
