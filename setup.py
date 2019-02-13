@@ -20,7 +20,6 @@ REQUIRES = ['asteval',
             'sphinx',
             'sphinx_astropy',
             'sphinx_automodapi',
-            'sphinx_rtd_theme',
             'svo_filters']
 
 setup(name='exoctk',
