@@ -1,6 +1,7 @@
 name: exoctk-3.5
 channels:
   - defaults
+  - http://ssb.stsci.edu/astroconda
 dependencies:
   - alabaster=0.7.11
   - asn1crypto=0.24.0
