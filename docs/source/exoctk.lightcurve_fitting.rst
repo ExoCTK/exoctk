@@ -1,37 +1,37 @@
-ExoCTK.lightcurve\_fitting package
+exoctk.lightcurve\_fitting package
 ==================================
 
 Submodules
 ----------
 
-ExoCTK.lightcurve\_fitting.fitters module
+exoctk.lightcurve\_fitting.fitters module
 -----------------------------------------
 
-.. automodule:: ExoCTK.lightcurve_fitting.fitters
+.. automodule:: exoctk.lightcurve_fitting.fitters
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.lightcurve\_fitting.lightcurve module
+exoctk.lightcurve\_fitting.lightcurve module
 --------------------------------------------
 
-.. automodule:: ExoCTK.lightcurve_fitting.lightcurve
+.. automodule:: exoctk.lightcurve_fitting.lightcurve
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.lightcurve\_fitting.models module
+exoctk.lightcurve\_fitting.models module
 ----------------------------------------
 
-.. automodule:: ExoCTK.lightcurve_fitting.models
+.. automodule:: exoctk.lightcurve_fitting.models
     :members:
     :undoc-members:
     :show-inheritance:
 
-ExoCTK.lightcurve\_fitting.parameters module
+exoctk.lightcurve\_fitting.parameters module
 --------------------------------------------
 
-.. automodule:: ExoCTK.lightcurve_fitting.parameters
+.. automodule:: exoctk.lightcurve_fitting.parameters
     :members:
     :undoc-members:
     :show-inheritance:
@@ -40,7 +40,7 @@ ExoCTK.lightcurve\_fitting.parameters module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK.lightcurve_fitting
+.. automodule:: exoctk.lightcurve_fitting
     :members:
     :undoc-members:
     :show-inheritance:
