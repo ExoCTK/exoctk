@@ -31,14 +31,14 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     simuCub : np.ndarray
         The simulated data cube.
     """
-    # stars in large field around target
+    # queries neighboring sources around target in FOV
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
                              radius=2.5*u.arcmin)
 
-    # coordinates of all stars in FOV, including target
+    # coordinates of all sources in FOV, including target
     allRA = info['ra'].data.data
     allDEC = info['dec'].data.data
     Jmag = info['j_m'].data.data
@@ -120,7 +120,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     # +target at O1 and O2
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
-    # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
     saveFiles = glob.glob(os.path.join(IDLSAVE_PATH, '*.sav'))[:-1]
     # pdb.set_trace()
 
@@ -227,6 +226,9 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
 
     return simuCube
+
+
+#def miri_sim_lrs():
 
 
 if __name__ == '__main__':

@@ -79,6 +79,8 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO2[y, :] = np.sum(cube[:, y, i-20:i+41]*ww, axis=1)
 
+
+
     # Otherwise, it's a Bokeh plot
     if fig:
 
@@ -109,6 +111,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
         fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))
         s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
                  color_mapper=color_mapper)
+        
         s2.xaxis.axis_label = 'Wavelength (um)'
         s2.yaxis.axis_label = 'Position Angle (degrees)'
 

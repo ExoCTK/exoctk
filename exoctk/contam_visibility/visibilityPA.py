@@ -9,21 +9,21 @@
 #-makes use of (and hacks) several scripts created by Pierre Ferruit
 # that are part of the JWST Python tools JWSTpylib and JWSTpytools
 
-
+import os
+import pkg_resources
+import datetime
 import sys
-from . import ephemeris_old2x as EPH
 import math
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+
+from . import ephemeris_old2x as EPH
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import MultipleLocator
 from astropy.io import ascii
-import os
-import pkg_resources
-import datetime
 from jwst_gtvt.find_tgt_info import get_table
 
 D2R = math.pi/180.  #degrees to radians
@@ -210,6 +210,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
         err_y = np.concatenate([paMin[i0_top:i1_top+1],paMaxTmp[i0_top:i1_top+1][::-1]])
         # err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
         err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],gdMaskednum[i0_top:i1_top+1][::-1]])
+
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
         # Bottom
@@ -218,13 +219,22 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
         err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],gdMaskednum[i0_bot:i1_bot+1][::-1]])
         fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
+        print('err_y and err_x')
+        print(err_y)
+        print(err_x)
+        print('shapes')
+        print(np.shape(err_y))
+        print(np.shape(err_x))
+
         # Plot formatting
         fig.xaxis.axis_label = 'Date'
         fig.yaxis.axis_label = 'Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
 
-def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), fig=''):
+def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, \
+    ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), \
+    fig=''):
     """using gtvt to find PAmin and PAmax for NIRISS
     yay
 
@@ -243,19 +253,27 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
     gd = tab['Date']
+    print(gd)
+    print('stop')
     paMin = tab[str(instrumentName)+' min']
     paMax = tab[str(instrumentName)+' max']
     paNom = tab['V3PA']
 
     #loop through dates and determine VIS
+    #load ephemeris
+    eclFlag = False
+    eph = EPH.Ephemeris(ephFileName, eclFlag)
+
     mjd = np.array(eph.datelist)
-    for i in range(mjd.size):
+    #print(mjd.size)
+    #for i in range(mjd.size):
 
         #is it visible?
-        vis[i] = eph.in_FOR(mjd[i],ra,dec)
+
+    #    vis[i] = eph.in_FOR(mjd[i],float(ra),float(dec))
 
     #does PA go through 360 deg?
-    wrap = np.any(np.abs(np.diff(paNom[np.where(vis)[0]])) > 350)
+    #wrap = np.any(np.abs(np.diff(paNom[np.where(vis)[0]])) > 350)
 
     if save:
         fName='visibilityPA-'+targetName+'.txt'
@@ -303,8 +321,33 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
     paNom = tab['V3PA']
 
     pas = np.arange(1, 361) # all possible angles (stops at 360)
-    paGood = pas[(pas >= paMin) & (pas <= paMax)] # good angles: pamin < pa < pamax
-    paBad = pas[(pas < paMin) | (pas > paMax)] # bad angles: pamax < pa < pamin
+
+
+    paGood, paBad= [], []
+    for min, max in zip(paMin, paMax):
+
+        good = pas[(pas >= min) & (pas <= max)] # good angles: pamin < pa < pamax
+        bad = pas[(pas < min) | (pas > max)] # bad angles: pamax < pa < pamin
+
+
+        if (len(good) > 0) & (len(bad > 0)):
+            paGood.extend(good)
+            paBad.extend(bad)
+
+
+    print('paGood')
+    print(paGood)
+
+    #for arr in paGood:
+
+        #newgd = gd[np.where(np.in1d(paMin, arr)==True)]
+        #gds.append(newgd)
+
+    # Make a figure
+    if not fig or fig==True:
+        fig = plt.gcf()
+
+
 
     if isinstance(fig, matplotlib.figure.Figure):
 
@@ -330,7 +373,7 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
 
         #else:
 
-        plt.fill_between(gd, paMin, paMax, where=paMax>paMin, lw=1.0, edgecolor=(0,0,0,.5), facecolor=(0,0,0,.5))
+        plt.fill_between(gd, paMin, paMax, where=paMax>paMin, lw=1.0, edgecolor=(0,0,0,.3), facecolor=(0,0,0,.5))
 
 
 
@@ -338,7 +381,7 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
 
         plt.ylabel('Position Angle (degrees)')
         plt.title('Target: Trappist-1'+'\n'+'Visibility with '+str(instrumentName)+' instrument - calculated using GTVT')
-        plt.xlim(min(gd),max(gd))
+        #plt.xlim(min(gd),max(gd))
         ax.xaxis.set_major_locator(mdates.MonthLocator())
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
         ax.xaxis.set_minor_locator(mdates.DayLocator(list(range(1,32,5))))
@@ -351,10 +394,16 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
 
         ax.set_xticks(ax.get_xticks()[::2])
         plt.legend()
-    """
-    # Or to bokeh!
-    else:
 
+    # Or to bokeh!
+    #paMax = np.max(paGood)
+    #paMin = np.min(paGood)
+
+    else:
+        #paMax = np.max(paGood)
+        #paMin = np.min(paGood)
+        #print('test')
+        #print(paMax)
         # Convert datetime to a number for Bokeh
         gd = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gd)]
         color = 'green'
@@ -363,19 +412,28 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
         fig.line(gd, paNom, legend='cutoff', line_color=color)
 
         # Top
-        err_y = np.concatenate([paMin[i0_top:i1_top+1],paMaxTmp[i0_top:i1_top+1][::-1]])
+        #err_y = np.concatenate(np.asarray(paMin),np.asarray(paMax))
         # err_x = np.concatenate([[d.timestamp() for d in gd[i0_top:i1_top+1]],[d.timestamp() for d in gd[i0_top:i1_top+1]][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],gdMaskednum[i0_top:i1_top+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+        #err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],gdMaskednum[i0_top:i1_top+1][::-1]])
+        #paMin, paMax = list(paMin), list(paMax)
+        #PAs = paMin.extend(paMax)
+        #gd = list(gd)
+        #fig.patch(gd.extend(gd), PAs, color='green')
 
         # Bottom
-        err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],paMax[i0_bot:i1_bot+1][::-1]])
+        #err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],paMax[i0_bot:i1_bot+1][::-1]])
         # err_x = np.concatenate([[d.timestamp() for d in gd[i0_bot:i1_bot+1]],[d.timestamp() for d in gd[i0_bot:i1_bot+1]][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],gdMaskednum[i0_bot:i1_bot+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+        #err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],gdMaskednum[i0_bot:i1_bot+1][::-1]])
+        #fig.patch(g, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
         # Plot formatting
-        fig.xaxis.axis_label = 'Date'
+        fig.xaxis.axis_label = 'update test'
         fig.yaxis.axis_label = 'Position Angle (degrees)'
-    """
-    return paGood, paBad, gd, fig
+
+
+        from bokeh.plotting import save, output_file
+        from bokeh.io import reset_output
+        output_file('/Users/jmedina/Desktop/visib_test.html')
+        save(fig)
+
+    return paGood, paBad, gd
