@@ -148,8 +148,10 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     # Make a figure
     if fig is None or fig == True:
         tools = 'crosshair, reset, hover, save'
+        radec = ', '.join([str(ra), str(dec)])
         fig = figure(tools=tools, plot_width=800, plot_height=400,
-                     x_axis_type='datetime')
+                     x_axis_type='datetime',
+                     title=targetName or radec)
 
     # Do all figure calculations
     iBad, = np.where(vis == False)
