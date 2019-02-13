@@ -17,9 +17,7 @@ REQUIRES = ['asteval',
             'pandas',
             'pysynphot',
             'scipy',
-            'sphinx_astropy',
-            'sphinx_automodapi',
-            'sphinx_rtd_theme',
+            'sphinx',
             'svo_filters']
 
 setup(name='exoctk',
