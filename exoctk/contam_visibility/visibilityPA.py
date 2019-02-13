@@ -13,11 +13,8 @@ import datetime
 import math
 import pkg_resources
 
-import matplotlib
-# matplotlib.use('Agg')
+from bokeh.plotting import figure
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 import numpy as np
 
 from . import ephemeris_old2x as EPH
@@ -61,7 +58,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         The target name
     ephFileName: str
         The filename of the ephemeris file
-    fig: matplotlib.pyplot.figure, bokeh.plotting.figure
+    fig: bokeh.plotting.figure
         The figure to plot to
 
     Returns
@@ -72,7 +69,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         The bad position angle.
     gd : matplotlib.dates object
        The greogrian date.
-    fig : matplotlib.pyplot object
+    fig : bokeh.plotting.figure object
         The plotted figure.
 
     """
@@ -150,7 +147,9 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # Make a figure
     if fig is None or fig == True:
-        fig = plt.gcf()
+        tools = 'crosshair, reset, hover, save'
+        fig = figure(tools=tools, plot_width=800, plot_height=400,
+                     x_axis_type='datetime')
 
     # Do all figure calculations
     iBad, = np.where(vis == False)
@@ -180,76 +179,30 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     paMinTmp = np.copy(paMin)
     paMinTmp[np.where(paMin > paMax)[0]] = 0
 
-    # Add fits to matplotlib
-    if isinstance(fig, matplotlib.figure.Figure):
+    # Convert datetime to a number for Bokeh
+    gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
+                   for n, d in enumerate(gdMasked)]
+    color = 'green'
 
-        # Make axes
-        ax = plt.axes()
-        plt.title(targetName)
+    # Draw the curve and error
+    fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
-        # plot nominal PA
-        plt.plot(gdMasked, paMasked, color='k')
+    # Top
+    err_y = np.concatenate([paMin[i0_top:i1_top+1],
+                            paMaxTmp[i0_top:i1_top+1][::-1]])
+    err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
+                            gdMaskednum[i0_top:i1_top+1][::-1]])
+    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
-        # plot ranges allowed through roll
-        if wrap:
-            i = np.argmax(paMin)
-            goUp = paMin[i-2] < paMin[i-1]  # PA going up at wrap point?
+    # Bottom
+    err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
+                            paMax[i0_bot:i1_bot+1][::-1]])
+    err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
+                            gdMaskednum[i0_bot:i1_bot+1][::-1]])
+    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
-            # top part
-            plt.fill_between(gd[i0_top:i1_top+1], paMin[i0_top:i1_top+1],
-                             paMaxTmp[i0_top:i1_top+1],
-                             where=vis[i0_top:i1_top+1], lw=0, facecolor='k',
-                             alpha=0.5)
-
-            # bottom part
-            plt.fill_between(gd[i0_bot:i1_bot+1], paMinTmp[i0_bot:i1_bot+1],
-                             paMax[i0_bot:i1_bot+1],
-                             where=vis[i0_bot:i1_bot+1], lw=0, facecolor='k',
-                             alpha=0.5)
-
-        else:
-            plt.fill_between(gd, paMin, paMax, where=vis, lw=0, facecolor='k',
-                             alpha=0.5)
-
-        plt.ylabel('Position Angle (degrees)')
-        plt.xlim(min(gd), max(gd))
-        ax.xaxis.set_major_locator(mdates.MonthLocator())
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
-        ax.xaxis.set_minor_locator(mdates.DayLocator(list(range(1, 32, 5))))
-        plt.ylim(0, 360)
-        ax.yaxis.set_major_locator(MultipleLocator(25))
-        ax.yaxis.set_minor_locator(MultipleLocator(5))
-        plt.grid()
-        for label in ax.get_xticklabels():
-            label.set_rotation(45)
-
-    # Or to bokeh!
-    else:
-
-        # Convert datetime to a number for Bokeh
-        gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
-                       for n, d in enumerate(gdMasked)]
-        color = 'green'
-
-        # Draw the curve and error
-        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
-
-        # Top
-        err_y = np.concatenate([paMin[i0_top:i1_top+1],
-                                paMaxTmp[i0_top:i1_top+1][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
-                                gdMaskednum[i0_top:i1_top+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-        # Bottom
-        err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
-                                paMax[i0_bot:i1_bot+1][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
-                                gdMaskednum[i0_bot:i1_bot+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-        # Plot formatting
-        fig.xaxis.axis_label = 'Date'
-        fig.yaxis.axis_label = 'Position Angle (degrees)'
+    # Plot formatting
+    fig.xaxis.axis_label = 'Date'
+    fig.yaxis.axis_label = 'Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
