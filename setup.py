@@ -19,7 +19,6 @@ REQUIRES = ['asteval',
             'scipy',
             'sphinx',
             'sphinx_astropy',
-            'sphinx_automodapi',
             'svo_filters']
 
 setup(name='exoctk',
