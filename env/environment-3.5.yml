@@ -1,10 +1,12 @@
 name: exoctk-3.5
 channels:
   - defaults
+  - http://ssb.stsci.edu/astroconda
 dependencies:
   - alabaster=0.7.11
   - asn1crypto=0.24.0
   - astropy=3.0.4
+  - astroquery
   - atomicwrites=1.2.1
   - attrs=18.2.0
   - babel=2.6.0
@@ -26,6 +28,7 @@ dependencies:
   - idna=2.7
   - imagesize=1.1.0
   - intel-openmp=2019.1
+  - ipython=6.5.0
   - itsdangerous=0.24
   - jinja2=2.10
   - jpeg=9b
