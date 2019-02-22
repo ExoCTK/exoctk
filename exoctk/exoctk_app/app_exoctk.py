@@ -27,7 +27,7 @@ from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_target_data
+from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name
 import log_exoctk
 from svo_filters import svo
 from sqlalchemy import create_engine
@@ -320,6 +320,19 @@ def groups_integrations():
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
+
+    if request.method == 'POST':
+        if request.form['submit'] == "Retrieve Parameters":
+            target_name = request.form['targetname']
+            canoncial_name = get_canonical_name(target_name)
+            # Ping exomast api and get data
+            data = get_target_data(target_name)
+            Kmag = data['Kmag']
+            obs_duration = data['transit_duration'] * 24. # Transit duration in exomast is in days, need it in hours
+            
+            groupsintegrationVars = {'targname':canoncial_name, 'Kmag':Kmag, 'obs_duration':obs_duration}
+
+            return render_template('groups_integrations.html', sat_data=sat_data, groupsintegrationVars=groupsintegrationVars)
 
     return render_template('groups_integrations.html', sat_data=sat_data)
 
