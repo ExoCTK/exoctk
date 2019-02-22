@@ -79,14 +79,6 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = CheckboxInput()
 
 
-# Redirect to the index
-@app_exoctk.route('/')
-@app_exoctk.route('/index')
-def index():
-    """The Index page"""
-    return render_template('index.html')
-
-
 class LdcForm(FlaskForm):
     targname = StringField('targname', default='')
     teff = DecimalField('teff', default=3500.0, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=2000, max=5000, message='Effective temperature must be between 2000 and 5000.')])
@@ -97,8 +89,15 @@ class LdcForm(FlaskForm):
     calculate_submit = SubmitField('Calculate Coefficients')
     modeldir = RadioField('modeldir', default='phoenix', choices=[('phoenix', 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
     bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in FILTERS['Band']], validators=[InputRequired('A filter is required!')])
-    profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES])
+    profiles = MultiCheckboxField('profiles', default='quadratic', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
 
+
+# Redirect to the index
+@app_exoctk.route('/')
+@app_exoctk.route('/index')
+def index():
+    """The Index page"""
+    return render_template('index.html')
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
