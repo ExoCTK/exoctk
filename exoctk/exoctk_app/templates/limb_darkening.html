@@ -194,13 +194,17 @@
                 <div class='form-group'>
                     <label class="col-sm-2 control-label">Choose One or More Limb Darkening Profiles</label>
                     <div class="col-sm-10">
-                        
-                        {% for box in form.profiles %}
-                            <div class='radio'>
-                                {{ box(style='margin-right:-10px;') }}{{ box.label }}
-                            </div>
+                        <div>
+                            {% for box in form.profiles %}
+                                <div class='radio'>
+                                    {{ box(style='margin-right:-10px;') }}{{ box.label }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <br>
+                        {% for error in form.profiles.errors %}
+                        <span style="color: red;">{{ error }}</span>
                         {% endfor %}
-                        
                     </div>
                 </div>
                 
