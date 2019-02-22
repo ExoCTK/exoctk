@@ -29,6 +29,6 @@ setup(name='exoctk',
       license='MIT',
       url='https://github.com/ExoCTK/exoctk',
       long_description='',
-      zip_safe=False,
+      zip_safe=True,
       use_2to3=False
 )
