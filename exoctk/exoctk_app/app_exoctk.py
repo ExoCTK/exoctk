@@ -19,6 +19,9 @@ from flask import request, send_file, make_response, render_template, redirect
 from functools import wraps
 import numpy as np
 import pandas as pd
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
@@ -38,6 +41,7 @@ app_exoctk = Flask(__name__)
 
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
+app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 
 MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
@@ -66,6 +70,11 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 VERSION = '0.2'
 
 
+class LdcForm(FlaskForm):
+    teff = StringField('Teff', validators=[InputRequired('An effective temperature is required!'), NumberRange(min=2000, max=5000, message='Effective temperature [K] must be between 2000 and 5000.')])
+    # password = PasswordField('password', validators=[InputRequired('Password is required!'), AnyOf(values=['password', 'secret'])])
+
+
 # Redirect to the index
 @app_exoctk.route('/')
 @app_exoctk.route('/index')
@@ -78,6 +87,7 @@ def index():
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
     """The limb darkening form page"""
+    form = LdcForm()
 
     # Get all the available filters
     filters = svo.filters()['Band']
