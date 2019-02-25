@@ -85,18 +85,29 @@ class MultiCheckboxField(SelectMultipleField):
 
 class LdcForm(FlaskForm):
     """Form validation for the LDC tool"""
+    # Default filter
+    default_filter = 'Kepler.K'
+    defilt = svo.Filter(default_filter)
+
+    # Default model grid with parametr ranges
+    default_modelgrid = MODELGRID_DIR
+    mg = ModelGrid(default_modelgrid, resolution=500)
+    teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
+    logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
+    feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
+
+    # Parameters
     targname = StringField('targname', default='')
-    teff = DecimalField('teff', default=3500.0, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=2000, max=5000, message='Effective temperature must be between 2000 and 5000.')])
-    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=3.5, max=5.5, message='Surface gravity must be between 3.5 and 5.5.')])
-    feh = DecimalField('feh', default=0.0, validators=[NumberRange(min=-0.5, max=0.5, message='Metallicity must be between -0.5 and +0.5')])
+    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {} K'.format(*teff_rng))])
+    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))])
+    feh = DecimalField('feh', default=0.0, validators=[NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
-    modeldir = RadioField('modeldir', default=MODELGRID_DIR, choices=[(MODELGRID_DIR, 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
-    bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[('/user/jfilippazzo/Models/ACES/default', 'Phoenix ACES'), ('/user/jfilippazzo/Models/ATLAS9/default', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
+    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
-    wave_min = DecimalField('wave_min', default=0, validators=[NumberRange(min=0, max=28, message='Minimum wavelength must be between 0 and 28 microns!')])
-    wave_max = DecimalField('wave_max', default=28, validators=[NumberRange(min=0, max=28, message='Maximum wavelength must be between 0 and 28 microns!')])
+    wave_min = DecimalField('wave_min', default=defilt.wave_min, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
+    wave_max = DecimalField('wave_max', default=defilt.wave_max, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
     n_bins = IntegerField('n_bins', default=1)
-    n_pix = IntegerField('n_pix', default=100)
 
     # Form submits
     resolve_submit = SubmitField('Resolve Target')
@@ -155,12 +166,19 @@ def limb_darkening():
     # Update validation values after a model grid is selected
     if form.modelgrid_submit.data:
 
-        # Get the filter
-        bandpass = svo.Filter(form.bandpass.data, **{})
+        # Load the modelgrid
+        mg = ModelGrid(form.modeldir.data, resolution=500)
+        teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
+        logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
+        feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
+        print(teff_rng, form.modeldir.data)
 
-        # Update the form data
-        form.wave_min.data = bandpass.wave_min.value
-        form.wave_max.data = bandpass.wave_max.value
+        # Update the validation parameters
+        print(form.teff.validators)
+        form.teff.validators[-1] = NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {} K'.format(*teff_rng))
+        form.logg.validators = [NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))]
+        form.feh.validators = [NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))]
+        print(form.teff.validators)
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
