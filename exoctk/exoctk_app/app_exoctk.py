@@ -78,11 +78,13 @@ VERSION = '0.2'
 
 
 class MultiCheckboxField(SelectMultipleField):
+    """Makes a list of checkbox inputs"""
     widget = ListWidget(prefix_label=False)
     option_widget = CheckboxInput()
 
 
 class LdcForm(FlaskForm):
+    """Form validation for the LDC tool"""
     targname = StringField('targname', default='')
     teff = DecimalField('teff', default=3500.0, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=2000, max=5000, message='Effective temperature must be between 2000 and 5000.')])
     logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=3.5, max=5.5, message='Surface gravity must be between 3.5 and 5.5.')])
@@ -90,6 +92,7 @@ class LdcForm(FlaskForm):
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
     resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Coefficients')
+    filter_submit = SubmitField('Filter Selected')
     modeldir = RadioField('modeldir', default=MODELGRID_DIR, choices=[(MODELGRID_DIR, 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
     bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in FILTERS['Band']], validators=[InputRequired('A filter is required!')])
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
@@ -98,12 +101,14 @@ class LdcForm(FlaskForm):
     n_bins = IntegerField('n_bins', default=1)
     n_pix = IntegerField('n_pix', default=100)
 
+
 # Redirect to the index
 @app_exoctk.route('/')
 @app_exoctk.route('/index')
 def index():
     """The Index page"""
     return render_template('index.html')
+
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
@@ -113,6 +118,7 @@ def limb_darkening():
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in FILTERS['Band']])
 
+    # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
         # Resolve the target in exoMAST
@@ -122,6 +128,19 @@ def limb_darkening():
         form.feh.data = float(data['Fe/H'])
         form.teff.data = float(data['Teff'])
         form.logg.data = float(data['stellar_gravity'])
+
+        # Send it back to the main page
+        return render_template('limb_darkening.html', form=form, filters=filt_list)
+
+    # Reload page with appropriate filter data
+    if form.filter_submit.data:
+
+        # Get the filter
+        bandpass = svo.Filter(form.bandpass.data, **{})
+
+        # Update the form data
+        form.wave_min.data = bandpass.wave_min.value
+        form.wave_max.data = bandpass.wave_max.value
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form, filters=filt_list)
@@ -139,7 +158,7 @@ def limb_darkening():
 
         # Load the model grid
         model_grid = ModelGrid(form.modeldir.data, resolution=500)
-        form.modeldir.data = [j for i,j in form.modeldir.choices if i == form.modeldir.data][0]
+        form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
 
         # Grism details
         if '.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper():

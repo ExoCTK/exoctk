@@ -8,24 +8,11 @@
             $(document).ready(function(){
             
                 $('#filterselect').on('change', function() {
-                  if ( this.value == 'WFC3_IR.G102' || this.value == 'WFC3_IR.G141' || this.value == 'NIRISS.GR700XD.1'  || this.value == 'STIS.G430L'  || this.value == 'STIS.G750L')
-                  {
-                      $("#n_bins").show();
-                      $("#or").show()
-                      $("#and").hide()
-                  } 
-                  else if ( this.value == 'tophat' )
-                  {
-                      $("#n_bins").show()
-                      $("#and").show()
-                      $("#or").hide()
-                  }
-                  else
-                  {
-                    $("#n_bins").hide();
-                  }
-                });
-                
+                    
+                    $('#filtersubmit').click();
+
+                }); 
+
             });
         </script>
 
@@ -124,29 +111,22 @@
                 <div class='form-group'>
                     
                     <label for="bandpass" class="col-sm-2 control-label">Choose a Bandpass</label>
-                    <div class="col-sm-3">
-                        <select class='form-control' name="bandpass" id="filterselect">
+                    <div class="col-sm-10">
+                        <select class='form-control' name="bandpass" id="filterselect" style='width:304px;'>
                             {% for option in form.bandpass %}
                                 <div class='radio'>
                                     {{ option }}
                                 </div>
                             {% endfor %}
                         </select>
-                    </div>
-                </div>
-                
-                <br>
-                
-                <div id='n_bins' class='form-group', style='display:none;'>
-                    
-                    <label for='' class="col-sm-2 control-label">Grism Details</label>
-                    <div class="col-sm-10">                        
+                        {{ form.filter_submit(id='filtersubmit', style="visibility: hidden;") }}
+
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\(\lambda_\text{min}\)</div>
                               {{ form.wave_min(value=form.wave_min.data, size=10, rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>\(\mu\)m</div>
                         </div>
-                        <span id="helpBlock" class="help-block">The minimum wavelength of the grism to use</span>
+                        <span id="helpBlock" class="help-block">The minimum wavelength to use</span>
                         <br>
 
                         <div class="input-group">
@@ -154,7 +134,7 @@
                               {{ form.wave_max(value=form.wave_max.data, size=10, rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>\(\mu\)m</div>
                         </div>
-                        <span id="helpBlock" class="help-block">The maximum wavelength of the grism to use</span>
+                        <span id="helpBlock" class="help-block">The maximum wavelength to use</span>
                         <br>
 
                         <div class="form-inline">
@@ -163,20 +143,20 @@
                                   <div class="input-group-addon" style='width:120px'># channels</div>
                                       {{ form.n_bins(value=form.n_bins.data, size=10, rows=1, class='form-control') }}
                                 </div>
-                                <span id="helpBlock" class="help-block">The number of channel to split the grism into</span>
+                                <span id="helpBlock" class="help-block">The number of channels to use (for grisms)</span>
                             </div>
-                            
-                            <div class="input-group col-sm-1"> 
+
+<!--                            <div class="input-group col-sm-1">
                                 <strong><span id='and'>AND</span><span id='or' style='display:none;'>OR</span></strong>
-                            </div>
+                            </div> -->
                             
-                            <div class="input-group col-sm-4">
-                                <div class="input-group"> 
+                            <!-- <div class="input-group col-sm-4">
+                                <div class="input-group">
                                   <div class="input-group-addon" style='width:120px'># pix/channel</div>
                                       {{ form.n_pix(value=form.n_pix.data, size=10, rows=1, class='form-control') }}
                                   </div>
                                   <span id="helpBlock" class="help-block">The number of pixels in each grism channel</span>
-                            </div>
+                            </div> -->
                         </div>
                         
                     </div>
