@@ -90,16 +90,19 @@ class LdcForm(FlaskForm):
     logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=3.5, max=5.5, message='Surface gravity must be between 3.5 and 5.5.')])
     feh = DecimalField('feh', default=0.0, validators=[NumberRange(min=-0.5, max=0.5, message='Metallicity must be between -0.5 and +0.5')])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
-    resolve_submit = SubmitField('Resolve Target')
-    calculate_submit = SubmitField('Calculate Coefficients')
-    filter_submit = SubmitField('Filter Selected')
     modeldir = RadioField('modeldir', default=MODELGRID_DIR, choices=[(MODELGRID_DIR, 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
-    bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in FILTERS['Band']], validators=[InputRequired('A filter is required!')])
+    bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
     wave_min = DecimalField('wave_min', default=0, validators=[NumberRange(min=0, max=28, message='Minimum wavelength must be between 0 and 28 microns!')])
     wave_max = DecimalField('wave_max', default=28, validators=[NumberRange(min=0, max=28, message='Maximum wavelength must be between 0 and 28 microns!')])
     n_bins = IntegerField('n_bins', default=1)
     n_pix = IntegerField('n_pix', default=100)
+
+    # Form submits
+    resolve_submit = SubmitField('Resolve Target')
+    calculate_submit = SubmitField('Calculate Coefficients')
+    filter_submit = SubmitField('Filter Selected')
+    modelgrid_submit = SubmitField('Model Grid Selected')
 
 
 # Redirect to the index
@@ -115,9 +118,6 @@ def limb_darkening():
     """The limb darkening form page"""
     form = LdcForm()
 
-    # Make HTML for filters
-    filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in FILTERS['Band']])
-
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -130,10 +130,30 @@ def limb_darkening():
         form.logg.data = float(data['stellar_gravity'])
 
         # Send it back to the main page
-        return render_template('limb_darkening.html', form=form, filters=filt_list)
+        return render_template('limb_darkening.html', form=form)
 
     # Reload page with appropriate filter data
     if form.filter_submit.data:
+
+        kwargs = {}
+        if form.bandpass.data == 'tophat':
+            kwargs['n_bins'] = 1
+            kwargs['pixels_per_bin'] = 100
+            kwargs['wave_min'] = 1*u.um
+            kwargs['wave_max'] = 2*u.um
+
+        # Get the filter
+        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+
+        # Update the form data
+        form.wave_min.data = bandpass.wave_min.value
+        form.wave_max.data = bandpass.wave_max.value
+
+        # Send it back to the main page
+        return render_template('limb_darkening.html', form=form)
+
+    # Update validation values after a model grid is selected
+    if form.modelgrid_submit.data:
 
         # Get the filter
         bandpass = svo.Filter(form.bandpass.data, **{})
@@ -143,8 +163,9 @@ def limb_darkening():
         form.wave_max.data = bandpass.wave_max.value
 
         # Send it back to the main page
-        return render_template('limb_darkening.html', form=form, filters=filt_list)
+        return render_template('limb_darkening.html', form=form)
 
+    # Validate form and submit for results
     if form.validate_on_submit() and form.calculate_submit.data:
 
         # Get the stellar parameters
@@ -245,7 +266,7 @@ def limb_darkening():
                                filt_plot=filt_plot, filt_script=filt_script,
                                js=js_resources, css=css_resources)
 
-    return render_template('limb_darkening.html', form=form, filters=filt_list)
+    return render_template('limb_darkening.html', form=form)
 
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
