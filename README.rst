@@ -65,8 +65,6 @@ models, but still run 100 times faster.
 Installation
 ------------
 
-Users who simply wish to
-
 The following are instructions on how to install the ``exoctk`` package for both users and contributors.  The ``exoctk`` repository provides a ``conda`` environment containing all of the dependencies needed to install and execute the ``exoctk`` software.
 
 Download Anaconda or Miniconda
@@ -96,7 +94,7 @@ or, clone the repository directly from GitHub:
 
 Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-You can install the ExoCTK ``conda`` environment via the ``env/environment-<PYTHON_VERSION>.yml`` files (relative to the parent directory of where the repository was installed).  Note that there is are separate environment files for each version of ``python`` that ``exoctk`` supports.  First, one should ensure that their version of ``conda`` is up to date:
+You can install the ExoCTK ``conda`` environment via the ``env/environment-<PYTHON_VERSION>.yml`` files (relative to the parent directory of where the repository was installed).  Note that there are separate environment files for each version of ``python`` that ``exoctk`` supports.  First, one should ensure that their version of ``conda`` is up to date:
 
 ::
 
