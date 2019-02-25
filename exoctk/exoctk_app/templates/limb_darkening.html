@@ -6,9 +6,19 @@
         
         <script>
             $(document).ready(function(){
+
                 $('#filterselect').on('change', function() {
                     $('#filtersubmit').click();
                 });
+
+                $('#aces').on('click', function() {
+                    $('#modelgridsubmit').click();
+                });
+                
+                $('#atlas9').on('click', function() {
+                    $('#modelgridsubmit').click();
+                });
+
             });
         </script>
 
@@ -60,7 +70,7 @@
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\([\text{Fe}/\text{H}]\)</div>
-                              {{ form.logg(value=form.feh.data, size=10, placeholder="-0.5 - +0.5", rows=1, class='form-control') }}
+                              {{ form.feh(value=form.feh.data, size=10, placeholder="-0.5 - +0.5", rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity</span>
@@ -94,13 +104,18 @@
                     <div class="col-sm-10">
                         {% for subfield in form.modeldir %}
                             <div class='radio'>
-                                {{ subfield(style='margin-left:0px;') }}{{ subfield.label }}
+                                {% if subfield.label.text == 'Phoenix ACES' %}
+                                    {{ subfield(style='margin-left:0px;', id='aces', checked='checked') }}{{ subfield.label }}
+                                {% else %}
+                                    {{ subfield(style='margin-left:0px;', id='atlas9') }}{{ subfield.label }}
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
                     {% for error in form.modeldir.errors %}
                         <span style="color: red;">{{ error }}</span>
                     {% endfor %}
+                    {{ form.modelgrid_submit(id='modelgridsubmit', style="visibility: hidden;") }}
                 </div>
 
                 <hr class="col-md-12">
@@ -138,6 +153,7 @@
                                 <div class="input-group">
                                   <div class="input-group-addon" style='width:120px'># channels</div>
                                       {{ form.n_bins(value=form.n_bins.data, size=10, rows=1, class='form-control') }}
+                                  <div class="input-group-addon" style='width:60px'></div>
                                 </div>
                                 <span id="helpBlock" class="help-block">The number of channels to use (for grisms)</span>
                             </div>
@@ -156,9 +172,6 @@
                         <p style="color: red;">{{ error }}</p>
                     {% endfor %}
                     {% for error in form.n_bins.errors %}
-                        <p style="color: red;">{{ error }}</p>
-                    {% endfor %}
-                    {% for error in form.n_pix.errors %}
                         <p style="color: red;">{{ error }}</p>
                     {% endfor %}
                 </div>
