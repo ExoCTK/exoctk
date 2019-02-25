@@ -20,7 +20,7 @@ from functools import wraps
 import numpy as np
 import pandas as pd
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField
+from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField
 from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
 from wtforms.widgets import ListWidget, CheckboxInput
 
@@ -49,14 +49,17 @@ MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
 FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
-# Load the database to log all form submissions
-if EXOCTKLOG_DIR is None:
-    dbpath = ':memory:'
-else:
-    dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
-    if not os.path.isfile(dbpath):
-        log_exoctk.create_db(dbpath)
-DB = log_exoctk.load_db(dbpath)
+# # Load the database to log all form submissions
+# if EXOCTKLOG_DIR is None:
+#     dbpath = ':memory:'
+# else:
+#     dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
+#     if not os.path.isfile(dbpath):
+#         log_exoctk.create_db(dbpath)
+# try:
+#     DB = log_exoctk.load_db(dbpath)
+# except IOError:
+#     DB = None
 
 # Nice colors for plotting
 COLORS = ['blue', 'red', 'green', 'orange',
@@ -87,10 +90,13 @@ class LdcForm(FlaskForm):
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
     resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Coefficients')
-    modeldir = RadioField('modeldir', default='phoenix', choices=[('phoenix', 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
+    modeldir = RadioField('modeldir', default=MODELGRID_DIR, choices=[(MODELGRID_DIR, 'Phoenix ACES'), ('kurucz', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
     bandpass = SelectField('bandpass', default='Kepler.K', choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in FILTERS['Band']], validators=[InputRequired('A filter is required!')])
-    profiles = MultiCheckboxField('profiles', default='quadratic', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
-
+    profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
+    wave_min = DecimalField('wave_min', default=0, validators=[NumberRange(min=0, max=28, message='Minimum wavelength must be between 0 and 28 microns!')])
+    wave_max = DecimalField('wave_max', default=28, validators=[NumberRange(min=0, max=28, message='Maximum wavelength must be between 0 and 28 microns!')])
+    n_bins = IntegerField('n_bins', default=1)
+    n_pix = IntegerField('n_pix', default=100)
 
 # Redirect to the index
 @app_exoctk.route('/')
@@ -122,485 +128,105 @@ def limb_darkening():
 
     if form.validate_on_submit() and form.calculate_submit.data:
 
+        # Get the stellar parameters
+        star_params = [form.teff.data, form.logg.data, form.feh.data]
+
         # Log the form inputs
         try:
             log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
         except:
             pass
 
-        return render_template('limb_darkening_results.html', teff='FOO',
-                            logg='FOO', feh='FOO', band='FOO', mu='FOO',
-                            profile='FOO', r='FOO',
-                            models='FOO', table='FOO',
-                            script='FOO', plot='FOO',
-                            file_as_string='FOO',
-                            filt_plot='FOO', filt_script='FOO',
-                            js='FOO', css='FOO')
+        # Load the model grid
+        model_grid = ModelGrid(form.modeldir.data, resolution=500)
+        form.modeldir.data = [j for i,j in form.modeldir.choices if i == form.modeldir.data][0]
+
+        # Grism details
+        if '.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper():
+            kwargs = {'n_bins': form.n_bins.data, 'pixels_per_bin': form.n_pix.data,
+                      'wl_min': form.wave_min.data*u.um, 'wl_max': form.wave_max.data*u.um}
+        else:
+            kwargs = {}
+
+        # Make filter object and plot
+        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+        bp_name = bandpass.name
+        bk_plot = bandpass.plot(draw=False)
+        bk_plot.plot_width = 580
+        bk_plot.plot_height = 280
+        js_resources = INLINE.render_js()
+        css_resources = INLINE.render_css()
+        filt_script, filt_plot = components(bk_plot)
+
+        # Trim the grid to nearby grid points to speed up calculation
+        full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
+        trim_rng = find_closest(full_rng, star_params, n=1, values=True)
+
+        # Calculate the coefficients for each profile
+        ld = lf.LDC(model_grid)
+        for prof in form.profiles.data:
+            ld.calculate(*star_params, prof, mu_min=form.mu_min.data, bandpass=bandpass)
+
+        # Draw a figure for each wavelength bin
+        tabs = []
+        for wav in np.unique(ld.results['wave_eff']):
+
+            # Plot it
+            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
+            fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
+                        plot_width=800, plot_height=400)
+            ld.plot(wave_eff=wav, fig=fig)
+
+            # Plot formatting
+            fig.legend.location = 'bottom_right'
+            fig.xaxis.axis_label = 'mu'
+            fig.yaxis.axis_label = 'Intensity'
+
+            tabs.append(Panel(child=fig, title=str(wav)))
+
+        final = Tabs(tabs=tabs)
+
+        # Get HTML
+        script, div = components(final)
+
+        # Store the tables as a string
+        file_as_string = str(ld.results[[c for c in ld.results.dtype.names if
+                                        ld.results.dtype[c] != object]])
+
+        # Make a table for each profile with a row for each wavelength bin
+        profile_tables = []
+        for profile in form.profiles.data:
+
+            # Make LaTeX for polynomials
+            latex = lf.ld_profile(profile, latex=True)
+            poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
+
+            # Make the table into LaTeX
+            table = filter_table(ld.results, profile=profile)
+            co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
+                    c.startswith('e')) and len(c) == 2 and not
+                    np.all([np.isnan(i) for i in table[c]])]
+            table = table[['wave_min', 'wave_max'] + co_cols]
+            table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
+            table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
+
+            # Add the results to the lists
+            html_table = '\n'.join(table.pformat(max_width=500, html=True))\
+                        .replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+
+            # Add the table title
+            header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
+            html_table = header + html_table
+
+            profile_tables.append(html_table)
+
+        return render_template('limb_darkening_results.html', form=form,
+                               table=profile_tables, script=script, plot=div,
+                               file_as_string=repr(file_as_string),
+                               filt_plot=filt_plot, filt_script=filt_script,
+                               js=js_resources, css=css_resources)
 
     return render_template('limb_darkening.html', form=form, filters=filt_list)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-"""
-        elif request.form['submit'] == "Calculate Coefficients":
-            # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-            except:
-                pass
-
-            # Get the input from the form
-            modeldir = request.form['modeldir']
-            profiles = list(filter(None, [request.form.get(pf) for pf in PROFILES]))
-            bandpass = request.form['bandpass']
-
-            # protect against injection attempts
-            bandpass = bandpass.replace('<', '&lt')
-            profiles = [str(p).replace('<', '&lt') for p in profiles]
-
-            # Get models from local directory if necessary
-            if modeldir == 'default':
-                modeldir = MODELGRID_DIR
-
-            # Throw error if input params are invalid
-            try:
-                teff = float(request.form['teff'])
-                logg = float(request.form['logg'])
-                feh = float(request.form['feh'])
-                mu_min = float(request.form['mu_min'])
-            except IOError:
-                teff = str(request.form['teff']).replace('<', '&lt')
-                logg = str(request.form['logg']).replace('<', '&lt')
-                feh = str(request.form['feh']).replace('<', '&lt')
-                message = 'Could not calculate limb darkening for those parameters.'
-
-                return render_template('limb_darkening_error.html', teff=teff,
-                                    logg=logg, feh=feh, band=bandpass or 'None',
-                                    profile=', '.join(profiles), models=modeldir,
-                                    message=message)
-
-            n_bins = request.form.get('n_bins')
-            pixels_per_bin = request.form.get('pixels_per_bin')
-            wl_min = request.form.get('wave_min')
-            wl_max = request.form.get('wave_max')
-
-            model_grid = ModelGrid(modeldir, resolution=500)
-
-            # No data, redirect to the error page
-            if not hasattr(model_grid, 'data'):
-                message = 'Could not find a model grid to load. Please check the path.'
-
-                return render_template('limb_darkening_error.html', teff=teff,
-                                    logg=logg, feh=feh, band=bandpass or 'None',
-                                    profile=', '.join(profiles),
-                                    models=model_grid.path, message=message)
-
-            else:
-
-                if len(model_grid.data) == 0:
-
-                    message = 'Could not calculate limb darkening with those parameters.'
-
-                    return render_template('limb_darkening_error.html', teff=teff,
-                                        logg=logg, feh=feh,
-                                        band=bandpass or 'None',
-                                        profile=', '.join(profiles),
-                                        models=model_grid.path, message=message)
-
-            # Trim the grid to the correct wavelength
-            # to speed up calculations, if a bandpass is given
-            min_max = model_grid.wave_rng
-
-            try:
-
-                kwargs = {'n_bins': int(n_bins)} if n_bins else \
-                        {'pixels_per_bin': int(pixels_per_bin)} if pixels_per_bin else\
-                        {}
-
-                if wl_min and wl_max:
-                    kwargs['wl_min'] = float(wl_min) * u.um
-                    kwargs['wl_max'] = float(wl_max) * u.um
-
-                # Make filter object
-                bandpass = svo.Filter(bandpass, **kwargs)
-                bp_name = bandpass.name
-                bk_plot = bandpass.plot(draw=False)
-                bk_plot.plot_width = 580
-                bk_plot.plot_height = 280
-                min_max = (bandpass.wave_min.value, bandpass.wave_max.value)
-                n_bins = bandpass.n_bins
-
-                js_resources = INLINE.render_js()
-                css_resources = INLINE.render_css()
-                filt_script, filt_plot = components(bk_plot)
-
-            except:
-                message = 'Insufficient filter information. Please complete the form and try again!'
-
-                return render_template('limb_darkening_error.html', teff=teff,
-                                    logg=logg, feh=feh, band=bandpass or 'None',
-                                    profile=', '.join(profiles),
-                                    models=model_grid.path, message=message)
-
-            # Trim the grid to nearby grid points to speed up calculation
-            full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
-            trim_rng = find_closest(full_rng, [teff, logg, feh], n=1, values=True)
-
-            if not trim_rng:
-
-                message = 'Insufficient models grid points to calculate coefficients.'
-
-                return render_template('limb_darkening_error.html', teff=teff,
-                                    logg=logg, feh=feh, band=bp_name,
-                                    profile=', '.join(profiles),
-                                    models=model_grid.path, message=message)
-
-            elif not profiles:
-
-                message = 'No limb darkening profiles have been selected. Please select at least one.'
-
-                return render_template('limb_darkening_error.html', teff=teff,
-                                    logg=logg, feh=feh, band=bp_name,
-                                    profile=', '.join(profiles),
-                                    models=model_grid.path, message=message)
-
-            else:
-
-                try:
-                    model_grid.customize(Teff_rng=trim_rng[0], logg_rng=trim_rng[1],
-                                        FeH_rng=trim_rng[2], wave_rng=min_max)
-
-                except:
-
-                    message = 'Insufficient wavelength coverage to calculate coefficients.'
-
-                    return render_template('limb_darkening_error.html', teff=teff,
-                                        logg=logg, feh=feh, band=bp_name,
-                                        profile=', '.join(profiles),
-                                        models=model_grid.path, message=message)
-
-            # Calculate the coefficients for each profile
-            ld = lf.LDC(model_grid)
-            for prof in profiles:
-                ld.calculate(teff, logg, feh, prof, mu_min=mu_min, bandpass=bandpass)
-
-            # Draw a figure for each wavelength bin
-            tabs = []
-            for wav in np.unique(ld.results['wave_eff']):
-
-                # Plot it
-                TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-                fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
-                            plot_width=800, plot_height=400)
-                ld.plot(wave_eff=wav, fig=fig)
-
-                # Plot formatting
-                fig.legend.location = 'bottom_right'
-                fig.xaxis.axis_label = 'mu'
-                fig.yaxis.axis_label = 'Intensity'
-
-                tabs.append(Panel(child=fig, title=str(wav)))
-
-            final = Tabs(tabs=tabs)
-
-            # Get HTML
-            script, div = components(final)
-
-            # Store the tables as a string
-            file_as_string = str(ld.results[[c for c in ld.results.dtype.names if
-                                            ld.results.dtype[c] != object]])
-            r_eff = mu_eff = ''
-
-            # Make a table for each profile with a row for each wavelength bin
-            profile_tables = []
-            for profile in profiles:
-
-                # Make LaTeX for polynomials
-                latex = lf.ld_profile(profile, latex=True)
-                poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
-
-                # Make the table into LaTeX
-                table = filter_table(ld.results, profile=profile)
-                co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
-                        c.startswith('e')) and len(c) == 2 and not
-                        np.all([np.isnan(i) for i in table[c]])]
-                table = table[['wave_min', 'wave_max'] + co_cols]
-                table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
-                table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
-
-                # Add the results to the lists
-                html_table = '\n'.join(table.pformat(max_width=500, html=True))\
-                            .replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-
-                # Add the table title
-                header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
-                html_table = header + html_table
-
-                profile_tables.append(html_table)
-
-            return render_template('limb_darkening_results.html', teff=teff,
-                                logg=logg, feh=feh, band=bp_name, mu=mu_eff,
-                                profile=', '.join(profiles), r=r_eff,
-                                models=model_grid.path, table=profile_tables,
-                                script=script, plot=div,
-                                file_as_string=repr(file_as_string),
-                                filt_plot=filt_plot, filt_script=filt_script,
-                                js=js_resources, css=css_resources)
-
-    return render_template('limb_darkening.html', form=form, filters=filt_list)
-"""
-
-
-
-
-
-
-
-
-
-
-
-# @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
-# def limb_darkening():
-#     """The limb darkening form page"""
-#     # form = LdcForm(request.form)
-#
-#     # Get all the available filters
-#     filters = svo.filters()['Band']
-#
-#     # Make HTML for filters
-#     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-#
-#     if request.method == 'POST':
-#         if request.form['submit'] == "Retrieve Parameters":
-#             target_name = request.form['targetname']
-#             data = get_target_data(target_name)
-#
-#             feh = data['Fe/H']
-#             teff = data['Teff']
-#             logg = data['stellar_gravity']
-#
-#             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-#
-#             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
-#
-#         elif request.form['submit'] == "Calculate Coefficients":
-#             # Log the form inputs
-#             try:
-#                 log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-#             except:
-#                 pass
-#
-#             # Get the input from the form
-#             modeldir = request.form['modeldir']
-#             profiles = list(filter(None, [request.form.get(pf) for pf in PROFILES]))
-#             bandpass = request.form['bandpass']
-#
-#             # protect against injection attempts
-#             bandpass = bandpass.replace('<', '&lt')
-#             profiles = [str(p).replace('<', '&lt') for p in profiles]
-#
-#             # Get models from local directory if necessary
-#             if modeldir == 'default':
-#                 modeldir = MODELGRID_DIR
-#
-#             # Throw error if input params are invalid
-#             try:
-#                 teff = float(request.form['teff'])
-#                 logg = float(request.form['logg'])
-#                 feh = float(request.form['feh'])
-#                 mu_min = float(request.form['mu_min'])
-#             except IOError:
-#                 teff = str(request.form['teff']).replace('<', '&lt')
-#                 logg = str(request.form['logg']).replace('<', '&lt')
-#                 feh = str(request.form['feh']).replace('<', '&lt')
-#                 message = 'Could not calculate limb darkening for those parameters.'
-#
-#                 return render_template('limb_darkening_error.html', teff=teff,
-#                                     logg=logg, feh=feh, band=bandpass or 'None',
-#                                     profile=', '.join(profiles), models=modeldir,
-#                                     message=message)
-#
-#             n_bins = request.form.get('n_bins')
-#             pixels_per_bin = request.form.get('pixels_per_bin')
-#             wl_min = request.form.get('wave_min')
-#             wl_max = request.form.get('wave_max')
-#
-#             model_grid = ModelGrid(modeldir, resolution=500)
-#
-#             # No data, redirect to the error page
-#             if not hasattr(model_grid, 'data'):
-#                 message = 'Could not find a model grid to load. Please check the path.'
-#
-#                 return render_template('limb_darkening_error.html', teff=teff,
-#                                     logg=logg, feh=feh, band=bandpass or 'None',
-#                                     profile=', '.join(profiles),
-#                                     models=model_grid.path, message=message)
-#
-#             else:
-#
-#                 if len(model_grid.data) == 0:
-#
-#                     message = 'Could not calculate limb darkening with those parameters.'
-#
-#                     return render_template('limb_darkening_error.html', teff=teff,
-#                                         logg=logg, feh=feh,
-#                                         band=bandpass or 'None',
-#                                         profile=', '.join(profiles),
-#                                         models=model_grid.path, message=message)
-#
-#             # Trim the grid to the correct wavelength
-#             # to speed up calculations, if a bandpass is given
-#             min_max = model_grid.wave_rng
-#
-#             try:
-#
-#                 kwargs = {'n_bins': int(n_bins)} if n_bins else \
-#                         {'pixels_per_bin': int(pixels_per_bin)} if pixels_per_bin else\
-#                         {}
-#
-#                 if wl_min and wl_max:
-#                     kwargs['wl_min'] = float(wl_min) * u.um
-#                     kwargs['wl_max'] = float(wl_max) * u.um
-#
-#                 # Make filter object
-#                 bandpass = svo.Filter(bandpass, **kwargs)
-#                 bp_name = bandpass.name
-#                 bk_plot = bandpass.plot(draw=False)
-#                 bk_plot.plot_width = 580
-#                 bk_plot.plot_height = 280
-#                 min_max = (bandpass.wave_min.value, bandpass.wave_max.value)
-#                 n_bins = bandpass.n_bins
-#
-#                 js_resources = INLINE.render_js()
-#                 css_resources = INLINE.render_css()
-#                 filt_script, filt_plot = components(bk_plot)
-#
-#             except:
-#                 message = 'Insufficient filter information. Please complete the form and try again!'
-#
-#                 return render_template('limb_darkening_error.html', teff=teff,
-#                                     logg=logg, feh=feh, band=bandpass or 'None',
-#                                     profile=', '.join(profiles),
-#                                     models=model_grid.path, message=message)
-#
-#             # Trim the grid to nearby grid points to speed up calculation
-#             full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
-#             trim_rng = find_closest(full_rng, [teff, logg, feh], n=1, values=True)
-#
-#             if not trim_rng:
-#
-#                 message = 'Insufficient models grid points to calculate coefficients.'
-#
-#                 return render_template('limb_darkening_error.html', teff=teff,
-#                                     logg=logg, feh=feh, band=bp_name,
-#                                     profile=', '.join(profiles),
-#                                     models=model_grid.path, message=message)
-#
-#             elif not profiles:
-#
-#                 message = 'No limb darkening profiles have been selected. Please select at least one.'
-#
-#                 return render_template('limb_darkening_error.html', teff=teff,
-#                                     logg=logg, feh=feh, band=bp_name,
-#                                     profile=', '.join(profiles),
-#                                     models=model_grid.path, message=message)
-#
-#             else:
-#
-#                 try:
-#                     model_grid.customize(Teff_rng=trim_rng[0], logg_rng=trim_rng[1],
-#                                         FeH_rng=trim_rng[2], wave_rng=min_max)
-#
-#                 except:
-#
-#                     message = 'Insufficient wavelength coverage to calculate coefficients.'
-#
-#                     return render_template('limb_darkening_error.html', teff=teff,
-#                                         logg=logg, feh=feh, band=bp_name,
-#                                         profile=', '.join(profiles),
-#                                         models=model_grid.path, message=message)
-#
-#             # Calculate the coefficients for each profile
-#             ld = lf.LDC(model_grid)
-#             for prof in profiles:
-#                 ld.calculate(teff, logg, feh, prof, mu_min=mu_min, bandpass=bandpass)
-#
-#             # Draw a figure for each wavelength bin
-#             tabs = []
-#             for wav in np.unique(ld.results['wave_eff']):
-#
-#                 # Plot it
-#                 TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-#                 fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
-#                             plot_width=800, plot_height=400)
-#                 ld.plot(wave_eff=wav, fig=fig)
-#
-#                 # Plot formatting
-#                 fig.legend.location = 'bottom_right'
-#                 fig.xaxis.axis_label = 'mu'
-#                 fig.yaxis.axis_label = 'Intensity'
-#
-#                 tabs.append(Panel(child=fig, title=str(wav)))
-#
-#             final = Tabs(tabs=tabs)
-#
-#             # Get HTML
-#             script, div = components(final)
-#
-#             # Store the tables as a string
-#             file_as_string = str(ld.results[[c for c in ld.results.dtype.names if
-#                                             ld.results.dtype[c] != object]])
-#             r_eff = mu_eff = ''
-#
-#             # Make a table for each profile with a row for each wavelength bin
-#             profile_tables = []
-#             for profile in profiles:
-#
-#                 # Make LaTeX for polynomials
-#                 latex = lf.ld_profile(profile, latex=True)
-#                 poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
-#
-#                 # Make the table into LaTeX
-#                 table = filter_table(ld.results, profile=profile)
-#                 co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
-#                         c.startswith('e')) and len(c) == 2 and not
-#                         np.all([np.isnan(i) for i in table[c]])]
-#                 table = table[['wave_min', 'wave_max'] + co_cols]
-#                 table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
-#                 table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
-#
-#                 # Add the results to the lists
-#                 html_table = '\n'.join(table.pformat(max_width=500, html=True))\
-#                             .replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-#
-#                 # Add the table title
-#                 header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
-#                 html_table = header + html_table
-#
-#                 profile_tables.append(html_table)
-#
-#             return render_template('limb_darkening_results.html', teff=teff,
-#                                 logg=logg, feh=feh, band=bp_name, mu=mu_eff,
-#                                 profile=', '.join(profiles), r=r_eff,
-#                                 models=model_grid.path, table=profile_tables,
-#                                 script=script, plot=div,
-#                                 file_as_string=repr(file_as_string),
-#                                 filt_plot=filt_plot, filt_script=filt_script,
-#                                 js=js_resources, css=css_resources)
-#
-#     return render_template('limb_darkening.html', limbVars={}, filters=filt_list)
 
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
