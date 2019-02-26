@@ -2,12 +2,91 @@
 """
 
 import argparse
+import os
+import yaml
 
 import corner
 import numpy as np
 from platon.fit_info import FitInfo
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
+
+
+def parse_args():
+    """Parse command line arguments.
+
+    Returns
+    -------
+    args : obj
+        An ``argparse`` object containing all of the added arguments.
+    """
+
+    param_file_help = 'The path to a file containing the parameters '
+    param_file_help += 'needed for PLATON'
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('parameter_file', type=str, help=param_file_help)
+
+    args = parser.parse_args()
+
+    return args
+
+
+def parse_parameter_file(parameter_file):
+    """Parses the supplied parameter file, ensures that the required
+    parameters exist, and ensures that all supplied parameters are of a
+    valid data type.  Also applies appropriate multiplication factors
+    to the appropriate parameters.
+
+    Parameters
+    ----------
+    parameter_file : str
+        The path to the parameter file.
+
+    Returns
+    -------
+    param_dict : dict
+        A dictionary containing parameter name/value pairs.
+    """
+
+    # Parse the parameter file
+    with open(parameter_file, 'r') as f:
+        param_dict = yaml.load(f)
+
+    # Make sure the parameter file contains the required keywords and they have values
+    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
+    param_types = [float, float, float, int]
+    for param, param_type in zip(required_parameters, param_types):
+        assert param in param_dict, '{} missing from parameter file'.format(param)
+        assert type(param_dict[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+    # Make sure the optional keywords are of proper type
+    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
+                           'scatt_slope', 'error_multiple', 'T_star']
+    param_types = [int, float, int, int, int, int, int]
+    for param, param_type in zip(optional_parameters, param_types):
+        if param in param_dict:
+            assert type(param_dict[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+    # Apply proper multiplication factors
+    param_dict['Rs'] = param_dict['Rs'] * R_sun
+    param_dict['Mp'] = param_dict['Mp'] * M_jup
+    param_dict['Rp'] = param_dict['Rp'] * R_jup
+
+    return param_dict
+
+
+def test_args(args):
+    """Ensures that the command line arguments are of proper format and
+    valid. If they are not, an assertion error is raised.
+
+    Parameters
+    ----------
+    args : obj
+        The ``argparse`` object containing the command line arguments.
+    """
+
+    assert os.path.exists(args.parameter_file), 'Parameter file does not exist.'
 
 
 class PlatonWrapper():
@@ -63,19 +142,14 @@ class PlatonWrapper():
 
 if __name__ == '__main__':
 
-    # Define various fitting parameters
-    kwargs = {}
-    kwargs['Rs'] = 1.19 * R_sun  # Required
-    kwargs['Mp'] = 0.73 * M_jup  # Required
-    kwargs['Rp'] = 1.4 * R_jup  # Required
-    kwargs['T'] = 1200  # Required
-    kwargs['logZ'] = 0  # Optional
-    kwargs['CO_ratio'] = 0.53 # Optional
-    kwargs['log_cloudtop_P'] = 4  # Optional
-    kwargs['log_scatt_factor'] = 0  # Optional
-    kwargs['scatt_slope'] = 4  # Optional
-    kwargs['error_multiple'] = 1  # Optional
-    kwargs['T_star'] = 6091  # Optional
+    # Parse command line arguments
+    args = parse_args()
+
+    # Test command line arguments
+    test_args(args)
+
+    # Parse and test the parameter file
+    kwargs = parse_parameter_file(args.parameter_file)
 
     platon_wrapper = PlatonWrapper(kwargs)
     platon_wrapper.retrieve()
