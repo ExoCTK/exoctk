@@ -1,4 +1,24 @@
-"""
+"""A wrapper around the PLATON software.
+
+This module serves as a wrapper around the atmospheric retreival
+software for ``platon``.  For more information about ``platon``, please
+see ``https://platon.readthedocs.io``.
+
+Authors
+-------
+    - Matthew Bourque
+
+Use
+---
+
+    Coming soon.
+
+Dependencies
+------------
+
+    - ``corner``
+    - ``numpy``
+    - ``platon``
 """
 
 import argparse
@@ -90,19 +110,24 @@ def test_args(args):
 
 
 class PlatonWrapper():
-    """
-    """
+    """Class object for running the platon atmospheric retrieval
+    software."""
 
     def __init__(self, kwargs):
-        """
+        """Initialize the class object.
+
+        Parameters
+        ----------
+        kwargs : dict
+            A dictionary of parameters and their values for running the
+            software.  See "Use" documentation for further details.
         """
 
         self.kwargs = kwargs
 
 
     def retrieve(self):
-        """
-        """
+        """Perform the atmopsheric retreival."""
 
         # Construct fit_info object
         retriever = Retriever()
