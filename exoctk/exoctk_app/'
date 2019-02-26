@@ -40,12 +40,10 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/generic_grid_db.hdf5')
-GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/groups_integrations.json')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/default')
+
+MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
+FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
+EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # Load the database to log all form submissions
 if EXOCTKLOG_DIR is None:
@@ -712,9 +710,9 @@ def rescale_generic_grid(input_args):
     try:   
         # Parameter validation
         # Set up some nasty tuples first
-        scaling_space = [('r_star', [0.05, 10000]),
-                         ('r_planet', [0.0,  10000]),
-                         ('gravity', [5.0, 50]),
+        scaling_space = [('r_star', [0, 100]),
+                         ('r_planet', [0, 100]),
+                         ('gravity', [5, 50]),
                          ('temperature', [400, 2600])]
         
         inputs = {} 
@@ -771,7 +769,7 @@ def rescale_generic_grid(input_args):
  
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
-        generic_db = GENERICGRID_DIR
+        generic_db = '/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5'
         with h5py.File(generic_db, 'r') as f:
             # Can't use the final NaN value
             model_wv = f['/wavelength'][...][:-1]
@@ -781,19 +779,15 @@ def rescale_generic_grid(input_args):
         r_star = inputs['r_star'] * r_sun
         r_planet = inputs['r_planet'] * r_jupiter
         model_grav = model_grav * 1e2
-        inputs['gravity'] = inputs['gravity'] * 1e2
         
         # Start with baseline based on model parameters
-        scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
-        print(scale_height)
+        scale_height = (boltzmann * model_temp) / (permitivity * inputs['gravity'])
         r_planet_base = np.sqrt(radius_ratio) * r_sun
-        print(r_planet_base)
         altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
-        print(altitude)
         opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
                                           (2 * np.pi * r_planet_base)) * \
                                   np.exp(altitude / scale_height)
-        print(opacity)
+        
         # Now rescale from baseline
         solution = {}
         solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
@@ -807,18 +801,17 @@ def rescale_generic_grid(input_args):
         sort = np.argsort(model_wv)
         solution['wv'] = model_wv[sort]
         solution['radius'] = solution['radius'][sort]
-        solution['spectra'] = (solution['radius']/r_star)**2
+        solution['spectra'] = solution['radius'] #(solution['radius']/r_star)**2
     
-    except (KeyError, ValueError) as e:
-        error_message = 'One of the parameters to make up the model was missing or out of range.'
+    except KeyError:
+        error_message = 'One of the parameters to make up the model was missing.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
         solution = {}
         with h5py.File('/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5') as f:
             solution['wv'] = f['/wavelength'][...][:-1]
             solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
-        closest_match = {'model_key': model_key, 'model_temperature': 400,
-                'model_gravity': 50}
-        inputs = input_args
+        closest_match = {'model_key': model_key}
+    
     
     return solution, inputs, closest_match, error_message
 
@@ -843,21 +836,22 @@ def generic():
     tab.write(fh, format='ascii.no_header')
     table_string = fh.getvalue()
     
-    # Plot
-    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
+    # Plot rescaled
+    fig = figure()
+    fig = figure(plot_width=1100, plot_height=400)
     fig.x_range.start = 0.3
     fig.x_range.end = 5
     fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
     fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
-
+    fig.yaxis.axis_label = 'Transmission Spectra (r/r*)'
+    
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
 
     script, div = components(fig)
 
     html = flask.render_template('generic.html',
-                                 inputs= inputs,
+                                 input_parameters = inputs,
                                  closest_match = closest_match,
                                  error_message=error_message,
                                  table_string=table_string,
