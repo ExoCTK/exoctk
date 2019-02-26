@@ -9,6 +9,8 @@ import numpy as np
 from scipy.io import readsav
 
 IDLSAVE_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam')
+if IDLSAVE_PATH == '':
+    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.")
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """Produce a SOSS field simulation for a target
