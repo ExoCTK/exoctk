@@ -70,3 +70,15 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
   :maxdepth: 1
 
   source/exoctk.nircam_coronagraphy
+
+***********************
+Newsletter Subscription
+***********************
+
+If you'd like to stay up-to-date with our releases and updates we suggest subscribing to our newsletter. One can do so by following the instructions below: 
+
+**Subscribe by email - you are not require to log in to the ListServ interface.**
+
+(1) Send an email from your mailbox to `exoctk-news-subscribe-request@maillist.stsci.edu`
+(2) Subject and body should be blank. If you use an email signature, remove that as well and then send the message.
+(3) You will receive a confirmation email - be sure to follow the instructions to ensure you are properly subscribed.

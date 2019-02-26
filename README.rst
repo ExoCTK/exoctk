@@ -146,3 +146,10 @@ or by running the `exoctk` setup script:
 Missing Dependencies?
 ~~~~~~~~~~~~~~~~~~~~~
 If you find that the `exoctk` `conda` is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
+
+
+
+Want to stay up-to-date with our releases and updates? 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours. 
