@@ -41,6 +41,9 @@ app_exoctk = Flask(__name__)
 app_exoctk.config['CACHE_TYPE'] = 'null'
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+if EXOCTK_DATA == '':
+    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.')
+
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log')
 FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
 GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/generic_grid_db.hdf5')
