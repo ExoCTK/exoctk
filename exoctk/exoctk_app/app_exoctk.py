@@ -323,7 +323,6 @@ def groups_integrations_results():
     params = {}
     for key in dict(request.form).keys():
         params[key] = dict(request.form)[key][0]
-    print(params)
     try:
         err = 0
 
@@ -723,7 +722,6 @@ def rescale_generic_grid(input_args):
             if val >= space[0] and val <= space[1]:
                 inputs[key] = val
             else:
-                print('This parameter was unfit : {}'.format(key))
                 error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
                 break
         
@@ -736,7 +734,6 @@ def rescale_generic_grid(input_args):
         input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
         model_grav = grav_range[sort_grav]
         input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
-        print(model_temp, model_grav)
 
         # Check the model parameters
         str_temp_range = ['0{}'.format(elem)[-4:] for elem in temp_range]
@@ -783,15 +780,11 @@ def rescale_generic_grid(input_args):
         
         # Start with baseline based on model parameters
         scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
-        print(scale_height)
         r_planet_base = np.sqrt(radius_ratio) * r_sun
-        print(r_planet_base)
         altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
-        print(altitude)
         opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
                                           (2 * np.pi * r_planet_base)) * \
                                   np.exp(altitude / scale_height)
-        print(opacity)
         # Now rescale from baseline
         solution = {}
         solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
@@ -831,7 +824,6 @@ def generic():
     args = dict(flask.request.args)
     for key in args:
         args[key] = args[key][0]
-    print(args) 
     # Build rescaled model
     solution, inputs, closest_match, error_message = rescale_generic_grid(args)
     
