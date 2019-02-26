@@ -768,8 +768,8 @@ def rescale_generic_grid(input_args):
  
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
-        generic_db = GENERICGRID_DIR
-        with h5py.File(generic_db, 'r') as f:
+        
+        with h5py.File(GENERICGRID_DIR, 'r') as f:
             # Can't use the final NaN value
             model_wv = f['/wavelength'][...][:-1]
             model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
