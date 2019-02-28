@@ -87,9 +87,11 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         starsT[j] = teffMod[min_separation_ind]
 
     radeg = 180/np.pi
+    # FUTURE JENNY: modify this
     niriss_pixel_scale = 0.065  # arcsec
     sweetSpot = dict(x=856, y=107, RA=allRA[targetIndex],
                      DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
+    # stop
 
     # offset between all stars and target
     dRA = (allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
@@ -124,8 +126,11 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     # pdb.set_trace()
 
     # Big loop to generate a simulation at each instrument PA
+    dPA =
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
+        # FUTURE JENNY: modify 0.57 to delta PA for each detector
+        # call it dPA
         V3PA = APA+0.57  # from APT
         sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
         cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']

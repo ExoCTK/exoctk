@@ -254,9 +254,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=pkg_resources.resource_file
 def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, \
     ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), \
     fig=''):
-=======
-def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName=pkg_resources.resource_filename('exoctk', 'data/contam_visibility/JWST_ephem_short.txt'), fig=''):
->>>>>>> 56e76344f1b13e1346e36d5790c345f9ccbbb017
+
     """using gtvt to find PAmin and PAmax for NIRISS
     yay
 
@@ -414,11 +412,9 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, save=False, ephFileName
 
         #else:
 
-<<<<<<< HEAD
+
         plt.fill_between(gd, paMin, paMax, where=paMax>paMin, lw=1.0, edgecolor=(0,0,0,.3), facecolor=(0,0,0,.5))
-=======
-        plt.fill_between(gd, paMin, paMax, where=paMax>paMin, lw=1.0, edgecolor=(0,0,0,.5), facecolor=(0,0,0,.5))
->>>>>>> 56e76344f1b13e1346e36d5790c345f9ccbbb017
+
 
 
 
