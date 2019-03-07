@@ -197,6 +197,8 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
                             gdMaskednum[i0_top:i1_top+1][::-1]])
     fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
+    for i in zip(err_x, err_y):
+        print(i)
     # Bottom
     err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
                             paMax[i0_bot:i1_bot+1][::-1]])
@@ -204,14 +206,17 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
                             gdMaskednum[i0_bot:i1_bot+1][::-1]])
     fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
+    print('BOTTOM')
+    for i in zip(err_x, err_y):
+        print(i)
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
-    return paGood, paBad, gd, fig
-    #return paMin, paMax
+    #return paGood, paBad, gd, fig
+    return err_x, err_y, paMin, paMax, gd
 
-def using_gtvt(ra, dec, instrumentName, targetName=None, ephFileName=None, fig=None):
+def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, fig=None):
     """Check the visibility at a range of position angles
 
     Parameters
@@ -220,7 +225,7 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, ephFileName=None, fig=N
         The RA of the target
     dec: float
         The Dec of the target
-    instrumentName: str
+    instrument: str
         Name of the instrument. Can either be (case-sensitive):
         NIRISS, NIRCam, MIRI, FGS, NIRSpec
     targetName: str
@@ -242,33 +247,54 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, ephFileName=None, fig=N
         The plotted figure.
 
     """
+
+    from bokeh.plotting import save, output_file, show
+    from bokeh.io import reset_output
+    reset_output()
+    output_file('/Users/jmedina/Desktop/visib_test4.html')
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
-    gd = tab['Date']
 
-    paMin = tab[str(instrumentName)+' min']
-    paMax = tab[str(instrumentName)+' max']
+    gd = tab['Date']
+    paMin = tab[str(instrument)+' min']
+    paMax = tab[str(instrument)+' max']
     paNom = tab['V3PA']
 
-    paMin, paMax = np.asarray(paMin), np.asarray(paMax)
-    paMinnan, paMaxnan = [], []
+    paMin, paMax, gd = np.asarray(paMin), np.asarray(paMax), np.asarray(gd)
+    paMinnan, paMaxnan, gdnan = [], [], []
 
-    for i, j in zip(paMin, paMax):
+
+    for i, j, k in zip(paMin, paMax, gd):
         maskMin, maskMax = np.isnan(i), np.isnan(j)
         if (maskMin==False)&(maskMax==False):
             paMinnan.append(i)
             paMaxnan.append(j)
+            gdnan.append(k)
 
     paMinnan = np.asarray(paMinnan)
     paMaxnan = np.asarray(paMaxnan)
+    gdnan = np.asarray(gdnan)
 
-    #>>>>>>> 56e76344f1b13e1346e36d5790c345f9ccbbb017
+
+
+
     # Convert datetime to a number for Bokeh
-    gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gd)]
+    #gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gd)]
     color = 'green'
     # Draw the curve and error
     fig.line(gd, paNom, legend='cutoff', line_color=color)
 
+    x = np.append(gd, gd[::-1])
+    y = np.append(paMin, paMax[::-1])
+
+
+    fig.patches(x,y, color='purple', fill_alpha=0.2)
+    #fig.patch(gd, paMin)
+    #fig.patches([gd,gd],[paMax,paMin])
+
+
+
+    """
     i = np.argmax(paMinnan)
     goUp = paMinnan[i-2] < paMinnan[i-1]  # PA going up at wrap point?
 
@@ -286,25 +312,92 @@ def using_gtvt(ra, dec, instrumentName, targetName=None, ephFileName=None, fig=N
     paMinTmp[np.where(paMinnan > paMaxnan)[0]] = 0
 
     # Top
+
     err_y = np.concatenate([paMinnan[i0_top:i1_top+1],
                             paMaxTmp[i0_top:i1_top+1][::-1]])
-    err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
-                            gdMaskednum[i0_top:i1_top+1][::-1]])
+    err_x = np.concatenate([gdnan[i0_top:i1_top+1],
+                            gdnan[i0_top:i1_top+1][::-1]])
+    for i in zip(err_y, err_x):
+        print(i)
     fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
     # Bottom
     err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
                             paMaxnan[i0_bot:i1_bot+1][::-1]])
-    err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
-                            gdMaskednum[i0_bot:i1_bot+1][::-1]])
+    err_x = np.concatenate([gdnan[i0_bot:i1_bot+1],
+                            gdnan[i0_bot:i1_bot+1][::-1]])
+    print('bottom')
+    for i in zip(err_y, err_x):
+        print(i)
+    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+    """
+    """
+    # Do all figure calculations
+    #iBad, = np.where(vis == False)
+    paMasked = np.copy(paNom)
+    #paMasked[iBad] = np.nan
+
+
+    #i = np.argmax(paNom)
+    #if paNom[i+1] < 10:
+    #    i += 1
+    #paMasked = np.insert(paMasked, i, np.nan)
+    #gdMasked = np.insert(gdMasked, i, gdMasked[i])
+
+    # future jenny: i think these 2 lines are the issue (w/ the ribbon plotting)
+    i = np.argmax(paMinnan)
+    goUp = paMinnan[i-2] < paMinnan[i-1]  # PA going up at wrap point?
+
+    # Top part
+    i0_top = 0 if goUp else i               # indexing
+    i1_top = i if goUp else paMinnan.size-1 # indexing
+    paMaxTmp = np.copy(paMaxnan)
+    paMaxTmp[np.where(paMinnan > paMaxnan)[0]] = 360 # <- what is the purpose of this
+
+    # Bottom part
+    i = np.argmin(paMaxnan)
+    i0_bot = i if goUp else 0
+    i1_bot = paMinnan.size-1 if goUp else i
+    paMinTmp = np.copy(paMinnan)
+    paMinTmp[np.where(paMinnan > paMaxnan)[0]] = 0
+
+    # Convert datetime to a number for Bokeh
+    #gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
+    #               for n, d in enumerate(gdMasked)]
+    color = 'green'
+
+    # Draw the curve and error
+    #fig.line(gd, paMasked, legend='cutoff', line_color=color)
+
+    # Top
+    err_y = np.concatenate([paMinnan[i0_top:i1_top+1],
+                            paMaxTmp[i0_top:i1_top+1][::-1]])
+    err_x = np.concatenate([gdnan[i0_top:i1_top+1],
+                            gdnan[i0_top:i1_top+1][::-1]])
+
     fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
 
+    print('top')
+    for i in zip(err_x, err_y):
+        print(i)
+    # Bottom
+    err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
+                            paMaxnan[i0_bot:i1_bot+1][::-1]])
+    err_x = np.concatenate([gdnan[i0_bot:i1_bot+1],
+                            gdnan[i0_bot:i1_bot+1][::-1]])
+
+
+    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+    print('bottom')
+    for j in zip(err_x, err_y):
+        print(j)
+    """
     # Plot formatting
-    fig.xaxis.axis_label = 'update test'
+    fig.xaxis.axis_label = 'hi'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
-    from bokeh.plotting import save, output_file
-    from bokeh.io import reset_output
-    output_file('/Users/jmedina/Desktop/visib_test.html')
+
+
     save(fig)
 
-    return paMinnan, paMaxnan
+    print('this is a test2s')
+    return paMin, paMax, gd, paNom

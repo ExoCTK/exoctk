@@ -8,22 +8,42 @@
     <br>
 
 
-    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. 
-    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of 
-    	nearby stars. For a given target this contamination depends on the 
-    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a 
-    	given target and produces an estimate of the level of contamination as a function of the PA of the 
-    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST 
-    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments. 
+    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS.
+    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of
+    	nearby stars. For a given target this contamination depends on the
+    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a
+    	given target and produces an estimate of the level of contamination as a function of the PA of the
+    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST
+    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments.
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
     <form class='form-horizontal' action="/contam_visibility" method="POST" />
-    
+
+				<hr class="col-md-12">
+
+				<div class='form-group'>
+
+						<label class="col-sm-2 control-label">Instrument</label>
+						<div class="col-sm-3">
+
+								<select id="inst" name="inst" class="form-control" data-placeholder="Select Temp (K)">
+										<option value=""></option>
+										{% for i in temp %}
+												<option {{ i }} value={{ i }}>NIRISS</option>
+												<option {{ i }} value={{ i }}>NIRCam</option>
+												<option {{ i }} value={{ i }}>MIRI</option>
+												<option {{ i }} value={{ i }}>NIRSpec</option>
+												<option {{ i }} value={{ i }}>FGS</option>
+										{% endfor %}
+								</select>
+						</div>
+				</div>
+
         <hr class="col-md-12">
 
         <div class='form-group'>
-            
+
             <label class="col-sm-2 control-label">Target Name</label>
             <div class="col-sm-10">
                 <div class="input-group">
@@ -36,13 +56,13 @@
                 <span id="helpBlock" class="help-block">If target is unresolved, reload page and enter coordinates manually</span>
             </div>
         </div>
-        
+
         <hr class="col-md-12">
-    
+
         <div class='form-group'>
-            
+
             <label class="col-sm-2 control-label">Coordinates</label>
-            
+
             <div class="col-sm-10">
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>R.A.</div>
@@ -50,7 +70,7 @@
                   <div class="input-group-addon" style='width:60px'>HH:MM:SS.S</div>
                 </div>
                 <span id="helpBlock" class="help-block">The right ascension of the target</span>
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>Decl.</div>
                   <input type="text" name="dec" value = "{{ contamVars['dec'] }}" class='form-control'/>
@@ -60,31 +80,31 @@
 
             </div>
         </div>
-        
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
-            
+
             <label for='' class="col-sm-2 control-label">Add a close binary companion not present in 2MASS (optional)</label>
-            <div class="col-sm-10">                        
+            <div class="col-sm-10">
                 <input type="text" name="bininfo" class='form-control' value="{{ contamVars['binComp'] }}"  size="50" maxlength="110">
                 <span id="helpBlock" class="help-block">RA offset (&quot;), DEC offset (&quot;), 2MASS J (mag), H (mag) and Ks (mag) [comma separated, no spaces]</span>
             </div>
         </div>
-        
+
         <hr class="col-md-12">
 
         <div class='form-group'>
-            
+
             <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
-            
+
             <div class="col-sm-10">
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>PA min</div>
                  <input type="number" name="pamin" min="0" max="359" value="{{ contamVars['PAmin'] }}" class='form-control'>
                 </div>
                 <span id="helpBlock" class="help-block">The lower limit on the position angle</span>
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>PA max</div>
                   <input type="number" name="pamax" min="1" max="360" value="{{ contamVars['PAmax'] }}" class='form-control'/>
@@ -93,11 +113,11 @@
 
             </div>
         </div>
-        
+
         <hr class="col-md-12">
-                
+
         <div class='form-group'>
-            
+
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
               <p>
