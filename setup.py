@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from setuptools import setup
+import os
+from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
             'astropy',
@@ -20,9 +21,16 @@ REQUIRES = ['asteval',
             'sphinx',
             'svo_filters']
 
+FILES = []
+for root, _, files in os.walk("exoctk"):
+    FILES += [os.path.join(root.replace("exoctk/", ""), fname) \
+        for fname in files if not fname.endswith(".py") and not fname.endswith(".pyc")]
+
 setup(name='exoctk',
       version='0.2.2',
       description='Observation reduction and planning tools for exoplanet science',
+      packages=find_packages(".", exclude=["*.tests"]),
+      package_data={'exoctk': FILES},
       install_requires=REQUIRES,
       author='The ExoCTK Group',
       author_email='exoctk@gmail.com',
