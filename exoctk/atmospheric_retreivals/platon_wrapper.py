@@ -32,6 +32,23 @@ from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
 
+def apply_factors(params):
+    """Apply appropriate multiplication factors to parameters.
+
+    Parameters
+    ----------
+    params : dict
+        A dictionary of parameters and their values for running the
+        software.  See "Use" documentation for further details.
+    """
+
+    params['Rs'] = params['Rs'] * R_sun
+    params['Mp'] = params['Mp'] * M_jup
+    params['Rp'] = params['Rp'] * R_jup
+
+    return params
+
+
 def parse_args():
     """Parse command line arguments.
 
@@ -65,35 +82,21 @@ def parse_parameter_file(parameter_file):
 
     Returns
     -------
-    param_dict : dict
+    params : dict
         A dictionary containing parameter name/value pairs.
     """
 
     # Parse the parameter file
     with open(parameter_file, 'r') as f:
-        param_dict = yaml.load(f)
+        params = yaml.load(f)
 
-    # Make sure the parameter file contains the required keywords and they have values
-    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
-    param_types = [float, float, float, int]
-    for param, param_type in zip(required_parameters, param_types):
-        assert param in param_dict, '{} missing from parameter file'.format(param)
-        assert type(param_dict[param]) == param_type, '{} is not of type {}'.format(param, param_type)
-
-    # Make sure the optional keywords are of proper type
-    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
-                           'scatt_slope', 'error_multiple', 'T_star']
-    param_types = [int, float, int, int, int, int, int]
-    for param, param_type in zip(optional_parameters, param_types):
-        if param in param_dict:
-            assert type(param_dict[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+    # Validate supplied parameters
+    validate_parameters(params)
 
     # Apply proper multiplication factors
-    param_dict['Rs'] = param_dict['Rs'] * R_sun
-    param_dict['Mp'] = param_dict['Mp'] * M_jup
-    param_dict['Rp'] = param_dict['Rp'] * R_jup
+    apply_factors(params)
 
-    return param_dict
+    return params
 
 
 def test_args(args):
@@ -109,21 +112,41 @@ def test_args(args):
     assert os.path.exists(args.parameter_file), 'Parameter file does not exist.'
 
 
+def validate_parameters(params):
+    """Ensure the supplied parameters are valid.  Throw assertion
+    errors if they are not.
+
+    Parameters
+    ----------
+    params : dict
+        A dictionary of parameters and their values for running the
+        software.  See "Use" documentation for further details.
+    """
+
+   # Make sure the parameter file contains the required keywords and they have values
+    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
+    param_types = [float, float, float, int]
+    for param, param_type in zip(required_parameters, param_types):
+        assert param in params, '{} missing from parameter file'.format(param)
+        assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+    # Make sure the optional keywords are of proper type
+    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
+                           'scatt_slope', 'error_multiple', 'T_star']
+    param_types = [int, float, int, int, int, int, int]
+    for param, param_type in zip(optional_parameters, param_types):
+        if param in params:
+            assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+
 class PlatonWrapper():
     """Class object for running the platon atmospheric retrieval
     software."""
 
-    def __init__(self, kwargs):
-        """Initialize the class object.
+    def __init__(self, **params):
+        """Initialize the class object."""
 
-        Parameters
-        ----------
-        kwargs : dict
-            A dictionary of parameters and their values for running the
-            software.  See "Use" documentation for further details.
-        """
-
-        self.kwargs = kwargs
+        self.params = params
 
 
     def retrieve(self):
@@ -131,7 +154,7 @@ class PlatonWrapper():
 
         # Construct fit_info object
         retriever = Retriever()
-        fit_info = retriever.get_default_fit_info(**self.kwargs)
+        fit_info = retriever.get_default_fit_info(**self.params)
 
         # Fit for the stellar radius and planetary mass using Gaussian priors.  This
         # is a way to account for the uncertainties in the published values
@@ -143,10 +166,10 @@ class PlatonWrapper():
         T_guess = 1200
         fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
         fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-        fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-        fit_info.add_uniform_fit_param("logZ", -1, 3)
-        fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-        fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+        # fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+        # fit_info.add_uniform_fit_param("logZ", -1, 3)
+        # fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
+        # fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
         # Define bins, depths, and errors
         wavelengths = 1e-6*np.array([1.119, 1.138, 1.157, 1.175, 1.194, 1.213, 1.232, 1.251, 1.270, 1.288, 1.307, 1.326, 1.345, 1.364, 1.383, 1.401, 1.420, 1.439, 1.458, 1.477, 1.496, 1.515, 1.533, 1.552, 1.571, 1.590, 1.609, 1.628])
@@ -164,6 +187,25 @@ class PlatonWrapper():
                             labels=fit_info.fit_param_names)
         fig.savefig("emcee_corner.png")
 
+    def set_parameters(self, params):
+        """Set necessary parameters to perform the retrieval.
+
+        Required parameters include ``Rs``, ``Mp``, ``Rp``, and ``T``.
+        Optional parameters include ``logZ``, ``CO_ratio``,
+        ``log_cloudtop_P``, ``log_scatt_factor``, ``scatt_slope``,
+        ``error_multiple``, and ``T_star``.
+
+        Parameters
+        ----------
+        params : dict
+            A dictionary of parameters and their values for running the
+            software.  See "Use" documentation for further details.
+        """
+
+        validate_parameters(params)
+        apply_factors(params)
+        self.params = params
+
 
 if __name__ == '__main__':
 
@@ -174,7 +216,8 @@ if __name__ == '__main__':
     test_args(args)
 
     # Parse and test the parameter file
-    kwargs = parse_parameter_file(args.parameter_file)
+    params = parse_parameter_file(args.parameter_file)
 
-    platon_wrapper = PlatonWrapper(kwargs)
+    platon_wrapper = PlatonWrapper()
+    platon_wrapper.set_parameters(params)
     platon_wrapper.retrieve()
