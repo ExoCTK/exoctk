@@ -292,13 +292,13 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='boke
 
     # Draw the curve and error
     #fig.line(gd, paMax, legend='min PA', line_color='blue', source=SOURCE)
-    min = fig.line('date', 'pamin', color='red', legend='min PA', source=SOURCE)
-    nom = fig.line('date', 'panom', color='black', legend='nom PA', source=SOURCE)
-    max = fig.line('date', 'pamax', color='blue', legend='max PA', source=SOURCE)
+    minpa = fig.line('date', 'pamin', color='red', legend='min PA', source=SOURCE)
+    nompa = fig.line('date', 'panom', color='black', legend='nom PA', source=SOURCE)
+    maxpa = fig.line('date', 'pamax', color='blue', legend='max PA', source=SOURCE)
 
-    fig.add_tools(HoverTool(renderers=[min], tooltips=[('Date','@date{%F}'), ('Minimum Angle', '@pamin')], formatters={'date':'datetime'}))
-    fig.add_tools(HoverTool(renderers=[nom], tooltips=[('Date','@date{%F}'), ('Nominal Angle', '@panom')], formatters={'date':'datetime'}))
-    fig.add_tools(HoverTool(renderers=[max], tooltips=[('Date','@date{%F}'), ('Maximum Angle', '@pamax')], formatters={'date':'datetime'}))
+    fig.add_tools(HoverTool(renderers=[minpa], tooltips=[('Date','@date{%F}'), ('Minimum Angle', '@pamin')], formatters={'date':'datetime'}))
+    fig.add_tools(HoverTool(renderers=[nompa], tooltips=[('Date','@date{%F}'), ('Nominal Angle', '@panom')], formatters={'date':'datetime'}))
+    fig.add_tools(HoverTool(renderers=[maxpa], tooltips=[('Date','@date{%F}'), ('Maximum Angle', '@pamax')], formatters={'date':'datetime'}))
 
     #x = np.append(gdnan, gdnan[::-1])
     #y = np.append(paMinnan, paMaxnan[::-1])
@@ -414,4 +414,4 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='boke
     save(fig)
 
     print('this is a test2s')
-    return paMin, paMax, gd, paNom
+    return paMin, paMax, gd, fig
