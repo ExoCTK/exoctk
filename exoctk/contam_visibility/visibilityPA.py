@@ -191,32 +191,31 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
     # Top
-    err_y = np.concatenate([paMin[i0_top:i1_top+1],
+    terr_y = np.concatenate([paMin[i0_top:i1_top+1],
                             paMaxTmp[i0_top:i1_top+1][::-1]])
-    err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
+    terr_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
                             gdMaskednum[i0_top:i1_top+1][::-1]])
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+    fig.patch(terr_x, terr_y, color=color, fill_alpha=0.2, line_alpha=0)
 
-    for i in zip(err_x, err_y):
-        print(i)
+
     # Bottom
-    err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
+    berr_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
                             paMax[i0_bot:i1_bot+1][::-1]])
-    err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
+    berr_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
                             gdMaskednum[i0_bot:i1_bot+1][::-1]])
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
+    fig.patch(berr_x, berr_y, color='red', fill_alpha=0.2, line_alpha=0)
+    from bokeh.plotting import show
+    show(fig)
 
-    print('BOTTOM')
-    for i in zip(err_x, err_y):
-        print(i)
+
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
     #return paGood, paBad, gd, fig
-    return err_x, err_y, paMin, paMax, gd
+    return terr_x, terr_y, berr_x, berr_y
 
-def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, fig=None):
+def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='bokeh'):
     """Check the visibility at a range of position angles
 
     Parameters
@@ -250,7 +249,7 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, fig=None)
 
     from bokeh.plotting import save, output_file, show
     from bokeh.io import reset_output
-    reset_output()
+
     output_file('/Users/jmedina/Desktop/visib_test4.html')
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
@@ -281,14 +280,29 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, fig=None)
     # Convert datetime to a number for Bokeh
     #gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gd)]
     color = 'green'
+    from bokeh.models import HoverTool
+    from bokeh.plotting import ColumnDataSource
+
+
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin, panom=paNom, pamax=paMax, date=gd))
+    TOOLS = 'pan, wheel_zoom, reset, save'
+
+    if FIG=='bokeh':
+        fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime')
+
     # Draw the curve and error
-    fig.line(gd, paNom, legend='cutoff', line_color=color)
+    #fig.line(gd, paMax, legend='min PA', line_color='blue', source=SOURCE)
+    min = fig.line('date', 'pamin', color='red', legend='min PA', source=SOURCE)
+    nom = fig.line('date', 'panom', color='black', legend='nom PA', source=SOURCE)
+    max = fig.line('date', 'pamax', color='blue', legend='max PA', source=SOURCE)
 
-    x = np.append(gd, gd[::-1])
-    y = np.append(paMin, paMax[::-1])
+    fig.add_tools(HoverTool(renderers=[min], tooltips=[('Date','@date{%F}'), ('Minimum Angle', '@pamin')], formatters={'date':'datetime'}))
+    fig.add_tools(HoverTool(renderers=[nom], tooltips=[('Date','@date{%F}'), ('Nominal Angle', '@panom')], formatters={'date':'datetime'}))
+    fig.add_tools(HoverTool(renderers=[max], tooltips=[('Date','@date{%F}'), ('Maximum Angle', '@pamax')], formatters={'date':'datetime'}))
 
-
-    fig.patches(x,y, color='purple', fill_alpha=0.2)
+    #x = np.append(gdnan, gdnan[::-1])
+    #y = np.append(paMinnan, paMaxnan[::-1])
+    #fig.patch(x,y, color='purple', fill_alpha=0.2, line_alpha=0)
     #fig.patch(gd, paMin)
     #fig.patches([gd,gd],[paMax,paMin])
 
@@ -393,7 +407,7 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, fig=None)
         print(j)
     """
     # Plot formatting
-    fig.xaxis.axis_label = 'hi'
+    fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
 
