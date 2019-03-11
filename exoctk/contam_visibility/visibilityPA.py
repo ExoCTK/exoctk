@@ -13,6 +13,7 @@ import datetime
 import math
 import pkg_resources
 
+from astropy.table import Table
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool
 import matplotlib.dates as mdates
@@ -239,7 +240,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
         The Dec of the target.
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
-        'NIRISS', 'NIRCam', 'MIRI', 'FGS', 'NIRSpec'
+        'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
     ephFileName : str
         The filename of the ephemeris file.
     output : str
@@ -271,23 +272,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     paMax = tab[str(instrument)+' max']
     paNom = tab['V3PA']
 
-    paMin, paMax, gd = np.asarray(paMin), np.asarray(paMax), np.asarray(gd)
-    paMinnan, paMaxnan, gdnan = [], [], []
-
-
-    for i, j, k in zip(paMin, paMax, gd):
-        maskMin, maskMax = np.isnan(i), np.isnan(j)
-        if (maskMin==False)&(maskMax==False):
-            paMinnan.append(i)
-            paMaxnan.append(j)
-            gdnan.append(k)
-
-    paMinnan = np.asarray(paMinnan)
-    paMaxnan = np.asarray(paMaxnan)
-    gdnan = np.asarray(gdnan)
-
     # Setting up HoverTool parameters & other variables
-    color = 'green'
+    COLOR = 'green'
     TOOLS = 'pan, wheel_zoom, reset, save'
     SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
                                         panom=paNom,\
@@ -296,19 +282,19 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     TOOLTIPS = [('Date','@date{%F}'),\
                 ('Minimum Angle', '@pamin'),\
                 ('V3 Angle', '@panom'),\
-                ('Maximum Angle', '@panom')]
+                ('Maximum Angle', '@pamax')]
 
     # Time to plot
     if output=='bokeh':
         fig = figure(tools=TOOLS,\
                      plot_width=800,\
                      plot_height=400,\
-                     x_axis_type='datetime')
+                     x_axis_type='datetime',\
+                     title='Target Visibility with '+str(instrument))
 
-    # Draw the curve and error
-    fig.line('date', 'panom', color='green', legend='V3 PA',\
-                     source=SOURCE)
-    fig = fill_between(fig, gd, paMin, paMax, color='green', fill_alpha=0.2,\
+    # Draw the curve and PA min/max patch
+    fig.line('date', 'panom', color=COLOR, legend='V3 PA', source=SOURCE)
+    fig = fill_between(fig, gd, paMin, paMax, color=COLOR, fill_alpha=0.2,\
                         line_alpha=0.1)
 
     # Adding HoverTool
@@ -320,6 +306,18 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
-
     save(fig)
-    return paMin, paMax, gd, fig
+
+    # Making the output table
+    # Creating new lists w/o the NaN values
+    paMinnan, paMaxnan, gdnan = [], [], []
+    for pmin, pmax, date in zip(paMin, paMax, gd):
+        if np.isfinite(pmin)==True:
+            paMinnan.append(pmin)
+            paMaxnan.append(pmax)
+            gdnan.append(date)
+    # Adding lists to a table object
+    table = Table([paMinnan, paMaxnan, gdnan],\
+                  names=('MinPAs', 'MaxPAs', 'Dates'))
+
+    return paMin, paMax, gd, fig, table
