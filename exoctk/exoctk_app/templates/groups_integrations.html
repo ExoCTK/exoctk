@@ -80,7 +80,7 @@
             <label for='mag' class="col-sm-2 control-label">Stellar Parameters</label>
             <div class="col-sm-10">
                 <div class="input-group">
-                    <input type="text" name="mag" size="7" rows="1" placeholder="magnitude" class='form-control' />
+                    <input type="text" name="mag" size="7" rows="1" placeholder="magnitude" value="{{ groupIntVars['k_mag'] }}" class='form-control' />
                     <div class="input-group-addon" style='width:50px'>\(\small \text{mag}\)</div>
                  </div>
                  <span id="helpBlock" class="help-block">The vega magnitude of the target.</span>
@@ -163,10 +163,11 @@
             <label for='obs_time' class="col-sm-2 control-label">Observation Time</label>
             <div class="col-sm-10">
                 <div class="input-group">
-                    <input type="text" name="obs_time" size="7" rows="1" placeholder="time" class='form-control' />
+                    <input type="text" name="obs_time" size="7" rows="1" placeholder="time" value="{{ groupIntVars['obs_dur'] }}" class='form-control' />
                     <div class="input-group-addon" style='width:50px'>\(\small \text{hours}\)</div>
                  </div>
                  <span id="helpBlock" class="help-block">The length of the observation in hours</span>
+                 <span id="helpBlock" class="help-block">If you are coming from EXOMAST, we convert from days to hours and calculate using <code>observation_duration = 3*transit_duration+1</code></span>
             </div>
             
         </div>

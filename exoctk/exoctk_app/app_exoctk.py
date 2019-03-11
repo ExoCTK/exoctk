@@ -86,24 +86,6 @@ def limb_darkening():
     # Make HTML for filters
     filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
 
-    if request.method == 'GET':
-        # Dummy url: 0.0.0.0:5000/limb_darkening?targetname=Wasp-39%20b&teff=5400.0&logg=4.4&feh=-0.12
-        
-        # Target name will be decoded ie Wasp-39 b == Wasp-39%20b
-        target_name = request.args.get('targetname', default='Wasp-18 b')
-        target_name = urllib.parse.unquote(target_name, encoding='utf-8') 
-        
-        teff = request.args.get('teff', default=6431.0)
-        logg = request.args.get('logg', default=4.47)
-        feh = request.args.get('feh', default=0.13)
-        target_url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet=WASP18b'
-        
-        limbVars = {'targname':target_name, 'feh': feh, 
-                    'teff':teff, 'logg':logg, 
-                    'target_url':target_url}
-
-        return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
-
     if request.method == 'POST':
         if request.form['submit'] == "Retrieve Parameters":
             target_name = request.form['targetname']
@@ -342,7 +324,28 @@ def groups_integrations():
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
 
-    return render_template('groups_integrations.html', sat_data=sat_data)
+
+    if request.method == 'GET':       
+        # try: 
+        # http://0.0.0.0:5000/groups_integrations?k_mag=10.602&transit_duration=0.0655
+        k_mag = request.args.get('k_mag')
+        trans_dur = float(request.args.get('transit_duration'))
+        # According to Kevin the obs_dur = 3*trans_dur+1 hours
+        # transit_dur is in days from exomast, convert first.
+        trans_dur *= u.day.to(u.hour)
+        print(type(trans_dur))
+        obs_dur = 3*trans_dur + 1
+        print(obs_dur)
+        
+        groupIntVars = {'k_mag':k_mag, 
+                        'obs_dur':obs_dur}
+
+        return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars=groupIntVars)
+        
+        # except TypeError:
+        #     return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars={})
+
+    return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars={})
 
 
 @app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
@@ -466,6 +469,24 @@ def contam_visibility():
         pass
 
     contamVars = {}
+
+    if request.method == 'GET':       
+        try: 
+            # http://0.0.0.0:5000/contam_visibility?ra=23:12:37.739&dec=-22:40:26.17&targetname=Wasp%206b        
+            target_name = request.args.get('targetname')
+            target_name = urllib.parse.unquote(target_name, encoding='utf-8') 
+            ra = request.args.get('ra')
+            dec = request.args.get('dec')
+        
+            contamVars = {'ra':ra, 'dec': dec, 
+                        'tname': target_name}
+
+            return render_template('contam_visibility.html', contamVars=contamVars)
+        
+        except TypeError:
+            return render_template('contam_visibility.html', contamVars={})
+
+
     if request.method == 'POST':
         tname = request.form['targetname']
         contamVars['tname'] = tname
