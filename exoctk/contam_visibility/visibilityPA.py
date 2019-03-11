@@ -216,24 +216,34 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     #return paGood, paBad, gd, fig
     return terr_x, terr_y, berr_x, berr_y
 
-def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, output='bokeh'):
-    """Check the visibility at a range of position angles
+def fill_between(fig, xdata, pamin, pamax, **kwargs):
+    nanbot = np.where([np.isnan(i) for i in pamin])[0]
+    nantop = np.where([np.isnan(i) for i in pamax])[0]
+    yb = np.split(pamin, nanbot)
+    xs = np.split(xdata, nanbot)
+    yt = np.split(pamax, nantop)
+    for x, bot, top in zip(xs, yb, yt):
+        x = np.append(x, x[::-1])
+        y = np.append(bot, top[::-1])
+        fig.patch(x, y, **kwargs)
+    return fig
+
+def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
+    """Plot the visibility (at a range of position angles) vs. time.
 
     Parameters
     ----------
-    ra: float
-        The RA of the target
-    dec: float
-        The Dec of the target
-    instrument: str
+    ra : float
+        The RA of the target.
+    dec : float
+        The Dec of the target.
+    instrument : str
         Name of the instrument. Can either be (case-sensitive):
-        NIRISS, NIRCam, MIRI, FGS, NIRSpec
-    targetName: str
-        The target name
-    ephFileName: str
-        The filename of the ephemeris file
-    output: bokeh.plotting.figure
-        The figure to plot to
+        'NIRISS', 'NIRCam', 'MIRI', 'FGS', 'NIRSpec'
+    ephFileName : str
+        The filename of the ephemeris file.
+    output : str
+        Switches on plotting with Bokeh. Parameter value must be 'bokeh'.
 
     Returns
     -------
@@ -252,6 +262,7 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, output='b
     from bokeh.io import reset_output
 
     output_file('/Users/jmedina/Desktop/visib_test4.html')
+
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
 
@@ -278,134 +289,37 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, output='b
     # Setting up HoverTool parameters & other variables
     color = 'green'
     TOOLS = 'pan, wheel_zoom, reset, save'
-    SOURCE = ColumnDataSource(data=dict(pamin=paMin, \
-                                        panom=paNom, \
-                                        pamax=paMax, \
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
+                                        panom=paNom,\
+                                        pamax=paMax,\
                                         date=gd))
-    TOOLTIPS = [('Date','@date{%F}'),        \
-                ('Minimum Angle', '@pamin'), \
-                ('V3 Angle', '@panom'),      \
+    TOOLTIPS = [('Date','@date{%F}'),\
+                ('Minimum Angle', '@pamin'),\
+                ('V3 Angle', '@panom'),\
                 ('Maximum Angle', '@panom')]
 
     # Time to plot
     if output=='bokeh':
-        fig = figure(tools=TOOLS, plot_width=800, plot_height=400, \
+        fig = figure(tools=TOOLS,\
+                     plot_width=800,\
+                     plot_height=400,\
                      x_axis_type='datetime')
 
     # Draw the curve and error
-    minpa = fig.line('date', 'pamin', color='red', legend='min PA', source=SOURCE)
-    nompa = fig.line('date', 'panom', color='black', legend='V3 PA', source=SOURCE)
-    maxpa = fig.line('date', 'pamax', color='blue', legend='max PA', source=SOURCE)
+    fig.line('date', 'panom', color='green', legend='V3 PA',\
+                     source=SOURCE)
+    fig = fill_between(fig, gd, paMin, paMax, color='green', fill_alpha=0.2,\
+                        line_alpha=0.1)
+
     # Adding HoverTool
-    fig.add_tools(HoverTool(renderers=[minpa, nompa maxpa], \
-                            tooltips=TOOLTIPS,              \
-                            formatters={'date':'datetime'}, \
+    fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
+                            formatters={'date':'datetime'},\
                             mode='vline'))
 
-    """
-    i = np.argmax(paMinnan)
-    goUp = paMinnan[i-2] < paMinnan[i-1]  # PA going up at wrap point?
-
-    # Top part
-    i0_top = 0 if goUp else i
-    i1_top = i if goUp else paMinnan.size-1
-    paMaxTmp = np.copy(paMaxnan)
-    paMaxTmp[np.where(paMinnan > paMaxnan)[0]] = 360
-
-    # Bottom part
-    i = np.argmin(paMaxnan)
-    i0_bot = i if goUp else 0
-    i1_bot = paMinnan.size-1 if goUp else i
-    paMinTmp = np.copy(paMinnan)
-    paMinTmp[np.where(paMinnan > paMaxnan)[0]] = 0
-
-    # Top
-
-    err_y = np.concatenate([paMinnan[i0_top:i1_top+1],
-                            paMaxTmp[i0_top:i1_top+1][::-1]])
-    err_x = np.concatenate([gdnan[i0_top:i1_top+1],
-                            gdnan[i0_top:i1_top+1][::-1]])
-    for i in zip(err_y, err_x):
-        print(i)
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-    # Bottom
-    err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
-                            paMaxnan[i0_bot:i1_bot+1][::-1]])
-    err_x = np.concatenate([gdnan[i0_bot:i1_bot+1],
-                            gdnan[i0_bot:i1_bot+1][::-1]])
-    print('bottom')
-    for i in zip(err_y, err_x):
-        print(i)
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-    """
-    """
-    # Do all figure calculations
-    #iBad, = np.where(vis == False)
-    paMasked = np.copy(paNom)
-    #paMasked[iBad] = np.nan
-
-
-    #i = np.argmax(paNom)
-    #if paNom[i+1] < 10:
-    #    i += 1
-    #paMasked = np.insert(paMasked, i, np.nan)
-    #gdMasked = np.insert(gdMasked, i, gdMasked[i])
-
-    # future jenny: i think these 2 lines are the issue (w/ the ribbon plotting)
-    i = np.argmax(paMinnan)
-    goUp = paMinnan[i-2] < paMinnan[i-1]  # PA going up at wrap point?
-
-    # Top part
-    i0_top = 0 if goUp else i               # indexing
-    i1_top = i if goUp else paMinnan.size-1 # indexing
-    paMaxTmp = np.copy(paMaxnan)
-    paMaxTmp[np.where(paMinnan > paMaxnan)[0]] = 360 # <- what is the purpose of this
-
-    # Bottom part
-    i = np.argmin(paMaxnan)
-    i0_bot = i if goUp else 0
-    i1_bot = paMinnan.size-1 if goUp else i
-    paMinTmp = np.copy(paMinnan)
-    paMinTmp[np.where(paMinnan > paMaxnan)[0]] = 0
-
-    # Convert datetime to a number for Bokeh
-    #gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
-    #               for n, d in enumerate(gdMasked)]
-    color = 'green'
-
-    # Draw the curve and error
-    #fig.line(gd, paMasked, legend='cutoff', line_color=color)
-
-    # Top
-    err_y = np.concatenate([paMinnan[i0_top:i1_top+1],
-                            paMaxTmp[i0_top:i1_top+1][::-1]])
-    err_x = np.concatenate([gdnan[i0_top:i1_top+1],
-                            gdnan[i0_top:i1_top+1][::-1]])
-
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-    print('top')
-    for i in zip(err_x, err_y):
-        print(i)
-    # Bottom
-    err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
-                            paMaxnan[i0_bot:i1_bot+1][::-1]])
-    err_x = np.concatenate([gdnan[i0_bot:i1_bot+1],
-                            gdnan[i0_bot:i1_bot+1][::-1]])
-
-
-    fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-    print('bottom')
-    for j in zip(err_x, err_y):
-        print(j)
-    """
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
 
     save(fig)
-
-    print('this is a test2s')
     return paMin, paMax, gd, fig
