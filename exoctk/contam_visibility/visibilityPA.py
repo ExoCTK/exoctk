@@ -13,7 +13,8 @@ import datetime
 import math
 import pkg_resources
 
-from bokeh.plotting import figure
+from bokeh.plotting import figure, ColumnDataSource
+from bokeh.models import HoverTool
 import matplotlib.dates as mdates
 import numpy as np
 
@@ -215,7 +216,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     #return paGood, paBad, gd, fig
     return terr_x, terr_y, berr_x, berr_y
 
-def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='bokeh'):
+def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, output='bokeh'):
     """Check the visibility at a range of position angles
 
     Parameters
@@ -231,7 +232,7 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='boke
         The target name
     ephFileName: str
         The filename of the ephemeris file
-    fig: bokeh.plotting.figure
+    output: bokeh.plotting.figure
         The figure to plot to
 
     Returns
@@ -274,39 +275,32 @@ def using_gtvt(ra, dec, instrument, targetName=None, ephFileName=None, FIG='boke
     paMaxnan = np.asarray(paMaxnan)
     gdnan = np.asarray(gdnan)
 
-
-
-
-    # Convert datetime to a number for Bokeh
-    #gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n) for n,d in enumerate(gd)]
+    # Setting up HoverTool parameters & other variables
     color = 'green'
-    from bokeh.models import HoverTool
-    from bokeh.plotting import ColumnDataSource
-
-
-    SOURCE = ColumnDataSource(data=dict(pamin=paMin, panom=paNom, pamax=paMax, date=gd))
     TOOLS = 'pan, wheel_zoom, reset, save'
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin, \
+                                        panom=paNom, \
+                                        pamax=paMax, \
+                                        date=gd))
+    TOOLTIPS = [('Date','@date{%F}'),        \
+                ('Minimum Angle', '@pamin'), \
+                ('V3 Angle', '@panom'),      \
+                ('Maximum Angle', '@panom')]
 
-    if FIG=='bokeh':
-        fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime')
+    # Time to plot
+    if output=='bokeh':
+        fig = figure(tools=TOOLS, plot_width=800, plot_height=400, \
+                     x_axis_type='datetime')
 
     # Draw the curve and error
-    #fig.line(gd, paMax, legend='min PA', line_color='blue', source=SOURCE)
     minpa = fig.line('date', 'pamin', color='red', legend='min PA', source=SOURCE)
-    nompa = fig.line('date', 'panom', color='black', legend='nom PA', source=SOURCE)
+    nompa = fig.line('date', 'panom', color='black', legend='V3 PA', source=SOURCE)
     maxpa = fig.line('date', 'pamax', color='blue', legend='max PA', source=SOURCE)
-
-    fig.add_tools(HoverTool(renderers=[minpa], tooltips=[('Date','@date{%F}'), ('Minimum Angle', '@pamin')], formatters={'date':'datetime'}))
-    fig.add_tools(HoverTool(renderers=[nompa], tooltips=[('Date','@date{%F}'), ('Nominal Angle', '@panom')], formatters={'date':'datetime'}))
-    fig.add_tools(HoverTool(renderers=[maxpa], tooltips=[('Date','@date{%F}'), ('Maximum Angle', '@pamax')], formatters={'date':'datetime'}))
-
-    #x = np.append(gdnan, gdnan[::-1])
-    #y = np.append(paMinnan, paMaxnan[::-1])
-    #fig.patch(x,y, color='purple', fill_alpha=0.2, line_alpha=0)
-    #fig.patch(gd, paMin)
-    #fig.patches([gd,gd],[paMax,paMin])
-
-
+    # Adding HoverTool
+    fig.add_tools(HoverTool(renderers=[minpa, nompa maxpa], \
+                            tooltips=TOOLTIPS,              \
+                            formatters={'date':'datetime'}, \
+                            mode='vline'))
 
     """
     i = np.argmax(paMinnan)
