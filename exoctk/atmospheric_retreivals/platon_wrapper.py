@@ -1,17 +1,62 @@
-"""A wrapper around the PLATON software.
+"""A wrapper around the PLATON atmospheric retrieval tool.
 
-This module serves as a wrapper around the atmospheric retreival
+This module serves as a wrapper around the atmospheric retrieval
 software for ``platon``.  For more information about ``platon``, please
 see ``https://platon.readthedocs.io``.
 
 Authors
 -------
+
     - Matthew Bourque
 
 Use
 ---
 
-    Coming soon.
+    Users can perform the atmospheric retrieval by instantiating a
+    ``PlatonWrapper`` object and passing fit parameters within the
+    python environment.  An example of this is provided below
+    ::
+
+        from exoctk.atmospheric_retrievals.platon_wrapper import PlatonWrapper
+
+        # Build dictionary of parameters you wish to fit
+        params = {
+            'Rs': 1.19,  # Required
+            'Mp': 0.73,  # Required
+            'Rp': 1.4,  # Required
+            'T': 1200,  # Required
+            'logZ': 0,  # Optional
+            'CO_ratio': 0.53,  # Optional
+            'log_cloudtop_P': 4,  # Optional
+            'log_scatt_factor': 0,  # Optional
+            'scatt_slope': 4,  # Optional
+            'error_multiple': 1,  # Optional
+            'T_star': 6091}  # Optional
+
+        # Initialize PlatonWrapper object and set the parameters
+        pw = PlatonWrapper()
+        pw.set_parameters(params)
+
+        # Add any additional fit parameters
+        R_guess = 1.4 * R_jup
+        T_guess = 1200
+        pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
+        pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+        pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
+        pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
+        pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+        pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+        pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
+        pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+
+        # Define bins, depths, and errors
+        pw.wavelengths = 1e-6*np.array([1.119, 1.138, 1.157, 1.175, 1.194, 1.213, 1.232, 1.251, 1.270, 1.288, 1.307, 1.326, 1.345, 1.364, 1.383, 1.401, 1.420, 1.439, 1.458, 1.477, 1.496, 1.515, 1.533, 1.552, 1.571, 1.590, 1.609, 1.628])
+        pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
+        pw.depths = 1e-6 * np.array([14512.7, 14546.5, 14566.3, 14523.1, 14528.7, 14549.9, 14571.8, 14538.6, 14522.2, 14538.4, 14535.9, 14604.5, 14685.0, 14779.0, 14752.1, 14788.8, 14705.2, 14701.7, 14677.7, 14695.1, 14722.3, 14641.4, 14676.8, 14666.2, 14642.5, 14594.1, 14530.1, 14642.1])
+        pw.errors = 1e-6 * np.array([50.6, 35.5, 35.2, 34.6, 34.1, 33.7, 33.5, 33.6, 33.8, 33.7, 33.4, 33.4, 33.5, 33.9, 34.4, 34.5, 34.7, 35.0, 35.4, 35.9, 36.4, 36.6, 37.1, 37.8, 38.6, 39.2, 39.9, 40.8])
+
+        # Perform the retrieval
+        pw.retrieve()
 
 Dependencies
 ------------
@@ -21,13 +66,8 @@ Dependencies
     - ``platon``
 """
 
-import argparse
-import os
-import yaml
-
 import corner
 import numpy as np
-from platon.fit_info import FitInfo
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
@@ -49,63 +89,6 @@ def _apply_factors(params):
     return params
 
 
-def _parse_args():
-    """Parse command line arguments.
-
-    Returns
-    -------
-    args : obj
-        An ``argparse`` object containing all of the added arguments.
-    """
-
-    param_file_help = 'The path to a file containing the parameters '
-    param_file_help += 'needed for PLATON'
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('parameter_file', type=str, help=param_file_help)
-
-    args = parser.parse_args()
-
-    return args
-
-
-def _parse_parameter_file(parameter_file):
-    """Parses the supplied parameter file, ensures that the required
-    parameters exist, and ensures that all supplied parameters are of a
-    valid data type.  Also applies appropriate multiplication factors
-    to the appropriate parameters.
-
-    Parameters
-    ----------
-    parameter_file : str
-        The path to the parameter file.
-
-    Returns
-    -------
-    params : dict
-        A dictionary containing parameter name/value pairs.
-    """
-
-    # Parse the parameter file
-    with open(parameter_file, 'r') as f:
-        params = yaml.load(f)
-
-    return params
-
-
-def _test_args(args):
-    """Ensures that the command line arguments are of proper format and
-    valid. If they are not, an assertion error is raised.
-
-    Parameters
-    ----------
-    args : obj
-        The ``argparse`` object containing the command line arguments.
-    """
-
-    assert os.path.exists(args.parameter_file), 'Parameter file does not exist.'
-
-
 def _validate_parameters(params):
     """Ensure the supplied parameters are valid.  Throw assertion
     errors if they are not.
@@ -117,7 +100,7 @@ def _validate_parameters(params):
         software.  See "Use" documentation for further details.
     """
 
-   # Make sure the parameter file contains the required keywords and they have values
+    # Make sure the parameter file contains the required keywords and they have values
     required_parameters = ['Rs', 'Mp', 'Rp', 'T']
     param_types = [float, float, float, int]
     for param, param_type in zip(required_parameters, param_types):
@@ -141,20 +124,26 @@ class PlatonWrapper():
         """Initialize the class object."""
 
         self.retriever = Retriever()
-
+        self.output_results = 'results.dat'
+        self.output_plot = 'emcee_corner.png'
 
     def retrieve(self):
-        """Perform the atmopsheric retreival."""
+        """Perform the atmopsheric retrieval."""
 
         # Run nested sampling
         result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=True)
-        print(result)
+
+        # Save the results
+        with open(self.output_results, 'w') as f:
+            f.write(str(result))
+        print('Results file saved to {}'.format(self.output_results))
 
         # Do some plotting
         fig = corner.corner(result.samples, weights=result.weights,
                             range=[0.99] * result.samples.shape[1],
                             labels=self.fit_info.fit_param_names)
-        fig.savefig("emcee_corner.png")
+        fig.savefig(self.output_plot)
+        print('Corner plot saved to {}'.format(self.output_plot))
 
     def set_parameters(self, params):
         """Set necessary parameters to perform the retrieval.
@@ -179,15 +168,21 @@ class PlatonWrapper():
 
 if __name__ == '__main__':
 
-    # Parse command line arguments
-    args = _parse_args()
+    # Define the fit parameters
+    params = {
+        'Rs': 1.19,  # Required
+        'Mp': 0.73,  # Required
+        'Rp': 1.4,  # Required
+        'T': 1200,  # Required
+        'logZ': 0,  # Optional
+        'CO_ratio': 0.53,  # Optional
+        'log_cloudtop_P': 4,  # Optional
+        'log_scatt_factor': 0,  # Optional
+        'scatt_slope': 4,  # Optional
+        'error_multiple': 1,  # Optional
+        'T_star': 6091}  # Optional
 
-    # Test command line arguments
-    _test_args(args)
-
-    # Parse and test the parameter file
-    params = _parse_parameter_file(args.parameter_file)
-
+    # Initialize the object and set the parameters
     pw = PlatonWrapper()
     pw.set_parameters(params)
 
@@ -201,10 +196,10 @@ if __name__ == '__main__':
     T_guess = 1200
     pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
     pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-    # pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    # pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
-    # pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    # pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+    pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
+    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Define bins, depths, and errors
     pw.wavelengths = 1e-6*np.array([1.119, 1.138, 1.157, 1.175, 1.194, 1.213, 1.232, 1.251, 1.270, 1.288, 1.307, 1.326, 1.345, 1.364, 1.383, 1.401, 1.420, 1.439, 1.458, 1.477, 1.496, 1.515, 1.533, 1.552, 1.571, 1.590, 1.609, 1.628])
