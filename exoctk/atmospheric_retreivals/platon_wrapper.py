@@ -32,7 +32,7 @@ from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
 
-def apply_factors(params):
+def _apply_factors(params):
     """Apply appropriate multiplication factors to parameters.
 
     Parameters
@@ -49,7 +49,7 @@ def apply_factors(params):
     return params
 
 
-def parse_args():
+def _parse_args():
     """Parse command line arguments.
 
     Returns
@@ -69,7 +69,7 @@ def parse_args():
     return args
 
 
-def parse_parameter_file(parameter_file):
+def _parse_parameter_file(parameter_file):
     """Parses the supplied parameter file, ensures that the required
     parameters exist, and ensures that all supplied parameters are of a
     valid data type.  Also applies appropriate multiplication factors
@@ -93,7 +93,7 @@ def parse_parameter_file(parameter_file):
     return params
 
 
-def test_args(args):
+def _test_args(args):
     """Ensures that the command line arguments are of proper format and
     valid. If they are not, an assertion error is raised.
 
@@ -106,7 +106,7 @@ def test_args(args):
     assert os.path.exists(args.parameter_file), 'Parameter file does not exist.'
 
 
-def validate_parameters(params):
+def _validate_parameters(params):
     """Ensure the supplied parameters are valid.  Throw assertion
     errors if they are not.
 
@@ -171,8 +171,8 @@ class PlatonWrapper():
             software.  See "Use" documentation for further details.
         """
 
-        validate_parameters(params)
-        apply_factors(params)
+        _validate_parameters(params)
+        _apply_factors(params)
         self.params = params
         self.fit_info = self.retriever.get_default_fit_info(**self.params)
 
@@ -180,13 +180,13 @@ class PlatonWrapper():
 if __name__ == '__main__':
 
     # Parse command line arguments
-    args = parse_args()
+    args = _parse_args()
 
     # Test command line arguments
-    test_args(args)
+    _test_args(args)
 
     # Parse and test the parameter file
-    params = parse_parameter_file(args.parameter_file)
+    params = _parse_parameter_file(args.parameter_file)
 
     pw = PlatonWrapper()
     pw.set_parameters(params)
