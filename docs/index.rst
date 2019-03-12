@@ -6,7 +6,7 @@
 
 .. only:: html
 
-   .. image:: ../ExoCTK/data/images/ExoCTK_logo.png
+   .. image:: ../exoctk/data/images/ExoCTK_logo.png
 
 ############################
 ExoCTK Package Documentation
@@ -45,6 +45,8 @@ Phase Constraint
 To sign up for update and new release emails see the newsletter subscription details at the bottom of the page. 
 
 
+The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through. 
+
 
 ******************
 User Documentation
@@ -54,16 +56,20 @@ User Documentation
 **Contamination and Visibility Calculator**
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
-   source/ExoCTK.contam_visibility
+  source/exoctk.contam_visibility
 
 **Groups and Integrations Calculator**
+
+The groups_integrations tool is a JWST observation planning tool designed with exoplanet observations in mind. Given a potential observation (which requires transit time, and an estimate of model and magnitude for the host star, and specifics of instrument setup) it's simple to get an optimized groups and integrations plan for the observation. The example notebook also outlines cases for batch demos -- testing many transits/sources in a given instrument setup, or figuring out which instrument setup is best for a given transit.
+
+The Groups and Integrations Calculator runs with pre-sampled pandeia data in the background -- so it can have the power of those carefully built instrument models, but still run 100 times faster.
 
 .. toctree::
   :maxdepth: 1
 
-  source/ExoCTK.integrations_groups
+  source/exoctk.integrations_groups
 
 **Lightcurve Fitting Tool**
 
@@ -72,13 +78,23 @@ TLC fits large numbers of spectroscopic light curves simultaneously while sharin
 .. toctree::
   :maxdepth: 1
 
-  source/ExoCTK.lightcurve_fitting
+  source/exoctk.lightcurve_fitting
 
 **Limb Darkening Calculator**
 
-LDC calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength. It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
+The limb_darkening tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength. It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 .. toctree::
    :maxdepth: 1
 
-  source/ExoCTK.limb_darkening
+***********************
+Newsletter Subscription
+***********************
+
+If you'd like to stay up-to-date with our releases and updates we suggest subscribing to our newsletter. One can do so by following the instructions below: 
+
+**Subscribe by email - you are not require to log in to the ListServ interface.**
+
+(1) Send an email from your mailbox to `exoctk-news-subscribe-request@maillist.stsci.edu`
+(2) Subject and body should be blank. If you use an email signature, remove that as well and then send the message.
+(3) You will receive a confirmation email - be sure to follow the instructions to ensure you are properly subscribed.

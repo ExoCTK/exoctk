@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
+def lmfitter(time, data, model, uncertainty=None, method='powell', name=None, verbose=True, **kwargs):
     """Use lmfit
 
     Parameters
@@ -19,8 +19,14 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
         The observational data
     model: ExoCTK.lightcurve_fitting.models.Model
         The model to fit
-    unc: np.ndarray (optional)
+    uncertainty: np.ndarray (optional)
         The uncertainty on the (same shape) data
+    method: str
+        The name of the method to use
+    name: str
+        A name for the best fit model
+    verbose: bool
+        Print some stuff
 
     Returns
     -------
@@ -29,6 +35,8 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
     """
     # Initialize lmfit Params object
     initialParams = lmfit.Parameters()
+
+    #TODO: Do something so that duplicate param names can all be handled (e.g. two Polynomail models with c0). Perhaps append something to the parameter name like c0_1 and c0_2?)
 
     # Concatenate the lists of parameters
     all_params = [i for j in [model.components[n].parameters.list
@@ -58,13 +66,13 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
     lcmodel = lmfit.Model(model.eval)
     lcmodel.independent_vars = indep_vars.keys()
 
-    # Set the unc
-    if unc is None:
-        unc = np.ones(len(data))
+    # Set the uncertainty
+    if uncertainty is None:
+        uncertainty = np.ones(len(data))
 
     # Fit light curve model to the simulated data
-    result = lcmodel.fit(data, weights=1/unc, params=initialParams,
-                         method=method, **indep_vars)
+    result = lcmodel.fit(data, weights=1/uncertainty, params=initialParams,
+                         method=method, **indep_vars, **kwargs)
     if verbose:
         print(result.fit_report())
 
@@ -83,7 +91,7 @@ def lmfitter(time, data, model, unc=None, method='leastsq', verbose=True):
 
     # Make a new model instance
     best_model = copy.copy(model)
-    best_model.name = 'Best Fit'
     best_model.parameters = params
+    best_model.name = ', '.join(['{}:{}'.format(k, round(v[0], 2)) for k, v in params.dict.items()])
 
     return best_model
