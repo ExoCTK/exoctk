@@ -6,6 +6,7 @@ Subpackages
 
 .. toctree::
 
+    ExoCTK.atmospheric_retrievals
     ExoCTK.contam_visibility
     ExoCTK.integrations_groups
     ExoCTK.lightcurve_fitting
