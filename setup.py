@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 REQUIRES = ['asteval',
             'astropy',
             'astroquery',
-            'batman-package',
             'bibtexparser',
             'bokeh',
             'cython',
