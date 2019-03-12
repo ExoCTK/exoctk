@@ -12,13 +12,38 @@
 ExoCTK Package Documentation
 ############################
 
-ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. 
+``ExoCTK`` is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. 
 
-The subpackages currently included are:
 
-Transit light-­curve fitting tools (TLC)
 
-Limb-­darkening calculator (LDC)
+Currently available subpackages:
+-----------------------------------
+
+Transit lightcurve fitting tools
+
+Limb-­darkening calculator
+
+Groups and Integrations Calculator
+
+Contamination and Visibility Calculator
+
+Atmoshperic Forward Modeling - Fortney Grid
+
+
+
+Planned subpackages for future releases:
+-----------------------------------
+
+Atmoshperic Forward Modeling - Platon
+
+Atmospheric Retrievals
+
+Phase Constraint 
+
+
+
+To sign up for update and new release emails see the newsletter subscription details at the bottom of the page. 
+
 
 
 ******************
@@ -26,14 +51,14 @@ User Documentation
 ******************
 
 
-**Contamination Visibility Tool**
+**Contamination and Visibility Calculator**
 
 .. toctree::
    :maxdepth: 1
 
    source/ExoCTK.contam_visibility
 
-**Integrations Groups**
+**Groups and Integrations Calculator**
 
 .. toctree::
   :maxdepth: 1
@@ -57,10 +82,3 @@ LDC calculates limb-darkening coefficients for a specified stellar model, plotti
    :maxdepth: 1
 
   source/ExoCTK.limb_darkening
-
-**Nircam Coronagraphy**
-
-.. toctree::
-  :maxdepth: 1
-
-  source/ExoCTK.nircam_coronagraphy
