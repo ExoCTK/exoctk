@@ -9,7 +9,10 @@ import inspect
 import os
 
 import astropy.units as q
-import batman
+try:
+    import batman
+except ImportError:
+    print("Could not import batman. Functionality may be limited.")
 from bokeh.plotting import figure, show
 import numpy as np
 

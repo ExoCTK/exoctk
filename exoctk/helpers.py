@@ -1,13 +1,17 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
-from astropy.io import fits, ascii
-from shutil import copyfile
+"""
+A module for helpful code snippets
+"""
 from glob import glob
+import os
 from pkg_resources import resource_filename
+from shutil import copyfile
+
+from astropy.io import fits, ascii
 import astropy.constants as ac
 import astropy.units as q
 import numpy as np
-import os
 
 def external_files():
     """
