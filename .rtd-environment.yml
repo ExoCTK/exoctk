@@ -16,5 +16,4 @@ dependencies:
     - pip:
         - sphinx_rtd_theme
         - svo_filters
-        - batman-package
         - sphinx-automodapi
