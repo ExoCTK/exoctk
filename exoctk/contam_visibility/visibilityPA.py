@@ -16,6 +16,7 @@ import pkg_resources
 from astropy.table import Table
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool
+from bokeh.models.widgets import Panel, Tabs
 import matplotlib.dates as mdates
 import numpy as np
 
@@ -264,6 +265,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     output_file('/Users/jmedina/Desktop/visib_test4.html')
 
+
+
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
 
@@ -280,9 +283,9 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                                         pamax=paMax,\
                                         date=gd))
     TOOLTIPS = [('Date','@date{%F}'),\
-                ('Minimum Angle', '@pamin'),\
-                ('V3 Angle', '@panom'),\
-                ('Maximum Angle', '@pamax')]
+                ('Maximum Angle', '@pamax'),\
+                ('Nominal Angle', '@panom'),\
+                ('Minimum Angle', '@pamin')]
 
     # Time to plot
     if output=='bokeh':
@@ -293,7 +296,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      title='Target Visibility with '+str(instrument))
 
     # Draw the curve and PA min/max patch
-    fig.line('date', 'panom', color=COLOR, legend='V3 PA', source=SOURCE)
+    fig.line('date', 'panom', color=COLOR, legend='nominal angle', source=SOURCE)
     fig = fill_between(fig, gd, paMin, paMax, color=COLOR, fill_alpha=0.2,\
                         line_alpha=0.1)
 
@@ -305,6 +308,9 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
+
+
+
 
     save(fig)
 
@@ -321,3 +327,111 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                   names=('MinPAs', 'MaxPAs', 'Dates'))
 
     return paMin, paMax, gd, fig, table
+
+def all_cams(ra, dec, ephFileName=None, output='bokeh'):
+    """Plot the visibility (at a range of position angles) vs. time.
+
+    Parameters
+    ----------
+    ra : float
+        The RA of the target.
+    dec : float
+        The Dec of the target.
+    instrument : str
+        Name of the instrument. Can either be (case-sensitive):
+        'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
+    ephFileName : str
+        The filename of the ephemeris file.
+    output : str
+        Switches on plotting with Bokeh. Parameter value must be 'bokeh'.
+
+    Returns
+    -------
+    paGood : float
+        The good position angle.
+    paBad : float
+        The bad position angle.
+    gd : matplotlib.dates object
+       The gregorian date.
+    fig : bokeh.plotting.figure object
+        The plotted figure.
+
+    """
+
+    from bokeh.plotting import save, output_file, show
+    from bokeh.io import reset_output
+
+    output_file('/Users/jmedina/Desktop/visib_test5.html')
+
+    # getting calculations from GTVT (General Target Visibility Tool)
+    tab = get_table(ra, dec)
+
+    gd = tab['Date']
+    nirissmin = tab['NIRISS min']
+    nirissmax = tab['NIRISS max']
+    nirspecmin = tab['NIRSpec min']
+    nirspecmax = tab['NIRSpec max']
+    nircammin = tab['NIRCam min']
+    nircammax = tab['NIRISS max']
+    mirimin = tab['MIRI min']
+    mirimax = tab['MIRI max']
+    paNom = tab['V3PA']
+
+    # Setting up HoverTool parameters & other variables
+    COLOR = 'green'
+    TOOLS = 'pan, wheel_zoom, reset, save'
+    """
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
+                                        panom=paNom,\
+                                        pamax=paMax,\
+                                        date=gd))
+    TOOLTIPS = [('Date','@date{%F}'),\
+                ('Maximum Angle', '@pamax'),\
+                ('Nominal Angle', '@panom'),\
+                ('Minimum Angle', '@pamin')]
+    """
+    # Time to plot
+    if output=='bokeh':
+        fig = figure(tools=TOOLS,\
+                     plot_width=800,\
+                     plot_height=400,\
+                     x_axis_type='datetime',\
+                     title='Target Visibility with everyone :)')
+
+    # Draw the curve and PA min/max patch
+    #fig.line('date', 'panom', color=COLOR, legend='nominal angle', source=SOURCE)
+    fig = fill_between(fig, gd, nirissmin, nirissmax, legend='niriss', color='red', fill_alpha=0.2,\
+                        line_alpha=0.1)
+    fig = fill_between(fig, gd, nircammin, nircammax, legend='nircam', color='blue', fill_alpha=0.2,\
+                        line_alpha=0.1)
+    fig = fill_between(fig, gd, mirimin, mirimax, legend='miri', color='purple', fill_alpha=0.2,\
+                        line_alpha=0.1)
+    fig = fill_between(fig, gd, nirspecmin, nirspecmax, legend='nirspec', color='green', fill_alpha=0.2,\
+                        line_alpha=0.1)
+
+
+    # Adding HoverTool
+    """
+    fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
+                            formatters={'date':'datetime'},\
+                            mode='vline'))
+    """
+    # Plot formatting
+    fig.xaxis.axis_label = 'Date'
+    fig.yaxis.axis_label = 'Position Angle (degrees)'
+
+    save(fig)
+    """
+    # Making the output table
+    # Creating new lists w/o the NaN values
+    paMinnan, paMaxnan, gdnan = [], [], []
+    for pmin, pmax, date in zip(paMin, paMax, gd):
+        if np.isfinite(pmin)==True:
+            paMinnan.append(pmin)
+            paMaxnan.append(pmax)
+            gdnan.append(date)
+    # Adding lists to a table object
+    table = Table([paMinnan, paMaxnan, gdnan],\
+                  names=('MinPAs', 'MaxPAs', 'Dates'))
+    """
+    #return paMin, paMax, gd, fig, table
