@@ -93,7 +93,7 @@ def limb_darkening():
             feh = data['Fe/H']
             teff = data['Teff']
             logg = data['stellar_gravity']
-            
+
             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
 
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
@@ -451,6 +451,7 @@ def contam_visibility():
         contamVars['ra'], contamVars['dec'] = request.form['ra'], request.form['dec']
         contamVars['PAmax'] = request.form['pamax']
         contamVars['PAmin'] = request.form['pamin']
+        contamVars['inst'] = request.form['inst'].split()[0]
 
         if request.form['bininfo'] != '':
             contamVars['binComp'] = list(map(float, request.form['bininfo'].split(', ')))
@@ -480,14 +481,15 @@ def contam_visibility():
                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
                              x_axis_type='datetime',
                              title=contamVars['tname'] or radec)
-                pG, pB, dates, vis_plot = vpa.checkVisPA(contamVars['ra'],
+                pG, pB, dates, vis_plot, table = vpa.using_gtvt(contamVars['ra'],
                                                          contamVars['dec'],
-                                                         tname, fig=fig)
+                                                         contamVars['inst'],
+                                                         )
 
                 # Format x axis
                 day0 = datetime.date(2019, 6, 1)
                 dtm = datetime.timedelta(days=367)
-                vis_plot.x_range = Range1d(day0, day0 + dtm)
+                #vis_plot.x_range = Range1d(day0, day0 + dtm)
 
                 # Get scripts
                 vis_js = INLINE.render_js()
