@@ -273,7 +273,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     gd = tab['Date']
     paMin = tab[str(instrument)+' min']
     paMax = tab[str(instrument)+' max']
-    paNom = tab['V3PA']
+    paNom = tab[str(instrument)+' nom']
+    v3pa = tab['V3PA']
 
     # Setting up HoverTool parameters & other variables
     COLOR = 'green'
@@ -283,9 +284,9 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                                         pamax=paMax,\
                                         date=gd))
     TOOLTIPS = [('Date','@date{%F}'),\
-                ('Maximum Angle', '@pamax'),\
-                ('Nominal Angle', '@panom'),\
-                ('Minimum Angle', '@pamin')]
+                ('Maximum Aperture PA', '@pamax'),\
+                ('Nominal Aperture PA', '@panom'),\
+                ('Minimum Aperture PA', '@pamin')]
 
     # Time to plot
     if output=='bokeh':
@@ -296,7 +297,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      title='Target Visibility with '+str(instrument))
 
     # Draw the curve and PA min/max patch
-    fig.line('date', 'panom', color=COLOR, legend='nominal angle', source=SOURCE)
+    fig.line('date', 'panom', color=COLOR, legend='Nominal Aperture PA', source=SOURCE)
     fig = fill_between(fig, gd, paMin, paMax, color=COLOR, fill_alpha=0.2,\
                         line_alpha=0.1)
 
@@ -316,15 +317,17 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Making the output table
     # Creating new lists w/o the NaN values
-    paMinnan, paMaxnan, gdnan = [], [], []
-    for pmin, pmax, date in zip(paMin, paMax, gd):
+    v3panan, paNomnan, paMinnan, paMaxnan, gdnan = [], [], [], [], []
+    for v3p, pnom, pmin, pmax, date in zip(v3pa, paNom, paMin, paMax, gd):
         if np.isfinite(pmin)==True:
+            v3panan.append(v3p)
+            paNomnan.append(pnom)
             paMinnan.append(pmin)
             paMaxnan.append(pmax)
             gdnan.append(date)
     # Adding lists to a table object
-    table = Table([paMinnan, paMaxnan, gdnan],\
-                  names=('MinPAs', 'MaxPAs', 'Dates'))
+    table = Table([v3panan, paNomnan, paMinnan, paMaxnan, gdnan],\
+                  names=('V3_PA', 'Aperture_PA','min_Aperture_PA', 'max_Aperture_PA', 'Dates'))
 
     return paMin, paMax, gd, fig, table
 
