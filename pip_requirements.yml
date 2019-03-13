@@ -10,5 +10,5 @@ bokeh
 pandas
 sphinx-astropy
 sphinx_rtd_theme
-svo_filters=0.2.19
+svo_filters
 sphinx-automodapi
