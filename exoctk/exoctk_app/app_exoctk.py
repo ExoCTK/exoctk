@@ -45,13 +45,13 @@ FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # Load the database to log all form submissions
-if EXOCTKLOG_DIR is None:
-    dbpath = ':memory:'
-else:
+try:
     dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
     if not os.path.isfile(dbpath):
         log_exoctk.create_db(dbpath)
-DB = log_exoctk.load_db(dbpath)
+    DB = log_exoctk.load_db(dbpath)
+except:
+    DB = log_exoctk.load_db(':memory:')
 
 # Nice colors for plotting
 COLORS = ['blue', 'red', 'green', 'orange',
