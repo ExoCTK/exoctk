@@ -326,24 +326,24 @@ def groups_integrations():
 
 
     if request.method == 'GET':       
-        # try: 
-        # http://0.0.0.0:5000/groups_integrations?k_mag=10.602&transit_duration=0.0655
-        k_mag = request.args.get('k_mag')
-        trans_dur = float(request.args.get('transit_duration'))
-        # According to Kevin the obs_dur = 3*trans_dur+1 hours
-        # transit_dur is in days from exomast, convert first.
-        trans_dur *= u.day.to(u.hour)
-        print(type(trans_dur))
-        obs_dur = 3*trans_dur + 1
-        print(obs_dur)
-        
-        groupIntVars = {'k_mag':k_mag, 
-                        'obs_dur':obs_dur}
+        try: 
+            # http://0.0.0.0:5000/groups_integrations?k_mag=10.602&transit_duration=0.0655
+            k_mag = request.args.get('k_mag')
+            trans_dur = float(request.args.get('transit_duration'))
+            # According to Kevin the obs_dur = 3*trans_dur+1 hours
+            # transit_dur is in days from exomast, convert first.
+            trans_dur *= u.day.to(u.hour)
+            print(type(trans_dur))
+            obs_dur = 3*trans_dur + 1
+            print(obs_dur)
+            
+            groupIntVars = {'k_mag':k_mag, 
+                            'obs_dur':obs_dur}
 
-        return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars=groupIntVars)
-        
-        # except TypeError:
-        #     return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars={})
+            return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars=groupIntVars)
+            
+        except TypeError:
+            return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars={})
 
     return render_template('groups_integrations.html', sat_data=sat_data, groupIntVars={})
 
