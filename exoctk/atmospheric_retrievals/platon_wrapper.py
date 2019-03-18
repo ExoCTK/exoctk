@@ -17,6 +17,8 @@ Use
     python environment.  An example of this is provided below
     ::
 
+        import numpy as np
+        from platon.constants import R_sun, R_jup, M_jup
         from exoctk.atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
         # Build dictionary of parameters you wish to fit
