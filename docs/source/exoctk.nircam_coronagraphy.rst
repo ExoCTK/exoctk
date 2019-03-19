@@ -1,13 +1,13 @@
-ExoCTK.integrations\_groups package
+exoctk.nircam\_coronagraphy package
 ===================================
 
 Submodules
 ----------
 
-ExoCTK.integrations\_groups.integrations\_groups module
+exoctk.nircam\_coronagraphy.nircam\_coronagraphy module
 -------------------------------------------------------
 
-.. automodule:: ExoCTK.integrations_groups.integrations_groups
+.. automodule:: exoctk.nircam_coronagraphy.nircam_coronagraphy
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ ExoCTK.integrations\_groups.integrations\_groups module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK.integrations_groups
+.. automodule:: exoctk.nircam_coronagraphy
     :members:
     :undoc-members:
     :show-inheritance:
