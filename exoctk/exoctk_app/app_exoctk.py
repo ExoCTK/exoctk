@@ -93,7 +93,7 @@ def limb_darkening():
             feh = data['Fe/H']
             teff = data['Teff']
             logg = data['stellar_gravity']
-            
+
             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
 
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
@@ -773,6 +773,13 @@ def secret_page():
         log_tables.append(html_table)
 
     return render_template('admin_page.html', tables=log_tables)
+
+
+@app_exoctk.route('/atmospheric_retrievals')
+def atmospheric_retrievals():
+    """A landing page for the atmospheric_retrievals tools"""
+
+    return render_template('atmospheric_retrievals.html')
 
 
 if __name__ == '__main__':
