@@ -94,6 +94,7 @@ dependencies:
     - astroquery==0.3.8
     - batman-package==2.4.6
     - beautifulsoup4==4.6.3
+    - corner==2.0.1
     - bibtexparser==1.0.1
     - entrypoints==0.2.3
     - future==0.17.1
