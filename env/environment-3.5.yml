@@ -101,6 +101,7 @@ dependencies:
     - html5lib==1.0.1
     - keyring==17.0.0
     - lmfit==0.9.12
+    - platon==3.1
     - pytest==3.8.1
     - svo-filters==0.2.16
     - uncertainties==3.0.3
