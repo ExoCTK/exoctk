@@ -12,7 +12,7 @@
 ExoCTK Package Documentation
 ############################
 
-ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. 
+ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets.
 
 The subpackages currently included are:
 
@@ -20,7 +20,7 @@ Transit light-­curve fitting tools (TLC)
 
 Limb-­darkening calculator (LDC)
 
-The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through. 
+The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through.
 
 
 ******************
@@ -44,7 +44,7 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.integrations_groups
+  source/exoctk.groups_integrations
 
 **Lightcurve Fitting Tool**
 
@@ -60,22 +60,16 @@ TLC fits large numbers of spectroscopic light curves simultaneously while sharin
 The limb_darkening tool calculates limb-darkening coefficients for a specified stellar model, plotting results versus µ and wavelength. It uses high spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision.
 
 .. toctree::
-   :maxdepth: 1
+  :maxdepth: 1
 
   source/exoctk.limb_darkening
 
-**Nircam Coronagraphy**
-
-.. toctree::
-  :maxdepth: 1
-
-  source/exoctk.nircam_coronagraphy
 
 ***********************
 Newsletter Subscription
 ***********************
 
-If you'd like to stay up-to-date with our releases and updates we suggest subscribing to our newsletter. One can do so by following the instructions below: 
+If you'd like to stay up-to-date with our releases and updates we suggest subscribing to our newsletter. One can do so by following the instructions below:
 
 **Subscribe by email - you are not require to log in to the ListServ interface.**
 
