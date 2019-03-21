@@ -4,34 +4,26 @@ exoctk.tests package
 Submodules
 ----------
 
-exoctk.tests.limbdarkening\_script module
+exoctk.tests.test\_lightcurve\_fitting module
+---------------------------------------------
+
+.. automodule:: exoctk.tests.test_lightcurve_fitting
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+exoctk.tests.test\_limb\_darkening module
 -----------------------------------------
 
-.. automodule:: exoctk.tests.limbdarkening_script
+.. automodule:: exoctk.tests.test_limb_darkening
     :members:
     :undoc-members:
     :show-inheritance:
 
-exoctk.tests.setup\_package module
-----------------------------------
+exoctk.tests.test\_modelgrid module
+-----------------------------------
 
-.. automodule:: exoctk.tests.setup_package
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-exoctk.tests.test\_example module
----------------------------------
-
-.. automodule:: exoctk.tests.test_example
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-exoctk.tests.tests module
--------------------------
-
-.. automodule:: exoctk.tests.tests
+.. automodule:: exoctk.tests.test_modelgrid
     :members:
     :undoc-members:
     :show-inheritance:
