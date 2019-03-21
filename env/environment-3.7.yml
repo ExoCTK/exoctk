@@ -20,6 +20,7 @@ dependencies:
   - cryptography
   - cycler=0.10.0
   - cython=0.29
+  - docopt=0.6.2
   - docutils=0.14
   - flask=1.0.2
   - freetype=2.9.1
@@ -49,6 +50,7 @@ dependencies:
   - numba=0.41.0
   - numpy=1.15.4
   - numpy-base=1.15.4
+  - numpydoc=0.8.0
   - olefile=0.46
   - openssl=1.1.1a
   - packaging=18.0
