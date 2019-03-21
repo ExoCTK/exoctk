@@ -71,7 +71,7 @@
 						<label class="col-sm-2 control-label">Instrument - Mode</label>
 						<div class="col-sm-3">
 
-								<select id="inst" name="inst" class="form-control" data-placeholder="Select Temp (K)">
+								<select id="inst" name="inst" class="form-control">
 
 
 										<option value="NIRISS" checked=True>NIRISS - SOSS</option>
@@ -129,12 +129,31 @@
                 <span id="helpBlock" class="help-block">Hold tight! This takes a few seconds...</span>
               </p>
               <br>
-               <p>
+							<p>
+							<input id='submit'  name='submit' class="btn btn-success" onkeyup="button()" type='submit' value='Calculate Visibility and Contamination'disabled/>
+							<span id="helpBlock" class="help-block">This option is under construction</span>
+							</p>
+							<script>
+								function button()
+								{
+								 var inst_select = document.getElementsById("inst");
+								 var inst_val = inst_select.options[inst_select.selectedIndex].value;
+								 var bt = document.getElementsById('submit');
+								 if (inst_val == "NIRISS")
+								 {
+									bt.disabled = false;
+								 }
+								 else
+								 {
+								 bt.disabled = true;
+								 }
+							   }
+							 </script>
 
-								 <input id='submit'  name='submit' class="btn btn-success" type='submit' value='Calculate Visibility and Contamination'disabled/></p>
-                 <span id="helpBlock" class="help-block">Under construction.</span>
 
-               </p>
+
+
+
               </div>
         </div>
 
