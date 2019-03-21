@@ -83,8 +83,9 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
    	<form action="/contam_visibility">
     		<p><input class="btn btn-success" type = "submit" value = "Try Another Target"></p>
     	</form>
-    <form action="/contam_visibility">
-      <input class="btn btn-success" type = "submit" value = "Download TXT File"></p>
+      <form action="/visib_result" method="post">
+          <input type="hidden" name="data_file" value="{{ vis_table }}" />
+          <input class="btn btn-success" type='submit' value='Download TXT File'></p>
       </form>
     </body>
 

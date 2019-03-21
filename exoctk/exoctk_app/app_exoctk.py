@@ -485,6 +485,9 @@ def contam_visibility():
                                                          contamVars['dec'],
                                                          contamVars['inst'],
                                                          )
+                fh = StringIO()
+                table.write(fh, format='ascii.no_header')
+                visib_table = fh.getvalue()
 
                 # Format x axis
                 day0 = datetime.date(2019, 6, 1)
@@ -522,6 +525,7 @@ def contam_visibility():
 
                 return render_template('contam_visibility_results.html',
                                        contamVars=contamVars, vis_plot=vis_div,
+                                       vis_table=visib_table,
                                        vis_script=vis_script, vis_js=vis_js,
                                        vis_css=vis_css, contam_plot=contam_div,
                                        contam_script=contam_script,
@@ -534,6 +538,13 @@ def contam_visibility():
 
     return render_template('contam_visibility.html', contamVars=contamVars)
 
+@app_exoctk.route('/visib_result', methods=['POST'])
+def save_visib_result():
+    """Save the results of the Visibility Only calculation"""
+
+    visib_table = flask.request.form['data_file']
+    return flask.Response(visib_table, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename=visibility.txt"})
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
