@@ -164,11 +164,28 @@
             <div class="col-sm-10">
                 <div class="input-group">
                     <input type="text" name="obs_time" size="7" rows="1" placeholder="time" class='form-control' />
-                    <div class="input-group-addon" style='width:50px'>\(\small \text{hours}\)</div>
+                    <div class="input-group-addon" style='width:50px'></div>
                  </div>
                  <span id="helpBlock" class="help-block">The length of the observation in hours</span>
             </div>
-            
+        </div> 
+        <div class='form-group'>
+                        
+            <label for='band' class="col-sm-2 control-label"></label>
+            <div class="col-sm-10">
+                <div class="input-group">
+               
+                     <select class='form-control' name="time_unit">
+                         <option value="hours">hours</option>
+                         <option value="days">days</option>
+                         </select>
+                   
+                </div>
+                 <span id="helpBlock" class="help-block">The time units of your
+                 transit. Deafults to hours -- to match ExoMAST. </span>
+            </div>
+                
+        </div>
         </div>
         
         <hr class="col-md-12">
