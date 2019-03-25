@@ -366,7 +366,7 @@ def groups_integrations_results():
         # Make sure everything is the right type
         ins = params['ins']
         float_params = ['obs_time', 'mag', 'sat_max']
-        str_params = ['mod', 'band', '{}_filt'.format(ins),
+        str_params = ['mod', 'band', 'time_unit', '{}_filt'.format(ins),
                       '{}_ta_filt'.format(ins), 'ins',
                       '{}_subarray'.format(ins), '{}_subarray_ta'.format(ins),
                       'sat_mode']
@@ -384,6 +384,12 @@ def groups_integrations_results():
         params['filt_ta'] = params['{}_filt_ta'.format(ins)]
         params['subarray'] = params['{}_subarray'.format(ins)]
         params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
+        
+        # Convert the obs_time to hours
+        if params['time_unit'] != 'hours':
+            params['obs_time'] = params['obs_time']*24
+            params['time_unit'] = 'days'
+
         results = perform_calculation(params)
 
         if type(results) == dict:
