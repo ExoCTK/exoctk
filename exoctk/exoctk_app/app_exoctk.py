@@ -42,7 +42,7 @@ app_exoctk.config['CACHE_TYPE'] = 'null'
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if EXOCTK_DATA == '':
-    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.')
+    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.")
 
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log')
 FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
