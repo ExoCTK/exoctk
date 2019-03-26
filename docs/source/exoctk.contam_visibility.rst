@@ -28,14 +28,6 @@ exoctk.contam\_visibility.f\_visibilityPeriods module
     :undoc-members:
     :show-inheritance:
 
-exoctk.contam\_visibility.generate\_JH\_HK\_colors module
----------------------------------------------------------
-
-.. automodule:: exoctk.contam_visibility.generate_JH_HK_colors
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 exoctk.contam\_visibility.math\_extensionsx module
 --------------------------------------------------
 
