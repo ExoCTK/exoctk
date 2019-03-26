@@ -15,7 +15,7 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 * Limb Darkening Calculator
 * Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
 
-For more information on the packages visit our documentation _`website <https://exoctk.readthedocs.io/en/latest/>`_. 
+For more information on each package visit our documentation _`website <https://exoctk.readthedocs.io/en/latest/>`_. 
 
 Most packages are also available through interactive tools at our _`website <https://exoctk.stsci.edu/>`_. 
 
