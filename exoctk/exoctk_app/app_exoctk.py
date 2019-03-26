@@ -486,7 +486,7 @@ def contam_visibility():
                                                          contamVars['inst'],
                                                          )
                 fh = StringIO()
-                table.write(fh, format='ascii.no_header')
+                table.write(fh, format='ascii')
                 visib_table = fh.getvalue()
 
                 # Format x axis
