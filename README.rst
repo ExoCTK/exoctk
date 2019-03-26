@@ -62,6 +62,14 @@ models, but still run 100 times faster.
     :target: http://exoctk.readthedocs.io/en/latest/
 
 
+Atmopsheric Retrievals
+----------------------
+
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/platon_wrapper_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+
+Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/exoctk/exoctk/tree/master#installation>`_ for further details.
+
+
 Installation
 ------------
 
@@ -149,7 +157,7 @@ If you find that the `exoctk` `conda` is missing a required dependency, please f
 
 
 
-Want to stay up-to-date with our releases and updates? 
+Want to stay up-to-date with our releases and updates?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours. 
+Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.
