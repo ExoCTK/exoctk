@@ -16,9 +16,9 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 
 The subpackages currently included are:
 
-Contamination and Visibility Calculator
+Contamination and Visibility Calculators
 
-Integrations and Groups Calculator
+Groups and Intrgrations Calculator
 
 Transit Light-­Curve Fitting Tools
 
@@ -26,7 +26,9 @@ Limb-­Darkening Calculator
 
 Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
 
-The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through.
+All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_. 
+
+There is also a `website <https://exoctk.stsci.edu/>`_ where all current tools are available through interactive applications.
 
 
 ******************
@@ -36,16 +38,14 @@ User Documentation
 
 **Contamination and Visibility Calculator**
 
-This tool is designed for the Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of nearby stars. For a given target this contamination depends on the position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a given target and produces an estimate of the level of contamination as a function of the PA of the observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments.
-
-Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modeled; this may be important for faint targets.
+The Contamination Overlap tool is made up of two calculators: the visibility calculator, and the contamination calculator. The visibility calculator will determine at what position angles (PAs) your target is visible and when. The output results come in the form of an interactive Bokeh plot, but users also have the option of downloading their data in an ascii file format. The contamination calculator will determine the percentage of spectral contamination that lands on your target at every PA. The visibility calculator is currently available for all JWST instruments, and the contamination calculator will be released for NIRISS (Mode: Single Object Slitless Spectroscopy), NIRCam (Mode: Grism Time Series), and MIRI (Mode: Low-Resolution Spectroscopy).
 
 .. toctree::
   :maxdepth: 1
 
   source/exoctk.contam_visibility
 
-**Integrations and Groups Calculator**
+**Groups and Integrations Calculator**
 
 The groups_integrations tool is a JWST observation planning tool designed with exoplanet observations in mind. Given a potential observation (which requires transit time, and an estimate of model and magnitude for the host star, and specifics of instrument setup) it's simple to get an optimized groups and integrations plan for the observation. The example notebook also outlines cases for batch demos -- testing many transits/sources in a given instrument setup, or figuring out which instrument setup is best for a given transit.
 
@@ -80,7 +80,7 @@ Installation Instructions and Notebook Availability
 
 To install the ExoCTK package one can follow the instructions listed in our README available here on `GitHub <https://github.com/ExoCTK/exoctk#installation>`_.
 
-There are also several Jupyter Notebooks available for users to aid in learning how to use the various tools included in the ExoCTK Package which can be found within the 'Notebooks' folder following download or _`here <https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks>`_ online. 
+There are also several Jupyter Notebooks available for users to aid in learning how to use the various tools included in the ExoCTK package which can be found within the 'Notebooks' folder following download of the ExoCTK repository or for viewing online _`here <https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks>`_. 
 
 ***********************
 Newsletter Subscription
