@@ -388,7 +388,7 @@ def groups_integrations_results():
         # Convert the obs_time to hours
         if params['time_unit'] != 'hours':
             params['obs_time'] = params['obs_time']*24
-            params['time_unit'] = 'days'
+            params['time_unit'] = 'hours'
 
         results = perform_calculation(params)
 
