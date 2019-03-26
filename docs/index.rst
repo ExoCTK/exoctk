@@ -58,7 +58,7 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 
 **Lightcurve Fitting Tool**
 
-TLC fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+The light-curve fitting tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
 
 .. toctree::
   :maxdepth: 1
