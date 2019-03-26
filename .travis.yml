@@ -8,7 +8,8 @@ cache:
 
 before_cache:
   - rm -rf $HOME/miniconda3/pkgs/cache
-  - rm -rf $HOME/miniconda3/envs/exoctk
+  - rm -rf $HOME/miniconda3/envs/exoctk-3.5
+  - rm -rf $HOME/miniconda3/envs/exoctk-3.6
 
 os:
   - linux
