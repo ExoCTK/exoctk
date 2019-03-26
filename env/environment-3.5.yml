@@ -102,7 +102,6 @@ dependencies:
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
     - corner==2.0.1
-    - entrypoints==0.2.3
     - future==0.17.1
     - html5lib==1.0.1
     - keyring==17.0.0
