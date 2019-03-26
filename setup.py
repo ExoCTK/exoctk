@@ -18,7 +18,7 @@ REQUIRES = ['asteval',
             'pandas',
             'platon',
             'pysynphot',
-            'scipy',
+            'scipy<1.2',
             'sphinx',
             'svo_filters']
 
