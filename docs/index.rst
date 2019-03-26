@@ -74,11 +74,13 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 
   source/exoctk.limb_darkening
 
-*********************************
-Package Installation Instructions
-*********************************
+***************************************
+Installation and Notebook Instructions
+***************************************
 
 To install the ExoCTK package one can follow the instructions listed in our README available here on `GitHub <https://github.com/ExoCTK/exoctk#installation>`_.
+
+There are also several Jupyter Notebooks available for users to aid in learning how to use the various tools included in the ExoCTK Package which can be found within the 'Notebooks' folder following download or _`here <https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks>`_ online. 
 
 ***********************
 Newsletter Subscription
