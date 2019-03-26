@@ -329,7 +329,7 @@ def groups_integrations():
             data = get_target_data(target_name)
             Kmag = data['Kmag']
             obs_duration = data['transit_duration'] * 24. # Transit duration in exomast is in days, need it in hours
-            
+
             groupsintegrationVars = {'targname':canoncial_name, 'Kmag':Kmag, 'obs_duration':obs_duration}
 
             return render_template('groups_integrations.html', sat_data=sat_data, groupsintegrationVars=groupsintegrationVars)
@@ -499,7 +499,7 @@ def contam_visibility():
                                                          contamVars['inst'],
                                                          )
                 fh = StringIO()
-                table.write(fh, format='ascii')
+                table.write(fh, format='csv', delimiter=',')
                 visib_table = fh.getvalue()
 
                 # Format x axis
@@ -557,7 +557,7 @@ def save_visib_result():
 
     visib_table = flask.request.form['data_file']
     return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=visibility.txt"})
+                          headers={"Content-disposition": "attachment; filename=visibility.csv"})
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
