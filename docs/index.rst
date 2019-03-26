@@ -16,9 +16,15 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 
 The subpackages currently included are:
 
-Transit light-­curve fitting tools (TLC)
+Contamination and Visibility Calculator
 
-Limb-­darkening calculator (LDC)
+Integrations and Groups Calculator
+
+Transit Light-­Curve Fitting Tools
+
+Limb-­Darkening Calculator
+
+Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
 
 The code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_ and there is also a  `website <https://exoctk.stsci.edu/>`_ the current tools are available through.
 
@@ -28,14 +34,18 @@ User Documentation
 ******************
 
 
-**Contamination Visibility Tool**
+**Contamination and Visibility Calculator**
+
+This tool is designed for the Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of nearby stars. For a given target this contamination depends on the position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a given target and produces an estimate of the level of contamination as a function of the PA of the observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments.
+
+Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modeled; this may be important for faint targets.
 
 .. toctree::
   :maxdepth: 1
 
   source/exoctk.contam_visibility
 
-**Integrations Groups**
+**Integrations and Groups Calculator**
 
 The groups_integrations tool is a JWST observation planning tool designed with exoplanet observations in mind. Given a potential observation (which requires transit time, and an estimate of model and magnitude for the host star, and specifics of instrument setup) it's simple to get an optimized groups and integrations plan for the observation. The example notebook also outlines cases for batch demos -- testing many transits/sources in a given instrument setup, or figuring out which instrument setup is best for a given transit.
 
@@ -64,6 +74,11 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 
   source/exoctk.limb_darkening
 
+*********************************
+Package Installation Instructions
+*********************************
+
+To install the ExoCTK package one can follow the instructions listed in our README available here on `GitHub <https://github.com/ExoCTK/exoctk#installation>`_.
 
 ***********************
 Newsletter Subscription
