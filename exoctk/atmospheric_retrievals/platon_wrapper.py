@@ -62,6 +62,12 @@ Use
         pw.retrieve_multinest()
         pw.retrieve_emcee()
 
+        # Save the results to an output file
+        pw.save_results()
+
+        # Save a plot of the results
+        pw.make_plot()
+
 Dependencies
 ------------
 
@@ -149,8 +155,12 @@ def example(method):
     # Do some retrievals
     if method == 'multinest':
         pw.retrieve_multinest()
+        pw.save_results()
     elif method == 'emcee':
         pw.retrieve_emcee()
+
+    # Make corner plot of results
+    pw.make_plot()
 
     return pw
 
@@ -193,38 +203,43 @@ class PlatonWrapper():
         self.output_results = 'results.dat'
         self.output_plot = 'corner.png'
 
+    def make_plot(self):
+        """Create a corner plot that shows the results of the retrieval."""
+
+        if self.method == 'emcee':
+            fig = corner.corner(self.result.flatchain, range=[0.99] * self.result.flatchain.shape[1],
+                        labels=self.fit_info.fit_param_names)
+
+        elif self.method == 'multinest':
+            fig = corner.corner(self.result.samples, weights=self.result.weights,
+                                range=[0.99] * self.result.samples.shape[1],
+                                labels=self.fit_info.fit_param_names)
+
+        # Save the results
+        self.output_plot = '{}_corner.png'.format(self.method)
+        fig.savefig(self.output_plot)
+        print('Corner plot saved to {}'.format(self.output_plot))
+
     def retrieve_emcee(self):
         """Perform the atmopsheric retrieval via emcee."""
 
-        # Run emcee
+        self.method = 'emcee'
         self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
-
-        # Do some plotting
-        fig = corner.corner(self.result.flatchain, range=[0.99] * self.result.flatchain.shape[1],
-                    labels=self.fit_info.fit_param_names)
-        self.output_plot = 'emcee_corner.png'
-        fig.savefig(self.output_plot)
-        print('Corner plot saved to {}'.format(self.output_plot))
 
     def retrieve_multinest(self):
         """Perform the atmopsheric retrieval via multinested sampling."""
 
-        # Run nested sampling
+        self.method = 'multinest'
         self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
 
+    def save_results(self):
+        """Save the results of the retrieval to an output file."""
+
         # Save the results
-        self.output_results = 'results_multinest.dat'
+        self.output_results = '{}_results.dat'.format(self.method)
         with open(self.output_results, 'w') as f:
             f.write(str(self.result))
         print('Results file saved to {}'.format(self.output_results))
-
-        # Do some plotting
-        fig = corner.corner(self.result.samples, weights=self.result.weights,
-                            range=[0.99] * self.result.samples.shape[1],
-                            labels=self.fit_info.fit_param_names)
-        self.output_plot = 'multinest_corner.png'
-        fig.savefig(self.output_plot)
-        print('Corner plot saved to {}'.format(self.output_plot))
 
     def set_parameters(self, params):
         """Set necessary parameters to perform the retrieval.
@@ -249,4 +264,5 @@ class PlatonWrapper():
 
 if __name__ == '__main__':
 
-    example()
+    example('emcee')
+    example('multinest')
