@@ -1,8 +1,9 @@
 """A wrapper around the PLATON atmospheric retrieval tool.
 
 This module serves as a wrapper around the atmospheric retrieval
-software for ``platon``.  For more information about ``platon``, please
-see ``https://platon.readthedocs.io``.
+software for ``platon``.  It provides methods for performing retreivals
+through multinested sampling and emcee methods.  For more information
+about ``platon``, please see ``https://platon.readthedocs.io``.
 
 Authors
 -------
@@ -57,8 +58,9 @@ Use
         pw.depths = 1e-6 * np.array([14512.7, 14546.5, 14566.3, 14523.1, 14528.7, 14549.9, 14571.8, 14538.6, 14522.2, 14538.4, 14535.9, 14604.5, 14685.0, 14779.0, 14752.1, 14788.8, 14705.2, 14701.7, 14677.7, 14695.1, 14722.3, 14641.4, 14676.8, 14666.2, 14642.5, 14594.1, 14530.1, 14642.1])
         pw.errors = 1e-6 * np.array([50.6, 35.5, 35.2, 34.6, 34.1, 33.7, 33.5, 33.6, 33.8, 33.7, 33.4, 33.4, 33.5, 33.9, 34.4, 34.5, 34.7, 35.0, 35.4, 35.9, 36.4, 36.6, 37.1, 37.8, 38.6, 39.2, 39.9, 40.8])
 
-        # Perform the retrieval
-        pw.retrieve()
+        # Perform the retrieval by your favorite method
+        pw.retrieve_multinest()
+        pw.retrieve_emcee()
 
 Dependencies
 ------------
@@ -91,84 +93,8 @@ def _apply_factors(params):
     return params
 
 
-def _validate_parameters(params):
-    """Ensure the supplied parameters are valid.  Throw assertion
-    errors if they are not.
-
-    Parameters
-    ----------
-    params : dict
-        A dictionary of parameters and their values for running the
-        software.  See "Use" documentation for further details.
-    """
-
-    # Make sure the parameter file contains the required keywords and they have values
-    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
-    param_types = [float, float, float, int]
-    for param, param_type in zip(required_parameters, param_types):
-        assert param in params, '{} missing from parameter file'.format(param)
-        assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
-
-    # Make sure the optional keywords are of proper type
-    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
-                           'scatt_slope', 'error_multiple', 'T_star']
-    param_types = [int, float, int, int, int, int, int]
-    for param, param_type in zip(optional_parameters, param_types):
-        if param in params:
-            assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
-
-
-class PlatonWrapper():
-    """Class object for running the platon atmospheric retrieval
-    software."""
-
-    def __init__(self):
-        """Initialize the class object."""
-
-        self.retriever = Retriever()
-        self.output_results = 'results.dat'
-        self.output_plot = 'emcee_corner.png'
-
-    def retrieve(self):
-        """Perform the atmopsheric retrieval."""
-
-        # Run nested sampling
-        result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=True)
-
-        # Save the results
-        with open(self.output_results, 'w') as f:
-            f.write(str(result))
-        print('Results file saved to {}'.format(self.output_results))
-
-        # Do some plotting
-        fig = corner.corner(result.samples, weights=result.weights,
-                            range=[0.99] * result.samples.shape[1],
-                            labels=self.fit_info.fit_param_names)
-        fig.savefig(self.output_plot)
-        print('Corner plot saved to {}'.format(self.output_plot))
-
-    def set_parameters(self, params):
-        """Set necessary parameters to perform the retrieval.
-
-        Required parameters include ``Rs``, ``Mp``, ``Rp``, and ``T``.
-        Optional parameters include ``logZ``, ``CO_ratio``,
-        ``log_cloudtop_P``, ``log_scatt_factor``, ``scatt_slope``,
-        ``error_multiple``, and ``T_star``.
-
-        Parameters
-        ----------
-        params : dict
-            A dictionary of parameters and their values for running the
-            software.  See "Use" documentation for further details.
-        """
-
-        _validate_parameters(params)
-        _apply_factors(params)
-        self.params = params
-        self.fit_info = self.retriever.get_default_fit_info(**self.params)
-
-
-if __name__ == '__main__':
+def example():
+    """Performs an example run of the emcee and multinest retrievals"""
 
     # Define the fit parameters
     params = {
@@ -209,4 +135,103 @@ if __name__ == '__main__':
     pw.depths = 1e-6 * np.array([14512.7, 14546.5])
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
-    pw.retrieve()
+    # Do some retrievals
+    pw.retrieve_multinest()
+    pw.retrieve_emcee()
+
+
+def _validate_parameters(params):
+    """Ensure the supplied parameters are valid.  Throw assertion
+    errors if they are not.
+
+    Parameters
+    ----------
+    params : dict
+        A dictionary of parameters and their values for running the
+        software.  See "Use" documentation for further details.
+    """
+
+    # Make sure the parameter file contains the required keywords and they have values
+    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
+    param_types = [float, float, float, int]
+    for param, param_type in zip(required_parameters, param_types):
+        assert param in params, '{} missing from parameter file'.format(param)
+        assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+    # Make sure the optional keywords are of proper type
+    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
+                           'scatt_slope', 'error_multiple', 'T_star']
+    param_types = [int, float, int, int, int, int, int]
+    for param, param_type in zip(optional_parameters, param_types):
+        if param in params:
+            assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+
+
+class PlatonWrapper():
+    """Class object for running the platon atmospheric retrieval
+    software."""
+
+    def __init__(self):
+        """Initialize the class object."""
+
+        self.retriever = Retriever()
+        self.output_results = 'results.dat'
+        self.output_plot = 'corner.png'
+
+    def retrieve_emcee(self):
+        """Perform the atmopsheric retrieval via emcee."""
+
+        # Run emcee
+        self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
+
+        # Do some plotting
+        fig = corner.corner(self.result.flatchain, range=[0.99] * self.result.flatchain.shape[1],
+                    labels=self.fit_info.fit_param_names)
+        self.output_plot = 'emcee_corner.png'
+        fig.savefig(self.output_plot)
+        print('Corner plot saved to {}'.format(self.output_plot))
+
+    def retrieve_multinest(self):
+        """Perform the atmopsheric retrieval via multinested sampling."""
+
+        # Run nested sampling
+        self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
+
+        # Save the results
+        self.output_results = 'results_multinest.dat'
+        with open(self.output_results, 'w') as f:
+            f.write(str(self.result))
+        print('Results file saved to {}'.format(self.output_results))
+
+        # Do some plotting
+        fig = corner.corner(self.result.samples, weights=self.result.weights,
+                            range=[0.99] * self.result.samples.shape[1],
+                            labels=self.fit_info.fit_param_names)
+        self.output_plot = 'multinest_corner.png'
+        fig.savefig(self.output_plot)
+        print('Corner plot saved to {}'.format(self.output_plot))
+
+    def set_parameters(self, params):
+        """Set necessary parameters to perform the retrieval.
+
+        Required parameters include ``Rs``, ``Mp``, ``Rp``, and ``T``.
+        Optional parameters include ``logZ``, ``CO_ratio``,
+        ``log_cloudtop_P``, ``log_scatt_factor``, ``scatt_slope``,
+        ``error_multiple``, and ``T_star``.
+
+        Parameters
+        ----------
+        params : dict
+            A dictionary of parameters and their values for running the
+            software.  See "Use" documentation for further details.
+        """
+
+        _validate_parameters(params)
+        _apply_factors(params)
+        self.params = params
+        self.fit_info = self.retriever.get_default_fit_info(**self.params)
+
+
+if __name__ == '__main__':
+
+    example()
