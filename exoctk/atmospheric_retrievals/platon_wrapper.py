@@ -2,7 +2,7 @@
 
 This module serves as a wrapper around the atmospheric retrieval
 software for ``platon``.  It provides methods for performing retreivals
-through multinested sampling and emcee methods.  For more information
+through multinested sampling and EMCEE methods.  For more information
 about ``platon``, please see ``https://platon.readthedocs.io``.
 
 Authors
@@ -93,8 +93,19 @@ def _apply_factors(params):
     return params
 
 
-def example():
-    """Performs an example run of the emcee and multinest retrievals"""
+def example(method):
+    """Performs an example run of the emcee and multinest retrievals
+
+    Parameters
+    ----------
+    method : str
+        The method to use to perform the atmopsheric retrieval; can
+        either be ``multinest`` or ``emcee``
+    """
+
+    # Ensure that the method parameter is valid
+    assert method in ['multinest', 'emcee'], \
+        'Unrecognized method: {}'.format(method)
 
     # Define the fit parameters
     params = {
@@ -136,8 +147,12 @@ def example():
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
     # Do some retrievals
-    pw.retrieve_multinest()
-    pw.retrieve_emcee()
+    if method == 'multinest':
+        pw.retrieve_multinest()
+    elif method == 'emcee':
+        pw.retrieve_emcee()
+
+    return pw
 
 
 def _validate_parameters(params):
