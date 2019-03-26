@@ -12,14 +12,6 @@ exoctk.limb\_darkening.limb\_darkening\_fit module
     :undoc-members:
     :show-inheritance:
 
-exoctk.limb\_darkening.limb\_darkening\_plot module
----------------------------------------------------
-
-.. automodule:: exoctk.limb_darkening.limb_darkening_plot
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------
