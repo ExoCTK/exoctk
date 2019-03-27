@@ -36,7 +36,7 @@ def lmfitter(time, data, model, unc=None, verbose=True, **kwargs):
     # Initialize lmfit Params object
     initialParams = lmfit.Parameters()
 
-    #TODO: Do something so that duplicate param names can all be handled (e.g. two Polynomail models with c0). Perhaps append something to the parameter name like c0_1 and c0_2?)
+    #TODO: Do something so that duplicate param names can all be handled (e.g. two Polynomail models with c0). Perhaps append something to the parameter name like c0_1 and c0_2?) Think about it.
 
     # Concatenate the lists of parameters
     all_params = [i for j in [model.components[n].parameters.list
