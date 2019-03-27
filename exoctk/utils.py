@@ -34,10 +34,6 @@ FILTERS = svo.filters()
 # Set the version
 VERSION = '0.2'
 
-from astropy.io import fits
-import numpy as np
-from scipy.interpolate import RegularGridInterpolator
-
 
 def interp_flux(mu, flux, params, values):
     """
