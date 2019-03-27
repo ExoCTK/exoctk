@@ -15,27 +15,25 @@ from bokeh.models.widgets import Panel, Tabs
 from bokeh.plotting import figure
 import flask
 from flask import Flask, Response
-from flask import request, send_file, make_response, render_template, redirect
+from flask import request, send_file, make_response, render_template
 from functools import wraps
 import numpy as np
 import pandas as pd
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField
-from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
-from wtforms.widgets import ListWidget, CheckboxInput
+from sqlalchemy import create_engine
+from wtforms.validators import InputRequired, NumberRange
+from wtforms import DecimalField
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
+from form_validation import LdcForm
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_target_data
+from exoctk.utils import find_closest, filter_table, get_target_data, FORTGRID_DIR
 import log_exoctk
 from svo_filters import svo
-from sqlalchemy import create_engine
-
 
 # FLASK SET UP
 app_exoctk = Flask(__name__)
@@ -43,11 +41,6 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
-
-
-MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
-FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
-EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # # Load the database to log all form submissions
 # if EXOCTKLOG_DIR is None:
@@ -61,60 +54,6 @@ EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 # except IOError:
 #     DB = None
 
-# Nice colors for plotting
-COLORS = ['blue', 'red', 'green', 'orange',
-          'cyan', 'magenta', 'pink', 'purple']
-
-# Supported profiles
-PROFILES = ['uniform', 'linear', 'quadratic',
-            'square-root', 'logarithmic', 'exponential',
-            '3-parameter', '4-parameter']
-
-# Supported filters
-FILTERS = svo.filters()
-
-# Set the version
-VERSION = '0.2'
-
-
-class MultiCheckboxField(SelectMultipleField):
-    """Makes a list of checkbox inputs"""
-    widget = ListWidget(prefix_label=False)
-    option_widget = CheckboxInput()
-
-
-class LdcForm(FlaskForm):
-    """Form validation for the LDC tool"""
-    # Default filter
-    default_filter = 'Kepler.K'
-    defilt = svo.Filter(default_filter)
-
-    # Default model grid with parametr ranges
-    default_modelgrid = MODELGRID_DIR
-    mg = ModelGrid(default_modelgrid, resolution=500)
-    teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
-    logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
-    feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-
-    # Parameters
-    targname = StringField('targname', default='')
-    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {} K'.format(*teff_rng))])
-    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))])
-    feh = DecimalField('feh', default=0.0, validators=[NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))])
-    mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[('/user/jfilippazzo/Models/ACES/default', 'Phoenix ACES'), ('/user/jfilippazzo/Models/ATLAS9/default', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
-    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
-    profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
-    wave_min = DecimalField('wave_min', default=defilt.wave_min, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
-    wave_max = DecimalField('wave_max', default=defilt.wave_max, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
-    n_bins = IntegerField('n_bins', default=1)
-
-    # Form submits
-    resolve_submit = SubmitField('Resolve Target')
-    calculate_submit = SubmitField('Calculate Coefficients')
-    filter_submit = SubmitField('Filter Selected')
-    modelgrid_submit = SubmitField('Model Grid Selected')
-
 
 # Redirect to the index
 @app_exoctk.route('/')
@@ -127,10 +66,11 @@ def index():
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
     """The limb darkening form page"""
+    # Load default form
     form = LdcForm()
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data:
+    if form.resolve_submit.data: 
 
         # Resolve the target in exoMAST
         data = get_target_data(form.targname.data)
@@ -171,14 +111,17 @@ def limb_darkening():
         teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
         logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
         feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-        print(teff_rng, form.modeldir.data)
 
-        # Update the validation parameters
-        print(form.teff.validators)
-        form.teff.validators[-1] = NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {} K'.format(*teff_rng))
-        form.logg.validators = [NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))]
-        form.feh.validators = [NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))]
-        print(form.teff.validators)
+        # Update the validation parameters by setting validator attributes
+        setattr(form.teff.validators[1], 'min', teff_rng[0])
+        setattr(form.teff.validators[1], 'max', teff_rng[1])
+        setattr(form.teff.validators[1], 'message', 'Effective temperature must be between {} and {}'.format(*teff_rng))
+        setattr(form.logg.validators[1], 'min', logg_rng[0])
+        setattr(form.logg.validators[1], 'max', logg_rng[1])
+        setattr(form.logg.validators[1], 'message', 'Surface gravity must be between {} and {}'.format(*logg_rng))
+        setattr(form.feh.validators[1], 'min', feh_rng[0])
+        setattr(form.feh.validators[1], 'max', feh_rng[1])
+        setattr(form.feh.validators[1], 'message', 'Metallicity must be between {} and {}'.format(*feh_rng))
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
