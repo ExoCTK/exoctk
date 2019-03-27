@@ -54,10 +54,10 @@
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
-                              {{ form.teff(value=form.teff.data, size=10, placeholder="2300 - 7800", rows=1, class='form-control') }}
+                              {{ form.teff(value=form.teff.data, size=10, rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>K</div>
                         </div>
-                        <span id="helpBlock" class="help-block">The stellar effective temperature</span>
+                        <span id="helpBlock" class="help-block">The stellar effective temperature ({{ form.teff.validators[1].min }} - {{ form.teff.validators[1].max }})</span>
                         <br>
 
                         <div class="input-group">
@@ -65,7 +65,7 @@
                               {{ form.logg(value=form.logg.data, size=10, placeholder="3 - 6", rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
-                        <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity</span>
+                        <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity ({{ form.logg.validators[1].min }} - {{ form.logg.validators[1].max }})</span>
                         <br>
 
                         <div class="input-group">
@@ -73,7 +73,7 @@
                               {{ form.feh(value=form.feh.data, size=10, placeholder="-0.5 - +0.5", rows=1, class='form-control') }}
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
-                        <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity</span>
+                        <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity ({{ form.feh.validators[1].min }} - {{ form.feh.validators[1].max }})</span>
                         <br>
 
                         <div class="input-group">
