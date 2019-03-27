@@ -135,9 +135,8 @@ class LDC:
             be calculated
         """
         # Set the model grid
-        if not isinstance(model_grid, modelgrid.ModelGrid):
-            raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid\
-                             object.")
+        # if not isinstance(model_grid, modelgrid.ModelGrid):
+        #     raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
 
         self.model_grid = model_grid
 
