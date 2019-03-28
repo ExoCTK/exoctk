@@ -20,6 +20,7 @@ dependencies:
   - cryptography=2.3.1
   - cycler=0.10.0
   - cython=0.28.5
+  - docopt=0.6.2
   - docutils=0.14
   - flask=1.0.2
   - freetype=2.9.1
@@ -49,6 +50,7 @@ dependencies:
   - numba=0.39.0
   - numpy=1.15.2
   - numpy-base=1.15.2
+  - numpydoc=0.8.0
   - olefile=0.46
   - openssl=1.0.2p
   - packaging=17.1
@@ -105,6 +107,7 @@ dependencies:
     - keyring==17.0.0
     - lmfit==0.9.12
     - pytest==3.8.1
-    - svo-filters==0.2.16
+    - svo-filters==0.2.19
     - uncertainties==3.0.3
     - webencodings==0.5.1
+    - git+https://github.com/spacetelescope/jwst_gtvt.git

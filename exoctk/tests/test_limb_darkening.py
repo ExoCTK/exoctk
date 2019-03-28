@@ -26,6 +26,7 @@ from exoctk import modelgrid as mg
 from exoctk.limb_darkening import limb_darkening_fit as ldf
 
 
+# Load local modelgrid
 MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/'))
 
 
