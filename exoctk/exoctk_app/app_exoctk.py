@@ -28,7 +28,7 @@ from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
-from form_validation import LdcForm
+import form_validation as fv
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_target_data, FORTGRID_DIR
@@ -67,7 +67,7 @@ def index():
 def limb_darkening():
     """The limb darkening form page"""
     # Load default form
-    form = LdcForm()
+    form = fv.LimbDarkeningForm()
 
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data: 
