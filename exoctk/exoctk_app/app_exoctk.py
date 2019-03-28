@@ -809,7 +809,7 @@ def rescale_generic_grid(input_args):
         error_message = 'One of the parameters to make up the model was missing or out of range.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
         solution = {}
-        with h5py.File('/user/jfowler/exoctk_work/generic/generic_grid_db.hdf5') as f:
+        with h5py.File(GENERICGRID_DIR) as f:
             solution['wv'] = f['/wavelength'][...][:-1]
             solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
         closest_match = {'model_key': model_key, 'model_temperature': 400,
