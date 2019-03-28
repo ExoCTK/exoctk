@@ -258,7 +258,7 @@ class LDC:
                                                               .wave_rng))
 
         # Apply the filter
-        flux = bandpass.apply([wave, flux])
+        flux, _ = bandpass.apply([wave, flux])
 
         # Make rsr curve 3 dimensions if there is only one
         # wavelength bin, then get wavelength only

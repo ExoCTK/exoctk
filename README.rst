@@ -9,12 +9,17 @@ Introduction
 ------------
 ExoCTK is an open-source, modular data analysis package focused primarily on atmospheric characterization of exoplanets. The subpackages included are:
 
-* Transit Lightcurve Fitter
+* Contamination and Visibility Calculator
+* Integrations and Groups Calculator
+* Transit Light-Curve Fitter 
 * Limb Darkening Calculator
-* Groups and Integrations Calculator
+* Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
 
+For more information on each package visit our documentation _`website <https://exoctk.readthedocs.io/en/latest/>`_. 
 
-Transit Lightcurve Fitter
+Most packages are also available through interactive tools at our _`website <https://exoctk.stsci.edu/>`_. 
+
+Transit Light-Curve Fitter
 -------------------------
 The ``lightcurve_fitting`` tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits.  It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
 
@@ -60,6 +65,39 @@ models, but still run 100 times faster.
     :alt: Documentation Status
     :scale: 100%
     :target: http://exoctk.readthedocs.io/en/latest/
+
+Contamination Overlap
+---------------------
+The ``Contamination Overlap`` tool is made up of two calculators: the visibility
+calculator, and the contamination calculator. The visibility calculator will
+determine at what position angles (PAs) your target is visible and when. The
+output results come in the form of an interactive Bokeh plot, but users also
+have the option of downloading their data in an ascii file format. The
+contamination calculator will determine the percentage of spectral contamination
+that lands on your target at every PA. The visibility calculator is currently
+available for all JWST instruments, and the contamination calculator will be
+released for NIRISS (Mode: Single Object Slitless Spectroscopy), NIRCam
+(Mode: Grism Time Series), and MIRI (Mode: Low-Resolution Spectroscopy).
+
+
+.. figure:: /exoctk/data/images/visib_demo.png
+:alt: VISdemo
+:scale: 100%
+:align: center
+
+ The visibility is calculated for Kelt-8 with the NIRISS instrument. The
+shaded region represents the PA range that a user can observe this target in.
+The green line represents the nominal angle of the instrument for this target.
+
+.. figure:: /exoctk/data/images/visib_table_demo.png
+:alt: VISTdemo
+:scale: 100%
+:align: center
+
+ Users also have the option to download their visibility data into an ascii
+file for convenience. This is an example of an ascii file downloaded for the
+Kelt-8 target using NIRISS. It lists the position angles (for the instrument
+and JWST) with their corresponding dates.
 
 
 Installation
@@ -149,7 +187,7 @@ If you find that the `exoctk` `conda` is missing a required dependency, please f
 
 
 
-Want to stay up-to-date with our releases and updates? 
+Want to stay up-to-date with our releases and updates?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours. 
+Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.

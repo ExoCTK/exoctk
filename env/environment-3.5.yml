@@ -107,6 +107,7 @@ dependencies:
     - keyring==17.0.0
     - lmfit==0.9.12
     - pytest==3.8.1
-    - svo-filters==0.2.16
+    - svo-filters==0.2.19
     - uncertainties==3.0.3
     - webencodings==0.5.1
+    - git+https://github.com/spacetelescope/jwst_gtvt.git
