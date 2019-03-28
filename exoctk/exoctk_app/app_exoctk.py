@@ -873,12 +873,12 @@ def save_generic_result():
                           headers={"Content-disposition": "attachment; filename=generic.dat"})
 
 
-@app_exoctk.route('/groups_integrations_download')
-def groups_integrations_download():
-    """Download the groups and integrations calculator data"""
+@app_exoctk.route('/zip_data_download')
+def zip_data_download():
+    """Download the exoctk data."""
 
-    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json",
-                     attachment_filename='groups_integrations_input_data.json',
+    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype="text/json",
+                     attachment_filename='exoctk_data.zip',
                      as_attachment=True)
 
 
