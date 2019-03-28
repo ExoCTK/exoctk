@@ -14,8 +14,8 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = CheckboxInput()
 
 
-class LdcForm(FlaskForm):
-    """Form validation for the LDC tool"""
+class LimbDarkeningForm(FlaskForm):
+    """Form validation for the limb_darkening tool"""
     # Model grid
     default_modelgrid = MODELGRID_DIR
     mg = ModelGrid(default_modelgrid, resolution=500)
@@ -49,3 +49,8 @@ class LdcForm(FlaskForm):
     calculate_submit = SubmitField('Calculate Coefficients')
     filter_submit = SubmitField('Filter Selected')
     modelgrid_submit = SubmitField('Model Grid Selected')
+
+
+class ContamVisibilityForm(FlaskForm):
+    """Form validation for the contamination_visibility tool"""
+    pass
