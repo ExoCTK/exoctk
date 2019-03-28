@@ -71,16 +71,34 @@
             means we may predict less groups -- and put you in LESS danger of
             oversaturating your observation.)</p> 
 
-    <form class='form-horizontal' id='searchform' method='post' action='groups_integrations_results' >
+    <form class='form-horizontal' id='searchform' method='post'>
         
         <hr class="col-md-12">
-        
+        <div class='form-group'>
+            
+                <label for='mag' class="col-sm-2 control-label">ExoMAST Retrieval</label>
+                <div class="col-sm-10">
+                        <div class="input-group">
+                            <input type="text" name="targetname" placeholder="WASP-18 b" value="{{ groupsintegrationVars['targname'] }}" size="30" maxlength="110"/><br>
+                        </div>
+      
+                        <br>
+      
+                        <div class="input-group">
+                            <input class="btn btn-success" type="submit" name="submit" value="Retrieve Parameters"/>
+                        </div>
+                     <span id="helpBlock" class="help-block">Get form data from ExoMAST</span>
+                </div>
+                
+            </div>
+        <hr class="col-md-12">
+
         <div class='form-group'>
             
             <label for='mag' class="col-sm-2 control-label">Stellar Parameters</label>
             <div class="col-sm-10">
                 <div class="input-group">
-                    <input type="text" name="mag" size="7" rows="1" placeholder="magnitude" class='form-control' />
+                    <input type="text" name="mag" size="7" rows="1" placeholder="magnitude" value="{{ groupsintegrationVars['Kmag'] }}" class='form-control' />
                     <div class="input-group-addon" style='width:50px'>\(\small \text{mag}\)</div>
                  </div>
                  <span id="helpBlock" class="help-block">The vega magnitude of the target.</span>

@@ -27,7 +27,7 @@ from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_target_data
+from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name
 import log_exoctk
 from svo_filters import svo
 from sqlalchemy import create_engine
@@ -45,13 +45,13 @@ FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
 EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
 
 # Load the database to log all form submissions
-if EXOCTKLOG_DIR is None:
-    dbpath = ':memory:'
-else:
+try:
     dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
     if not os.path.isfile(dbpath):
         log_exoctk.create_db(dbpath)
-DB = log_exoctk.load_db(dbpath)
+    DB = log_exoctk.load_db(dbpath)
+except:
+    DB = log_exoctk.load_db(':memory:')
 
 # Nice colors for plotting
 COLORS = ['blue', 'red', 'green', 'orange',
@@ -93,7 +93,7 @@ def limb_darkening():
             feh = data['Fe/H']
             teff = data['Teff']
             logg = data['stellar_gravity']
-            
+
             limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
 
             return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
@@ -321,6 +321,19 @@ def groups_integrations():
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
 
+    if request.method == 'POST':
+        if request.form['submit'] == "Retrieve Parameters":
+            target_name = request.form['targetname']
+            canoncial_name = get_canonical_name(target_name)
+            # Ping exomast api and get data
+            data = get_target_data(target_name)
+            Kmag = data['Kmag']
+            obs_duration = data['transit_duration'] * 24. # Transit duration in exomast is in days, need it in hours
+            
+            groupsintegrationVars = {'targname':canoncial_name, 'Kmag':Kmag, 'obs_duration':obs_duration}
+
+            return render_template('groups_integrations.html', sat_data=sat_data, groupsintegrationVars=groupsintegrationVars)
+
     return render_template('groups_integrations.html', sat_data=sat_data)
 
 
@@ -457,6 +470,7 @@ def contam_visibility():
         contamVars['ra'], contamVars['dec'] = request.form['ra'], request.form['dec']
         contamVars['PAmax'] = request.form['pamax']
         contamVars['PAmin'] = request.form['pamin']
+        contamVars['inst'] = request.form['inst'].split()[0]
 
         if request.form['bininfo'] != '':
             contamVars['binComp'] = list(map(float, request.form['bininfo'].split(', ')))
@@ -486,14 +500,18 @@ def contam_visibility():
                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
                              x_axis_type='datetime',
                              title=contamVars['tname'] or radec)
-                pG, pB, dates, vis_plot = vpa.checkVisPA(contamVars['ra'],
+                pG, pB, dates, vis_plot, table = vpa.using_gtvt(contamVars['ra'],
                                                          contamVars['dec'],
-                                                         tname, fig=fig)
+                                                         contamVars['inst'],
+                                                         )
+                fh = StringIO()
+                table.write(fh, format='ascii')
+                visib_table = fh.getvalue()
 
                 # Format x axis
                 day0 = datetime.date(2019, 6, 1)
                 dtm = datetime.timedelta(days=367)
-                vis_plot.x_range = Range1d(day0, day0 + dtm)
+                #vis_plot.x_range = Range1d(day0, day0 + dtm)
 
                 # Get scripts
                 vis_js = INLINE.render_js()
@@ -526,6 +544,7 @@ def contam_visibility():
 
                 return render_template('contam_visibility_results.html',
                                        contamVars=contamVars, vis_plot=vis_div,
+                                       vis_table=visib_table,
                                        vis_script=vis_script, vis_js=vis_js,
                                        vis_css=vis_css, contam_plot=contam_div,
                                        contam_script=contam_script,
@@ -538,6 +557,13 @@ def contam_visibility():
 
     return render_template('contam_visibility.html', contamVars=contamVars)
 
+@app_exoctk.route('/visib_result', methods=['POST'])
+def save_visib_result():
+    """Save the results of the Visibility Only calculation"""
+
+    visib_table = flask.request.form['data_file']
+    return flask.Response(visib_table, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename=visibility.txt"})
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
