@@ -731,7 +731,7 @@ def rescale_generic_grid(input_args):
                 break
         
         # Map to nearest model key
-        temp_range = np.arange(400, 2700, 100)
+        temp_range = np.arange(600, 2700, 100)
         grav_range = np.array([5, 10, 20, 50])
         sort_temp = (np.abs(inputs['temperature'] - temp_range)).argmin()
         sort_grav = (np.abs(inputs['gravity'] - grav_range)).argmin()
@@ -741,7 +741,7 @@ def rescale_generic_grid(input_args):
         input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
 
         # Check the model parameters
-        str_temp_range = ['0{}'.format(elem)[-4:] for elem in temp_range]
+        str_temp_range = ['0400'] + ['0{}'.format(elem)[-4:] for elem in temp_range]
         model_space = [('condensation', ['local', 'rainout']), 
                        ('model_temperature', str_temp_range),
                        ('model_gravity', ['05', '10', '20', '50']),
