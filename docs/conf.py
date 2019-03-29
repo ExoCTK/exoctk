@@ -28,6 +28,8 @@
 import datetime
 import os
 import sys
+import ast
+import textwrap
 
 try:
     import sphinx_astropy
@@ -41,15 +43,39 @@ except ImportError:
 # Load all of the global Astropy configuration
 from sphinx_astropy.conf import *
 
-# Get configuration information from setup.cfg
-try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
-conf = ConfigParser()
+# Create a mock to allow us access to the setup variables:
+def parse_setup(setup_filename):
+    """Parse setup.py and return args and keywords args to its setup
+    function call
 
-conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+    """
+    mock_setup = textwrap.dedent('''\
+    def setup(*args, **kwargs):
+        __setup_calls__.append((args, kwargs))
+    ''')
+    parsed_mock_setup = ast.parse(mock_setup, filename=setup_filename)
+    with open(setup_filename, 'rt') as setup_file:
+        parsed = ast.parse(setup_file.read())
+        for index, node in enumerate(parsed.body[:]):
+            if (
+                not isinstance(node, ast.Expr) or
+                not isinstance(node.value, ast.Call) or
+                node.value.func.id != 'setup'
+            ):
+                continue
+            parsed.body[index:index] = parsed_mock_setup.body
+            break
+
+    fixed = ast.fix_missing_locations(parsed)
+    codeobj = compile(fixed, setup_filename, 'exec')
+    local_vars = {}
+    global_vars = {'__setup_calls__': []}
+    exec(codeobj, global_vars, local_vars)
+    return global_vars['__setup_calls__'][0]
+
+
+setup_info = parse_setup('../setup.py')[1]
+setup_py = dict(setup_info)
 
 # -- General configuration ----------------------------------------------------
 
@@ -72,22 +98,23 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg['package_name']
-author = setup_cfg['author']
+project = setup_py['name']
+author = setup_py['author']
 copyright = '{0}, {1}'.format(
-    datetime.datetime.now().year, setup_cfg['author'])
+    datetime.datetime.now().year, setup_py['author'])
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-__import__(setup_cfg['package_name'])
-package = sys.modules[setup_cfg['package_name']]
+#__import__(setup_py['name'])
+#package = sys.modules[setup_py['name']]
+package = setup_py['name']
 
 # The short X.Y version.
-version = package.__version__.split('-', 1)[0]
+version = setup_py['version']
 # The full version, including alpha/beta/rc tags.
-release = package.__version__
+#release = package.__version__
 
 
 # -- Options for HTML output --------------------------------------------------
@@ -130,7 +157,7 @@ html_theme_options = {
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = '{0} v{1}'.format(project, release)
+html_title = '{0} v{1}'.format(project, version)
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + 'doc'
@@ -154,21 +181,21 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 # -- Options for the edit_on_github extension ---------------------------------
 
-if eval(setup_cfg.get('edit_on_github')):
-    extensions += ['sphinx_astropy.ext.edit_on_github']
+#if eval(setup_py.get('edit_on_github')):
+#    extensions += ['sphinx_astropy.ext.edit_on_github']
 
-    versionmod = __import__(setup_cfg['package_name'] + '.version')
-    edit_on_github_project = setup_cfg['github_project']
-    if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
-    else:
-        edit_on_github_branch = "master"
+#    versionmod = __import__(setup_py['name'] + '.version')
+#    edit_on_github_project = setup_py['url']
+    #if versionmod.version.release:
+     #   edit_on_github_branch = "v" + versionmod.version.version
+    #else:
+    #    edit_on_github_branch = "master"
 
-    edit_on_github_source_root = ""
-    edit_on_github_doc_root = "docs"
+#    edit_on_github_source_root = ""
+#    edit_on_github_doc_root = "docs"
 
 # -- Resolving issue number to links in changelog -----------------------------
-github_issues_url = 'https://github.com/{0}/issues/'.format(setup_cfg['github_project'])
+github_issues_url = '{0}'.format(setup_py['url'])
 
 # from mock import Mock as MagicMock
 #
