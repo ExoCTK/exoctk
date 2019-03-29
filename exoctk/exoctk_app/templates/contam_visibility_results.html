@@ -34,7 +34,7 @@
     			<li>The solid line indicates the nominal Aperture PA as a function of the calendar date.</li>
     			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
     			<li>On dates where there is no curve, the target is inaccessible.</li>
-    			<li>The TXT file provides the same information in table format with columns:
+    			<li>The CSV file provides the same information (and more) in table format with columns:
             <p>
               V3 PA, Nominal Aperture PA, Minimum Aperture PA, Maximum Aperture PA, and Calendar Date.
             </p>
@@ -86,6 +86,9 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
       <form action="/visib_result" method="post">
           <input type="hidden" name="data_file" value="{{ vis_table }}" />
           <input class="btn btn-success" type='submit' value='Download CSV File'></p>
+      <form action="/visib_result" method="post">
+          <input type="hidden" name="targetname" value="{{ tname }}" />
+          <input type="hidden" name="instrumentname" value="{{ iname }}" />
       </form>
     </body>
 
