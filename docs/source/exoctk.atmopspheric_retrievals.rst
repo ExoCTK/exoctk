@@ -1,13 +1,13 @@
-ExoCTK.atmospheric\_retrievals package
+exoctk.atmospheric\_retrievals package
 ======================================
 
 Submodules
 ----------
 
-ExoCTK.atmospheric\_retrievals.platon_wrapper module
+exoctk.atmospheric\_retrievals.platon_wrapper module
 ----------------------------------------------------
 
-.. automodule:: ExoCTK.atmospheric_retrievals.platon_wrapper
+.. automodule:: exoctk.atmospheric_retrievals.platon_wrapper
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ ExoCTK.atmospheric\_retrievals.platon_wrapper module
 Module contents
 ---------------
 
-.. automodule:: ExoCTK.atmospheric_retrievals
+.. automodule:: exoctk.atmospheric_retrievals
     :members:
     :undoc-members:
     :show-inheritance:
