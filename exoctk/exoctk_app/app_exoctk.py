@@ -522,8 +522,12 @@ def _param_fort_validation(args):
     r_unit = args.get('r_unit', 'R_jup')
     rstar = args.get('rstar', 1)
     rstar_unit = args.get('rstar_unit', 'R_sun')
+    
+    input_args = {'temp': temp, 'chem': chem, 'cloud': cloud, 'pmass': pmass, 
+                  'm_unit': m_unit, 'reference_radius': reference_radius, 
+                  'r_unit': r_unit, 'rstar': rstar, 'rstar_unit': rstar_unit}
 
-    return temp, chem, cloud, pmass, m_unit, reference_radius, r_unit, rstar, rstar_unit
+    return input_args 
 
 
 @app_exoctk.route('/fortney', methods=['GET', 'POST'])
@@ -535,92 +539,10 @@ def fortney():
     # Grab the inputs arguments from the URL
     args = flask.request.args
 
-    temp, chem, cloud, pmass, m_unit, reference_radius, r_unit, rstar, rstar_unit = _param_fort_validation(args)
-
-    # get sqlite database
-    try:
-        db = create_engine('sqlite:///' + FORTGRID_DIR)
-        header = pd.read_sql_table('header', db)
-    except:
-        raise Exception('Fortney Grid File Path is incorrect, or not initialized')
-
-    if args:
-        rstar = float(rstar)
-        rstar = (rstar * u.Unit(rstar_unit)).to(u.km)
-        reference_radius = float(reference_radius)
-        rplan = (reference_radius * u.Unit(r_unit)).to(u.km)
-
-        # clouds
-        if cloud.find('flat') != -1:
-            flat = int(cloud[4:])
-            ray = 0
-        elif cloud.find('ray') != -1:
-            ray = int(cloud[3:])
-            flat = 0
-        elif int(cloud) == 0:
-            flat = 0
-            ray = 0
-        else:
-            flat = 0
-            ray = 0
-            print('No cloud parameter not specified, default no clouds added')
-
-        # chemistry
-        if chem == 'noTiO':
-            noTiO = True
-        if chem == 'eqchem':
-            noTiO = False
-            # grid does not allow clouds for cases with TiO
-            flat = 0
-            ray = 0
-
-        fort_grav = 25.0 * u.m / u.s**2
-
-        temp = float(temp)
-        df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) &
-                        (header.noTiO == noTiO) & (header.ray == ray) &
-                        (header.flat == flat)]
-
-        wave_planet = np.array(pd.read_sql_table(df['name'].values[0], db)['wavelength'])[::-1]
-        r_lambda = np.array(pd.read_sql_table(df['name'].values[0], db)['radius']) * u.km
-
-        # All fortney models have fixed 1.25 radii
-        z_lambda = r_lambda - (1.25 * u.R_jup).to(u.km)
-
-        # Scale with planetary mass
-        pmass = float(pmass)
-        mass = (pmass * u.Unit(m_unit)).to(u.kg)
-
-        # Convert radius to m for gravity units
-        gravity = constants.G * (mass) / (rplan.to(u.m))**2.0
-
-        # Scale lambbda (this technically ignores the fact that scaleheight
-        # is altitude dependent) therefore, it will not be valide for very
-        # very low gravities
-        z_lambda = z_lambda * fort_grav / gravity
-
-        # Create new wavelength dependent R based on scaled ravity
-        r_lambda = z_lambda + rplan
-
-        # Finally compute (rp/r*)^2
-        flux_planet = np.array(r_lambda**2 / rstar**2)
-
-        x = wave_planet
-        y = flux_planet[::-1]
-
-    else:
-        df = pd.read_sql_table('t1000g25_noTiO', db)
-        x, y = df['wavelength'], df['radius']**2.0 / 7e5**2.0
-
-    tab = at.Table(data=[x, y])
-    fh = StringIO()
-    tab.write(fh, format='ascii.no_header')
+    input_args = _param_fort_validation(args)
+    
+    fig, fh = fortney_grid(input_args)
     table_string = fh.getvalue()
-
-    fig = figure(plot_width=1100, plot_height=400)
-    fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
-    fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Rel. Transit Depth (ppm)'
 
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
@@ -636,8 +558,6 @@ def fortney():
                                  table_string=table_string
                                  )
     return encode_utf8(html)
-
-
 
     
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
