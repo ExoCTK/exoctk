@@ -553,7 +553,9 @@ def contam_visibility():
                                        vis_css=vis_css, contam_plot=contam_div,
                                        contam_script=contam_script,
                                        contam_js=contam_js,
-                                       contam_css=contam_css)
+                                       contam_css=contam_css,
+                                       tname=contamVars['tname'],
+                                       iname=contamVars['inst'])
 
             except Exception as e:
                 err = 'The following error occurred: ' + str(e)
@@ -566,8 +568,13 @@ def save_visib_result():
     """Save the results of the Visibility Only calculation"""
 
     visib_table = flask.request.form['data_file']
+    targname = flask.request.form['targetname']
+    instname = flask.request.form['instrumentname']
+    #if request.method == 'GET':
+        #tname = flask.request.form['targetname']
+
     return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=visibility.csv"})
+                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():

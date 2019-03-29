@@ -325,7 +325,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Adding lists to a table object
     table = Table([v3panan, paNomnan, paMinnan, paMaxnan, gdnan, mjdnan],\
-                  names=('V3_PA', 'Aperture_PA','min_Aperture_PA',\
+                  names=('#V3_PA', 'Aperture_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'Gregorian', 'MJD'))
 
     return paMin, paMax, gd, fig, table
