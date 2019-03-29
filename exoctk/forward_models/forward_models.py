@@ -20,6 +20,8 @@ Use
 ## -- IMPORTS
 import os
 
+import astropy.constants as constants
+import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.embed import components
@@ -33,7 +35,7 @@ from sqlalchemy import create_engine
 
 ## -- FUNCTIONS
 
-def fortney_grid(args, database_path, write_plot=False, write_table=False):
+def fortney_grid(args, write_plot=False, write_table=False):
     """
     Function to grab a Fortney Grid model, plot it, and make a table.
 
@@ -50,8 +52,6 @@ def fortney_grid(args, database_path, write_plot=False, write_table=False):
         r_unit
         rstar
         rstar_unit
-    database_path : str
-        Path to the database.
     write_plot : bool, optional
         Whether or not to save the bokeh plot, defaults to False.
     write_table : bool, optional
@@ -67,18 +67,20 @@ def fortney_grid(args, database_path, write_plot=False, write_table=False):
 
     # Check for Fortney Grid database 
     try:
-        db = create_engine('sqlite:///' + FORTGRID_DIR)
+        db = create_engine('sqlite:///' +
+                os.path.join(os.environ('EXOCTK_DATA'), 'fortney/fortney_models.db'))
         header = pd.read_sql_table('header', db)
     except:
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
 
     if args:
-        rstar = float(rstar)
-        rstar = (rstar * u.Unit(rstar_unit)).to(u.km)
-        reference_radius = float(reference_radius)
-        rplan = (reference_radius * u.Unit(r_unit)).to(u.km)
+        rstar = float(args['rstar'])
+        rstar = (rstar * u.Unit(args['rstar_unit'])).to(u.km)
+        reference_radius = float(args['reference_radius'])
+        rplan = (reference_radius * u.Unit(args['r_unit'])).to(u.km)
 
         # clouds
+        cloud = args['cloud']
         if cloud.find('flat') != -1:
             flat = int(cloud[4:])
             ray = 0
@@ -94,6 +96,7 @@ def fortney_grid(args, database_path, write_plot=False, write_table=False):
             print('No cloud parameter not specified, default no clouds added')
 
         # chemistry
+        chem = args['chem']
         if chem == 'noTiO':
             noTiO = True
         if chem == 'eqchem':
@@ -114,10 +117,10 @@ def fortney_grid(args, database_path, write_plot=False, write_table=False):
 
         # All fortney models have fixed 1.25 radii
         z_lambda = r_lambda - (1.25 * u.R_jup).to(u.km)
-//Figure
+
         # Scale with planetary mass
-        pmass = float(pmass)
-        mass = (pmass * u.Unit(m_unit)).to(u.kg)
+        pmass = float(args['pmass'])
+        mass = (pmass * u.Unit(args['m_unit'])).to(u.kg)
 
         # Convert radius to m for gravity units
         gravity = constants.G * (mass) / (rplan.to(u.m))**2.0
@@ -146,7 +149,7 @@ def fortney_grid(args, database_path, write_plot=False, write_table=False):
     
     if write_table:
         tab.write('fortney.dat', format='ascii.no_header')
-
+        
     fig = figure(plot_width=1100, plot_height=400)
     fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
