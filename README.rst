@@ -79,22 +79,21 @@ available for all JWST instruments, and the contamination calculator will be
 released for NIRISS (Mode: Single Object Slitless Spectroscopy), NIRCam
 (Mode: Grism Time Series), and MIRI (Mode: Low-Resolution Spectroscopy).
 
-
 .. figure:: /exoctk/data/images/visib_demo.png
-:alt: VISdemo
-:scale: 100%
-:align: center
+    :alt: VISdemo
+    :scale: 100%
+    :align: center
 
- The visibility is calculated for Kelt-8 with the NIRISS instrument. The
+The visibility is calculated for Kelt-8 with the NIRISS instrument. The
 shaded region represents the PA range that a user can observe this target in.
 The green line represents the nominal angle of the instrument for this target.
 
 .. figure:: /exoctk/data/images/visib_table_demo.png
-:alt: VISTdemo
-:scale: 100%
-:align: center
+    :alt: VISTdemo
+    :scale: 100%
+    :align: center
 
- Users also have the option to download their visibility data into an ascii
+Users also have the option to download their visibility data into an ascii
 file for convenience. This is an example of an ascii file downloaded for the
 Kelt-8 target using NIRISS. It lists the position angles (for the instrument
 and JWST) with their corresponding dates.
