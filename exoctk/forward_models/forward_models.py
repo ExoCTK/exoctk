@@ -18,33 +18,54 @@ Use
 """
 
 ## -- IMPORTS
+import os
 
+from bokeh.resources import INLINE
+from bokeh.util.string import encode_utf8
+from bokeh.embed import components
+from bokeh.models import Range1d
+from bokeh.models.widgets import Panel, Tabs
+from bokeh.plotting import figure, output_file, save
+import h5py
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
 
 ## -- FUNCTIONS
 
-def _param_fort_validation(args):
-    """Validates the input parameters for the forward models"""
+def fortney_grid(args, database_path, write_plot=False, write_table=False):
+    """
+    Function to grab a Fortney Grid model, plot it, and make a table.
 
-    temp = args.get('ptemp', 1000)
-    chem = args.get('pchem', 'noTiO')
-    cloud = args.get('cloud', '0')
-    pmass = args.get('pmass', '1.5')
-    m_unit = args.get('m_unit', 'M_jup')
-    reference_radius = args.get('refrad', 1)
-    r_unit = args.get('r_unit', 'R_jup')
-    rstar = args.get('rstar', 1)
-    rstar_unit = args.get('rstar_unit', 'R_sun')
+    Parameters
+    ----------
+    args : dict
+        Dictionary of arguments for the Fortney Grid. Must include : 
+        temp
+        chem
+        cloud
+        pmass
+        m_unit
+        reference_radius
+        r_unit
+        rstar
+        rstar_unit
+    database_path : str
+        Path to the database.
+    write_plot : bool, optional
+        Whether or not to save the bokeh plot, defaults to False.
+    write_table : bool, optional
+        Whether or not to save the ascii table, defaults to False.
 
-    return temp, chem, cloud, pmass, m_unit, reference_radius, r_unit, rstar, rstar_unit
+    Returns
+    -------
+    fig : bokeh object
+        The unsaved bokeh plot.
+    fh : ascii table object
+        The unsaved ascii table. 
+    """
 
-
-def fortney_grid(args
-
-    FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
-
-    temp, chem, cloud, pmass, m_unit, reference_radius, r_unit, rstar, rstar_unit = _param_fort_validation(args)
-
-    # get sqlite database
+    # Check for Fortney Grid database 
     try:
         db = create_engine('sqlite:///' + FORTGRID_DIR)
         header = pd.read_sql_table('header', db)
@@ -93,7 +114,7 @@ def fortney_grid(args
 
         # All fortney models have fixed 1.25 radii
         z_lambda = r_lambda - (1.25 * u.R_jup).to(u.km)
-
+//Figure
         # Scale with planetary mass
         pmass = float(pmass)
         mass = (pmass * u.Unit(m_unit)).to(u.kg)
@@ -122,13 +143,20 @@ def fortney_grid(args
     tab = at.Table(data=[x, y])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
-    table_string = fh.getvalue()
+    
+    if write_table:
+        tab.write('fortney.dat', format='ascii.no_header')
 
     fig = figure(plot_width=1100, plot_height=400)
     fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Rel. Transit Depth (ppm)'
 
+    if write_plot:
+        output_file('fortney.html')
+        save(fig)
+
+    return fig, fh
 
 
 def generic_grid(input_args, write_plot=False, write_table=False):
@@ -189,6 +217,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
     
     if write_plot:
+        output_file('generic.html')
         save(fig)
         
     return fig, fh
