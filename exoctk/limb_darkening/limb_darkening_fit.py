@@ -135,9 +135,8 @@ class LDC:
             be calculated
         """
         # Set the model grid
-        if not isinstance(model_grid, modelgrid.ModelGrid):
-            raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid\
-                             object.")
+        # if not isinstance(model_grid, modelgrid.ModelGrid):
+        #     raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
 
         self.model_grid = model_grid
 
@@ -258,7 +257,7 @@ class LDC:
                                                               .wave_rng))
 
         # Apply the filter
-        flux = bandpass.apply([wave, flux])
+        flux, _ = bandpass.apply([wave, flux])
 
         # Make rsr curve 3 dimensions if there is only one
         # wavelength bin, then get wavelength only
