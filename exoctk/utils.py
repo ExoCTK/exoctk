@@ -3,13 +3,36 @@
 """
 A module for utility funtions
 """
+import os
 import re
 import requests
 import urllib
 
 from astropy.io import fits
-import numpy as np
 from scipy.interpolate import RegularGridInterpolator
+import matplotlib.pyplot as plt
+import numpy as np
+from svo_filters import svo
+
+
+MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
+FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
+EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
+
+# Nice colors for plotting
+COLORS = ['blue', 'red', 'green', 'orange',
+          'cyan', 'magenta', 'pink', 'purple']
+
+# Supported profiles
+PROFILES = ['uniform', 'linear', 'quadratic',
+            'square-root', 'logarithmic', 'exponential',
+            '3-parameter', '4-parameter']
+
+# Supported filters
+FILTERS = svo.filters()
+
+# Set the version
+VERSION = '0.2'
 
 
 def interp_flux(mu, flux, params, values):
