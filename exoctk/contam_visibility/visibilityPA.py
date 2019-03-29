@@ -14,6 +14,7 @@ import math
 import pkg_resources
 
 from astropy.table import Table
+from astropy.time import Time
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool
 from bokeh.models.widgets import Panel, Tabs
@@ -306,7 +307,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Making the output table
     # Creating new lists w/o the NaN values
-    v3panan, paNomnan, paMinnan, paMaxnan, gdnan = [], [], [], [], []
+    v3panan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = [], [], [], [], [], []
     for v3p, pnom, pmin, pmax, date in zip(v3pa, paNom, paMin, paMax, gd):
         if np.isfinite(pmin)==True:
             v3panan.append(v3p)
@@ -314,9 +315,17 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
             paMinnan.append(pmin)
             paMaxnan.append(pmax)
             gdnan.append(date)
+
+    # Adding MJD column
+    mjdnan = []
+    for date in gdnan:
+        t = Time(str(date), format='iso')
+        mjd = t.mjd
+        mjdnan.append(mjd)
+
     # Adding lists to a table object
-    table = Table([v3panan, paNomnan, paMinnan, paMaxnan, gdnan],\
+    table = Table([v3panan, paNomnan, paMinnan, paMaxnan, gdnan, mjdnan],\
                   names=('V3_PA', 'Aperture_PA','min_Aperture_PA',\
-                         'max_Aperture_PA', 'Dates'))
+                         'max_Aperture_PA', 'Gregorian', 'MJD'))
 
     return paMin, paMax, gd, fig, table
