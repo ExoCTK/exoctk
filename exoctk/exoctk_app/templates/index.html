@@ -23,6 +23,7 @@
                         <h3>Forward Modeling</h3>
                         <span id="helpBlock" class="help-block">Atmospheric forward modeling tools.</span>
                         <a class="btn btn-primary" href="./fortney">Fortney Grid</a>
+                        <a class="btn btn-primary" href="./generic">Generic Grid</a>
                         <a class="btn btn-default disabled" href="./platon">Platon</a>
                     </div>
                     
@@ -60,6 +61,30 @@
                     
                 </div>
                 
+                <hr class="col-md-12">
+                <br>
+                
+                    
+                <div class="form-group col-sm-12">
+                <div class="col-sm-6">
+                    <h3> GitHub Source Code</h3>
+                        <ul>
+                            <li><a href="https://github.com/ExoCTK/ExoCTK">ExoCTK</a> is the computing package behind the website.</li>
+                            <li><a href="https://github.com/ExoCTK/ExoCTKWeb">ExoCTKWeb</a> is the literal source code of this website.</li>
+                            <li><a href="https://github.com/ExoCTK/PandExo_HST">PandExo_HST</a> is our counterpart for HST observations.</li>
+                        </ul>
+                    </div>
+
+                    <div class="col-sm-6">
+                        <h3>ExoCTK Data Download</h3>
+                        <ul>
+                            <li> To download and run ExoCTK yourself, simply
+                                download <a
+                                    href="{{url_for('zip_data_download')}}">this</a>
+                                data, and export the path on your machine as
+                                "EXOCTK_DATA".
+                </div>
+                </div>
 
 <script src="//cdn.datatables.net/1.10.7/js/jquery.dataTables.min.js"></script>
 <script src="//cdn.datatables.net/plug-ins/1.10.7/integration/bootstrap/2/dataTables.bootstrap.js"></script>
