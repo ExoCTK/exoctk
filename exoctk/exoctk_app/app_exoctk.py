@@ -1,4 +1,5 @@
 import datetime
+from functools import wraps
 import os
 import json
 from pkg_resources import resource_filename
@@ -16,7 +17,7 @@ from bokeh.plotting import figure
 import flask
 from flask import Flask, Response
 from flask import request, send_file, make_response, render_template
-from functools import wraps
+import form_validation as fv
 import h5py
 import numpy as np
 import pandas as pd
@@ -24,14 +25,14 @@ from sqlalchemy import create_engine
 from wtforms.validators import InputRequired, NumberRange
 from wtforms import DecimalField
 
-from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
-import form_validation as fv
+from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
+from exoctk.modelgrid import ModelGrid
 from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR
 import log_exoctk
 from svo_filters import svo
@@ -48,8 +49,6 @@ if EXOCTK_DATA == '':
     raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.")
 
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/generic_grid_db.hdf5')
 GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/groups_integrations.json')
 MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/default')
 
@@ -639,157 +638,8 @@ def fortney():
     return encode_utf8(html)
 
 
-@app_exoctk.route('/fortney_result', methods=['POST'])
-def save_fortney_result():
-    """SAve the results of the Fortney grid"""
 
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=fortney.dat"})
-
-
-def rescale_generic_grid(input_args):
-    """ Pulls a model from the generic grid, rescales it, 
-    and returns the model and wavelength.
-
-    Parameters
-    ----------
-    input_args : dict
-        A dictionary of the form output from the generic grid form.
-        If manual input must include : 
-        r_star : The radius of the star.
-        r_planet : The radius of the planet.
-        gravity : The gravity.
-        temperature : The temperature.
-        condensation : local or rainout
-        metallicity 
-        c_o : carbon/oxygen ratio
-        haze
-        cloud
-        
-    Returns
-    -------
-    wv : np.array
-        Array of wavelength bins.
-    spectra : np.array
-        Array of the planetary model spectrum.
-    inputs : dict
-        The dictionary of inputs given to the function.
-    closest_match : dict
-        A dictionary with the parameters/model name of the closest
-        match in the grid.
-    error_message : bool, str
-        Either False, for no error, or a message about what went wrong.
-    """
-    error_message = ''
-    try:   
-        # Parameter validation
-        # Set up some nasty tuples first
-        scaling_space = [('r_star', [0.05, 10000]),
-                         ('r_planet', [0.0,  10000]),
-                         ('gravity', [5.0, 50]),
-                         ('temperature', [400, 2600])]
-        
-        inputs = {} 
-        # First check the scaling
-        for tup in scaling_space:
-            key, space = tup
-            val = float(input_args[key])
-            if val >= space[0] and val <= space[1]:
-                inputs[key] = val
-            else:
-                error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
-                break
-        
-        # Map to nearest model key
-        temp_range = np.arange(600, 2700, 100)
-        grav_range = np.array([5, 10, 20, 50])
-        sort_temp = (np.abs(inputs['temperature'] - temp_range)).argmin()
-        sort_grav = (np.abs(inputs['gravity'] - grav_range)).argmin()
-        model_temp = temp_range[sort_temp]
-        input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
-        model_grav = grav_range[sort_grav]
-        input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
-
-        # Check the model parameters
-        str_temp_range = ['0400'] + ['0{}'.format(elem)[-4:] for elem in temp_range]
-        model_space = [('condensation', ['local', 'rainout']), 
-                       ('model_temperature', str_temp_range),
-                       ('model_gravity', ['05', '10', '20', '50']),
-                       ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
-                       ('c_o', ['0.35', '0.56', '0.70', '1.00']),
-                       ('haze', ['0001', '0010', '0150', '1100']),
-                       ('cloud', ['0.00', '0.06', '0.20','1.00'])]
-        
-        model_key = ''
-        for tup in model_space:
-            key, space = tup
-            if input_args[key] in space:
-                inputs[key] = input_args[key]
-                model_key += '{}_'.format(inputs[key])
-            else:
-                error_message = 'One of the model parameters was out of range.'
-                break
-        model_key = model_key[:-1]
     
-
-        # Define constants
-        boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
-        permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-        optical_depth = 0.56 
-        r_sun = 69580000000 # cm
-        r_jupiter = 6991100000 # cm
- 
-        closest_match = {'model_key': model_key, 'model_gravity': model_grav,
-                         'model_temperature': model_temp}
-        
-        with h5py.File(GENERICGRID_DIR, 'r') as f:
-            # Can't use the final NaN value
-            model_wv = f['/wavelength'][...][:-1]
-            model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
-            
-        radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
-        r_star = inputs['r_star'] * r_sun
-        r_planet = inputs['r_planet'] * r_jupiter
-        model_grav = model_grav * 1e2
-        inputs['gravity'] = inputs['gravity'] * 1e2
-        
-        # Start with baseline based on model parameters
-        scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
-        r_planet_base = np.sqrt(radius_ratio) * r_sun
-        altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
-        opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
-                                          (2 * np.pi * r_planet_base)) * \
-                                  np.exp(altitude / scale_height)
-        # Now rescale from baseline
-        solution = {}
-        solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
-        solution['altitude'] = solution['scale_height'] * \
-                               np.log10(opacity/optical_depth * \
-                                        np.sqrt((2 * np.pi * r_planet) / \
-                                                (boltzmann * inputs['temperature'] * inputs['gravity']))) 
-        solution['radius'] = solution['altitude'] + r_planet
-
-        # Sort data
-        sort = np.argsort(model_wv)
-        solution['wv'] = model_wv[sort]
-        solution['radius'] = solution['radius'][sort]
-        solution['spectra'] = (solution['radius']/r_star)**2
-    
-    except (KeyError, ValueError) as e:
-        error_message = 'One of the parameters to make up the model was missing or out of range.'
-        model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
-        solution = {}
-        with h5py.File(GENERICGRID_DIR) as f:
-            solution['wv'] = f['/wavelength'][...][:-1]
-            solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
-        closest_match = {'model_key': model_key, 'model_temperature': 400,
-                'model_gravity': 50}
-        inputs = input_args
-    
-    return solution, inputs, closest_match, error_message
-
-
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
 def generic():
     """
@@ -800,23 +650,13 @@ def generic():
     args = dict(flask.request.args)
     for key in args:
         args[key] = args[key][0]
-    # Build rescaled model
-    solution, inputs, closest_match, error_message = rescale_generic_grid(args)
     
-    # Build file out
-    tab = at.Table(data=[solution['wv'], solution['spectra']])
-    fh = StringIO()
-    tab.write(fh, format='ascii.no_header')
+    fig, fh = generic_grid(args)
+
+    # Write table string
     table_string = fh.getvalue()
     
-    # Plot
-    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
-    fig.x_range.start = 0.3
-    fig.x_range.end = 5
-    fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
-    fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
-
+    # Web-ify bokeh plot
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
 
@@ -835,6 +675,15 @@ def generic():
     return encode_utf8(html)
 
 
+@app_exoctk.route('/fortney_result', methods=['POST'])
+def save_fortney_result():
+    """SAve the results of the Fortney grid"""
+
+    table_string = flask.request.form['data_file']
+    return flask.Response(table_string, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename=fortney.dat"})
+
+
 @app_exoctk.route('/generic_result', methods=['POST'])
 def save_generic_result():
     """Save the results of the generic grid"""
@@ -850,15 +699,6 @@ def zip_data_download():
 
     return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype="text/json",
                      attachment_filename='exoctk_data.zip',
-                     as_attachment=True)
-
-
-@app_exoctk.route('/fortney_download')
-def fortney_download():
-    """Download the fortney grid data"""
-
-    fortney_data = FORTGRID_DIR
-    return send_file(fortney_data, attachment_filename='fortney_grid.db',
                      as_attachment=True)
 
 
