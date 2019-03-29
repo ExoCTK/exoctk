@@ -21,6 +21,7 @@ env:
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
+  - export EXOCTK_DATA="$HOME/exoctk_data/"
   - chmod +x ci/install_conda.sh
   - chmod +x ci/setup_conda_env.sh
 
