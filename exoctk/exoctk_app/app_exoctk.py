@@ -570,8 +570,6 @@ def save_visib_result():
     visib_table = flask.request.form['data_file']
     targname = flask.request.form['targetname']
     instname = flask.request.form['instrumentname']
-    #if request.method == 'GET':
-        #tname = flask.request.form['targetname']
 
     return flask.Response(visib_table, mimetype="text/dat",
                           headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
