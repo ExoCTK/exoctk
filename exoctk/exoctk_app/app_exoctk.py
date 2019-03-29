@@ -498,8 +498,29 @@ def contam_visibility():
                                                          contamVars['dec'],
                                                          contamVars['inst'],
                                                          )
+                vers = '0.3'
+                today = datetime.datetime.now()
                 fh = StringIO()
+                fh.write('# Hi! This is your Visibility output file for... \n')
+                fh.write('# Target: {} \n'.format(contamVars['tname']))
+                fh.write('# Instrument: {} \n'.format(contamVars['inst']))
+                fh.write('# \n')
+                fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
+                fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
+                fh.write('# \n')
                 table.write(fh, format='csv', delimiter=',')
+
+                import csv
+                """
+                with open(fh) as f:
+                    r = csv.reader(f)
+                    data = [row for row in r]
+                with open(fh, 'w') as csvfile:
+                    w = csv.writer(csvfile)
+                    w.writerow(['#this is a test'])
+                    w.writerows(data)
+                """
+                print(fh)
                 visib_table = fh.getvalue()
 
                 # Format x axis
