@@ -17,7 +17,6 @@ import flask
 from flask import Flask, Response
 from flask import request, send_file, make_response, render_template
 from functools import wraps
-import h5py
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
@@ -42,16 +41,6 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
-
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-if EXOCTK_DATA == '':
-    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.")
-
-EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/fortney_models.db')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/generic_grid_db.hdf5')
-GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/groups_integrations.json')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/default')
 
 # # Load the database to log all form submissions
 # if EXOCTKLOG_DIR is None:
@@ -256,31 +245,27 @@ def groups_integrations():
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
 
-    if request.method == 'POST':
-        if request.form['submit'] == "Retrieve Parameters":
-            target_name = request.form['targetname']
-            canoncial_name = get_canonical_name(target_name)
-            # Ping exomast api and get data
-            data = get_target_data(target_name)
-            Kmag = data['Kmag']
-            obs_duration = data['transit_duration'] * 24. # Transit duration in exomast is in days, need it in hours
-            
-            groupsintegrationVars = {'targname':canoncial_name, 'Kmag':Kmag, 'obs_duration':obs_duration}
+    # Load default form
+    form = fv.GroupsIntsForm()
 
-            return render_template('groups_integrations.html', sat_data=sat_data, groupsintegrationVars=groupsintegrationVars)
+    # Reload page with stellar data from ExoMAST
+    if form.resolve_submit.data: 
 
-    return render_template('groups_integrations.html', sat_data=sat_data)
+        # Resolve the target in exoMAST
+        canoncial_name = get_canonical_name(form.targname.data)
+        data = get_target_data(form.targname.data)
 
+        # Update the Kmag
+        form.kmag.data = data.get('Kmag')
 
-@app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
-def groups_integrations_results():
-    """The groups and integrations calculator results page"""
+        # Transit duration in exomast is in days, need it in hours
+        form.obs_duration.data = data.get('transit_duration') * 24.
 
-    # Read in parameters from form
-    params = {}
-    for key in dict(request.form).keys():
-        params[key] = dict(request.form)[key][0]
-    try:
+        # Send it back to the main page
+        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+
+    if form.validate_on_submit() and form.calculate_submit.data:
+
         err = 0
 
         # Specific error catching
@@ -331,7 +316,7 @@ def groups_integrations_results():
         params['filt_ta'] = params['{}_filt_ta'.format(ins)]
         params['subarray'] = params['{}_subarray'.format(ins)]
         params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
-        
+    
         # Convert the obs_time to hours
         if params['time_unit'] != 'hours':
             params['obs_time'] = params['obs_time']*24
@@ -380,11 +365,123 @@ def groups_integrations_results():
             err = results
             return render_template('groups_integrations_error.html', err=err)
 
-    except IOError:
-        err = 'One of you numbers is NOT a number! Please try again!'
-    except Exception as e:
-        err = 'This is not an error we anticipated, but the error caught was : ' + str(e)
-        return render_template('groups_integrations_error.html', err=err)
+    return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+
+
+# @app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
+# def groups_integrations_results():
+#     """The groups and integrations calculator results page"""
+#
+#     # Read in parameters from form
+#     params = {}
+#     for key in dict(request.form).keys():
+#         params[key] = dict(request.form)[key][0]
+#     print(params)
+#     try:
+#         err = 0
+#
+#         # Specific error catching
+#         if params['n_group'].isdigit():
+#             params['n_group'] = int(params['n_group'])
+#             if params['n_group'] <= 1:
+#                 err = 'Please try again with at least one group.'
+#             else:
+#                 if params['n_group'] != 'optimize':
+#                     err = "You need to double check your group input. Please put the number of groups per integration or 'optimize' and we can calculate it for you."
+#
+#         if (False in [params['mag'].isdigit(), params['obs_time'].isdigit()]) and ('.' not in params['mag']) and ('.' not in params['obs_time']):
+#             err = 'Your magnitude or observation time is not a number, or you left the field blank.'
+#
+#         else:
+#             if (4.5 > float(params['mag'])) or (12.5 < float(params['mag'])):
+#                 err = 'Looks like we do not have useful approximations for your magnitude. Could you give us a number between 5.5-12.5?'
+#             if float(params['obs_time']) <= 0:
+#                 err = 'You have a negative transit time -- I doubt that will be of much use to anyone.'
+#
+#         if float(params['sat_max']) <= 0:
+#             err = 'You put in an underwhelming saturation level. There is something to be said for being too careful...'
+#         if (params['sat_mode'] == 'well') and float(params['sat_max']) > 1:
+#             err = 'You are saturating past the full well. Is that a good idea?'
+#
+#         if type(err) == str:
+#             return render_template('groups_integrations_error.html', err=err)
+#
+#         # Only create the dict if the form input looks okay
+#         # Make sure everything is the right type
+#         ins = params['ins']
+#         float_params = ['obs_time', 'mag', 'sat_max']
+#         str_params = ['mod', 'band', 'time_unit', '{}_filt'.format(ins),
+#                       '{}_ta_filt'.format(ins), 'ins',
+#                       '{}_subarray'.format(ins), '{}_subarray_ta'.format(ins),
+#                       'sat_mode']
+#         for key in params:
+#             if key in float_params:
+#                 params[key] = float(params[key])
+#             if key in str_params:
+#                 params[key] = str(params[key])
+#
+#         # Also get the data path in there
+#         params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
+#
+#         # Rename the ins-mode params to more general counterparts
+#         params['filt'] = params['{}_filt'.format(ins)]
+#         params['filt_ta'] = params['{}_filt_ta'.format(ins)]
+#         params['subarray'] = params['{}_subarray'.format(ins)]
+#         params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
+#
+#         # Convert the obs_time to hours
+#         if params['time_unit'] != 'hours':
+#             params['obs_time'] = params['obs_time']*24
+#             params['time_unit'] = 'hours'
+#
+#         results = perform_calculation(params)
+#
+#         if type(results) == dict:
+#             results_dict = results
+#             one_group_error = ""
+#             zero_group_error = ""
+#             if results_dict['n_group'] == 1:
+#                 one_group_error = 'Be careful! This only predicts one group, and you may be in danger of oversaturating!'
+#             if results_dict['max_ta_groups'] == 0:
+#                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
+#             if results_dict['max_ta_groups'] == -1:
+#                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
+#                 results_dict['min_sat_ta'] = 0
+#                 results_dict['t_duration_ta_max'] = 0
+#                 results_dict['max_sat_ta'] = 0
+#                 results_dict['t_duration_ta_max'] = 0
+#             if results_dict['max_sat_prediction'] > results_dict['sat_max']:
+#                 one_group_error = 'Hold up! You chose to input your own groups, and you have oversaturated the detector! Proceed with caution!'
+#             # Do some formatting for a prettier end product
+#             results_dict['filt'] = results_dict['filt'].upper()
+#             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
+#             results_dict['band'] = results_dict['band'].upper()
+#             results_dict['mod'] = results_dict['mod'].upper()
+#             if results_dict['ins'] == 'niriss':
+#                 if results_dict['subarray_ta'] == 'nrm':
+#                     results_dict['subarray_ta'] = 'SUBTASOSS -- BRIGHT'
+#                 else:
+#                     results_dict['subarray_ta'] = 'SUBTASOSS -- FAINT'
+#             results_dict['subarray'] = results_dict['subarray'].upper()
+#             results_dict['subarray_ta'] = results_dict['subarray_ta'].upper()
+#
+#             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
+#             results_dict['ins'] = form_dict[results_dict['ins']]
+#
+#             return render_template('groups_integrations_results.html',
+#                                    results_dict=results_dict,
+#                                    one_group_error=one_group_error,
+#                                    zero_group_error=zero_group_error)
+#
+#         else:
+#             err = results
+#             return render_template('groups_integrations_error.html', err=err)
+#
+#     except IOError:
+#         err = 'One of you numbers is NOT a number! Please try again!'
+#     except Exception as e:
+#         err = 'This is not an error we anticipated, but the error caught was : ' + str(e)
+#         return render_template('groups_integrations_error.html', err=err)
 
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
@@ -648,208 +745,12 @@ def save_fortney_result():
                           headers={"Content-disposition": "attachment; filename=fortney.dat"})
 
 
-def rescale_generic_grid(input_args):
-    """ Pulls a model from the generic grid, rescales it, 
-    and returns the model and wavelength.
+@app_exoctk.route('/groups_integrations_download')
+def groups_integrations_download():
+    """Download the groups and integrations calculator data"""
 
-    Parameters
-    ----------
-    input_args : dict
-        A dictionary of the form output from the generic grid form.
-        If manual input must include : 
-        r_star : The radius of the star.
-        r_planet : The radius of the planet.
-        gravity : The gravity.
-        temperature : The temperature.
-        condensation : local or rainout
-        metallicity 
-        c_o : carbon/oxygen ratio
-        haze
-        cloud
-        
-    Returns
-    -------
-    wv : np.array
-        Array of wavelength bins.
-    spectra : np.array
-        Array of the planetary model spectrum.
-    inputs : dict
-        The dictionary of inputs given to the function.
-    closest_match : dict
-        A dictionary with the parameters/model name of the closest
-        match in the grid.
-    error_message : bool, str
-        Either False, for no error, or a message about what went wrong.
-    """
-    error_message = ''
-    try:   
-        # Parameter validation
-        # Set up some nasty tuples first
-        scaling_space = [('r_star', [0.05, 10000]),
-                         ('r_planet', [0.0,  10000]),
-                         ('gravity', [5.0, 50]),
-                         ('temperature', [400, 2600])]
-        
-        inputs = {} 
-        # First check the scaling
-        for tup in scaling_space:
-            key, space = tup
-            val = float(input_args[key])
-            if val >= space[0] and val <= space[1]:
-                inputs[key] = val
-            else:
-                error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
-                break
-        
-        # Map to nearest model key
-        temp_range = np.arange(600, 2700, 100)
-        grav_range = np.array([5, 10, 20, 50])
-        sort_temp = (np.abs(inputs['temperature'] - temp_range)).argmin()
-        sort_grav = (np.abs(inputs['gravity'] - grav_range)).argmin()
-        model_temp = temp_range[sort_temp]
-        input_args['model_temperature'] = '0{}'.format(model_temp)[-4:]
-        model_grav = grav_range[sort_grav]
-        input_args['model_gravity'] = '0{}'.format(model_grav)[-2:]
-
-        # Check the model parameters
-        str_temp_range = ['0400'] + ['0{}'.format(elem)[-4:] for elem in temp_range]
-        model_space = [('condensation', ['local', 'rainout']), 
-                       ('model_temperature', str_temp_range),
-                       ('model_gravity', ['05', '10', '20', '50']),
-                       ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
-                       ('c_o', ['0.35', '0.56', '0.70', '1.00']),
-                       ('haze', ['0001', '0010', '0150', '1100']),
-                       ('cloud', ['0.00', '0.06', '0.20','1.00'])]
-        
-        model_key = ''
-        for tup in model_space:
-            key, space = tup
-            if input_args[key] in space:
-                inputs[key] = input_args[key]
-                model_key += '{}_'.format(inputs[key])
-            else:
-                error_message = 'One of the model parameters was out of range.'
-                break
-        model_key = model_key[:-1]
-    
-
-        # Define constants
-        boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
-        permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-        optical_depth = 0.56 
-        r_sun = 69580000000 # cm
-        r_jupiter = 6991100000 # cm
- 
-        closest_match = {'model_key': model_key, 'model_gravity': model_grav,
-                         'model_temperature': model_temp}
-        
-        with h5py.File(GENERICGRID_DIR, 'r') as f:
-            # Can't use the final NaN value
-            model_wv = f['/wavelength'][...][:-1]
-            model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
-            
-        radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
-        r_star = inputs['r_star'] * r_sun
-        r_planet = inputs['r_planet'] * r_jupiter
-        model_grav = model_grav * 1e2
-        inputs['gravity'] = inputs['gravity'] * 1e2
-        
-        # Start with baseline based on model parameters
-        scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
-        r_planet_base = np.sqrt(radius_ratio) * r_sun
-        altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
-        opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
-                                          (2 * np.pi * r_planet_base)) * \
-                                  np.exp(altitude / scale_height)
-        # Now rescale from baseline
-        solution = {}
-        solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
-        solution['altitude'] = solution['scale_height'] * \
-                               np.log10(opacity/optical_depth * \
-                                        np.sqrt((2 * np.pi * r_planet) / \
-                                                (boltzmann * inputs['temperature'] * inputs['gravity']))) 
-        solution['radius'] = solution['altitude'] + r_planet
-
-        # Sort data
-        sort = np.argsort(model_wv)
-        solution['wv'] = model_wv[sort]
-        solution['radius'] = solution['radius'][sort]
-        solution['spectra'] = (solution['radius']/r_star)**2
-    
-    except (KeyError, ValueError) as e:
-        error_message = 'One of the parameters to make up the model was missing or out of range.'
-        model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
-        solution = {}
-        with h5py.File(GENERICGRID_DIR) as f:
-            solution['wv'] = f['/wavelength'][...][:-1]
-            solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
-        closest_match = {'model_key': model_key, 'model_temperature': 400,
-                'model_gravity': 50}
-        inputs = input_args
-    
-    return solution, inputs, closest_match, error_message
-
-
-@app_exoctk.route('/generic', methods=['GET', 'POST'])
-def generic():
-    """
-    Pull up Generic Grid plot the results and download
-    """
-
-    # Grab the inputs arguments from the URL
-    args = dict(flask.request.args)
-    for key in args:
-        args[key] = args[key][0]
-    # Build rescaled model
-    solution, inputs, closest_match, error_message = rescale_generic_grid(args)
-    
-    # Build file out
-    tab = at.Table(data=[solution['wv'], solution['spectra']])
-    fh = StringIO()
-    tab.write(fh, format='ascii.no_header')
-    table_string = fh.getvalue()
-    
-    # Plot
-    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
-    fig.x_range.start = 0.3
-    fig.x_range.end = 5
-    fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
-    fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
-
-    js_resources = INLINE.render_js()
-    css_resources = INLINE.render_css()
-
-    script, div = components(fig)
-
-    html = flask.render_template('generic.html',
-                                 inputs= inputs,
-                                 closest_match = closest_match,
-                                 error_message=error_message,
-                                 table_string=table_string,
-                                 plot_script=script,
-                                 plot_div=div,
-                                 js_resources=js_resources,
-                                 css_resources=css_resources,
-                                 )
-    return encode_utf8(html)
-
-
-@app_exoctk.route('/generic_result', methods=['POST'])
-def save_generic_result():
-    """Save the results of the generic grid"""
-
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=generic.dat"})
-
-
-@app_exoctk.route('/zip_data_download')
-def zip_data_download():
-    """Download the exoctk data."""
-
-    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype="text/json",
-                     attachment_filename='exoctk_data.zip',
+    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json",
+                     attachment_filename='groups_integrations_input_data.json',
                      as_attachment=True)
 
 
@@ -860,6 +761,11 @@ def fortney_download():
     fortney_data = FORTGRID_DIR
     return send_file(fortney_data, attachment_filename='fortney_grid.db',
                      as_attachment=True)
+
+@app_exoctk.route('/zip_data_download')
+def zip_data_download():
+    """Download the zipped ExoCTK data"""
+    return
 
 
 def check_auth(username, password):

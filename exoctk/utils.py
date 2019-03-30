@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
-
-MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
-FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
-EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/default/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
 
 # Nice colors for plotting
 COLORS = ['blue', 'red', 'green', 'orange',
