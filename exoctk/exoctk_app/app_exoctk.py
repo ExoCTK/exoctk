@@ -266,62 +266,33 @@ def groups_integrations():
 
     if form.validate_on_submit() and form.calculate_submit.data:
 
-        err = 0
+        # Get the form data
+        ins = form.ins.data
+        params = {'ins': ins,
+                  'mag': form.kmag.data,
+                  'obs_time': form.obs_duration.data,
+                  'sat_max': form.sat_max.data,
+                  'sat_mode': form.sat_mode,
+                  'time_unit': form.time_unit.data,
+                  'band': 'K',
+                  'mod': form.mod.data,
+                  'filt'.format(ins): getattr(form, '{}_filt'.format(ins)).data,
+                  'subarray'.format(ins): getattr(form, '{}_subarray'.format(ins)).data,
+                  'ta_filt'.format(ins): getattr(form, '{}_filt_ta'.format(ins)).data,
+                  'subarray_ta'.format(ins): getattr(form, '{}_subarray_ta'.format(ins)).data}
 
-        # Specific error catching
-        if params['n_group'].isdigit():
-            params['n_group'] = int(params['n_group'])
-            if params['n_group'] <= 1:
-                err = 'Please try again with at least one group.'
-            else:
-                if params['n_group'] != 'optimize':
-                    err = "You need to double check your group input. Please put the number of groups per integration or 'optimize' and we can calculate it for you."
-
-        if (False in [params['mag'].isdigit(), params['obs_time'].isdigit()]) and ('.' not in params['mag']) and ('.' not in params['obs_time']):
-            err = 'Your magnitude or observation time is not a number, or you left the field blank.'
-
-        else:
-            if (4.5 > float(params['mag'])) or (12.5 < float(params['mag'])):
-                err = 'Looks like we do not have useful approximations for your magnitude. Could you give us a number between 5.5-12.5?'
-            if float(params['obs_time']) <= 0:
-                err = 'You have a negative transit time -- I doubt that will be of much use to anyone.'
-
-        if float(params['sat_max']) <= 0:
-            err = 'You put in an underwhelming saturation level. There is something to be said for being too careful...'
-        if (params['sat_mode'] == 'well') and float(params['sat_max']) > 1:
-            err = 'You are saturating past the full well. Is that a good idea?'
-
-        if type(err) == str:
-            return render_template('groups_integrations_error.html', err=err)
-
-        # Only create the dict if the form input looks okay
-        # Make sure everything is the right type
-        ins = params['ins']
-        float_params = ['obs_time', 'mag', 'sat_max']
-        str_params = ['mod', 'band', 'time_unit', '{}_filt'.format(ins),
-                      '{}_ta_filt'.format(ins), 'ins',
-                      '{}_subarray'.format(ins), '{}_subarray_ta'.format(ins),
-                      'sat_mode']
-        for key in params:
-            if key in float_params:
-                params[key] = float(params[key])
-            if key in str_params:
-                params[key] = str(params[key])
+        # Get ngroups
+        params['n_group'] = 'optimize' if form.n_group.data == 0 else int(form.n_group.data)
 
         # Also get the data path in there
         params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
 
-        # Rename the ins-mode params to more general counterparts
-        params['filt'] = params['{}_filt'.format(ins)]
-        params['filt_ta'] = params['{}_filt_ta'.format(ins)]
-        params['subarray'] = params['{}_subarray'.format(ins)]
-        params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
-    
         # Convert the obs_time to hours
-        if params['time_unit'] != 'hours':
+        if params['time_unit'] == 'days':
             params['obs_time'] = params['obs_time']*24
             params['time_unit'] = 'hours'
 
+        # Run the calculation
         results = perform_calculation(params)
 
         if type(results) == dict:
@@ -366,122 +337,6 @@ def groups_integrations():
             return render_template('groups_integrations_error.html', err=err)
 
     return render_template('groups_integrations.html', form=form, sat_data=sat_data)
-
-
-# @app_exoctk.route('/groups_integrations_results', methods=['GET', 'POST'])
-# def groups_integrations_results():
-#     """The groups and integrations calculator results page"""
-#
-#     # Read in parameters from form
-#     params = {}
-#     for key in dict(request.form).keys():
-#         params[key] = dict(request.form)[key][0]
-#     print(params)
-#     try:
-#         err = 0
-#
-#         # Specific error catching
-#         if params['n_group'].isdigit():
-#             params['n_group'] = int(params['n_group'])
-#             if params['n_group'] <= 1:
-#                 err = 'Please try again with at least one group.'
-#             else:
-#                 if params['n_group'] != 'optimize':
-#                     err = "You need to double check your group input. Please put the number of groups per integration or 'optimize' and we can calculate it for you."
-#
-#         if (False in [params['mag'].isdigit(), params['obs_time'].isdigit()]) and ('.' not in params['mag']) and ('.' not in params['obs_time']):
-#             err = 'Your magnitude or observation time is not a number, or you left the field blank.'
-#
-#         else:
-#             if (4.5 > float(params['mag'])) or (12.5 < float(params['mag'])):
-#                 err = 'Looks like we do not have useful approximations for your magnitude. Could you give us a number between 5.5-12.5?'
-#             if float(params['obs_time']) <= 0:
-#                 err = 'You have a negative transit time -- I doubt that will be of much use to anyone.'
-#
-#         if float(params['sat_max']) <= 0:
-#             err = 'You put in an underwhelming saturation level. There is something to be said for being too careful...'
-#         if (params['sat_mode'] == 'well') and float(params['sat_max']) > 1:
-#             err = 'You are saturating past the full well. Is that a good idea?'
-#
-#         if type(err) == str:
-#             return render_template('groups_integrations_error.html', err=err)
-#
-#         # Only create the dict if the form input looks okay
-#         # Make sure everything is the right type
-#         ins = params['ins']
-#         float_params = ['obs_time', 'mag', 'sat_max']
-#         str_params = ['mod', 'band', 'time_unit', '{}_filt'.format(ins),
-#                       '{}_ta_filt'.format(ins), 'ins',
-#                       '{}_subarray'.format(ins), '{}_subarray_ta'.format(ins),
-#                       'sat_mode']
-#         for key in params:
-#             if key in float_params:
-#                 params[key] = float(params[key])
-#             if key in str_params:
-#                 params[key] = str(params[key])
-#
-#         # Also get the data path in there
-#         params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
-#
-#         # Rename the ins-mode params to more general counterparts
-#         params['filt'] = params['{}_filt'.format(ins)]
-#         params['filt_ta'] = params['{}_filt_ta'.format(ins)]
-#         params['subarray'] = params['{}_subarray'.format(ins)]
-#         params['subarray_ta'] = params['{}_subarray_ta'.format(ins)]
-#
-#         # Convert the obs_time to hours
-#         if params['time_unit'] != 'hours':
-#             params['obs_time'] = params['obs_time']*24
-#             params['time_unit'] = 'hours'
-#
-#         results = perform_calculation(params)
-#
-#         if type(results) == dict:
-#             results_dict = results
-#             one_group_error = ""
-#             zero_group_error = ""
-#             if results_dict['n_group'] == 1:
-#                 one_group_error = 'Be careful! This only predicts one group, and you may be in danger of oversaturating!'
-#             if results_dict['max_ta_groups'] == 0:
-#                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
-#             if results_dict['max_ta_groups'] == -1:
-#                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
-#                 results_dict['min_sat_ta'] = 0
-#                 results_dict['t_duration_ta_max'] = 0
-#                 results_dict['max_sat_ta'] = 0
-#                 results_dict['t_duration_ta_max'] = 0
-#             if results_dict['max_sat_prediction'] > results_dict['sat_max']:
-#                 one_group_error = 'Hold up! You chose to input your own groups, and you have oversaturated the detector! Proceed with caution!'
-#             # Do some formatting for a prettier end product
-#             results_dict['filt'] = results_dict['filt'].upper()
-#             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
-#             results_dict['band'] = results_dict['band'].upper()
-#             results_dict['mod'] = results_dict['mod'].upper()
-#             if results_dict['ins'] == 'niriss':
-#                 if results_dict['subarray_ta'] == 'nrm':
-#                     results_dict['subarray_ta'] = 'SUBTASOSS -- BRIGHT'
-#                 else:
-#                     results_dict['subarray_ta'] = 'SUBTASOSS -- FAINT'
-#             results_dict['subarray'] = results_dict['subarray'].upper()
-#             results_dict['subarray_ta'] = results_dict['subarray_ta'].upper()
-#
-#             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
-#             results_dict['ins'] = form_dict[results_dict['ins']]
-#
-#             return render_template('groups_integrations_results.html',
-#                                    results_dict=results_dict,
-#                                    one_group_error=one_group_error,
-#                                    zero_group_error=zero_group_error)
-#
-#         else:
-#             err = results
-#             return render_template('groups_integrations_error.html', err=err)
-#
-#     except IOError:
-#         err = 'One of you numbers is NOT a number! Please try again!'
-#     except Exception as e:
-#         err = 'This is not an error we anticipated, but the error caught was : ' + str(e)
-#         return render_template('groups_integrations_error.html', err=err)
 
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])

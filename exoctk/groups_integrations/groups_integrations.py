@@ -609,7 +609,7 @@ def set_t_frame(infile, ins, sub, ta=False):
     # Read in dict with frame times
     with open(infile) as f:
         frame_time = json.load(f)['frame_time']
-    
+    print(frame_time)
     if ta:
         t_frame = frame_time[ins]['ta'][sub]
     else:
