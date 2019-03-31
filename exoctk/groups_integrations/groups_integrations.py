@@ -322,6 +322,9 @@ def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infil
     # Calculate the nearest number of groups
     n_group = calc_groups_from_exp_time(max_exptime, t_frame)
 
+    # Can't have zero groups
+    n_group = n_group or 1
+
     return n_group, max_sat
 
 
@@ -466,7 +469,7 @@ def perform_calculation(params, n_frame=1, n_skip=0):
     n_group, sat_rate = interpolate_from_dat(params['mag'],
         params['ins'], params['filt'], params['subarray'], params['mod'],
         params['band'], frame_time, params['sat_max'], params['infile'])
-    
+
     if str(params['n_group']) == 'optimize':
         params['n_group'] = int(n_group)
     else:

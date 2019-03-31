@@ -310,7 +310,7 @@ def groups_integrations():
                 results_dict['max_sat_ta'] = 0
                 results_dict['t_duration_ta_max'] = 0
             if results_dict['max_sat_prediction'] > results_dict['sat_max']:
-                one_group_error = 'Hold up! You chose to input your own groups, and you have oversaturated the detector! Proceed with caution!'
+                one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
