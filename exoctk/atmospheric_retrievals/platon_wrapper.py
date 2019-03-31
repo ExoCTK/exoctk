@@ -118,7 +118,7 @@ def example(method):
         'Rs': 1.19,  # Required
         'Mp': 0.73,  # Required
         'Rp': 1.4,  # Required
-        'T': 1200,  # Required
+        'T': 1200.0,  # Required
         'logZ': 0,  # Optional
         'CO_ratio': 0.53,  # Optional
         'log_cloudtop_P': 4,  # Optional
@@ -165,31 +165,40 @@ def example(method):
     return pw
 
 
-def _validate_parameters(params):
+def _validate_parameters(supplied_params):
     """Ensure the supplied parameters are valid.  Throw assertion
     errors if they are not.
 
     Parameters
     ----------
-    params : dict
+    supplied_params : dict
         A dictionary of parameters and their values for running the
         software.  See "Use" documentation for further details.
     """
 
-    # Make sure the parameter file contains the required keywords and they have values
-    required_parameters = ['Rs', 'Mp', 'Rp', 'T']
-    param_types = [float, float, float, int]
-    for param, param_type in zip(required_parameters, param_types):
-        assert param in params, '{} missing from parameter file'.format(param)
-        assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+    # Define the parameters, their data types, and if they are required
+    parameters = [('Rs', float, True),
+                  ('Mp', float, True),
+                  ('Rp', float, True),
+                  ('T', float, True),
+                  ('logZ', int, False),
+                  ('CO_ratio', float, False),
+                  ('log_cloudtop_P', int, False),
+                  ('log_scatt_factor', int, False),
+                  ('scatt_slope', int, False),
+                  ('error_multiple', int, False),
+                  ('T_star', int, False)]
 
-    # Make sure the optional keywords are of proper type
-    optional_parameters = ['logZ', 'CO_ratio', 'log_cloudtop_P', 'log_scatt_factor',
-                           'scatt_slope', 'error_multiple', 'T_star']
-    param_types = [int, float, int, int, int, int, int]
-    for param, param_type in zip(optional_parameters, param_types):
-        if param in params:
-            assert type(params[param]) == param_type, '{} is not of type {}'.format(param, param_type)
+    for parameter in parameters:
+        name, data_type, required = parameter
+
+        # Ensure that all required parameters are supplied
+        if required:
+            assert name in supplied_params, '{} missing from parameters'.format(parameter)
+
+        # Ensure the supplied parameter is of a valid data type
+        if name in supplied_params:
+            assert type(supplied_params[name]) == data_type, '{} is not of type {}'.format(parameter, data_type)
 
 
 class PlatonWrapper():
