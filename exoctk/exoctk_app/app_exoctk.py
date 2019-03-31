@@ -278,7 +278,7 @@ def groups_integrations():
                   'mod': form.mod.data,
                   'filt'.format(ins): getattr(form, '{}_filt'.format(ins)).data,
                   'subarray'.format(ins): getattr(form, '{}_subarray'.format(ins)).data,
-                  'ta_filt'.format(ins): getattr(form, '{}_filt_ta'.format(ins)).data,
+                  'filt_ta'.format(ins): getattr(form, '{}_filt_ta'.format(ins)).data,
                   'subarray_ta'.format(ins): getattr(form, '{}_subarray_ta'.format(ins)).data}
 
         # Get ngroups
