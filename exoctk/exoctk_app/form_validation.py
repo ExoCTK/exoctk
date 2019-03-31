@@ -88,10 +88,10 @@ class GroupsIntsForm(FlaskForm):
     nircam_subarray = SelectField('nircam_subarray', choices=[('full', 'FULL FRAME'), ('subgrism256', 'SUBGRISM256'), ('subgrism128', 'SUBGRISM128'), ('subgrism64', 'SUBGRISM64')])
 
     # TA subarray selects
-    miri_subarray_ta = SelectField('miri_subarray_ta', choices=[('f560w', 'F560W'), ('f100w', 'F100W'), ('f1500w', 'F1500W')])
-    nirspec_subarray_ta = SelectField('nirspec_subarray_ta', choices=[('f110w', 'F110W'), ('f140x', 'F140X'), ('clear', 'CLEAR')])
-    niriss_subarray_ta = SelectField('niriss_subarray_ta', choices=[('f480m', 'F480M')])
-    nircam_subarray_ta = SelectField('nircam_subarray_ta', choices=[('f335m', 'F335M')])
+    miri_subarray_ta = SelectField('miri_subarray_ta', choices=[('slitlessprism', 'SLITLESSPRISM')])
+    nirspec_subarray_ta = SelectField('nirspec_subarray_ta', choices=[('full', 'FULL'), ('sub32', 'SUB32'), ('sub2048', 'SUB2048')])
+    niriss_subarray_ta = SelectField('niriss_subarray_ta', choices=[('nrm', 'SUBTASOSS -- BRIGHT'), ('im', 'SUBTASOSS -- FAINT')])
+    nircam_subarray_ta = SelectField('nircam_subarray_ta', choices=[('sub32tats', 'SUB32TATS')])
 
     # Saturation
     sat_mode = RadioField('modeldir', default='well', choices=[('counts', 'Counts'), ('well', 'Full well fraction')])
