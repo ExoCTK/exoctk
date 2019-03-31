@@ -41,7 +41,7 @@ def initialize_platon_wrapper_object():
         'Rs': 1.19,  # Required
         'Mp': 0.73,  # Required
         'Rp': 1.4,  # Required
-        'T': 1200,  # Required
+        'T': 1200.0,  # Required
         'logZ': 0,  # Optional
         'CO_ratio': 0.53,  # Optional
         'log_cloudtop_P': 4,  # Optional
