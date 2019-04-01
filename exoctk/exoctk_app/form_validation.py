@@ -100,3 +100,20 @@ class GroupsIntsForm(FlaskForm):
     sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, max=1.0, message='Saturation level must be between 0 and 1')])
 
 
+class ContamVisForm(FlaskForm):
+    """Form validation for the contamination_visibility tool"""
+    # Target Resolve
+    targname = StringField('targname', default='')
+    target_url = StringField('target_url', default='')
+
+    # Form submits
+    resolve_submit = SubmitField('Resolve Target')
+    calculate_submit = SubmitField('Calculate Visibility')
+
+    # Form inputs
+    ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
+    dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
+    companion = StringField('companion', default='')
+    pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
+    pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])
+
