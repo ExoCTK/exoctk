@@ -379,106 +379,241 @@ def groups_integrations():
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page"""
+    # Load default form
+    form = fv.ContamVisForm()
 
-    # Log the form inputs
-    try:
-        log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
-    except:
-        pass
+    # Reload page with stellar data from ExoMAST
+    if form.resolve_submit.data: 
 
-    contamVars = {}
-    if request.method == 'POST':
-        tname = request.form['targetname']
-        contamVars['tname'] = tname
-        contamVars['ra'], contamVars['dec'] = request.form['ra'], request.form['dec']
-        contamVars['PAmax'] = request.form['pamax']
-        contamVars['PAmin'] = request.form['pamin']
-        contamVars['inst'] = request.form['inst'].split()[0]
+        if form.targname.data.strip() != '':
 
-        if request.form['bininfo'] != '':
-            contamVars['binComp'] = list(map(float, request.form['bininfo'].split(', ')))
-        else:
-            contamVars['binComp'] = request.form['bininfo']
-
-        radec = ', '.join([contamVars['ra'], contamVars['dec']])
-
-        if contamVars['PAmax'] == '':
-            contamVars['PAmax'] = 359
-        if contamVars['PAmin'] == '':
-            contamVars['PAmin'] = 0
-
-        if request.form['submit'] == 'Resolve Target':
-            contamVars['ra'], contamVars['dec'] = resolve.resolve_target(tname)
-
-            return render_template('contam_visibility.html', contamVars=contamVars)
-
-        else:
-
+            # Resolve the target in exoMAST
             try:
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, url = get_target_data(form.targname.data)
 
-                contamVars['visPA'] = True
+                # Update the coordinates
+                ra = data.get('RA')
+                dec = data.get('DEC')
 
-                # Make plot
-                TOOLS = 'crosshair, reset, hover, save'
-                fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
-                             x_axis_type='datetime',
-                             title=contamVars['tname'] or radec)
-                pG, pB, dates, vis_plot, table = vpa.using_gtvt(contamVars['ra'],
-                                                         contamVars['dec'],
-                                                         contamVars['inst'],
-                                                         )
-                fh = StringIO()
-                table.write(fh, format='ascii')
-                visib_table = fh.getvalue()
+                # Set the form values
+                form.ra.data = ra
+                form.dec.data = dec
+                form.target_url.data = url
 
-                # Format x axis
-                day0 = datetime.date(2019, 6, 1)
-                dtm = datetime.timedelta(days=367)
-                #vis_plot.x_range = Range1d(day0, day0 + dtm)
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
-                # Get scripts
-                vis_js = INLINE.render_js()
-                vis_css = INLINE.render_css()
-                vis_script, vis_div = components(vis_plot)
+        # Send it back to the main page
+        return render_template('contam_visibility.html', form=form)
 
-                if request.form['submit'] == 'Calculate Visibility and Contamination':
 
-                    contamVars['contam'] = True
 
-                    # Make field simulation
-                    contam_cube = fs.sossFieldSim(contamVars['ra'],
-                                                  contamVars['dec'],
-                                                  binComp=contamVars['binComp'])
-                    contam_plot = cf.contam(contam_cube,
-                                            contamVars['tname'] or radec,
-                                            paRange=[int(contamVars['PAmin']),
-                                                     int(contamVars['PAmax'])],
-                                            badPA=pB, fig='bokeh')
 
-                    # Get scripts
-                    contam_js = INLINE.render_js()
-                    contam_css = INLINE.render_css()
-                    contam_script, contam_div = components(contam_plot)
+    # # Log the form inputs
+    # try:
+    #     log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+    # except:
+    #     pass
+    #
+    # contamVars = {}
+    # if request.method == 'POST':
+    #     tname = request.form['targetname']
+    #     contamVars['tname'] = tname
+    #     contamVars['ra'], contamVars['dec'] = request.form['ra'], request.form['dec']
+    #     contamVars['PAmax'] = request.form['pamax']
+    #     contamVars['PAmin'] = request.form['pamin']
+    #     contamVars['inst'] = request.form['inst'].split()[0]
+    #
+    #     if request.form['bininfo'] != '':
+    #         contamVars['binComp'] = list(map(float, request.form['bininfo'].split(', ')))
+    #     else:
+    #         contamVars['binComp'] = request.form['bininfo']
+    #
+    #     radec = ', '.join([contamVars['ra'], contamVars['dec']])
+    #
+    #     if contamVars['PAmax'] == '':
+    #         contamVars['PAmax'] = 359
+    #     if contamVars['PAmin'] == '':
+    #         contamVars['PAmin'] = 0
+    #
+    #     if request.form['submit'] == 'Resolve Target':
+    #         contamVars['ra'], contamVars['dec'] = resolve.resolve_target(tname)
+    #
+    #         return render_template('contam_visibility.html', contamVars=contamVars)
+    #
+    #     else:
+    #
+    #         try:
+    #
+    #             contamVars['visPA'] = True
+    #
+    #             # Make plot
+    #             TOOLS = 'crosshair, reset, hover, save'
+    #             fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
+    #                          x_axis_type='datetime',
+    #                          title=contamVars['tname'] or radec)
+    #             pG, pB, dates, vis_plot, table = vpa.using_gtvt(contamVars['ra'],
+    #                                                      contamVars['dec'],
+    #                                                      contamVars['inst'],
+    #                                                      )
+    #             fh = StringIO()
+    #             table.write(fh, format='ascii')
+    #             visib_table = fh.getvalue()
+    #
+    #             # Format x axis
+    #             day0 = datetime.date(2019, 6, 1)
+    #             dtm = datetime.timedelta(days=367)
+    #             #vis_plot.x_range = Range1d(day0, day0 + dtm)
+    #
+    #             # Get scripts
+    #             vis_js = INLINE.render_js()
+    #             vis_css = INLINE.render_css()
+    #             vis_script, vis_div = components(vis_plot)
+    #
+    #             if request.form['submit'] == 'Calculate Visibility and Contamination':
+    #
+    #                 contamVars['contam'] = True
+    #
+    #                 # Make field simulation
+    #                 contam_cube = fs.sossFieldSim(contamVars['ra'],
+    #                                               contamVars['dec'],
+    #                                               binComp=contamVars['binComp'])
+    #                 contam_plot = cf.contam(contam_cube,
+    #                                         contamVars['tname'] or radec,
+    #                                         paRange=[int(contamVars['PAmin']),
+    #                                                  int(contamVars['PAmax'])],
+    #                                         badPA=pB, fig='bokeh')
+    #
+    #                 # Get scripts
+    #                 contam_js = INLINE.render_js()
+    #                 contam_css = INLINE.render_css()
+    #                 contam_script, contam_div = components(contam_plot)
+    #
+    #             else:
+    #
+    #                 contamVars['contam'] = False
+    #                 contam_script = contam_div = contam_js = contam_css = ''
+    #
+    #             return render_template('contam_visibility_results.html',
+    #                                    contamVars=contamVars, vis_plot=vis_div,
+    #                                    vis_table=visib_table,
+    #                                    vis_script=vis_script, vis_js=vis_js,
+    #                                    vis_css=vis_css, contam_plot=contam_div,
+    #                                    contam_script=contam_script,
+    #                                    contam_js=contam_js,
+    #                                    contam_css=contam_css)
+    #
+    #         except Exception as e:
+    #             err = 'The following error occurred: ' + str(e)
+    #             return render_template('groups_integrations_error.html', err=err)
 
-                else:
+    return render_template('contam_visibility.html', form=form)
 
-                    contamVars['contam'] = False
-                    contam_script = contam_div = contam_js = contam_css = ''
 
-                return render_template('contam_visibility_results.html',
-                                       contamVars=contamVars, vis_plot=vis_div,
-                                       vis_table=visib_table,
-                                       vis_script=vis_script, vis_js=vis_js,
-                                       vis_css=vis_css, contam_plot=contam_div,
-                                       contam_script=contam_script,
-                                       contam_js=contam_js,
-                                       contam_css=contam_css)
-
-            except Exception as e:
-                err = 'The following error occurred: ' + str(e)
-                return render_template('groups_integrations_error.html', err=err)
-
-    return render_template('contam_visibility.html', contamVars=contamVars)
+# @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
+# def contam_visibility():
+#     """The contamination and visibility form page"""
+#     # Log the form inputs
+#     try:
+#         log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+#     except:
+#         pass
+#
+#     contamVars = {}
+#     if request.method == 'POST':
+#         tname = request.form['targetname']
+#         contamVars['tname'] = tname
+#         contamVars['ra'], contamVars['dec'] = request.form['ra'], request.form['dec']
+#         contamVars['PAmax'] = request.form['pamax']
+#         contamVars['PAmin'] = request.form['pamin']
+#         contamVars['inst'] = request.form['inst'].split()[0]
+#
+#         if request.form['bininfo'] != '':
+#             contamVars['binComp'] = list(map(float, request.form['bininfo'].split(', ')))
+#         else:
+#             contamVars['binComp'] = request.form['bininfo']
+#
+#         radec = ', '.join([contamVars['ra'], contamVars['dec']])
+#
+#         if contamVars['PAmax'] == '':
+#             contamVars['PAmax'] = 359
+#         if contamVars['PAmin'] == '':
+#             contamVars['PAmin'] = 0
+#
+#         if request.form['submit'] == 'Resolve Target':
+#             contamVars['ra'], contamVars['dec'] = resolve.resolve_target(tname)
+#
+#             return render_template('contam_visibility.html', contamVars=contamVars)
+#
+#         else:
+#
+#             try:
+#
+#                 contamVars['visPA'] = True
+#
+#                 # Make plot
+#                 TOOLS = 'crosshair, reset, hover, save'
+#                 fig = figure(tools=TOOLS, plot_width=800, plot_height=400,
+#                              x_axis_type='datetime',
+#                              title=contamVars['tname'] or radec)
+#                 pG, pB, dates, vis_plot, table = vpa.using_gtvt(contamVars['ra'],
+#                                                          contamVars['dec'],
+#                                                          contamVars['inst'],
+#                                                          )
+#                 fh = StringIO()
+#                 table.write(fh, format='ascii')
+#                 visib_table = fh.getvalue()
+#
+#                 # Format x axis
+#                 day0 = datetime.date(2019, 6, 1)
+#                 dtm = datetime.timedelta(days=367)
+#                 #vis_plot.x_range = Range1d(day0, day0 + dtm)
+#
+#                 # Get scripts
+#                 vis_js = INLINE.render_js()
+#                 vis_css = INLINE.render_css()
+#                 vis_script, vis_div = components(vis_plot)
+#
+#                 if request.form['submit'] == 'Calculate Visibility and Contamination':
+#
+#                     contamVars['contam'] = True
+#
+#                     # Make field simulation
+#                     contam_cube = fs.sossFieldSim(contamVars['ra'],
+#                                                   contamVars['dec'],
+#                                                   binComp=contamVars['binComp'])
+#                     contam_plot = cf.contam(contam_cube,
+#                                             contamVars['tname'] or radec,
+#                                             paRange=[int(contamVars['PAmin']),
+#                                                      int(contamVars['PAmax'])],
+#                                             badPA=pB, fig='bokeh')
+#
+#                     # Get scripts
+#                     contam_js = INLINE.render_js()
+#                     contam_css = INLINE.render_css()
+#                     contam_script, contam_div = components(contam_plot)
+#
+#                 else:
+#
+#                     contamVars['contam'] = False
+#                     contam_script = contam_div = contam_js = contam_css = ''
+#
+#                 return render_template('contam_visibility_results.html',
+#                                        contamVars=contamVars, vis_plot=vis_div,
+#                                        vis_table=visib_table,
+#                                        vis_script=vis_script, vis_js=vis_js,
+#                                        vis_css=vis_css, contam_plot=contam_div,
+#                                        contam_script=contam_script,
+#                                        contam_js=contam_js,
+#                                        contam_css=contam_css)
+#
+#             except Exception as e:
+#                 err = 'The following error occurred: ' + str(e)
+#                 return render_template('groups_integrations_error.html', err=err)
+#
+#     return render_template('contam_visibility.html', contamVars=contamVars)
 
 @app_exoctk.route('/visib_result', methods=['POST'])
 def save_visib_result():

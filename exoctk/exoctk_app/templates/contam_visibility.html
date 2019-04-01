@@ -20,25 +20,35 @@
 
     <form class='form-horizontal' action="/contam_visibility" method="POST" />
 
-
-
-
+        {{ form.hidden_tag() }}
 
         <hr class="col-md-12">
 
         <div class='form-group'>
-
-            <label class="col-sm-2 control-label">Target Name</label>
+            
+            <label for='mag' class="col-sm-2 control-label">Target Name (optional)</label>
             <div class="col-sm-10">
-                <div class="input-group">
-                    <input type="text" name="targetname" value = "{{ contamVars['tname'] }}" size="30" maxlength="110"/><br>
-                </div>
-                <span id="helpBlock" class="help-block">Please omit spaces from target name</span>
-                <div class="input-group">
-                    <input class="btn btn-success" type="submit" name="submit" value="Resolve Target"/>
-                </div>
-                <span id="helpBlock" class="help-block">If target is unresolved, reload page and enter coordinates manually</span>
+                
+                    <div class="input-group">
+                        {{ form.targname(size=32, placeholder="WASP-18 b") }}<br>
+                    </div>
+                    <span id="helpBlock" class="help-block">The name of a target to resolve in ExoMAST</span>
+                    <div class="input-group">
+                        {{ form.resolve_submit(class="btn btn-success") }}
+                    </div>
+                    {% if form.target_url.data %}
+                        <br>
+                        <div>
+                            <a href='{{ form.target_url.data }}'>Target found: {{ form.targname.data }}</a>
+                        </div>
+                    {% endif %}
+
+                    {% for error in form.targname.errors %}
+                        <br>
+                        <p style="color: red; margin-bottom: 0;">{{ error }}</p>
+                    {% endfor %}
             </div>
+            
         </div>
 
         <hr class="col-md-12">
@@ -48,16 +58,18 @@
             <label class="col-sm-2 control-label">Coordinates</label>
 
             <div class="col-sm-10">
+                
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>R.A.</div>
-                  <input type="text" name="ra" value = "{{ contamVars['ra'] }}" class='form-control'>
+                  <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
+                      {{ form.ra(value=form.ra.data, size=10, rows=1, class='form-control') }}
                   <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The right ascension of the target</span>
+                <br>
 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>Decl.</div>
-                  <input type="text" name="dec" value = "{{ contamVars['dec'] }}" class='form-control'/>
+                  <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
+                      {{ form.dec(value=form.dec.data, size=10, rows=1, class='form-control') }}
                   <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The declination of the target</span>
@@ -91,7 +103,7 @@
 
             <label for='' class="col-sm-2 control-label">Add a close binary companion not present in 2MASS (optional)</label>
             <div class="col-sm-10">
-                <input type="text" name="bininfo" class='form-control' value="{{ contamVars['binComp'] }}"  size="50" maxlength="110">
+                {{ form.companion(value=form.companion.data, size=50, rows=1, class='form-control') }}
                 <span id="helpBlock" class="help-block">RA offset (&quot;), DEC offset (&quot;), 2MASS J (mag), H (mag) and Ks (mag) [comma separated, no spaces]</span>
             </div>
         </div>
@@ -103,15 +115,19 @@
             <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
 
             <div class="col-sm-10">
+                
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA min</div>
-                 <input type="number" name="pamin" min="0" max="359" value="{{ contamVars['PAmin'] }}" class='form-control'>
+                  <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
+                      {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>K</div>
                 </div>
                 <span id="helpBlock" class="help-block">The lower limit on the position angle</span>
+                <br>
 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA max</div>
-                  <input type="number" name="pamax" min="1" max="360" value="{{ contamVars['PAmax'] }}" class='form-control'/>
+                  <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
+                      {{ form.pa_max(value=form.pa_max.data, size=10, placeholder="3 - 6", rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>dex</div>
                 </div>
                 <span id="helpBlock" class="help-block">The upper limit on the position angle</span>
 
@@ -119,36 +135,32 @@
         </div>
 
         <hr class="col-md-12">
-
         <div class='form-group'>
-
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
-              <p>
-                <input id='submit' name='submit' class="btn btn-success" type='submit' value='Calculate Visibility Only'></p>
-                <span id="helpBlock" class="help-block">Hold tight! This takes a few seconds...</span>
-              </p>
-              <br>
-							<p>
-							<input id='submit'  name='submit' class="btn btn-success" onkeyup="button()" type='submit' value='Calculate Visibility and Contamination'disabled/>
-							<span id="helpBlock" class="help-block">This option is under construction</span>
-							</p>
-							<script>
-								function button()
-								{
-								 var inst_select = document.getElementsById("inst");
-								 var inst_val = inst_select.options[inst_select.selectedIndex].value;
-								 var bt = document.getElementsById('submit');
-								 if (inst_val == "NIRISS")
-								 {
-									bt.disabled = false;
-								 }
-								 else
-								 {
-								 bt.disabled = true;
-								 }
-							   }
-							 </script>
+                <p>
+                    {{ form.calculate_submit(class="btn btn-success") }}
+                    <span id="helpBlock" class="help-block">This can take up to 20 seconds! Please be patient.</span>
+                </p>
+            </div>
+        </div>
+
+        <script>
+        	function button()
+        	{
+        	 var inst_select = document.getElementsById("inst");
+        	 var inst_val = inst_select.options[inst_select.selectedIndex].value;
+        	 var bt = document.getElementsById('submit');
+        	 if (inst_val == "NIRISS")
+        	 {
+        		bt.disabled = false;
+        	 }
+        	 else
+        	 {
+        	 bt.disabled = true;
+        	 }
+           }
+         </script>
 
 
 
