@@ -60,7 +60,7 @@ distribute-*.tar.gz
 
 # Mac OSX
 .DS_Store
-
+.pytest_cache
 
 exoctk/notebooks/*.eps
 exoctk/notebooks/*.p

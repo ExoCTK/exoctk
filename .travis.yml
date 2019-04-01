@@ -17,18 +17,18 @@ os:
 env:
   - PYTHON_VERSION="3.5"
   - PYTHON_VERSION="3.6"
-  - PYTHON_VERSION="3.7"
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
+  - export EXOCTK_DATA="$HOME/exoctk_data/"
   - chmod +x ci/install_conda.sh
   - chmod +x ci/setup_conda_env.sh
 
 install:
   - ci/install_conda.sh
   - ci/setup_conda_env.sh
-  - source activate exoctk
   - python setup.py install
 
 script:
+  - export PATH="$HOME/miniconda3/envs/exoctk-$PYTHON_VERSION/bin:$PATH"
   - pytest

@@ -5,6 +5,7 @@ A module for managing references in ExoCTK
 """
 import os
 import pkg_resources
+
 import bibtexparser as bt
 
 

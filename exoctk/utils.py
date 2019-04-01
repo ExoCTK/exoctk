@@ -3,13 +3,36 @@
 """
 A module for utility funtions
 """
+import os
+import re
+import requests
+import urllib
+
 from astropy.io import fits
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
-import re
-import requests
-import urllib
+from svo_filters import svo
+
+
+MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
+FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
+EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
+
+# Nice colors for plotting
+COLORS = ['blue', 'red', 'green', 'orange',
+          'cyan', 'magenta', 'pink', 'purple']
+
+# Supported profiles
+PROFILES = ['uniform', 'linear', 'quadratic',
+            'square-root', 'logarithmic', 'exponential',
+            '3-parameter', '4-parameter']
+
+# Supported filters
+FILTERS = svo.filters()
+
+# Set the version
+VERSION = '0.2'
 
 
 def interp_flux(mu, flux, params, values):
@@ -114,87 +137,7 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     for ii in range(nbins):
         specnew[ii] = np.sum(spec0int[inds2[ii][0]: inds2[ii][1]])
 
-    if plot:
-        plt.figure()
-        plt.loglog(wave, flux, c='b')
-        plt.loglog(wavnew, specnew, c='r')
-
     return specnew
-
-
-def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True,
-              fontsize=20, figsize=(15, 7), title='', **kwargs):
-    """
-    Creates subplots with given number or *rows* and *columns*.
-
-    Parameters
-    ----------
-    rows: int
-        The number of rows in the figure
-    columns: int
-        The number of columns in the figure
-    ylabel: str, list
-        The shared y-label or list of y-labels for each column
-    xlabel: str, list
-        The shared y-label or list of y-labels for each column
-    sharey: bool
-        Same y-axis limits
-    sharex: bool
-        Same x-axis limits
-    fontsize: int
-        The fontsize to use throughout the figure
-    figsize: tuple, list
-        The (x, y) dimenstions of the figure
-    title: str
-        The title of the figure
-    Returns
-    -------
-    list
-        A list of the figure and axes objects for the current figure
-
-    Example
-    -------
-    >>> fig, (ax11, ax12, ax13), (ax21, ax22, ax23) = multiplot(2, 3)
-    >>> ax11.plot(x, y, label='Row 1, Col 1 Plot')
-    """
-    # Initialize the plot
-    fig, axes = plt.subplots(rows, columns, sharey=sharey, sharex=sharex,
-                             figsize=figsize)
-    plt.rc('text', usetex=True)
-    plt.rc('font', size=fontsize)
-
-    # Set the y-label(s)
-    if ylabel:
-        if isinstance(ylabel, str):
-            fig.text(0.04, 0.54, ylabel, ha='center', va='center',
-                     rotation='vertical', **kwargs)
-        else:
-            if columns > 1:
-                for a, l in zip(axes, ylabel):
-                    a[0].set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
-            else:
-                for a, l in zip(axes, ylabel):
-                    a.set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
-
-    # Set the x-label(s)
-    if xlabel:
-        if isinstance(xlabel, str):
-            fig.text(0.54, 0.04, xlabel, ha='center', va='center', **kwargs)
-        else:
-            if rows > 1:
-                for a, l in zip(axes, xlabel):
-                    a[0].set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
-            else:
-                for a, l in zip(axes, xlabel):
-                    a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
-
-    # Plot formatting
-    plt.suptitle(title)
-    plt.subplots_adjust(right=0.96, top=0.93 if title else 0.96, bottom=0.15,
-                        left=0.12, hspace=0, wspace=0)
-    fig.canvas.draw()
-
-    return [fig] + list(axes)
 
 
 def writeFITS(filename, extensions, headers=()):
