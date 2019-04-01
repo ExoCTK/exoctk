@@ -20,6 +20,7 @@ from functools import wraps
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
+import urllib
 from wtforms.validators import InputRequired, NumberRange
 from wtforms import DecimalField
 
@@ -70,15 +71,25 @@ def limb_darkening():
     form = fv.LimbDarkeningForm()
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data: 
+    if form.resolve_submit.data:
 
-        # Resolve the target in exoMAST
-        data = get_target_data(form.targname.data)
+        if form.targname.data.strip() != '':
 
-        # Update the form data
-        form.feh.data = float(data['Fe/H'])
-        form.teff.data = float(data['Teff'])
-        form.logg.data = float(data['stellar_gravity'])
+            try:
+
+                # Resolve the target in exoMAST
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, target_url = get_target_data(form.targname.data)
+
+                # Update the form data
+                form.feh.data = data.get('Fe/H')
+                form.teff.data = data.get('Teff')
+                form.logg.data = data.get('stellar_gravity')
+                form.target_url.data = str(target_url)
+
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
@@ -251,15 +262,41 @@ def groups_integrations():
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data: 
 
-        # Resolve the target in exoMAST
-        canoncial_name = get_canonical_name(form.targname.data)
-        data = get_target_data(form.targname.data)
+        if form.targname.data.strip() != '':
 
-        # Update the Kmag
-        form.kmag.data = data.get('Kmag')
+            # Resolve the target in exoMAST
+            try:
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, url = get_target_data(form.targname.data)
 
-        # Transit duration in exomast is in days, need it in hours
-        form.obs_duration.data = data.get('transit_duration') * 24.
+                # Update the Kmag
+                kmag = data.get('Kmag')
+
+                # Transit duration in exomast is in days, need it in hours
+                obs_time = data.get('transit_duration')*u.Unit(form.time_unit.data).to('hour')
+
+                # Model guess
+                logg_targ = data.get('stellar_gravity') or 4.5
+                teff_targ = data.get('Teff') or 5500
+                arr = np.array([tuple(i[1].split()) for i in form.mod.choices], dtype=[('spt', 'O'), ('teff', '>f4'), ('logg', '>f4')])
+                mod_table = at.Table(arr)
+
+                # If high logg, remove giants from guess list
+                if logg_targ < 4:
+                    mod_table = filter_table(mod_table, logg=">=4")
+                teff = min(arr['teff'], key=lambda x:abs(x-teff_targ))
+                mod_table.add_column(at.Column(np.array([i[0] for i in form.mod.choices]), name='value'))
+                mod_table = filter_table(mod_table, teff="<={}".format(teff))
+                mod_table.sort(['teff', 'logg'])
+
+                # Set the form values
+                form.mod.data = mod_table[-1]['value']
+                form.kmag.data = kmag
+                form.obs_duration.data = obs_time
+
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
         # Send it back to the main page
         return render_template('groups_integrations.html', form=form, sat_data=sat_data)

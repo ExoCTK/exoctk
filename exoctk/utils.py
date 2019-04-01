@@ -460,35 +460,49 @@ def get_canonical_name(target_name):
     return canonical_name
 
 def get_target_data(target_name):
-    '''Send request to exomast restful api for target information.
+    """
+    Send request to exomast restful api for target information.
         
-        Parameters
-        ----------
-        target_name : string
-            The name of the target transit. 
+    Parameters
+    ----------
+    target_name : string
+        The name of the target transit
 
-        Returns
-        -------
-        period : float
-            The period of the transit in days. 
-        transitDur : float
-            The duration of the transit in hours. 
-
-    '''
+    Returns
+    -------
+    target_data: json:
+        json object with target data.
+    """
 
     canonical_name = get_canonical_name(target_name)
 
     target_url = build_target_url(canonical_name)
-    
+
     r = requests.get(target_url)
-    
+
     if r.status_code == 200:
         target_data = r.json()
     else:
         print('Whoops, no data for this target!')
 
-    # Some exoplanets have multiple catalog entries
-    # Temporary... Need to write a parser to select catalog
-    target_data = target_data[0]
-    
-    return target_data
+    # Some targets have multiple catalogs
+    # nexsci is the first choice.
+    if len(target_data) > 1:
+        # Get catalog names from exomast and make then the keys of a dictionary
+        # and the values are its position in the json object.
+        catalog_dict = {data['catalog_name']: index for index, data in enumerate(target_data)}
+
+        # Parse based on catalog accuracy.
+        if 'nexsci' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['nexsci']]
+        elif 'exoplanets.org' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['exoplanets.org']]
+        else:
+            target_data = target_data[0]
+    else:
+        target_data = target_data[0]
+
+    # Strip spaces and non numeric or alphabetic characters and combine.
+    url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
+
+    return target_data, url

@@ -26,6 +26,7 @@ class LimbDarkeningForm(FlaskForm):
 
     # Target Resolve
     targname = StringField('targname', default='')
+    target_url = StringField('target_url', default='')
 
     # Stellar parameters
     teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {}'.format(*teff_rng))])
@@ -55,6 +56,7 @@ class GroupsIntsForm(FlaskForm):
     """Form validation for the groups_integrations tool"""
     # Target Resolve
     targname = StringField('targname', default='')
+    target_url = StringField('target_url', default='')
 
     # Form submits
     resolve_submit = SubmitField('Resolve Target')
@@ -63,7 +65,7 @@ class GroupsIntsForm(FlaskForm):
     # Stellar Parameters
     kmag = DecimalField('kmag', default=10.5, validators=[InputRequired('A K-band magnitude is required!')])
     obs_duration = DecimalField('obs_duration', default=3, validators=[InputRequired('An observation duration is required!'), NumberRange(min=0, message='Observation duration must be a positive number')])
-    time_unit = SelectField('time_unit', default='hours', choices=[('hours', 'hours'), ('days', 'days')])
+    time_unit = SelectField('time_unit', default='hour', choices=[('hour', 'hours'), ('day', 'days')])
     models = [('a0i', 'A0I 9750 2.0'), ('aov', 'A0V 9500 2.0'), ('a1v', 'A1V 9250 4.0'), ('a5i', 'A5I 8500 2.0'), ('a3v', 'A3V 8250 4.0'), ('a5v', 'A5V 8250 4.0'), ('f0i', 'F0I 7750 2.0'), ('f0v', 'F0V 7250 1.5'), ('f5i', 'F5I 7000 4.0'), ('f2v', 'F2V 7000 4.0'), ('f5v', 'F5V 6500 4.0'), ('f8v', 'F8V 6250 4.5'), ('g0v', 'G0V 6000 4.5'), ('g0iii', 'G0III 5750 3.0'), ('g2v', 'G2V 5750 4.5'), ('g5v', 'G5V 5750 4.5'), ('g0i', 'G0I 5500 1.5'), ('g8v', 'G8V 5500 4.5'), ('g5iii', 'G5III 5250 2.5'), ('g5i', 'G5I 4740 1.0'), ('k0v', 'K0V 5250 4.5'), ('k0iii', 'K0III 4750 2.0'), ('k2v', 'K2V 4750 4.5'), ('k0i', 'K0I 4500 1.0'), ('k5v', 'K5V 4250 1.5'), ('k5iii', 'K5III 4000 1.5'), ('k7v', 'K7V 4000 4.5'), ('k5i', 'K5I 3750 0.5'), ('m0i', 'M0I 3750 0.0'), ('m0iii', 'M0III 2750 1.5'), ('m0v', 'M0V 3750 4.5'), ('m2i', 'M2I 3500 0.0'), ('m2v', 'M2V 3500 4.5'), ('m5v', 'M5V 3500 5.0')] 
     mod = SelectField('mod', choices=models)
     n_group = IntegerField('n_group', default=0)
