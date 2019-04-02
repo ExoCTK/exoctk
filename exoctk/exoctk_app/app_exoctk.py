@@ -32,7 +32,7 @@ from exoctk.contam_visibility import sossContamFig as cf
 import form_validation as fv
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR
+from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR, EXOCTKLOG_DIR
 import log_exoctk
 from svo_filters import svo
 
@@ -43,17 +43,17 @@ app_exoctk = Flask(__name__)
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
-# # Load the database to log all form submissions
-# if EXOCTKLOG_DIR is None:
-#     dbpath = ':memory:'
-# else:
-#     dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
-#     if not os.path.isfile(dbpath):
-#         log_exoctk.create_db(dbpath)
-# try:
-#     DB = log_exoctk.load_db(dbpath)
-# except IOError:
-#     DB = None
+# Load the database to log all form submissions
+if EXOCTKLOG_DIR is None:
+    dbpath = ':memory:'
+else:
+    dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
+    if not os.path.isfile(dbpath):
+        log_exoctk.create_db(dbpath)
+try:
+    DB = log_exoctk.load_db(dbpath)
+except IOError:
+    DB = None
 
 
 # Redirect to the index
@@ -141,7 +141,7 @@ def limb_darkening():
     if form.validate_on_submit() and form.calculate_submit.data:
 
         # Get the stellar parameters
-        star_params = [form.teff.data, form.logg.data, form.feh.data]
+        star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
 
         # Log the form inputs
         try:
@@ -177,7 +177,7 @@ def limb_darkening():
         # Calculate the coefficients for each profile
         ld = lf.LDC(model_grid)
         for prof in form.profiles.data:
-            ld.calculate(*star_params, prof, mu_min=form.mu_min.data, bandpass=bandpass)
+            ld.calculate(*star_params, prof, mu_min=float(form.mu_min.data), bandpass=bandpass)
 
         # Draw a figure for each wavelength bin
         tabs = []

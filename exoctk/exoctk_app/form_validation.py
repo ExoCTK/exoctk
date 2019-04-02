@@ -103,7 +103,7 @@ class GroupsIntsForm(FlaskForm):
 class ContamVisForm(FlaskForm):
     """Form validation for the contamination_visibility tool"""
     # Target Resolve
-    targname = StringField('targname', default='wasp-18')
+    targname = StringField('targname', default='')
     target_url = StringField('target_url', default='')
 
     # Form submits
