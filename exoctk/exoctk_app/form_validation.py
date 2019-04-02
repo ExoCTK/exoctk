@@ -109,6 +109,8 @@ class ContamVisForm(FlaskForm):
     # Form submits
     resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Visibility')
+    calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
+    mode_submit = SubmitField('Mode Selected')
 
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])

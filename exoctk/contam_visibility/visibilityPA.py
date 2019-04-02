@@ -259,7 +259,6 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
         The plotted figure.
 
     """
-    print('FOO', ra, type(ra), dec, type(dec))
     # getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
 
