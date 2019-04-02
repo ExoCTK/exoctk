@@ -3,6 +3,16 @@
 {% block content %}
 <!doctype html>
 
+<script>
+    $(document).ready(function(){
+
+        $('#inst').on('change', function() {
+            $('#modesubmit').click();
+        });
+
+    });
+</script>
+
 <div class='form-group'>
 	<h1>Contamination & Visibility Calculator</h1>
     <br>
@@ -97,6 +107,7 @@
                     </select>
 				</div>
 		</div>
+        {{ form.mode_submit(id='modesubmit', style="visibility: hidden;") }}
 
         <hr class="col-md-12">
 
@@ -122,17 +133,17 @@
             <div class="col-sm-10">
                 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
+                  <div class="input-group-addon" style='width:120px'>PA Min</div>
                       {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
-                  <div class="input-group-addon" style='width:60px'>K</div>
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The lower limit on the position angle</span>
                 <br>
 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
+                  <div class="input-group-addon" style='width:120px'>PA Max</div>
                       {{ form.pa_max(value=form.pa_max.data, size=10, placeholder="3 - 6", rows=1, class='form-control') }}
-                  <div class="input-group-addon" style='width:60px'>dex</div>
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The upper limit on the position angle</span>
                 <br>
@@ -151,35 +162,16 @@
             <div class="col-sm-10">
                 <p>
                     {{ form.calculate_submit(class="btn btn-success") }}
-                    <span id="helpBlock" class="help-block">This can take up to 20 seconds! Please be patient.</span>
+                    <span id="helpBlock" class="help-block">Calculate only the visibility of the target.</span>
+                </p>
+                <br>
+                <p>
+                    {{ form.calculate_contam_submit(disabled=form.calculate_contam_submit.disabled, class="btn btn-success") }}
+                    <span id="helpBlock" class="help-block">Calculate the visibility and the contamination. This can take up to 20 seconds!</span>
+                    <span id="helpBlock" class="help-block">(Currently only available for SOSS mode)</span>
                 </p>
             </div>
         </div>
-
-        <script>
-        	function button()
-        	{
-        	 var inst_select = document.getElementsById("inst");
-        	 var inst_val = inst_select.options[inst_select.selectedIndex].value;
-        	 var bt = document.getElementsById('submit');
-        	 if (inst_val == "NIRISS")
-        	 {
-        		bt.disabled = false;
-        	 }
-        	 else
-        	 {
-        	 bt.disabled = true;
-        	 }
-           }
-         </script>
-
-
-
-
-
-              </div>
-        </div>
-
     </form>
 </div>
 
