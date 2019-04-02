@@ -532,9 +532,10 @@ def fortney():
 
     # get sqlite database
     try:
-        db = create_engine('sqlite:///' + FORTGRID_DIR)
+        db_file = os.path.join(FORTGRID_DIR, 'fortney_models.db')
+        db = create_engine('sqlite:///' + db_file)
         header = pd.read_sql_table('header', db)
-    except:
+    except ValueError:
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
 
     if args:
