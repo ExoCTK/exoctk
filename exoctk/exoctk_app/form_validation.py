@@ -103,7 +103,7 @@ class GroupsIntsForm(FlaskForm):
 class ContamVisForm(FlaskForm):
     """Form validation for the contamination_visibility tool"""
     # Target Resolve
-    targname = StringField('targname', default='')
+    targname = StringField('targname', default='wasp-18')
     target_url = StringField('target_url', default='')
 
     # Form submits
@@ -113,6 +113,7 @@ class ContamVisForm(FlaskForm):
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
+    inst = SelectField('inst', choices=[('NIRISS', 'NIRISS - SOSS'), ('NIRCam F322W2', 'NIRCam - Grism Time Series (F322W2)'), ('NIRCam F444W', 'NIRCam - Grism Time Series (F444W)'), ('MIRI', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
     companion = StringField('companion', default='')
     pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
     pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])

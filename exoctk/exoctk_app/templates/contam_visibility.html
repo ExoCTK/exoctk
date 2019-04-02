@@ -60,7 +60,7 @@
             <div class="col-sm-10">
                 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
+                  <div class="input-group-addon" style='width:60px'>R.A.</div>
                       {{ form.ra(value=form.ra.data, size=10, rows=1, class='form-control') }}
                   <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
@@ -68,34 +68,35 @@
                 <br>
 
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>\(\log (g)\)</div>
+                  <div class="input-group-addon" style='width:60px'>Decl.</div>
                       {{ form.dec(value=form.dec.data, size=10, rows=1, class='form-control') }}
                   <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The declination of the target</span>
-
+                <br>
+                {% for error in form.ra.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.dec.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
-				<hr class="col-md-12">
+		<hr class="col-md-12">
 
-				<div class='form-group'>
+		<div class='form-group'>
 
-						<label class="col-sm-2 control-label">Instrument - Mode</label>
-						<div class="col-sm-3">
-
-								<select id="inst" name="inst" class="form-control">
-
-
-										<option value="NIRISS" checked=True>NIRISS - SOSS</option>
-										<option value="NIRCam F322W2">NIRCam - Grism Time Series (F322W2)</option>
-										<option value="NIRCam F444W">NIRCam - Grism Time Series (F444W)</option>
-										<option value="MIRI">MIRI - LRS</option>
-										<option value="NIRSpec">NIRSpec (Visibility Only)</option>
-
-
-								</select>
-						</div>
+				<label class="col-sm-2 control-label">Instrument - Mode</label>
+                <div class="col-sm-10">
+                    <select class='form-control' name="inst" id="inst" style='width:200px;'>
+                        {% for option in form.inst %}
+                            <div class='radio'>
+                                {{ option }}
+                            </div>
+                        {% endfor %}
+                    </select>
 				</div>
+		</div>
 
         <hr class="col-md-12">
 
@@ -106,6 +107,10 @@
                 {{ form.companion(value=form.companion.data, size=50, rows=1, class='form-control') }}
                 <span id="helpBlock" class="help-block">RA offset (&quot;), DEC offset (&quot;), 2MASS J (mag), H (mag) and Ks (mag) [comma separated, no spaces]</span>
             </div>
+            <br>
+            {% for error in form.companion.errors %}
+                <p style="color: red;">{{ error }}</p>
+            {% endfor %}
         </div>
 
         <hr class="col-md-12">
@@ -130,7 +135,13 @@
                   <div class="input-group-addon" style='width:60px'>dex</div>
                 </div>
                 <span id="helpBlock" class="help-block">The upper limit on the position angle</span>
-
+                <br>
+                {% for error in form.pa_min.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.pa_max.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 
