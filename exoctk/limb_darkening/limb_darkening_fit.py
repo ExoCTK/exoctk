@@ -320,7 +320,7 @@ class LDC:
             result['wave_max'] = wave[n, -1].round(5)
 
             # Add the coeffs
-            for n, (err, coeff) in enumerate(zip(coeffs, errs)):
+            for n, (coeff, err) in enumerate(zip(coeffs, errs)):
                 cname = 'c{}'.format(n + 1)
                 ename = 'e{}'.format(n + 1)
                 result[cname] = coeff.round(3)
