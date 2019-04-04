@@ -14,6 +14,28 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = CheckboxInput()
 
 
+class FortneyModelForm(FlaskForm):
+    """Form validation for the forward model tools"""
+    # Target Resolve
+    targname = StringField('targname', default='')
+    target_url = StringField('target_url', default='')
+
+    # Parameters
+    planet_teff = SelectField('planet_teff', choices=[(500, '500'), (750, '750'), (1000, '1000'), (1250, '1250'), (1500, '1500'), (1750, '1750'), (2000, '2000'), (2250, '2250'), (2500, '2500')], validators=[InputRequired('An effective temperature is required')])
+    planet_mass = DecimalField('planet_mass', default=1.5, validators=[InputRequired('A planet mass is required!'), NumberRange(min=0.0, message='Planet mass must be positive')])
+    planet_mass_unit = SelectField('planet_mass_unit', choices=[('M_jup', 'Jupiter Mass'), ('kilogram', 'kilogram'), ('g', 'gram'), ('M_earth', 'Earth Mass'), ('M_sun', 'Solar Mass')], validators=[InputRequired('A mass unit is required')])
+    planet_radius = DecimalField('planet_radius', default=1.25, validators=[InputRequired('A planet radius is required!'), NumberRange(min=0, message='Planet radius must be positive')])
+    planet_radius_unit = SelectField('planet_radius_unit', choices=[('R_jup', 'Jupiter Radius'), ('kilometer', 'kilometer'), ('m', 'meter'), ('R_earth', 'Earth Radius'), ('R_sun', 'Solar Radius')], validators=[InputRequired('A planet radius unit is required')])
+    stellar_radius = DecimalField('stellar_radius', default=1.0, validators=[InputRequired('A stellar radius is required!'), NumberRange(min=0, message='Stellar radius must be positive')])
+    stellar_radius_unit = SelectField('stellar_radius_unit', choices=[('R_sun', 'Solar Radius'), ('R_jup', 'Jupiter Radius'), ('kilometer', 'kilometer'), ('m', 'meter'), ('R_earth', 'Earth Radius')], validators=[InputRequired('A stellar radius unit is required')])
+    chemistry = SelectField('chemistry', choices=[('noTiO', '500'), ('eqchem', '750'), (1000, '1000'), (1250, '1250'), (1500, '1500'), (1750, '1750'), (2000, '2000'), (2250, '2250'), (2500, '2500')], validators=[InputRequired('A chemistry type is required')])
+    clouds = SelectField('clouds', choices=[('0', 'Nothing'), ('ray10', 'Weak Rayleigh'), ('ray100', 'Medium Rayleigh'), ('ray1000', 'Strong Rayleigh'), ('flat10', 'Weak Cloud'), ('flat100', 'Medium Cloud'), ('flat1000', 'Strong Cloud')], validators=[InputRequired('A cloud model is required')])
+
+    # Form submits
+    resolve_submit = SubmitField('Resolve Target')
+    calculate_submit = SubmitField('Calculate Forward Model')
+
+
 class LimbDarkeningForm(FlaskForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
