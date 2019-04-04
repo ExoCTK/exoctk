@@ -1,4 +1,5 @@
 import datetime
+from functools import wraps
 import os
 import json
 from pkg_resources import resource_filename
@@ -16,7 +17,7 @@ from bokeh.plotting import figure
 import flask
 from flask import Flask, Response
 from flask import request, send_file, make_response, render_template
-from functools import wraps
+import form_validation as fv
 import h5py
 import numpy as np
 import pandas as pd
@@ -25,15 +26,16 @@ import urllib
 from wtforms.validators import InputRequired, NumberRange
 from wtforms import DecimalField
 
-from exoctk.modelgrid import ModelGrid
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
-import form_validation as fv
+from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR, EXOCTKLOG_DIR, GENERICGRID_DIR
+from exoctk.modelgrid import ModelGrid
+
 import log_exoctk
 from svo_filters import svo
 
@@ -43,6 +45,7 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
+
 
 # Load the database to log all form submissions
 if EXOCTKLOG_DIR is None:
@@ -672,15 +675,6 @@ def fortney():
     return encode_utf8(html)
 
 
-@app_exoctk.route('/fortney_result', methods=['POST'])
-def save_fortney_result():
-    """SAve the results of the Fortney grid"""
-
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=fortney.dat"})
-
-
 def rescale_generic_grid(input_args):
     """ Pulls a model from the generic grid, rescales it, 
     and returns the model and wavelength.
@@ -821,8 +815,6 @@ def rescale_generic_grid(input_args):
         closest_match = {'model_key': model_key, 'model_temperature': 400,
                 'model_gravity': 50}
         inputs = input_args
-    
-    return solution, inputs, closest_match, error_message
 
 
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
@@ -835,23 +827,13 @@ def generic():
     args = dict(flask.request.args)
     for key in args:
         args[key] = args[key][0]
-    # Build rescaled model
-    solution, inputs, closest_match, error_message = rescale_generic_grid(args)
     
-    # Build file out
-    tab = at.Table(data=[solution['wv'], solution['spectra']])
-    fh = StringIO()
-    tab.write(fh, format='ascii.no_header')
+    fig, fh = generic_grid(args)
+
+    # Write table string
     table_string = fh.getvalue()
     
-    # Plot
-    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
-    fig.x_range.start = 0.3
-    fig.x_range.end = 5
-    fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
-    fig.xaxis.axis_label = 'Wavelength (um)'
-    fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
-
+    # Web-ify bokeh plot
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
 
@@ -868,6 +850,15 @@ def generic():
                                  css_resources=css_resources,
                                  )
     return encode_utf8(html)
+
+
+@app_exoctk.route('/fortney_result', methods=['POST'])
+def save_fortney_result():
+    """SAve the results of the Fortney grid"""
+
+    table_string = flask.request.form['data_file']
+    return flask.Response(table_string, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename=fortney.dat"})
 
 
 @app_exoctk.route('/generic_result', methods=['POST'])
@@ -892,7 +883,7 @@ def groups_integrations_download():
 def fortney_download():
     """Download the fortney grid data"""
 
-    fortney_data = FORTGRID_DIR
+    fortney_data = os.path.join(FORTGRID_DIR, 'fortney_grid.db')
     return send_file(fortney_data, attachment_filename='fortney_grid.db',
                      as_attachment=True)
 
