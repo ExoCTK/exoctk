@@ -220,6 +220,9 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     return terr_x, terr_y, berr_x, berr_y
 
 def fill_between(fig, xdata, pamin, pamax, **kwargs):
+    # addressing NIRSpec issue
+
+    # now creating the patches for the arrays
     nanbot = np.where([np.isnan(i) for i in pamin])[0]
     nantop = np.where([np.isnan(i) for i in pamax])[0]
     yb = np.split(pamin, nanbot)
@@ -269,6 +272,30 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     paMax = tab[str(instrument)+' max']
     paNom = tab[str(instrument)+' nom']
     v3pa = tab['V3PA']
+
+    # addressing NIRSpec issue*
+    # *the issue that NIRSpec's angle goes beyond 360 degrees with some targs,
+    # thus resetting back to 0 degrees, which can make the plot look weird
+    index = np.arange(0, len(paNom), 1)
+
+    for idx in index:
+        
+        try:
+            a1 = paNom[idx]
+            b1 = paNom[idx+1]
+
+            if (np.isfinite(a1)==True) & (np.isfinite(b1)==True):
+                delta = np.abs(a1-b1)
+
+                if delta>250:
+                    print(a1,b1,delta)
+                    gd = np.insert(gd, idx+1, np.nan)
+                    paMin = np.insert(paMin, idx+1, np.nan)
+                    paMax = np.insert(paMax, idx+1, np.nan)
+                    paNom = np.insert(paNom, idx+1, np.nan)
+                    v3pa = np.insert(v3pa, idx+1, np.nan)
+        except:
+            pass
 
     # Setting up HoverTool parameters & other variables
     COLOR = 'green'
