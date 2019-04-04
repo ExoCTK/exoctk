@@ -24,7 +24,7 @@
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
-    	{% if contamVars['visPA'] ==  True %}
+	
             <hr>
     		<h3>Target Visibility</h3>
     		{{ vis_plot | safe }}
@@ -42,9 +42,9 @@
           </li>
     		</ul>
 
-    	{% endif %}
 
-    	{% if contamVars['contam'] == True %}
+
+    	{% if contam_plot %}
             <hr>
     		<h3>Target Contamination</h3>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->

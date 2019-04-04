@@ -71,7 +71,7 @@ def load_db(dbpath):
     dbpath: str
         The path to the .db database file
     """
-    if os.path.isfile(dbpath):
+    if os.path.isfile(dbpath) or dbpath == ':memory:':
 
         con = sqlite3.connect(dbpath, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
         cur = con.cursor()

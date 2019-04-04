@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import readsav
 
-
-IDLSAVE_PATH = os.environ.get('EXOCTK_CONTAM_DIR')
-
+IDLSAVE_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam')
+if IDLSAVE_PATH == '':
+    raise NameError("You need to have an exported 'EXOCTK_DATA' environment variable and data set up before we can continue.")
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """Produce a SOSS field simulation for a target
@@ -139,7 +139,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         # Display the star field (blue), target (red), subarray (green),
         # full array (blue), and axes
         if (kPA == 0 and nStars > 1) and False:
-            print(kPA)
             plt.plot([0, 2047, 2047, 0, 0], [0, 0, 2047, 2047, 0], 'b')
             plt.plot([0, 255, 255, 0, 0], [0, 0, 2047, 2047, 0], 'g')
             # the order 1 & 2 traces
@@ -188,7 +187,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         for i in range(len(ind)):
             intx = round(starsInFOV['dx'][i])
             inty = round(starsInFOV['dy'][i])
-            # print(intx, inty)
 
             k = np.where(teffMod == starsInFOV['T'][i])[0][0]
 

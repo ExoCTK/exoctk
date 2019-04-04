@@ -7,6 +7,7 @@ REQUIRES = ['asteval',
             'astroquery',
             'bibtexparser',
             'bokeh',
+            'corner',
             'cython',
             'flask',
             'h5py',
@@ -16,8 +17,9 @@ REQUIRES = ['asteval',
             'numpy',
             'numpydoc',
             'pandas',
+            'platon',
             'pysynphot',
-            'scipy',
+            'scipy<1.2',
             'sphinx',
             'svo_filters']
 
@@ -27,7 +29,7 @@ for root, _, files in os.walk("exoctk"):
         for fname in files if not fname.endswith(".py") and not fname.endswith(".pyc")]
 
 setup(name='exoctk',
-      version='0.2.2',
+      version='0.2.3',
       description='Observation reduction and planning tools for exoplanet science',
       packages=find_packages(".", exclude=["*.tests"]),
       package_data={'exoctk': FILES},

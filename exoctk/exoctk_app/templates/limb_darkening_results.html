@@ -17,78 +17,68 @@
             spectral resolution stellar atmospheric models, which are a neccesisty given JWST's expected precision. 
             </p>
 
-            <div style='float:left; width:500px;'>
+            <hr class="col-md-12">
+            <div class='form-group'>
                 <h3>Input</h3>
                 <br>
-                
+                <div class='col-md-5'>
                     <table class='table'>
                         <tr>
-                            <td>Teff</td>
-                            <td>{{teff|safe}}</td>
+                            <td width='30%'>Teff</td>
+                            <td width='70%'>{{ form.teff.data }}</td>
                         </tr>
                         <tr>
                             <td>log(g)</td>
-                            <td>{{logg|safe}}</td>
+                            <td>{{ form.logg.data }}</td>
                         </tr>
                         <tr>
                             <td>Fe/H</td>
-                            <td>{{feh|safe}}</td>
+                            <td>{{ form.feh.data }}</td>
                         </tr>
                         <tr>
                             <td>Bandpass</td>
-                            <td>{{band|safe}}</td>
+                            <td>{{ form.bandpass.data }}</td>
                         </tr>
                         <tr>
                             <td>Profiles</td>
-                            <td>{{profile|safe}}</td>
+                            <td>
+                                {% for prof in form.profiles.data %}
+                                    {{ prof }}<br>
+                                {% endfor %}
+                            </td>
                         </tr>
                         <tr>
                             <td>Models</td>
-                            <td>{{models|safe}}</td>
+                            <td>{{ form.modeldir.data }}</td>
                         </tr>
                     </table>
+                </div>
 
+                <div class='col-md-5'>
+                    {{filt_plot|safe}}
+                </div>
             </div>
-            <div style='float:right; width:600px;margin-top:40px;'>
-                {{filt_plot|safe}}
-            </div>
-            <div class='clearfix'></div>
-            
-            <br>
-            
-            <h3>Result</h3>
-            
-            <div style='clear:both;margin:40px 0px'>
+            <div style='clear:both;margin:40px 0px'></div>
+
+            <hr class="col-md-12">
+            <div class='form-group'>
+                <h3>Result</h3>
+                <br>
                 {{ plot|safe }}
+                <div style='clear:both;margin:40px 0px'></div>
             </div>
-            <div style="clear:both;"></div>
+
             <br>
+            <form id='exportform' method='post' action='download' >
+                <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
+                <input class="btn" type='submit' value='Download Coefficient Tables' />
+            </form>
 
-            <div>
-
-                <form id='exportform' method='post' action='download' >
-                    <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
-                    <input class="btn" type='submit' value='Download Coefficient Tables' />
-                </form>
-
-            </div>
-            
-            <br></br>
-
+            <br>
             {% for tab in table %}
                 {{ tab|safe }}
             <br>
             {% endfor %}
-
-            <!-- <form id='formatselect' method='post' action='savefile' >
-                <p>Save to a file:
-                    <select name="format">
-                        <option value="ascii">ASCII</option>
-                        <option value="votable">VOTable</option>
-                    </select>
-                    <input type='submit' value='Save' />
-                </p>
-            </form> -->
 
         </div>
         
