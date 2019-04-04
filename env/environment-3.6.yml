@@ -99,11 +99,13 @@ dependencies:
     - batman-package==2.4.6
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
+    - corner==2.0.1
     - future==0.17.1
     - html5lib==1.0.1
     - keyring==16.1.0
     - lmfit==0.9.11
-    - svo-filters==0.2.16
+    - platon==3.1
+    - svo-filters==0.2.19
     - uncertainties==3.0.3
     - webencodings==0.5.1
     - git+https://github.com/spacetelescope/jwst_gtvt.git
