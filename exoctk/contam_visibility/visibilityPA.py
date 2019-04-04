@@ -271,7 +271,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     paMin = tab[str(instrument)+' min']
     paMax = tab[str(instrument)+' max']
     paNom = tab[str(instrument)+' nom']
-    v3pa = tab['V3PA']
+    v3min = tab['V3PA min']
+    v3max = tab['V3PA max']
 
     # addressing NIRSpec issue*
     # *the issue that NIRSpec's angle goes beyond 360 degrees with some targs,
@@ -279,7 +280,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     index = np.arange(0, len(paNom), 1)
 
     for idx in index:
-        
+
         try:
             a1 = paNom[idx]
             b1 = paNom[idx+1]
@@ -293,7 +294,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                     paMin = np.insert(paMin, idx+1, np.nan)
                     paMax = np.insert(paMax, idx+1, np.nan)
                     paNom = np.insert(paNom, idx+1, np.nan)
-                    v3pa = np.insert(v3pa, idx+1, np.nan)
+                    v3min = np.insert(v3min, idx+1, np.nan)
+                    v3max = np.insert(v3min, idx+1, np.nan)
         except:
             pass
 
@@ -334,10 +336,13 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Making the output table
     # Creating new lists w/o the NaN values
-    v3panan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = [], [], [], [], [], []
-    for v3p, pnom, pmin, pmax, date in zip(v3pa, paNom, paMin, paMax, gd):
+    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = \
+    [], [], [], [], [], [], []
+
+    for vmin, vmax, pnom, pmin, pmax, date in zip(v3min, v3max, paNom, paMin, paMax, gd):
         if np.isfinite(pmin)==True:
-            v3panan.append(v3p)
+            v3minnan.append(vmin)
+            v3maxnan.append(vmax)
             paNomnan.append(pnom)
             paMinnan.append(pmin)
             paMaxnan.append(pmax)
@@ -351,8 +356,8 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
         mjdnan.append(mjd)
 
     # Adding lists to a table object
-    table = Table([v3panan, paNomnan, paMinnan, paMaxnan, gdnan, mjdnan],\
-                  names=('#V3_PA', 'Aperture_PA','min_Aperture_PA',\
-                         'max_Aperture_PA', 'Gregorian', 'MJD'))
+    table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
+                  names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
+                         'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
 
     return paMin, paMax, gd, fig, table
