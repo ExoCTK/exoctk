@@ -300,7 +300,7 @@ def groups_integrations():
     form = fv.GroupsIntsForm()
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data: 
+    if form.resolve_submit.data:
 
         if form.targname.data.strip() != '':
 
@@ -424,7 +424,7 @@ def contam_visibility():
     form.calculate_contam_submit.disabled = False
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data: 
+    if form.resolve_submit.data:
 
         if form.targname.data.strip() != '':
 
@@ -471,9 +471,31 @@ def contam_visibility():
             except:
                 pass
 
-            # Calculate
+
+
+            # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
             pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data)
+
+            # Make output table
+            vers = '0.3'
+            today = datetime.datetime.now()
+            fh = StringIO()
+            fh.write('# Hi! This is your Visibility output file for... \n')
+            fh.write('# Target: {} \n'.format(form.targname.data))
+            fh.write('# Instrument: {} \n'.format(form.inst.data))
+            fh.write('# \n')
+            fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
+            fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
+            fh.write('# \n')
+            table.write(fh, format='csv', delimiter=',')
+            visib_table = fh.getvalue()
+
+            # Format x axis
+            day0 = datetime.date(2019, 6, 1)
+            dtm = datetime.timedelta(days=367)
+            #vis_plot.x_range = Range1d(day0, day0 + dtm)
+
 
             # TODO: Fix this so bad PAs are included
             pB = []
@@ -510,10 +532,17 @@ def contam_visibility():
 
                 contam_script = contam_div = contam_js = contam_css = ''
 
-            return render_template('contam_visibility_results.html', form=form, vis_plot=vis_div,
-                                   vis_table=visib_table, vis_script=vis_script, vis_js=vis_js,
-                                   vis_css=vis_css, contam_plot=contam_div, contam_script=contam_script,
-                                   contam_js=contam_js, contam_css=contam_css)
+                return render_template('contam_visibility_results.html',
+                                       form=form, vis_plot=vis_div,
+                                       vis_table=visib_table,
+                                       vis_script=vis_script, vis_js=vis_js,
+                                       vis_css=vis_css, contam_plot=contam_div,
+                                       contam_script=contam_script,
+                                       contam_js=contam_js,
+                                       contam_css=contam_css)
+                                       #tname=contamVars['tname'],
+                                       #iname=contamVars['inst'])
+
 
         except IOError:#Exception as e:
             err = 'The following error occurred: ' + str(e)
@@ -527,8 +556,11 @@ def save_visib_result():
     """Save the results of the Visibility Only calculation"""
 
     visib_table = flask.request.form['data_file']
+    targname = flask.request.form['targetname']
+    instname = flask.request.form['instrumentname']
+
     return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=visibility.txt"})
+                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
 
 
 @app_exoctk.route('/download', methods=['POST'])
@@ -682,23 +714,23 @@ def save_fortney_result():
 
 
 def rescale_generic_grid(input_args):
-    """ Pulls a model from the generic grid, rescales it, 
+    """ Pulls a model from the generic grid, rescales it,
     and returns the model and wavelength.
     Parameters
     ----------
     input_args : dict
         A dictionary of the form output from the generic grid form.
-        If manual input must include : 
+        If manual input must include :
         r_star : The radius of the star.
         r_planet : The radius of the planet.
         gravity : The gravity.
         temperature : The temperature.
         condensation : local or rainout
-        metallicity 
+        metallicity
         c_o : carbon/oxygen ratio
         haze
         cloud
-        
+
     Returns
     -------
     wv : np.array
@@ -716,7 +748,7 @@ def rescale_generic_grid(input_args):
     error_message = ''
     genericgrid_db = os.path.join(GENERICGRID_DIR, 'generic_grid_db.hdf5')
 
-    try:   
+    try:
 
         # Parameter validation
         # Set up some nasty tuples first
@@ -724,8 +756,8 @@ def rescale_generic_grid(input_args):
                          ('r_planet', [0.0,  10000]),
                          ('gravity', [5.0, 50]),
                          ('temperature', [400, 2600])]
-        
-        inputs = {} 
+
+        inputs = {}
         # First check the scaling
         for tup in scaling_space:
             key, space = tup
@@ -735,7 +767,7 @@ def rescale_generic_grid(input_args):
             else:
                 error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
                 break
-        
+
         # Map to nearest model key
         temp_range = np.arange(600, 2700, 100)
         grav_range = np.array([5, 10, 20, 50])
@@ -748,14 +780,14 @@ def rescale_generic_grid(input_args):
 
         # Check the model parameters
         str_temp_range = ['0400'] + ['0{}'.format(elem)[-4:] for elem in temp_range]
-        model_space = [('condensation', ['local', 'rainout']), 
+        model_space = [('condensation', ['local', 'rainout']),
                        ('model_temperature', str_temp_range),
                        ('model_gravity', ['05', '10', '20', '50']),
                        ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
                        ('c_o', ['0.35', '0.56', '0.70', '1.00']),
                        ('haze', ['0001', '0010', '0150', '1100']),
                        ('cloud', ['0.00', '0.06', '0.20','1.00'])]
-        
+
         model_key = ''
         for tup in model_space:
             key, space = tup
@@ -766,29 +798,29 @@ def rescale_generic_grid(input_args):
                 error_message = 'One of the model parameters was out of range.'
                 break
         model_key = model_key[:-1]
-    
+
 
         # Define constants
         boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
         permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-        optical_depth = 0.56 
+        optical_depth = 0.56
         r_sun = 69580000000 # cm
         r_jupiter = 6991100000 # cm
- 
+
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
-        
+
         with h5py.File(genericgrid_db, 'r') as f:
             # Can't use the final NaN value
             model_wv = f['/wavelength'][...][:-1]
             model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
-            
+
         radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
         r_star = inputs['r_star'] * r_sun
         r_planet = inputs['r_planet'] * r_jupiter
         model_grav = model_grav * 1e2
         inputs['gravity'] = inputs['gravity'] * 1e2
-        
+
         # Start with baseline based on model parameters
         scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
         r_planet_base = np.sqrt(radius_ratio) * r_sun
@@ -802,7 +834,7 @@ def rescale_generic_grid(input_args):
         solution['altitude'] = solution['scale_height'] * \
                                np.log10(opacity/optical_depth * \
                                         np.sqrt((2 * np.pi * r_planet) / \
-                                                (boltzmann * inputs['temperature'] * inputs['gravity']))) 
+                                                (boltzmann * inputs['temperature'] * inputs['gravity'])))
         solution['radius'] = solution['altitude'] + r_planet
 
         # Sort data
@@ -810,7 +842,7 @@ def rescale_generic_grid(input_args):
         solution['wv'] = model_wv[sort]
         solution['radius'] = solution['radius'][sort]
         solution['spectra'] = (solution['radius']/r_star)**2
-    
+
     except (KeyError, ValueError) as e:
         error_message = 'One of the parameters to make up the model was missing or out of range.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
@@ -821,7 +853,7 @@ def rescale_generic_grid(input_args):
         closest_match = {'model_key': model_key, 'model_temperature': 400,
                 'model_gravity': 50}
         inputs = input_args
-    
+
     return solution, inputs, closest_match, error_message
 
 
@@ -837,13 +869,13 @@ def generic():
         args[key] = args[key][0]
     # Build rescaled model
     solution, inputs, closest_match, error_message = rescale_generic_grid(args)
-    
+
     # Build file out
     tab = at.Table(data=[solution['wv'], solution['spectra']])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
     table_string = fh.getvalue()
-    
+
     # Plot
     fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
     fig.x_range.start = 0.3
