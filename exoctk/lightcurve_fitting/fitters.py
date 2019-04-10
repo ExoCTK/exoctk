@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, uncertainty=None, method='powell', name=None, verbose=True, **kwargs):
+def lmfitter(time, data, model, unc=None, verbose=True, **kwargs):
     """Use lmfit
 
     Parameters
@@ -71,8 +71,9 @@ def lmfitter(time, data, model, uncertainty=None, method='powell', name=None, ve
         uncertainty = np.ones(len(data))
 
     # Fit light curve model to the simulated data
-    result = lcmodel.fit(data, weights=1/uncertainty, params=initialParams,
-                         method=method, **indep_vars, **kwargs)
+    result = lcmodel.fit(data, weights=1/unc, params=initialParams,
+                         **indep_vars, **kwargs)
+
     if verbose:
         print(result.fit_report())
 
