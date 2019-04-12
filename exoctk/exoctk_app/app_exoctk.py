@@ -71,45 +71,6 @@ def limb_darkening():
     # Load default form
     form = fv.LimbDarkeningForm()
 
-    # Get all the available filters
-    filters = svo.filters()['Band']
-
-    # Make HTML for filters
-    filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-
-    if request.method == 'POST':
-        if request.form['submit'] == "Retrieve Parameters":
-            target_name = request.form['targetname']
-            data = get_target_data(target_name)
-
-            feh = data['Fe/H']
-            teff = data['Teff']
-            logg = data['stellar_gravity']
-
-            limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-
-            return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
-
-        elif request.form['submit'] == "Calculate Coefficients":
-            # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-            except:
-                pass
-
-            # Get the input from the form
-            modeldir = request.form['modeldir']
-            profiles = list(filter(None, [request.form.get(pf) for pf in PROFILES]))
-            bandpass = request.form['bandpass']
-
-            # protect against injection attempts
-            bandpass = bandpass.replace('<', '&lt')
-            profiles = [str(p).replace('<', '&lt') for p in profiles]
-
-            # Get models from local directory if necessary
-            if modeldir == 'default':
-                modeldir = MODELGRID_DIR
-
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
