@@ -10,7 +10,7 @@ import copy
 from .parameters import Parameters
 
 
-def lmfitter(time, data, model, unc=None, verbose=True, **kwargs):
+def lmfitter(time, data, model, uncertainty=None, verbose=True, **kwargs):
     """Use lmfit
 
     Parameters
