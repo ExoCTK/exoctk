@@ -17,6 +17,7 @@ from bokeh.plotting import figure, show
 import numpy as np
 
 from .parameters import Parameters
+from ..utils import COLORS
 from ..limb_darkening.limb_darkening_fit import ld_profile
 
 
@@ -120,7 +121,7 @@ class Model:
         # Set the parameters attribute
         self._parameters = params
 
-    def plot(self, time, components=False, fig=None, draw=False, **kwargs):
+    def plot(self, time, components=False, fig=None, draw=False, color='blue', **kwargs):
         """Plot the model
 
         Parameters
@@ -139,17 +140,17 @@ class Model:
         """
         # Make the figure
         if fig is None:
-            fig = figure()
+            fig = figure(width=800, height=400)
 
         # Set the time
         self.time = time
 
         # Plot the model
-        fig.line(self.time, self.eval(**kwargs), legend=self.name)
+        fig.line(self.time, self.eval(**kwargs), legend=self.name, color=color)
 
         if components and self.components is not None:
             for comp in self.components:
-                fig = comp.plot(self.time, fig=fig, draw=False, **kwargs)
+                fig = comp.plot(self.time, fig=fig, draw=False, color=next(COLORS), **kwargs)
 
         # Format axes
         fig.xaxis.axis_label = str(self.units)

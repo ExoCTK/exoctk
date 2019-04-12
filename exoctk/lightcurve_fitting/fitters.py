@@ -71,7 +71,7 @@ def lmfitter(time, data, model, uncertainty=None, verbose=True, **kwargs):
         uncertainty = np.ones(len(data))
 
     # Fit light curve model to the simulated data
-    result = lcmodel.fit(data, weights=1/unc, params=initialParams,
+    result = lcmodel.fit(data, weights=1/uncertainty, params=initialParams,
                          **indep_vars, **kwargs)
 
     if verbose:
