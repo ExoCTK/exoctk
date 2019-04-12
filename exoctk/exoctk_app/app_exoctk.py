@@ -294,6 +294,7 @@ def groups_integrations():
                 form.mod.data = mod_table[-1]['value']
                 form.kmag.data = kmag
                 form.obs_duration.data = obs_time
+                form.target_url.data = url
 
             except:
                 form.target_url.data = ''
