@@ -532,17 +532,14 @@ def contam_visibility():
 
                 contam_script = contam_div = contam_js = contam_css = ''
 
-                return render_template('contam_visibility_results.html',
-                                       form=form, vis_plot=vis_div,
-                                       vis_table=visib_table,
-                                       vis_script=vis_script, vis_js=vis_js,
-                                       vis_css=vis_css, contam_plot=contam_div,
-                                       contam_script=contam_script,
-                                       contam_js=contam_js,
-                                       contam_css=contam_css)
-                                       #tname=contamVars['tname'],
-                                       #iname=contamVars['inst'])
-
+            return render_template('contam_visibility_results.html',
+                                   form=form, vis_plot=vis_div,
+                                   vis_table=visib_table,
+                                   vis_script=vis_script, vis_js=vis_js,
+                                   vis_css=vis_css, contam_plot=contam_div,
+                                   contam_script=contam_script,
+                                   contam_js=contam_js,
+                                   contam_css=contam_css)
 
         except IOError:#Exception as e:
             err = 'The following error occurred: ' + str(e)
