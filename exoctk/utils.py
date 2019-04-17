@@ -3,12 +3,14 @@
 """
 A module for utility funtions
 """
+import itertools
 import os
 import re
 import requests
 import urllib
 
 from astropy.io import fits
+import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,10 +22,6 @@ FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
 GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
 
-# Nice colors for plotting
-COLORS = ['blue', 'red', 'green', 'orange',
-          'cyan', 'magenta', 'pink', 'purple']
-
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
             'square-root', 'logarithmic', 'exponential',
@@ -34,6 +32,45 @@ FILTERS = svo.filters()
 
 # Set the version
 VERSION = '0.2'
+
+
+def color_gen(colormap='viridis', key=None, n=10):
+    """Color generator for Bokeh plots
+
+    Parameters
+    ----------
+    colormap: str, sequence
+        The name of the color map
+
+    Returns
+    -------
+    generator
+        A generator for the color palette
+    """
+    if colormap in dir(bpal):
+        palette = getattr(bpal, colormap)
+
+        if isinstance(palette, dict):
+            if key is None:
+                key = list(palette.keys())[0]
+            palette = palette[key]
+
+        elif callable(palette):
+            palette = palette(n)
+
+        else:
+            raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    elif isinstance(colormap, (list, tuple)):
+        palette = colormap
+
+    else:
+        raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    yield from itertools.cycle(palette)
+
+
+COLORS = color_gen('Category10')
 
 
 def interp_flux(mu, flux, params, values):

@@ -71,45 +71,6 @@ def limb_darkening():
     # Load default form
     form = fv.LimbDarkeningForm()
 
-    # Get all the available filters
-    filters = svo.filters()['Band']
-
-    # Make HTML for filters
-    filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-
-    if request.method == 'POST':
-        if request.form['submit'] == "Retrieve Parameters":
-            target_name = request.form['targetname']
-            data = get_target_data(target_name)
-
-            feh = data['Fe/H']
-            teff = data['Teff']
-            logg = data['stellar_gravity']
-
-            limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-
-            return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
-
-        elif request.form['submit'] == "Calculate Coefficients":
-            # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-            except:
-                pass
-
-            # Get the input from the form
-            modeldir = request.form['modeldir']
-            profiles = list(filter(None, [request.form.get(pf) for pf in PROFILES]))
-            bandpass = request.form['bandpass']
-
-            # protect against injection attempts
-            bandpass = bandpass.replace('<', '&lt')
-            profiles = [str(p).replace('<', '&lt') for p in profiles]
-
-            # Get models from local directory if necessary
-            if modeldir == 'default':
-                modeldir = MODELGRID_DIR
-
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -333,6 +294,7 @@ def groups_integrations():
                 form.mod.data = mod_table[-1]['value']
                 form.kmag.data = kmag
                 form.obs_duration.data = obs_time
+                form.target_url.data = url
 
             except:
                 form.target_url.data = ''
@@ -532,17 +494,14 @@ def contam_visibility():
 
                 contam_script = contam_div = contam_js = contam_css = ''
 
-                return render_template('contam_visibility_results.html',
-                                       form=form, vis_plot=vis_div,
-                                       vis_table=visib_table,
-                                       vis_script=vis_script, vis_js=vis_js,
-                                       vis_css=vis_css, contam_plot=contam_div,
-                                       contam_script=contam_script,
-                                       contam_js=contam_js,
-                                       contam_css=contam_css)
-                                       #tname=contamVars['tname'],
-                                       #iname=contamVars['inst'])
-
+            return render_template('contam_visibility_results.html',
+                                   form=form, vis_plot=vis_div,
+                                   vis_table=visib_table,
+                                   vis_script=vis_script, vis_js=vis_js,
+                                   vis_css=vis_css, contam_plot=contam_div,
+                                   contam_script=contam_script,
+                                   contam_js=contam_js,
+                                   contam_css=contam_css)
 
         except IOError:#Exception as e:
             err = 'The following error occurred: ' + str(e)
@@ -1007,6 +966,12 @@ def secret_page():
         log_tables.append(html_table)
 
     return render_template('admin_page.html', tables=log_tables)
+
+@app_exoctk.route('/lightcurve_fitting')
+def lightcurve_fitting():
+    """A landing page for the lightcurve_fitting tool"""
+
+    return render_template('lightcurve_fitting.html')
 
 
 @app_exoctk.route('/atmospheric_retrievals')

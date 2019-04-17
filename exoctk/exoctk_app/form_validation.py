@@ -14,12 +14,18 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = CheckboxInput()
 
 
-class FortneyModelForm(FlaskForm):
-    """Form validation for the forward model tools"""
+class BaseForm(FlaskForm):
+    """A generic form with target resolve built in"""
     # Target Resolve
     targname = StringField('targname', default='')
     target_url = StringField('target_url', default='')
 
+    # Submit button
+    resolve_submit = SubmitField('Resolve Target')
+
+
+class FortneyModelForm(BaseForm):
+    """Form validation for the forward model tools"""
     # Parameters
     planet_teff = SelectField('planet_teff', choices=[(500, '500'), (750, '750'), (1000, '1000'), (1250, '1250'), (1500, '1500'), (1750, '1750'), (2000, '2000'), (2250, '2250'), (2500, '2500')], validators=[InputRequired('An effective temperature is required')])
     planet_mass = DecimalField('planet_mass', default=1.5, validators=[InputRequired('A planet mass is required!'), NumberRange(min=0.0, message='Planet mass must be positive')])
@@ -32,11 +38,10 @@ class FortneyModelForm(FlaskForm):
     clouds = SelectField('clouds', choices=[('0', 'Nothing'), ('ray10', 'Weak Rayleigh'), ('ray100', 'Medium Rayleigh'), ('ray1000', 'Strong Rayleigh'), ('flat10', 'Weak Cloud'), ('flat100', 'Medium Cloud'), ('flat1000', 'Strong Cloud')], validators=[InputRequired('A cloud model is required')])
 
     # Form submits
-    resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Forward Model')
 
 
-class LimbDarkeningForm(FlaskForm):
+class LimbDarkeningForm(BaseForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
     default_modelgrid = MODELGRID_DIR
@@ -45,10 +50,6 @@ class LimbDarkeningForm(FlaskForm):
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
     modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(default_modelgrid, 'Phoenix ACES'), ('/user/jfilippazzo/Models/ATLAS9/default', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
-
-    # Target Resolve
-    targname = StringField('targname', default='')
-    target_url = StringField('target_url', default='')
 
     # Stellar parameters
     teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {}'.format(*teff_rng))])
@@ -68,20 +69,14 @@ class LimbDarkeningForm(FlaskForm):
     n_bins = IntegerField('n_bins', default=1)
 
     # Form submits
-    resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Coefficients')
     filter_submit = SubmitField('Filter Selected')
     modelgrid_submit = SubmitField('Model Grid Selected')
 
 
-class GroupsIntsForm(FlaskForm):
+class GroupsIntsForm(BaseForm):
     """Form validation for the groups_integrations tool"""
-    # Target Resolve
-    targname = StringField('targname', default='')
-    target_url = StringField('target_url', default='')
-
     # Form submits
-    resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Groups and Integrations')
 
     # Stellar Parameters
@@ -122,14 +117,9 @@ class GroupsIntsForm(FlaskForm):
     sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, max=1.0, message='Saturation level must be between 0 and 1')])
 
 
-class ContamVisForm(FlaskForm):
+class ContamVisForm(BaseForm):
     """Form validation for the contamination_visibility tool"""
-    # Target Resolve
-    targname = StringField('targname', default='')
-    target_url = StringField('target_url', default='')
-
     # Form submits
-    resolve_submit = SubmitField('Resolve Target')
     calculate_submit = SubmitField('Calculate Visibility')
     calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
     mode_submit = SubmitField('Mode Selected')

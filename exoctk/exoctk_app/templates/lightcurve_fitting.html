@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+        <script src='{{ url_for('static',filename='js/jquery-1.12.0.min.js')}}'></script>
+
+{% block content %}
+
+        <div class='form-group'>
+            <h1>Lightcurve Fitting Tool</h1>
+            <br>
+            <p>
+            The <tt>lightcurve_fitting</tt> subpackage within the <tt>exoctk</tt> package fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+            </p>
+            <br>
+            <p>
+            Users who wish to use the <tt>lightcurve_fitting</tt> tools may do so by installing the <tt>exoctk</tt> package.  Please see the <a href="https://github.com/exoctk/exoctk/tree/master#installation" target="_blank">installation instructions</a> for further details.
+            </p>
+            <br>
+            <p>
+            The figure below shows the notebook available in the source code. It demonstrates the primary functionality of the <tt>lightcurve_fitting</tt> tool.
+            </p>
+            <br>
+            {% include "lightcurve_fitting_demo.html" %}
+
+        </div>
+
+{% endblock %}
