@@ -2,28 +2,24 @@
 
 {% block content %}
 
-  <body>
-    {{ js_resources|indent(4)|safe }}
+{{ js_resources|indent(4)|safe }}
 
-    {{ css_resources|indent(4)|safe }}
+{{ css_resources|indent(4)|safe }}
 
-    {{ plot_script|indent(4)|safe }}
+{{ plot_script|indent(4)|safe }}
 
 
-    <div class="page">
-        <h1>Generic Grid</h1>
+<div class='form-group'>
+    <h1>Generic Grid</h1>
+    <br>
+    <p>
+        Based on the generic ATMO grid presented in Goyal, J., et al., 2018b, MNRAS,
+        accepted for publication October 30th 2018. Using the model grid as a
+        framework, we allow you to rescale your models with custom temperature,
+        gravity, and radius values. 
+    </p>
 
-            <div class="col-md-9">
-                <p>
-Based on the generic ATMO grid presented in Goyal, J., et al., 2018b, MNRAS,
-accepted for publication October 30th 2018. Using the model grid as a
-framework, we allow you to rescale your models with custom temperature,
-gravity, and radius values. 
-                </p>
-
-            </div>
-
-        <form name="generic" method='GET'>
+    <form class='form-horizontal' id='generic' method='GET', novalidate>
         
         <hr class="col-md-12">
 
@@ -129,23 +125,25 @@ gravity, and radius values.
 
             </div>
         </div>
-        
-    <br></br>
 
+        <hr class="col-md-12">
 
- <hr class="col-md-11 col-md-offset-1">
         <div class="form-group">
-            <div class="col-sm-offset-3 col-sm-9">
+            <div class="col-sm-offset-2 col-sm-10">
                 <button type="submit" class="btn btn-success">Submit</button>
             </div>
         </div>
 
         </form>
-    </div>
-    
-    <br></br>
+</div>
 
- <hr class="col-md-15">
+<br>
+<br>
+
+<h1>Results</h1>
+<hr class="col-md-12">
+<br>
+<div>
     <div style="display:table; margin:0 auto;">
         {{ plot_div|indent(4)|safe }}
     </div>
@@ -193,7 +191,6 @@ gravity, and radius values.
     Jayesh M Goyal, Hannah R Wakeford, Nathan J Mayne, Nikole K Lewis, Benjamin Drummond, David K Sing; Fully scalable forward model grid of exoplanet transmission spectra, Monthly Notices of the Royal Astronomical Society, Volume 482, Issue 4, 1 February 2019, Pages 4503–4513, https://doi.org/10.1093/mnras/sty3001
     </p>
     </div>
-    </div>
-  </body>
+</div>
 
 {% endblock%}
