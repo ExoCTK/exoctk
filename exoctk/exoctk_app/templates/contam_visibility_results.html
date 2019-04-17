@@ -24,26 +24,24 @@
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
-    	{% if contamVars['visPA'] ==  True %}
-            <hr>
-    		<h3>Target Visibility</h3>
-    		{{ vis_plot | safe }}
-            <br><br>
-    		<p>Figure explication:</p>
-    		<ul>
-    			<li>The solid line indicates the nominal Aperture PA as a function of the calendar date.</li>
-    			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
-    			<li>On dates where there is no curve, the target is inaccessible.</li>
-    			<li>The TXT file provides the same information in table format with columns:
-            <p>
-              V3 PA, Nominal Aperture PA, Minimum Aperture PA, Maximum Aperture PA, and Calendar Date.
-            </p>
-          </li>
-    		</ul>
+        <hr>
+		<h3>Target Visibility</h3>
+		{{ vis_plot | safe }}
+        <br><br>
+		<p>Figure explication:</p>
+		<ul>
+			<li>The solid line indicates the nominal Aperture PA as a function of the calendar date.</li>
+			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
+			<li>On dates where there is no curve, the target is inaccessible.</li>
+			<li>The TXT file provides the same information in table format with columns:
+        <p>
+          V3 PA, Nominal Aperture PA, Minimum Aperture PA, Maximum Aperture PA, and Calendar Date.
+        </p>
+      </li>
+		</ul>
 
-    	{% endif %}
 
-    	{% if contamVars['contam'] == True %}
+    	{% if contam_plot %}
             <hr>
     		<h3>Target Contamination</h3>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->

@@ -21,6 +21,8 @@ Use
 import os
 
 import astropy.constants as constants
+from astropy.extern.six.moves import StringIO
+import astropy.table as at
 import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
@@ -63,12 +65,15 @@ def fortney_grid(args, write_plot=False, write_table=False):
         The unsaved bokeh plot.
     fh : ascii table object
         The unsaved ascii table. 
+    temp_out : list of str of int
+        The list of temperatures in the model grid.
     """
 
     # Check for Fortney Grid database 
+    print(os.path.join(os.environ.get('EXOCTK_DATA'), 'fortney/fortney_models.db'))
     try:
         db = create_engine('sqlite:///' +
-                os.path.join(os.environ('EXOCTK_DATA'), 'fortney/fortney_models.db'))
+                os.path.join(os.environ.get('EXOCTK_DATA'), 'fortney/fortney_models.db'))
         header = pd.read_sql_table('header', db)
     except:
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
@@ -78,7 +83,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
         rstar = (rstar * u.Unit(args['rstar_unit'])).to(u.km)
         reference_radius = float(args['reference_radius'])
         rplan = (reference_radius * u.Unit(args['r_unit'])).to(u.km)
-
+        temp = float(args['temp'])
         # clouds
         cloud = args['cloud']
         if cloud.find('flat') != -1:
@@ -106,8 +111,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
             ray = 0
 
         fort_grav = 25.0 * u.m / u.s**2
-
-        temp = float(temp)
+        
         df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) &
                         (header.noTiO == noTiO) & (header.ray == ray) &
                         (header.flat == flat)]
@@ -158,8 +162,11 @@ def fortney_grid(args, write_plot=False, write_table=False):
     if write_plot:
         output_file('fortney.html')
         save(fig)
-
-    return fig, fh
+    
+    # Return temperature list for the fortney grid page
+    temp_out = list(map(str, header.temp.unique()))
+    
+    return fig, fh, temp_out
 
 
 def generic_grid(input_args, write_plot=False, write_table=False):
@@ -191,17 +198,22 @@ def generic_grid(input_args, write_plot=False, write_table=False):
         Unsaved bokeh plot.
     table : ascii table object
         Unsaved ascii table. 
+    closest_match : dict
+        A dictionary with the parameters/model name of the closest
+        match in the grid.
+    error_message : str
+        An error message, or lack therof.
     """
     
     # Find path to the database. 
     try:
-        database_path = os.path.join(os.environ('EXOCTK_DATA'), 'generic/generic_grid_db.hdf5')
+        database_path = os.path.join(os.environ.get('EXOCTK_DATA'), 'generic/generic_grid_db.hdf5')
     except FileNotFoundError:
         print("You need to export 'EXOCTK_DATA' for this to work.")
         raise FileNotFoundError
 
     # Build rescaled model
-    solution, inputs, closest_match, error_message = rescale_generic_grid(args, database_path)
+    solution, inputs, closest_match, error_message = rescale_generic_grid(input_args, database_path)
     
     # Build file out
     tab = at.Table(data=[solution['wv'], solution['spectra']])
@@ -223,7 +235,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
         output_file('generic.html')
         save(fig)
         
-    return fig, fh
+    return fig, fh, closest_match, error_message
 
 
 def rescale_generic_grid(input_args, database_path):
@@ -267,7 +279,7 @@ def rescale_generic_grid(input_args, database_path):
         # Set up some nasty tuples first
         scaling_space = [('r_star', [0.05, 10000]),
                          ('r_planet', [0.0,  10000]),
-                         ('gravity', [5.0, 50]),
+                         ('gravity', [.5, 50]),
                          ('temperature', [400, 2600])]
         
         inputs = {} 
