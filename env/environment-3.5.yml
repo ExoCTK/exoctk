@@ -23,6 +23,7 @@ dependencies:
   - docopt=0.6.2
   - docutils=0.14
   - flask=1.0.2
+  - flask-wtf-0.14.2
   - freetype=2.9.1
   - h5py=2.8.0
   - hdf5=1.10.2
