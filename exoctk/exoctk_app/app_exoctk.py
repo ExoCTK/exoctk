@@ -327,7 +327,7 @@ def groups_integrations():
         params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
 
         # Convert the obs_time to hours
-        if params['time_unit'] == 'days':
+        if params['time_unit'] == 'day':
             params['obs_time'] = params['obs_time']*24
             params['time_unit'] = 'hours'
 
