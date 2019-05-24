@@ -108,4 +108,5 @@ dependencies:
     - svo-filters==0.2.19
     - uncertainties==3.0.3
     - webencodings==0.5.1
+    - WTForms==2.2.1
     - git+https://github.com/spacetelescope/jwst_gtvt.git
