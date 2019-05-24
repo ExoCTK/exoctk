@@ -73,45 +73,6 @@ def limb_darkening():
     # Load default form
     form = fv.LimbDarkeningForm()
 
-    # Get all the available filters
-    filters = svo.filters()['Band']
-
-    # Make HTML for filters
-    filt_list = '\n'.join(['<option value="{0}"{1}> {0}</option>'.format(b, ' selected' if b == 'Kepler.K' else '') for b in filters])
-
-    if request.method == 'POST':
-        if request.form['submit'] == "Retrieve Parameters":
-            target_name = request.form['targetname']
-            data = get_target_data(target_name)
-
-            feh = data['Fe/H']
-            teff = data['Teff']
-            logg = data['stellar_gravity']
-
-            limbVars = {'targname':target_name, 'feh': feh, 'teff':teff, 'logg':logg}
-
-            return render_template('limb_darkening.html', limbVars=limbVars, filters=filt_list)
-
-        elif request.form['submit'] == "Calculate Coefficients":
-            # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-            except:
-                pass
-
-            # Get the input from the form
-            modeldir = request.form['modeldir']
-            profiles = list(filter(None, [request.form.get(pf) for pf in PROFILES]))
-            bandpass = request.form['bandpass']
-
-            # protect against injection attempts
-            bandpass = bandpass.replace('<', '&lt')
-            profiles = [str(p).replace('<', '&lt') for p in profiles]
-
-            # Get models from local directory if necessary
-            if modeldir == 'default':
-                modeldir = MODELGRID_DIR
-
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -301,7 +262,7 @@ def groups_integrations():
     form = fv.GroupsIntsForm()
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data: 
+    if form.resolve_submit.data:
 
         if form.targname.data.strip() != '':
 
@@ -334,6 +295,7 @@ def groups_integrations():
                 form.mod.data = mod_table[-1]['value']
                 form.kmag.data = kmag
                 form.obs_duration.data = obs_time
+                form.target_url.data = url
 
             except:
                 form.target_url.data = ''
@@ -366,7 +328,7 @@ def groups_integrations():
         params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
 
         # Convert the obs_time to hours
-        if params['time_unit'] == 'days':
+        if params['time_unit'] == 'day':
             params['obs_time'] = params['obs_time']*24
             params['time_unit'] = 'hours'
 
@@ -425,7 +387,7 @@ def contam_visibility():
     form.calculate_contam_submit.disabled = False
 
     # Reload page with stellar data from ExoMAST
-    if form.resolve_submit.data: 
+    if form.resolve_submit.data:
 
         if form.targname.data.strip() != '':
 
@@ -472,9 +434,31 @@ def contam_visibility():
             except:
                 pass
 
-            # Calculate
+
+
+            # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
             pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data)
+
+            # Make output table
+            vers = '0.3'
+            today = datetime.datetime.now()
+            fh = StringIO()
+            fh.write('# Hi! This is your Visibility output file for... \n')
+            fh.write('# Target: {} \n'.format(form.targname.data))
+            fh.write('# Instrument: {} \n'.format(form.inst.data))
+            fh.write('# \n')
+            fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
+            fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
+            fh.write('# \n')
+            table.write(fh, format='csv', delimiter=',')
+            visib_table = fh.getvalue()
+
+            # Format x axis
+            day0 = datetime.date(2019, 6, 1)
+            dtm = datetime.timedelta(days=367)
+            #vis_plot.x_range = Range1d(day0, day0 + dtm)
+
 
             # TODO: Fix this so bad PAs are included
             pB = []
@@ -511,10 +495,14 @@ def contam_visibility():
 
                 contam_script = contam_div = contam_js = contam_css = ''
 
-            return render_template('contam_visibility_results.html', form=form, vis_plot=vis_div,
-                                   vis_table=visib_table, vis_script=vis_script, vis_js=vis_js,
-                                   vis_css=vis_css, contam_plot=contam_div, contam_script=contam_script,
-                                   contam_js=contam_js, contam_css=contam_css)
+            return render_template('contam_visibility_results.html',
+                                   form=form, vis_plot=vis_div,
+                                   vis_table=visib_table,
+                                   vis_script=vis_script, vis_js=vis_js,
+                                   vis_css=vis_css, contam_plot=contam_div,
+                                   contam_script=contam_script,
+                                   contam_js=contam_js,
+                                   contam_css=contam_css)
 
         except IOError:#Exception as e:
             err = 'The following error occurred: ' + str(e)
@@ -528,8 +516,11 @@ def save_visib_result():
     """Save the results of the Visibility Only calculation"""
 
     visib_table = flask.request.form['data_file']
+    targname = flask.request.form['targetname']
+    instname = flask.request.form['instrumentname']
+
     return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=visibility.txt"})
+                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
 
 
 @app_exoctk.route('/download', methods=['POST'])
@@ -592,7 +583,6 @@ def fortney():
                                  table_string=table_string
                                  )
     return encode_utf8(html)
-
 
 
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
@@ -742,6 +732,12 @@ def secret_page():
         log_tables.append(html_table)
 
     return render_template('admin_page.html', tables=log_tables)
+
+@app_exoctk.route('/lightcurve_fitting')
+def lightcurve_fitting():
+    """A landing page for the lightcurve_fitting tool"""
+
+    return render_template('lightcurve_fitting.html')
 
 
 @app_exoctk.route('/atmospheric_retrievals')
