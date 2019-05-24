@@ -17,7 +17,7 @@ import numpy as np
 from svo_filters import svo
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/default/')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
 GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
