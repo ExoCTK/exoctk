@@ -21,6 +21,8 @@ REQUIRES = ['asteval',
             'pysynphot',
             'scipy<1.2',
             'sphinx',
+            'wtforms',
+            'flask_wtf',
             'svo_filters']
 
 FILES = []
