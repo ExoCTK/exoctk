@@ -18,13 +18,13 @@
     <br>
 
 
-    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS.
+    	<p>This tool is designed for the slitless observation modes of all JWST instruments.
     	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of
     	nearby stars. For a given target this contamination depends on the
-    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a
+    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam GTS, and MIRI LRS observations of a
     	given target and produces an estimate of the level of contamination as a function of the PA of the
     	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST
-    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments.
+    	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
@@ -32,34 +32,7 @@
 
         {{ form.hidden_tag() }}
 
-        <hr class="col-md-12">
-
-        <div class='form-group'>
-            
-            <label for='mag' class="col-sm-2 control-label">Target Name (optional)</label>
-            <div class="col-sm-10">
-                
-                    <div class="input-group">
-                        {{ form.targname(size=32, placeholder="WASP-18 b") }}<br>
-                    </div>
-                    <span id="helpBlock" class="help-block">The name of a target to resolve in ExoMAST</span>
-                    <div class="input-group">
-                        {{ form.resolve_submit(class="btn btn-success") }}
-                    </div>
-                    {% if form.target_url.data %}
-                        <br>
-                        <div>
-                            <a href='{{ form.target_url.data }}'>Target found: {{ form.targname.data }}</a>
-                        </div>
-                    {% endif %}
-
-                    {% for error in form.targname.errors %}
-                        <br>
-                        <p style="color: red; margin-bottom: 0;">{{ error }}</p>
-                    {% endfor %}
-            </div>
-            
-        </div>
+        {% include 'target_resolve.html' %}
 
         <hr class="col-md-12">
 
