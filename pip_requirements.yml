@@ -13,7 +13,7 @@ sphinx_rtd_theme
 svo_filters
 batman-package
 sphinx-automodapi
+flask
 flask_wtf
 wtforms
 git+https://github.com/spacetelescope/jwst_gtvt.git
-
