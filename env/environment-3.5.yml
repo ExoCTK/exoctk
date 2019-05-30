@@ -102,7 +102,7 @@ dependencies:
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
     - corner==2.0.1
-    - Flask=1.0.2
+    - Flask==1.0.2
     - flask_wtf==0.14.2
     - future==0.17.1
     - html5lib==1.0.1
