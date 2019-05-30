@@ -22,7 +22,7 @@ REQUIRES = ['asteval',
             'scipy<1.2',
             'sphinx',
             'wtforms',
-            'flask_wtf',
+            'Flask_WTF',
             'svo_filters']
 
 FILES = []
