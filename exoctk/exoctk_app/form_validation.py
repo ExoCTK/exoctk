@@ -1,3 +1,5 @@
+import os
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField
 from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
@@ -44,12 +46,12 @@ class FortneyModelForm(BaseForm):
 class LimbDarkeningForm(BaseForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
-    default_modelgrid = MODELGRID_DIR
+    default_modelgrid = os.path.join(MODELGRID_DIR, 'ATLAS9/')
     mg = ModelGrid(default_modelgrid, resolution=500)
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(default_modelgrid, 'Phoenix ACES'), ('/user/jfilippazzo/Models/ATLAS9/default', 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(MODELGRID_DIR, 'ACES/'), 'Phoenix ACES'), (os.path.join(MODELGRID_DIR, 'ATLAS9/'), 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
 
     # Stellar parameters
     teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {}'.format(*teff_rng))])
