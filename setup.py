@@ -9,7 +9,7 @@ REQUIRES = ['asteval',
             'bokeh',
             'corner',
             'cython',
-            'flask',
+            'Flask',
             'h5py',
             'lmfit',
             'matplotlib',
@@ -21,7 +21,8 @@ REQUIRES = ['asteval',
             'pysynphot',
             'scipy<1.2',
             'sphinx',
-            'WTForms',
+            'wtforms',
+            'Flask_WTF',
             'svo_filters']
 
 FILES = []
