@@ -24,26 +24,27 @@
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
-    	{% if contamVars['visPA'] ==  True %}
+
             <hr>
     		<h3>Target Visibility</h3>
     		{{ vis_plot | safe }}
             <br><br>
     		<p>Figure explication:</p>
     		<ul>
-    			<li>The solid line indicates the nominal Aperture PA as a function of the calendar date.</li>
+    			<li>The solid line indicates the Nominal Aperture PA (of the instrument) as a function of the calendar date.</li>
     			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
     			<li>On dates where there is no curve, the target is inaccessible.</li>
-    			<li>The TXT file provides the same information in table format with columns:
+          <li>Note that it is possible for the Minimum Aperture PA to be larger than the Maximum Aperture PA if the maximum boresight roll takes the Maximum Aperture PA beyond 360 degrees.</li>
+    			<li>The downloadable CSV file provides the same information (and more) in table format with columns:
             <p>
-              V3 PA, Nominal Aperture PA, Minimum Aperture PA, Maximum Aperture PA, and Calendar Date.
+              Minimum V3 PA, Maximum V3 PA, Minimum Aperture PA, Maximum Aperture PA, Nominal Aperture PA, Gregorian Calendar Date, and Modified Julian Date.
             </p>
           </li>
     		</ul>
 
-    	{% endif %}
 
-    	{% if contamVars['contam'] == True %}
+
+    	{% if contam_plot %}
             <hr>
     		<h3>Target Contamination</h3>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
@@ -85,7 +86,10 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
     	</form>
       <form action="/visib_result" method="post">
           <input type="hidden" name="data_file" value="{{ vis_table }}" />
-          <input class="btn btn-success" type='submit' value='Download TXT File'></p>
+          <input class="btn btn-success" type='submit' value='Download CSV File'></p>
+      <form action="/visib_result" method="post">
+          <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
+          <input type="hidden" name="instrumentname" value="{{ form.inst.data }}" />
       </form>
     </body>
 

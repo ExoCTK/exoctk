@@ -1,0 +1,26 @@
+<hr class="col-md-12">
+<div class='form-group'>
+
+    <label for='' class="col-sm-2 control-label">Target Name (optional)</label>
+    <div class="col-sm-10">
+
+            <div class="input-group">
+                {{ form.targname(size=32, placeholder="WASP-18 b") }}<br>
+            </div>
+            <span id="helpBlock" class="help-block">The name of a target to resolve in ExoMAST</span>
+            <div class="input-group">
+                {{ form.resolve_submit(class="btn btn-success") }}
+            </div>
+            {% if form.target_url.data %}
+                <br>
+                <div>
+                    <a href='{{ form.target_url.data }}'>Target found: {{ form.targname.data }}</a>
+                </div>
+            {% endif %}
+
+            {% for error in form.targname.errors %}
+                <br>
+                <p style="color: red; margin-bottom: 0;">{{ error }}</p>
+            {% endfor %}
+    </div>
+</div>

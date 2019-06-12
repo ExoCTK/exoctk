@@ -3,25 +3,24 @@
 """
 A module for utility funtions
 """
+import itertools
 import os
 import re
 import requests
 import urllib
 
 from astropy.io import fits
+import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
-
-MODELGRID_DIR = os.environ.get('MODELGRID_DIR')
-FORTGRID_DIR = os.environ.get('FORTGRID_DIR')
-EXOCTKLOG_DIR = os.environ.get('EXOCTKLOG_DIR')
-
-# Nice colors for plotting
-COLORS = ['blue', 'red', 'green', 'orange',
-          'cyan', 'magenta', 'pink', 'purple']
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
 
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
@@ -33,6 +32,45 @@ FILTERS = svo.filters()
 
 # Set the version
 VERSION = '0.2'
+
+
+def color_gen(colormap='viridis', key=None, n=10):
+    """Color generator for Bokeh plots
+
+    Parameters
+    ----------
+    colormap: str, sequence
+        The name of the color map
+
+    Returns
+    -------
+    generator
+        A generator for the color palette
+    """
+    if colormap in dir(bpal):
+        palette = getattr(bpal, colormap)
+
+        if isinstance(palette, dict):
+            if key is None:
+                key = list(palette.keys())[0]
+            palette = palette[key]
+
+        elif callable(palette):
+            palette = palette(n)
+
+        else:
+            raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    elif isinstance(colormap, (list, tuple)):
+        palette = colormap
+
+    else:
+        raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    yield from itertools.cycle(palette)
+
+
+COLORS = color_gen('Category10')
 
 
 def interp_flux(mu, flux, params, values):
@@ -460,35 +498,49 @@ def get_canonical_name(target_name):
     return canonical_name
 
 def get_target_data(target_name):
-    '''Send request to exomast restful api for target information.
+    """
+    Send request to exomast restful api for target information.
         
-        Parameters
-        ----------
-        target_name : string
-            The name of the target transit. 
+    Parameters
+    ----------
+    target_name : string
+        The name of the target transit
 
-        Returns
-        -------
-        period : float
-            The period of the transit in days. 
-        transitDur : float
-            The duration of the transit in hours. 
-
-    '''
+    Returns
+    -------
+    target_data: json:
+        json object with target data.
+    """
 
     canonical_name = get_canonical_name(target_name)
 
     target_url = build_target_url(canonical_name)
-    
+
     r = requests.get(target_url)
-    
+
     if r.status_code == 200:
         target_data = r.json()
     else:
         print('Whoops, no data for this target!')
 
-    # Some exoplanets have multiple catalog entries
-    # Temporary... Need to write a parser to select catalog
-    target_data = target_data[0]
-    
-    return target_data
+    # Some targets have multiple catalogs
+    # nexsci is the first choice.
+    if len(target_data) > 1:
+        # Get catalog names from exomast and make then the keys of a dictionary
+        # and the values are its position in the json object.
+        catalog_dict = {data['catalog_name']: index for index, data in enumerate(target_data)}
+
+        # Parse based on catalog accuracy.
+        if 'nexsci' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['nexsci']]
+        elif 'exoplanets.org' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['exoplanets.org']]
+        else:
+            target_data = target_data[0]
+    else:
+        target_data = target_data[0]
+
+    # Strip spaces and non numeric or alphabetic characters and combine.
+    url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
+
+    return target_data, url
