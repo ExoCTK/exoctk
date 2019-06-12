@@ -101,12 +101,17 @@ dependencies:
     - batman-package==2.4.6
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
-    - flask-wtf-0.14.2
+    - corner==2.0.1
+    - Flask==1.0.2
+    - flask_wtf==0.14.2
     - future==0.17.1
     - html5lib==1.0.1
-    - keyring==16.1.0
-    - lmfit==0.9.11
+    - keyring==17.0.0
+    - lmfit==0.9.12
+    - platon==3.1
+    - pytest==3.8.1
     - svo-filters==0.2.19
     - uncertainties==3.0.3
     - webencodings==0.5.1
+    - wtforms==2.2.1
     - git+https://github.com/spacetelescope/jwst_gtvt.git

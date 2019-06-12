@@ -9,6 +9,7 @@ from bokeh.plotting import figure, show
 
 from .models import Model, CompositeModel
 from .fitters import lmfitter
+from ..utils import COLORS
 
 
 class LightCurveFitter:
@@ -106,7 +107,7 @@ class LightCurve(Model):
         if fitter == 'lmfit':
 
             # Run the fit
-            fit_model = lmfitter(self.time, self.flux, model, self.unc)
+            fit_model = lmfitter(self.time, self.flux, model, self.unc, **kwargs)
 
         else:
             raise ValueError("{} is not a valid fitter.".format(fitter))
@@ -131,7 +132,7 @@ class LightCurve(Model):
             The figure
         """
         # Make the figure
-        fig = figure()
+        fig = figure(width=800, height=400)
 
         # Draw the data
         fig.circle(self.time, self.flux, legend=self.name)
@@ -139,7 +140,7 @@ class LightCurve(Model):
         # Plot fit models
         if fits and len(self.results) > 0:
             for model in self.results:
-                model.plot(self.time, fig=fig)
+                model.plot(self.time, fig=fig, color=next(COLORS))
 
         # Format axes
         fig.xaxis.axis_label = str(self.units)
