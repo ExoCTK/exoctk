@@ -24,6 +24,7 @@ Use
 import json
 import math
 import os
+from decimal import Decimal
 
 from astropy.io import ascii
 import numpy as np
@@ -78,7 +79,7 @@ def calc_n_int(transit_time, n_group, n_reset, t_frame, n_frame):
     """
 
     hour = 3600
-    n_ints = (transit_time*hour)/(t_frame*(n_group*n_frame+n_reset))
+    n_ints = (float(transit_time)*hour)/(t_frame*(n_group*n_frame+n_reset))
     
     return math.ceil(n_ints)
 
@@ -296,33 +297,34 @@ def interpolate_from_dat(mag, ins, filt, sub, mod, band, t_frame, sat_lvl, infil
     max_sat : int
         The maximum saturation level reached by that number of groups.
     """
-    
     # Create the dictionaries for each filter and select out the prerun data
     with open(infile) as f:
         dat = json.load(f)
-    
+
     ta_or_sci = 'sci_sat'
-    
+
     if ta:
         ta_or_sci = 'ta_sat'
 
-    mags = dat['mags']
+    # The data
+    mags = np.array(dat['mags'])
     sat = dat[ta_or_sci][ins][filt][sub][mod]
-    
-    # Interpolate the given magnitude
     log_sat = np.log10(sat)
+
+    # Interpolate the given magnitude
     func_log = interpolate.interp1d(mags, log_sat)
-    func = interpolate.interp1d(mags, sat)
-    max_log_sat = func_log(mag)
-    max_sat_test = func(mag)
+    max_log_sat = func_log(float(mag))
     max_sat = 10**(max_log_sat)
 
     # Figure out what it means in wake of the given sat lvl
-    max_exptime = sat_lvl/max_sat
+    max_exptime = float(sat_lvl)/max_sat
 
     # Calculate the nearest number of groups
     n_group = calc_groups_from_exp_time(max_exptime, t_frame)
-    
+
+    # Can't have zero groups
+    n_group = n_group or 1
+
     return n_group, max_sat
 
 
@@ -402,15 +404,15 @@ def min_groups(mag, ins, filt, sub, mod, band, infile):
 
     with open(infile) as f:
         dat = json.load(f)
-    
+
     # Match to closest magnitude
-    mags = dat['mags']
-    closest_mag = min(mags, key=lambda x:abs(x-mag))
+    mags = [float(i) for i in dat['mags']]
+    closest_mag = min(mags, key=lambda x:abs(x-float(mag)))
     index = mags.index(closest_mag)
-    
+
     # Match to data 
     min_groups = dat['ta_snr'][ins][filt][sub][mod][index]
-    
+
     return min_groups
 
 
@@ -467,7 +469,7 @@ def perform_calculation(params, n_frame=1, n_skip=0):
     n_group, sat_rate = interpolate_from_dat(params['mag'],
         params['ins'], params['filt'], params['subarray'], params['mod'],
         params['band'], frame_time, params['sat_max'], params['infile'])
-    
+
     if str(params['n_group']) == 'optimize':
         params['n_group'] = int(n_group)
     else:
@@ -609,7 +611,7 @@ def set_t_frame(infile, ins, sub, ta=False):
     # Read in dict with frame times
     with open(infile) as f:
         frame_time = json.load(f)['frame_time']
-    
+
     if ta:
         t_frame = frame_time[ins]['ta'][sub]
     else:

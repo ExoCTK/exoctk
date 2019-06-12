@@ -24,9 +24,9 @@ Transit Light-­Curve Fitting Tools
 
 Limb-­Darkening Calculator
 
-Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
+Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_.
 
-All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_. 
+All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
 
 There is also a `website <https://exoctk.stsci.edu/>`_ where all current tools are available through interactive applications.
 
@@ -74,13 +74,24 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 
   source/exoctk.limb_darkening
 
+**Atmopsheric Retrievals**
+
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/platon_wrapper_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+
+Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/exoctk/exoctk/tree/master#installation>`_ for further details.
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.atmopspheric_retrievals
+
 ****************************************************
-Installation Instructions and Notebook Availability 
+Installation Instructions and Notebook Availability
 ****************************************************
 
 To install the ExoCTK package one can follow the instructions listed in our README available here on `GitHub <https://github.com/ExoCTK/exoctk#installation>`_.
 
-There are also several Jupyter Notebooks available for users to aid in learning how to use the various tools included in the ExoCTK package which can be found within the 'Notebooks' folder following download of the ExoCTK repository or for viewing online _`here <https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks>`_. 
+There are also several Jupyter Notebooks available for users to aid in learning how to use the various tools included in the ExoCTK package which can be found within the 'Notebooks' folder following download of the ExoCTK repository or for viewing online `here <https://github.com/ExoCTK/exoctk/tree/master/exoctk/notebooks>`_.
 
 ***********************
 Newsletter Subscription

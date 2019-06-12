@@ -34,23 +34,12 @@
             <form class='form-horizontal' id='searchform' method='POST', novalidate>
                 {{ form.hidden_tag() }}
 
+                {% include 'target_resolve.html' %}
+
                 <hr class="col-md-12">
                 <div class='form-group'>
-
-                    <label for='' class="col-sm-2 control-label">Specify the Stellar Parameters</label>
+                    <label for="modeldir" class="col-sm-2 control-label">Specify the Stellar Parameters</label>
                     <div class="col-sm-10">
-
-
-                        <div class="input-group">
-                            {{ form.targname(size=32, placeholder="WASP-18 b") }}<br>
-                        </div>
-                        <span id="helpBlock" class="help-block">The name of a target to resolve in ExoMAST</span>
-                        <div class="input-group">
-                            {{ form.resolve_submit(class="btn btn-success") }}
-                        </div>
-                        <br>
-                        <span id="helpBlock" class="help-block">Or enter parameters manually</span>
-                        <br>
 
                         <div class="input-group">
                           <div class="input-group-addon" style='width:120px'>\(T_\text{eff}\)</div>
