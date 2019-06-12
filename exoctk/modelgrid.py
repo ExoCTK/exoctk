@@ -397,7 +397,7 @@ class ModelGrid(object):
             # Interpolate flux values at each wavelength
             # using a pool for multiple processes
             print('Interpolating grid point [{}]...'.format(label))
-            processes = 4
+            processes = 8
             mu_index = range(flux.shape[-2])
             start = time.time()
             pool = multiprocessing.Pool(processes)

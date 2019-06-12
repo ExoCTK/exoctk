@@ -34,4 +34,4 @@ install:
 
 script:
   - export PATH="$HOME/miniconda3/envs/exoctk-$PYTHON_VERSION/bin:$PATH"
-  - pytest
+  - travis_wait pytest

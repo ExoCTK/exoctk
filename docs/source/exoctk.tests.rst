@@ -4,6 +4,14 @@ exoctk.tests package
 Submodules
 ----------
 
+exoctk.tests.test\_atmopsheric\_retrievals module
+-------------------------------------------------
+
+.. automodule:: exoctk.tests.test_atmopsheric_retrievals
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 exoctk.tests.test\_lightcurve\_fitting module
 ---------------------------------------------
 
