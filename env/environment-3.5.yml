@@ -33,6 +33,7 @@ dependencies:
   - itsdangerous=0.24
   - jinja2=2.10
   - jpeg=9b
+  - jupyter=1.0.0
   - kiwisolver=1.0.1
   - libedit=3.1.20170329
   - libffi=3.2.1
@@ -86,6 +87,7 @@ dependencies:
   - sphinx=1.7.9
   - sphinxcontrib=1.0
   - sphinxcontrib-websupport=1.1.0
+  - sqlalchemy=1.2
   - sqlite=3.25.3
   - tk=8.6.8
   - tornado=5.1.1
@@ -102,6 +104,7 @@ dependencies:
     - beautifulsoup4==4.6.3
     - bibtexparser==1.0.1
     - corner==2.0.1
+    - entrypoints==0.2.3
     - Flask==1.0.2
     - flask_wtf==0.14.2
     - future==0.17.1
