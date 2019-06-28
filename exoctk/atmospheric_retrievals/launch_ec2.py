@@ -5,9 +5,11 @@
 
 import json
 import os
+import time
 
 import argparse
 import boto3
+import paramiko
 
 
 def create_ec2():
@@ -15,15 +17,35 @@ def create_ec2():
     from the AWS config file.
     """
 
-    session = boto3.Session(region_name='us-east-1')
-    ec2 = session.resource('ec2')
+    ec2 = boto3.resource('ec2')
     LaunchTemplate = {'LaunchTemplateId': get_config()['template_id']}
-    instance = ec2.create_instances(
+    instances = ec2.create_instances(
         LaunchTemplate=LaunchTemplate,
         MaxCount=1,
         MinCount=1)
+    instance = instances[0]
 
-    print('Launched EC2 instance {}'.format(instance))
+    print('Launched EC2 instance {}'.format(instance.id))
+
+    instance.wait_until_running()
+    instance.load()
+
+    hostname = instance.public_dns_name
+
+    key = paramiko.RSAKey.from_private_key_file(get_config()['ssh_file'])
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    connected = False
+    while not connected:
+        try:
+            client.connect(hostname=hostname, username='ec2-user', pkey=key)
+            stdin, stdout, stderr = client.exec_command('ls -l')
+            connected = True
+        except:
+            time.sleep(5)
+
+    print(stdout.read())
 
 
 def get_config():
