@@ -46,7 +46,7 @@ class FortneyModelForm(BaseForm):
 class LimbDarkeningForm(BaseForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
-    default_modelgrid = os.path.join(MODELGRID_DIR)
+    default_modelgrid = os.path.join(MODELGRID_DIR, 'default/')
     mg = ModelGrid(default_modelgrid, resolution=500)
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
