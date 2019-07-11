@@ -260,6 +260,24 @@ def groups_integrations():
     # Load default form
     form = fv.GroupsIntsForm()
 
+    if request.method == 'GET':       
+
+        # http://0.0.0.0:5000/groups_integrations?k_mag=8.131&transit_duration=0.09089&target=WASP-18+b
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        k_mag = request.args.get('k_mag')
+        form.kmag.data = k_mag
+
+        # According to Kevin the obs_dur = 3*trans_dur+1 hours
+        # transit_dur is in days from exomast, convert first.
+        trans_dur = float(request.args.get('transit_duration'))
+        trans_dur *= u.day.to(u.hour)
+        obs_dur = 3*trans_dur + 1
+        form.obs_duration.data = obs_dur
+        
+        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+        
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -384,6 +402,20 @@ def contam_visibility():
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
+
+    if request.method == 'GET':       
+
+        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b       
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        ra = request.args.get('ra')
+        form.ra.data = ra
+        
+        dec = request.args.get('dec')
+        form.dec.data = dec
+                
+        return render_template('contam_visibility.html', form=form)
 
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
