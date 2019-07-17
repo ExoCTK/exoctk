@@ -79,6 +79,7 @@ dependencies:
   - readline=7.0
   - requests=2.20.1
   - scipy=1.1.0
+  - scp=0.13.2
   - setuptools=40.6.2
   - six=1.11.0
   - snowballstemmer=1.2.1
