@@ -211,10 +211,17 @@ def run_tests(instance, key, client):
 
     logging.info('Running unit tests')
 
+    command = (
+        'export EXOCTK_DATA=""'
+        ' && conda activate exoctk-aws'
+        ' && cd exoctk/exoctk/tests'
+        ' && pytest -s test_atmospheric_retrievals.py'
+    )
+
     # Connect to the EC2 instance and run commands
     client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
     scp = SCPClient(client.get_transport())
-    stdin, stdout, stderr = client.exec_command('export EXOCTK_DATA="" && conda activate exoctk-aws && cd exoctk/exoctk/tests && pytest -s test_atmospheric_retrievals.py')
+    stdin, stdout, stderr = client.exec_command(command)
     output = stdout.read()
     log_output(output)
 
@@ -234,6 +241,26 @@ def terminate_ec2(instance):
     logging.info('Terminated EC2 instance {}'.format(instance.id))
 
 
+def transfer_output_files(instance, key, client):
+    """Copy output files from EC2 user back to the user
+
+    Parameters
+    ----------
+    instance : obj
+        A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
+    """
+
+    logging.info('Copying output files')
+
+    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+    scp = SCPClient(client.get_transport())
+    scp.get('exoctk/exoctk/tests/BestFit.txt')
+
+
 if __name__ == '__main__':
 
     # Configure logging
@@ -247,6 +274,9 @@ if __name__ == '__main__':
 
     # Run unit tests
     run_tests(instance, key, client)
+
+    # Transfer output files to user
+    transfer_output_files(instance, key, client)
 
     # Terminate EC2 instance
     terminate_ec2(instance)
