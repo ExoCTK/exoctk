@@ -14,5 +14,3 @@ cd jwst_gtvt
 python setup.py develop
 cd ../exoctk/
 python setup.py develop
-cd exoctk/tests/
-pytest -s test_atmospheric_retrievals.py

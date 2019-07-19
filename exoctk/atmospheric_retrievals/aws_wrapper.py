@@ -39,19 +39,20 @@ import paramiko
 from scp import SCPClient
 
 
-def build_environment(instance):
+def build_environment(instance, key, client):
     """Builds an ``exoctk`` environment on the given AWS EC2 instance
 
     Parameters
     ----------
     instance : obj
         A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
     """
 
-    # Establish SSH key
-    key = paramiko.RSAKey.from_private_key_file(get_config()['ssh_file'])
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    logging.info('Building ExoCTK environment')
 
     # Connect to the EC2 instance and run commands
     connected = False
@@ -70,8 +71,8 @@ def build_environment(instance):
             time.sleep(5)
 
     output = stdout.read()
+    log_output(output)
 
-    return output
 
 def configure_logging():
     """Creates a log file that logs the execution of the script
@@ -115,6 +116,10 @@ def create_ec2():
     -------
     instance : obj
         A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
     """
 
     ec2 = boto3.resource('ec2')
@@ -130,7 +135,12 @@ def create_ec2():
     instance.wait_until_running()
     instance.load()
 
-    return instance
+    # Establish SSH key and client
+    key = paramiko.RSAKey.from_private_key_file(get_config()['ssh_file'])
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    return instance, key, client
 
 
 def get_config():
@@ -180,9 +190,33 @@ def log_output(output):
         The standard output of the EC2 instance
     """
 
-    output = output.replace('\t', '  ').replace('\r', '').replace("\'", "").split('\n').decode("utf-8")
+    output = output.decode("utf-8")
+    output = output.replace('\t', '  ').replace('\r', '').replace("\'", "").split('\n')
     for line in output:
         logging.info(line)
+
+
+def run_tests(instance, key, client):
+    """Run atmospheric retrieval unit tests on EC2 instance.
+
+    Parameters
+    ----------
+    instance : obj
+        A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
+    """
+
+    logging.info('Running unit tests')
+
+    # Connect to the EC2 instance and run commands
+    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+    scp = SCPClient(client.get_transport())
+    stdin, stdout, stderr = client.exec_command('export EXOCTK_DATA="" && conda activate exoctk-aws && cd exoctk/exoctk/tests && pytest -s test_atmospheric_retrievals.py')
+    output = stdout.read()
+    log_output(output)
 
 
 def terminate_ec2(instance):
@@ -197,14 +231,25 @@ def terminate_ec2(instance):
     ec2 = boto3.resource('ec2')
     ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 
-    print('Terminated EC2 instance {}'.format(instance.id))
+    logging.info('Terminated EC2 instance {}'.format(instance.id))
 
 
 if __name__ == '__main__':
 
+    # Configure logging
     start_time = configure_logging()
-    instance = create_ec2()
-    output = build_environment(instance)
+
+    # Initialize EC2 instance
+    instance, key, client = create_ec2()
+
+    # Build ExoCTK environment
+    build_environment(instance, key, client)
+
+    # Run unit tests
+    run_tests(instance, key, client)
+
+    # Terminate EC2 instance
     terminate_ec2(instance)
-    log_output(output)
+
+    # log the execution time
     log_execution_time(start_time)
