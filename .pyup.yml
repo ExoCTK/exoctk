@@ -46,3 +46,4 @@ branch_prefix: pyup/
 # allow to close stale PRs
 # default: True
 close_prs: True
+
