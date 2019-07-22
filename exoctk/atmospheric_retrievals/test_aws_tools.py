@@ -71,7 +71,6 @@ def run_tests(instance, key, client):
 
     # Connect to the EC2 instance and run commands
     client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
-    scp = SCPClient(client.get_transport())
     stdin, stdout, stderr = client.exec_command(command)
     output = stdout.read()
     log_output(output)
