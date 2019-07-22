@@ -68,6 +68,9 @@ Use
         # Save a plot of the results
         pw.make_plot()
 
+    More examples of how to use this software is provided in the
+    ``platon_examples.py`` module.
+
 Dependencies
 ------------
 
@@ -77,7 +80,6 @@ Dependencies
 """
 
 import corner
-import numpy as np
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
@@ -97,72 +99,6 @@ def _apply_factors(params):
     params['Rp'] = params['Rp'] * R_jup
 
     return params
-
-
-def example(method):
-    """Performs an example run of the emcee and multinest retrievals
-
-    Parameters
-    ----------
-    method : str
-        The method to use to perform the atmopsheric retrieval; can
-        either be ``multinest`` or ``emcee``
-    """
-
-    # Ensure that the method parameter is valid
-    assert method in ['multinest', 'emcee'], \
-        'Unrecognized method: {}'.format(method)
-
-    # Define the fit parameters
-    params = {
-        'Rs': 1.19,  # Required
-        'Mp': 0.73,  # Required
-        'Rp': 1.4,  # Required
-        'T': 1200.0,  # Required
-        'logZ': 0,  # Optional
-        'CO_ratio': 0.53,  # Optional
-        'log_cloudtop_P': 4,  # Optional
-        'log_scatt_factor': 0,  # Optional
-        'scatt_slope': 4,  # Optional
-        'error_multiple': 1,  # Optional
-        'T_star': 6091}  # Optional
-
-    # Initialize the object and set the parameters
-    pw = PlatonWrapper()
-    pw.set_parameters(params)
-
-    # Fit for the stellar radius and planetary mass using Gaussian priors.  This
-    # is a way to account for the uncertainties in the published values
-    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
-
-    # Fit for other parameters using uniform priors
-    R_guess = 1.4 * R_jup
-    T_guess = 1200
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
-    pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
-
-    # Define bins, depths, and errors
-    pw.wavelengths = 1e-6*np.array([1.119, 1.1387])
-    pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
-    pw.depths = 1e-6 * np.array([14512.7, 14546.5])
-    pw.errors = 1e-6 * np.array([50.6, 35.5])
-
-    # Do some retrievals
-    if method == 'multinest':
-        pw.retrieve_multinest()
-        pw.save_results()
-    elif method == 'emcee':
-        pw.retrieve_emcee()
-
-    # Make corner plot of results
-    pw.make_plot()
-
-    return pw
 
 
 def _validate_parameters(supplied_params):
@@ -217,7 +153,7 @@ class PlatonWrapper():
 
         if self.method == 'emcee':
             fig = corner.corner(self.result.flatchain, range=[0.99] * self.result.flatchain.shape[1],
-                        labels=self.fit_info.fit_param_names)
+                                labels=self.fit_info.fit_param_names)
 
         elif self.method == 'multinest':
             fig = corner.corner(self.result.samples, weights=self.result.weights,
@@ -269,9 +205,3 @@ class PlatonWrapper():
         _apply_factors(params)
         self.params = params
         self.fit_info = self.retriever.get_default_fit_info(**self.params)
-
-
-if __name__ == '__main__':
-
-    example('emcee')
-    example('multinest')
