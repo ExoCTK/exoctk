@@ -263,8 +263,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
         dimY = 2048 # <- Q: should be conservative w/ sub-array size?
         rad = 2.5
         pixel_scale = 0.065
-        xval, yval =
-        add_to_apa =
+        xval, yval = 1161, 32
+        add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
     #elif instrument=='MIRI':
     #    dimX = 256
     #    dimY =
