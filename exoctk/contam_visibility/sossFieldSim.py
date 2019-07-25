@@ -7,6 +7,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import readsav
+from astropy.io import fits
 
 IDLSAVE_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam')
 if IDLSAVE_PATH == '':
@@ -263,7 +264,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
         dimY = 2048 # <- Q: should be conservative w/ sub-array size?
         rad = 2.5
         pixel_scale = 0.065
-        xval, yval = 1161, 32
+        xval, yval = 16, 16
         add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
     #elif instrument=='MIRI':
     #    dimX = 256
@@ -366,7 +367,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
     # +target at O1 and O2
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
-    fitsFiles = glob.glob(os.path.join(IDLSAVE_PATH, '*.fits'))[:-1]
+    fitsFiles = ['/Users/jmedina/Desktop/pandexo_T2800.fits']
 
     # Big loop to generate a simulation at each instrument PA
     for kPA in range(PAtab.size):
@@ -381,8 +382,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
         stars['y'] = stars['dy']+sweetSpot['y']
 
         # Retain stars that are within the Direct Image NIRISS POM FOV
-        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) &
-                        (stars['y'] >= -154) & (stars['y'] <= 2047+174))
+        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
+                        (stars['y'] >= -154) & (stars['y'] <= dimY+174))
         starsInFOV = stars[ind]
 
         for i in range(len(ind)):
@@ -390,6 +391,9 @@ def fieldSim(ra, dec, instrument, binComp=''):
             inty = round(starsInFOV['dy'][i])
 
             k = np.where(teffMod == starsInFOV['T'][i])[0][0]
+            print(k)
+            print(teffMod)
+            print(starsInFOV['T'])
 
             fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
 
@@ -398,6 +402,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
             mx1 = int(modelPadX-intx+dimX)
             my0 = int(modelPadY-inty)
             my1 = int(modelPadY-inty+dimY)
+            print(intx, inty)
+            print(mx0, mx1, my0, my1)
 
             if (mx0 > dimXmod) or (my0 > dimYmod):
                 continue
@@ -414,16 +420,24 @@ def fieldSim(ra, dec, instrument, binComp=''):
             # if target and first kPA, add target traces of order 1 and 2
             # in output cube
             if (intx == 0) & (inty == 0) & (kPA == 0):
-                fNameModO12 = fitsFiles[k]
+                #fNameModO12 = fitsFiles[k]
+                fNameModO12 = fitsFiles[0]
                 modelO12 = fits.getdata(fNameModO12)
-                ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
-                ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
-                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
-                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
+                #ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
+                #ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
+                #simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
+                #simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
+                ord1 = modelO12[0, 0:dimY, 0:97]*fluxscale
+                ord2 = modelO12[1, 0:dimY, 0:97]*fluxscale
+                simuCube[0, 0:dimY, 0:97] = ord1
+                simuCube[1, 0:dimY, 0:97] = ord2
 
             if (intx != 0) or (inty != 0):
-                mod = models[k, my0:my1, mx0:mx1]
-                simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
+                #mod = models[k, my0:my1, mx0:mx1]
+                #simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
+                fNameModO12 = fitsFiles[0]
+                modelO12 = fits.getdata(fNameModO12)
+                simuCube[kPA+2, 0:dimY, 0:97] += modelO12[0, 0:dimY, 0:97]*fluxscale
 
     return simuCube
 
