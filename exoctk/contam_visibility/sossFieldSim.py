@@ -245,7 +245,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
 
     Returns
     -------
-    simuCub : np.ndarray
+    simuCube : np.ndarray
         The simulated data cube. Index 0 and 1 (axis=0) show the trace of
         the target for orders 1 and 2 (respectively). Index 2-362 show the trace
         of the target at every position angle (PA) of the instrument.
