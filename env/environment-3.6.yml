@@ -38,5 +38,6 @@ dependencies:
     - lmfit==0.9.12
     - platon==3.1
     - pysynphot==0.9.12
+    - sphinx-automodapi==0.10
     - svo-filters==0.2.19
     - git+https://github.com/spacetelescope/jwst_gtvt.git
