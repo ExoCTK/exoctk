@@ -29,7 +29,7 @@ search: True
 # default: empty
 # allowed: list
 requirements:
-  - pip_requirements.txt:
+  - pip_requirements.yml:
       # update all dependencies and pin them
       update: all
       pin: True
@@ -38,7 +38,6 @@ requirements:
 # requires private repo permissions, even on public repos
 # default: empty
 assignees:
-  - bourque
 
 # configure the branch prefix the bot is using
 # default: pyup-
