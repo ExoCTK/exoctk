@@ -32,7 +32,6 @@ REQUIRES = ['asteval',
             'scipy<1.2',
             'scp',
             'sphinx',
-            'sphinx-automodapi',
             'sqlalchemy',
             'svo_filters',
             'wtforms']
