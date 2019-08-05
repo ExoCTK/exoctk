@@ -38,6 +38,5 @@ dependencies:
     - platon==3.1
     - pysynphot==0.9.12
     - sphinx==2.1.2
-    - sphinx-automodapi==0.10
     - svo-filters==0.2.16
     - git+https://github.com/spacetelescope/jwst_gtvt.git
