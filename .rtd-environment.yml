@@ -17,4 +17,5 @@ dependencies:
         - sphinx_rtd_theme
         - svo_filters
         - sphinx-automodapi
+        - WTForms
         - git+https://github.com/spacetelescope/jwst_gtvt.git

@@ -438,7 +438,7 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
-            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data)
+            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
 
             # Make output table
             vers = '0.3'
@@ -748,4 +748,4 @@ def atmospheric_retrievals():
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port, debug=True)
+    app_exoctk.run(host='0.0.0.0', port=port)
