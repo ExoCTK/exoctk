@@ -18,10 +18,13 @@ Use
 """
 
 import numpy as np
+import os
 from platon.constants import R_sun, R_jup, M_jup
+import pytest
 
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
+ON_TRAVIS = os.path.expanduser('~') == '/Users/travis'
 
 def initialize_platon_wrapper_object():
     """Return a ``PlatonWrapper`` object for use by the tests within
@@ -73,6 +76,7 @@ def initialize_platon_wrapper_object():
     return pw
 
 
+@pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_platon_emcee():
     """Test that the ``emcee`` method of ``platon_wrapper``
     produces results for a small example.
@@ -84,6 +88,7 @@ def test_platon_emcee():
     assert pw.result
 
 
+@pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_platon_multinest():
     """Test that the ``multinest`` method of ``platon_wrapper``
     produces results for a small example.

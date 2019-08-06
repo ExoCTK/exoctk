@@ -260,6 +260,24 @@ def groups_integrations():
     # Load default form
     form = fv.GroupsIntsForm()
 
+    if request.method == 'GET':       
+
+        # http://0.0.0.0:5000/groups_integrations?k_mag=8.131&transit_duration=0.09089&target=WASP-18+b
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        k_mag = request.args.get('k_mag')
+        form.kmag.data = k_mag
+
+        # According to Kevin the obs_dur = 3*trans_dur+1 hours
+        # transit_dur is in days from exomast, convert first.
+        trans_dur = float(request.args.get('transit_duration'))
+        trans_dur *= u.day.to(u.hour)
+        obs_dur = 3*trans_dur + 1
+        form.obs_duration.data = obs_dur
+        
+        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+        
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -385,6 +403,20 @@ def contam_visibility():
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
 
+    if request.method == 'GET':       
+
+        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b       
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        ra = request.args.get('ra')
+        form.ra.data = ra
+        
+        dec = request.args.get('dec')
+        form.dec.data = dec
+                
+        return render_template('contam_visibility.html', form=form)
+
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -437,7 +469,7 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
-            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data)
+            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
 
             # Make output table
             vers = '0.3'
@@ -890,7 +922,11 @@ def fortney_download():
 @app_exoctk.route('/zip_data_download')
 def zip_data_download():
     """Download the zipped ExoCTK data"""
-    return
+    
+    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype='application/zip',
+        attachment_filename='exoctk_data.zip',
+        as_attachment=True) 
+    
 
 
 def check_auth(username, password):
@@ -984,4 +1020,4 @@ def atmospheric_retrievals():
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port, debug=True)
+    app_exoctk.run(host='0.0.0.0', port=port)
