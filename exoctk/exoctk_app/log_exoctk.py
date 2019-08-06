@@ -8,6 +8,7 @@ import datetime
 
 import astropy.table as at
 import numpy as np
+from pathlib import Path
 
 
 def create_db(dbpath, overwrite=True):
@@ -25,7 +26,6 @@ def create_db(dbpath, overwrite=True):
         Overwrite dbpath if it already exists
     """
     if dbpath != ':memory:':
-
         # Make sure the path is valid
         if not os.path.exists(os.path.dirname(dbpath)):
             raise IOError('Not a valid path:', dbpath)
@@ -34,12 +34,15 @@ def create_db(dbpath, overwrite=True):
         if not dbpath.endswith('.db'):
             raise IOError('Please provide a path with a .db file extension')
 
+        # Use pathlib.Path to become compliant with bandit.
+        p = Path(dbpath)
+        
         # Remove existing file if overwriting
         if os.path.isfile(dbpath) and overwrite:
-            os.system('rm {}'.format(dbpath))
+            p.unlink()
 
         # Make the new file
-        os.system('touch {}'.format(dbpath))
+        p.touch()
 
     # Generate the tables
     conn = sqlite3.connect(dbpath)
