@@ -310,7 +310,7 @@ def medfilt(x, window_len):
 
 def filter_table(table, **kwargs):
     """Retrieve the filtered rows
-    
+
     Parameters
     ----------
     table: astropy.table.Table, pandas.DataFrame
@@ -318,11 +318,11 @@ def filter_table(table, **kwargs):
     param: str
         The parameter to filter by, e.g. 'Teff'
     value: str, float, int, sequence
-        The criteria to filter by, 
+        The criteria to filter by,
         which can be single valued like 1400
         or a range with operators [<,<=,>,>=],
         e.g. ('>1200','<=1400')
-    
+
     Returns
     -------
     astropy.table.Table, pandas.DataFrame
@@ -461,7 +461,7 @@ def build_target_url(target_name):
     Parameters
         ----------
         target_name : string
-            The name of the target transit. 
+            The name of the target transit.
 
         Returns
         -------
@@ -479,7 +479,7 @@ def get_canonical_name(target_name):
         Parameters
         ----------
         target_name : string
-            The name of the target transit. 
+            The name of the target transit.
 
         Returns
         -------
@@ -487,20 +487,20 @@ def get_canonical_name(target_name):
     '''
 
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
-    
+
     # Create params dict for url parsing. Easier than trying to format yourself.
     params = {"name":target_name}
-    
+
     r = requests.get(target_url, params=params)
     planetnames = r.json()
     canonical_name = planetnames['canonicalName']
-    
+
     return canonical_name
 
 def get_target_data(target_name):
     """
     Send request to exomast restful api for target information.
-        
+
     Parameters
     ----------
     target_name : string
