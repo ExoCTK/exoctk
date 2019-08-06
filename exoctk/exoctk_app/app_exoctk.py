@@ -593,8 +593,6 @@ def generic():
 
     # Grab the inputs arguments from the URL
     args = dict(flask.request.args)
-    for key in args:
-        args[key] = args[key]
     fig, fh, closest_match, error_message = generic_grid(args)
 
     # Write table string
