@@ -157,17 +157,18 @@ how you unzip it.
 
     jar -xf exoctk_data.zip
 
-- If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be
-corrupted. 
+- If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be corrupted. 
 
 The data will unzip in the appropriate structure, with the top layer
 ``exoctk_data``. Export an environment variable for ``EXOCTK_DATA``. 
 
-- For Mac OS/Linux, add the line 
+- For Mac OS/Linux, add the line
 
 ::
 
     export EXOCTK_DATA='/path/to/your/unzipped/directory/exoctk_data/'
+
+to your `.bashrc` or `.bash_profile`. 
 
 - For Windows, add an evironment variable using System Utility. 
 
