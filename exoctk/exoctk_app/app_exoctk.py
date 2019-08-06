@@ -891,7 +891,7 @@ def fortney_download():
 def zip_data_download():
     """Download the zipped ExoCTK data"""
     
-    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetpe='application/zip',
+    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype='application/zip',
         attachment_filename='exoctk_data.zip',
         as_attachment=True) 
     
