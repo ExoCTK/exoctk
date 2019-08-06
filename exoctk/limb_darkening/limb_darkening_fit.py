@@ -257,7 +257,10 @@ class LDC:
                                                               .wave_rng))
 
         # Apply the filter
-        flux, _ = bandpass.apply([wave, flux])
+        try:
+            flux, _ = bandpass.apply([wave, flux])  # Sometimes this returns a tuple
+        except ValueError:
+            flux = bandpass.apply([wave, flux])  # Sometimes it returns one value
 
         # Make rsr curve 3 dimensions if there is only one
         # wavelength bin, then get wavelength only
