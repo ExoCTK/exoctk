@@ -922,7 +922,11 @@ def fortney_download():
 @app_exoctk.route('/zip_data_download')
 def zip_data_download():
     """Download the zipped ExoCTK data"""
-    return
+    
+    return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype='application/zip',
+        attachment_filename='exoctk_data.zip',
+        as_attachment=True) 
+    
 
 
 def check_auth(username, password):
