@@ -10,6 +10,7 @@ before_cache:
   - rm -rf $HOME/miniconda3/pkgs/cache
   - rm -rf $HOME/miniconda3/envs/exoctk-3.5
   - rm -rf $HOME/miniconda3/envs/exoctk-3.6
+  - rm -rf $HOME/miniconda3/envs/exoctk-3.7
 
 os:
   - linux
@@ -18,6 +19,7 @@ os:
 env:
   - PYTHON_VERSION="3.5"
   - PYTHON_VERSION="3.6"
+  - PYTHON_VERSION="3.7"
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
@@ -32,4 +34,4 @@ install:
 
 script:
   - export PATH="$HOME/miniconda3/envs/exoctk-$PYTHON_VERSION/bin:$PATH"
-  - travis_wait pytest
+  - travis_wait 30 pytest

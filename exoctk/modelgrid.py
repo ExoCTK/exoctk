@@ -108,6 +108,7 @@ class ModelGrid(object):
 
             # Print update...
             if model_directory.endswith('/*'):
+
                 print("Indexing models...")
 
             # Create some attributes
