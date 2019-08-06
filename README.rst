@@ -138,7 +138,7 @@ or, clone the repository directly from GitHub:
   python setup.py [install|devlop]
 
 Obtain the ``exoctk`` Data
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To obtain the ``exoctk`` data, visit the `ExoCTK website <https://exoctk.stsci.edu/>`_ and navigate to the "ExoCTK Data Download" tab. 
 This will start a download of a zipped package of all the data you need to run
