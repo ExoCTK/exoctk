@@ -255,7 +255,7 @@ def convert_sat(sat_max, sat_mode, ins, infile, ta=False):
     ins_dict = dat['fullwell'] 
     
     if sat_mode == 'well':
-        sat_max = sat_max*ins_dict[ins]
+        sat_max = float(sat_max)*float(ins_dict[ins])
     
     if ta:
         sat_max = ins_dict[ins]
