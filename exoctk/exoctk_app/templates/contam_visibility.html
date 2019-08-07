@@ -19,11 +19,11 @@
 
 
     	<p>This tool is designed for the slitless observation modes of all JWST instruments.
-    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of
-    	nearby stars. For a given target this contamination depends on the
-    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam GTS, and MIRI LRS observations of a
-    	given target and produces an estimate of the level of contamination as a function of the PA of the
-    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST
+    	For slitless observations, the spectrum of a target star may be contaminated by partially overlapping spectra of
+    	nearby stars. For a given target, this contamination depends on the
+    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam Grism Time Series, and MIRI LRS observations of a
+    	given target, and produces an estimate of the level of contamination as a function of the PA of the
+    	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
     	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
@@ -41,7 +41,7 @@
             <label class="col-sm-2 control-label">Coordinates</label>
 
             <div class="col-sm-10">
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:60px'>R.A.</div>
                       {{ form.ra(value=form.ra.data, size=10, rows=1, class='form-control') }}
@@ -104,7 +104,7 @@
             <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
 
             <div class="col-sm-10">
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>PA Min</div>
                       {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
