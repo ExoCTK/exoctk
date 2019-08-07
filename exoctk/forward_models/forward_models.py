@@ -13,8 +13,8 @@ Hannah Wakeford
 
 Use
 ---
-
-...
+This is meant to be run through the Flask application, or can be run manually
+with a provided list or arguments. 
 """
 
 ## -- IMPORTS
