@@ -115,8 +115,8 @@ class GroupsIntsForm(BaseForm):
     nircam_subarray_ta = SelectField('nircam_subarray_ta', choices=[('sub32tats', 'SUB32TATS')])
 
     # Saturation
-    sat_mode = RadioField('modeldir', default='well', choices=[('counts', 'Counts'), ('well', 'Full well fraction')])
-    sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, max=1.0, message='Saturation level must be between 0 and 1')])
+    sat_mode = RadioField('sat_mode', default='well', choices=[('counts', 'Counts'), ('well', 'Full well fraction')])
+    sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, message='Saturation level must be positive.')])
 
 
 class ContamVisForm(BaseForm):
