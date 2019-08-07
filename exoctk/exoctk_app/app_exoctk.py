@@ -337,7 +337,7 @@ def groups_integrations():
                   'mag': form.kmag.data,
                   'obs_time': form.obs_duration.data,
                   'sat_max': form.sat_max.data,
-                  'sat_mode': form.sat_mode,
+                  'sat_mode': form.sat_mode.data,
                   'time_unit': form.time_unit.data,
                   'band': 'K',
                   'mod': form.mod.data,
@@ -359,7 +359,6 @@ def groups_integrations():
 
         # Run the calculation
         results = perform_calculation(params)
-
         if type(results) == dict:
             results_dict = results
             one_group_error = ""
