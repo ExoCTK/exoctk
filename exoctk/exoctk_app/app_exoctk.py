@@ -280,7 +280,7 @@ def groups_integrations():
         except TypeError:
             trans_dur = request.args.get('transit_duration')
             if trans_dur == None:
-                form.obs_duration.data = trans_dur
+                pass
             else:
                 err = 'The Transit Duration from ExoMAST experienced some issues. Try a different spelling or source.'
                 return render_template('groups_integrations_error.html', err=err)
