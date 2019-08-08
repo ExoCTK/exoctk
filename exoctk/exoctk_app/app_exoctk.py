@@ -257,7 +257,6 @@ def groups_integrations():
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
-
     # Load default form
     form = fv.GroupsIntsForm()
 
