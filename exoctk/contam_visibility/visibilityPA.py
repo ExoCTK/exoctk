@@ -300,7 +300,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Setting up HoverTool parameters & other variables
     COLOR = 'green'
-    TOOLS = 'pan, wheel_zoom, reset, save'
+    TOOLS = 'pan, wheel_zoom, box_zoom, reset, save'
     SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
                                         panom=paNom,\
                                         pamax=paMax,\
