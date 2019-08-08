@@ -301,7 +301,8 @@ def groups_integrations():
 
                 # Transit duration in exomast is in days, need it in hours
                 if form.time_unit.data == 'day':
-                    obs_dur = data.get('transit_duration')
+                    trans_dur = data.get('transit_duration')
+                    obs_dur = 3*trans_dur + (1/24.) 
                     form.obs_duration.data = obs_dur
                 else:
                     trans_dur = data.get('transit_duration')
