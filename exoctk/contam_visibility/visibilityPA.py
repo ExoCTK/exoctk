@@ -16,7 +16,7 @@ import pkg_resources
 from astropy.table import Table
 from astropy.time import Time
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models import HoverTool
+from bokeh.models import HoverTool, ranges
 from bokeh.models.widgets import Panel, Tabs
 import matplotlib.dates as mdates
 import numpy as np
@@ -332,6 +332,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.y_range = ranges.Range1d(0, 360)
 
     # Making the output table
     # Creating new lists w/o the NaN values
@@ -358,5 +359,4 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
                   names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
-
     return paMin, paMax, gd, fig, table
