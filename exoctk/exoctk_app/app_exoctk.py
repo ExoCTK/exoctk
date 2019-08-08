@@ -300,7 +300,14 @@ def groups_integrations():
                 kmag = data.get('Kmag')
 
                 # Transit duration in exomast is in days, need it in hours
-                obs_time = data.get('transit_duration')*u.Unit(form.time_unit.data).to('hour')
+                if form.time_unit.data == 'day':
+                    trans_dur = data.get('transit_duration')
+                    obs_dur = 3*trans_dur + (1/24.) 
+                else:
+                    trans_dur = data.get('transit_duration')
+                    trans_dur *= u.Unit('day').to('hour')
+                    obs_dur = 3*trans_dur + 1
+                    
 
                 # Model guess
                 logg_targ = data.get('stellar_gravity') or 4.5
@@ -319,7 +326,7 @@ def groups_integrations():
                 # Set the form values
                 form.mod.data = mod_table[-1]['value']
                 form.kmag.data = kmag
-                form.obs_duration.data = obs_time
+                form.obs_duration.data = obs_dur
                 form.target_url.data = url
 
             except:
