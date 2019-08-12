@@ -438,12 +438,9 @@ def contam_visibility():
                 ra_deg = data.get('RA')
                 dec_deg = data.get('DEC')
 
-                # Convert units from degrees to HH:MM:SS
-                ra, dec = deg2HMS(ra=ra_deg, dec=dec_deg)
-
                 # Set the form values
-                form.ra.data = ra
-                form.dec.data = dec
+                form.ra.data = ra_deg
+                form.dec.data = dec_deg
                 form.target_url.data = url
 
             except:
@@ -524,7 +521,12 @@ def contam_visibility():
             if form.calculate_contam_submit.data:
 
                 # Make field simulation
-                contam_cube = fs.sossFieldSim(form.ra.data, form.dec.data, binComp=form.companion.data)
+
+                # First convert ra and dec to HH:MM:SS
+                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                ra_hms, dec_hms = deg2HMS(ra_deg, dec_deg)
+
+                contam_cube = fs.sossFieldSim(ra_hms, dec_hms, binComp=form.companion.data)
                 contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
 
                 # Get scripts
