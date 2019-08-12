@@ -319,7 +319,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Draw the curve and PA min/max patch
     fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
-               source=SOURCE, alpha=.5)		               source=SOURCE)
+               source=SOURCE, alpha=.5)		            
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
