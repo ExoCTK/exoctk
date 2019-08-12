@@ -5,6 +5,7 @@ import json
 from pkg_resources import resource_filename
 
 import astropy.constants as constants
+from astropy.coordinates import SkyCoord
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
 import astropy.units as u
@@ -34,7 +35,7 @@ from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR, EXOCTKLOG_DIR, GENERICGRID_DIR
-from exoctk.contam_visibility.resolve import deg2HMS
+#from exoctk.contam_visibility.resolve import deg2HMS
 from exoctk.modelgrid import ModelGrid
 
 import log_exoctk
@@ -520,13 +521,14 @@ def contam_visibility():
             # Contamination plot too
             if form.calculate_contam_submit.data:
 
-                # Make field simulation
-
                 # First convert ra and dec to HH:MM:SS
                 ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
-                ra_hms, dec_hms = deg2HMS(ra_deg, dec_deg)
-
-                contam_cube = fs.sossFieldSim(ra_hms, dec_hms, binComp=form.companion.data)
+                sc = SkyCoord(ra_deg, dec_deg, unit='deg'
+                ra_dec = sc.to_string('hmsdms')
+                ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
+                
+                # Make field simulation
+                contam_cube = fs.sossFieldSim(ra_hms, dec_dms, binComp=form.companion.data)
                 contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
 
                 # Get scripts
