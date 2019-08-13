@@ -86,6 +86,10 @@ def configure_logging():
     # Define save location
     log_file = 'logs/aws_wrapper_{}.log'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M'))
 
+    # Create the subdirectory if necessary
+    if not os.path.exists('logs/'):
+        os.mkdirs('logs/')
+
     # Make sure no other root lhandlers exist before configuring the logger
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
@@ -108,9 +112,17 @@ def configure_logging():
     return start_time
 
 
-def create_ec2():
+def create_ec2(ssh_file, ec2_template_id):
     """Create an AWS EC2 instance with the given launch template ID
     from the AWS config file.
+
+    Parameters
+    ----------
+    ssh_file : str
+        Relative path to SSH public key to be used by AWS (e.g.
+        ``~/.ssh/exoctk.pem``).
+    ec2_template_id : str
+        The AWS EC2 template id (e.g. ``lt-021de8b904bc2b728``).
 
     Returns
     -------
@@ -123,7 +135,7 @@ def create_ec2():
     """
 
     ec2 = boto3.resource('ec2')
-    LaunchTemplate = {'LaunchTemplateId': get_config()['template_id']}
+    LaunchTemplate = {'LaunchTemplateId': ec2_template_id}
     instances = ec2.create_instances(
         LaunchTemplate=LaunchTemplate,
         MaxCount=1,
@@ -136,7 +148,7 @@ def create_ec2():
     instance.load()
 
     # Establish SSH key and client
-    key = paramiko.RSAKey.from_private_key_file(get_config()['ssh_file'])
+    key = paramiko.RSAKey.from_private_key_file(ssh_file)
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -209,3 +221,43 @@ def terminate_ec2(instance):
     ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 
     logging.info('Terminated EC2 instance {}'.format(instance.id))
+
+
+def transfer_output_files(instance, key, client):
+    """Copy output files from EC2 user back to the user
+
+    Parameters
+    ----------
+    instance : obj
+        A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
+    """
+
+    logging.info('Copying output files')
+
+    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+    scp = SCPClient(client.get_transport())
+    scp.get('exoctk/exoctk/tests/BestFit.txt')
+
+
+def transfer_params_file(instance, key, client):
+    """Copy parameter file from user to EC2 instance
+
+    Parameters
+    ----------
+    instance : obj
+        A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
+    """
+
+    logging.info('Copying parameter file')
+
+    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+    scp = SCPClient(client.get_transport())
+    scp.put('params.json')
