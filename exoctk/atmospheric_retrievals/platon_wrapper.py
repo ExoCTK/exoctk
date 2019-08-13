@@ -27,7 +27,7 @@ Use
             'Rs': 1.19,  # Required
             'Mp': 0.73,  # Required
             'Rp': 1.4,  # Required
-            'T': 1200,  # Required
+            'T': 1200.0,  # Required
             'logZ': 0,  # Optional
             'CO_ratio': 0.53,  # Optional
             'log_cloudtop_P': 4,  # Optional
@@ -79,9 +79,23 @@ Dependencies
     - ``platon``
 """
 
+import argparse
+import json
+
 import corner
+import numpy as np
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
+from scp import SCPClient
+
+from aws_tools import build_environment
+from aws_tools import configure_logging
+from aws_tools import create_ec2
+from aws_tools import log_execution_time
+from aws_tools import log_output
+from aws_tools import terminate_ec2
+from aws_tools import transfer_output_files
+from aws_tools import transfer_params_file
 
 
 def _apply_factors(params):
@@ -99,6 +113,23 @@ def _apply_factors(params):
     params['Rp'] = params['Rp'] * R_jup
 
     return params
+
+
+def _parse_args():
+    """Parses and returns command line arguments.
+
+    Returns
+    -------
+    args : obj
+        An object containing the command line argument values.
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('method', type=str, help='Retrieval method (either "emcee" or "multinest"')
+    parser.add_argument('params', type=str, default='params.json', help='Parameter file')
+    args = parser.parse_args()
+
+    return args
 
 
 def _validate_parameters(supplied_params):
@@ -144,9 +175,12 @@ class PlatonWrapper():
     def __init__(self):
         """Initialize the class object."""
 
-        self.retriever = Retriever()
+        self.ec2_template_id = ''
         self.output_results = 'results.dat'
         self.output_plot = 'corner.png'
+        self.retriever = Retriever()
+        self.ssh_file = ''
+        self.aws = False
 
     def make_plot(self):
         """Create a corner plot that shows the results of the retrieval."""
@@ -169,7 +203,35 @@ class PlatonWrapper():
         """Perform the atmopsheric retrieval via emcee."""
 
         self.method = 'emcee'
-        self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
+
+        if self.aws:
+
+            start_time = configure_logging()
+            instance, key, client = create_ec2(self.ssh_file, self.ec2_template_id)
+            build_environment(instance, key, client)
+            transfer_params_file(instance, key, client)
+
+            # Temporary
+            # Transfer a copy of this script
+            client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+            scp = SCPClient(client.get_transport())
+            scp.put('params.json')
+
+            command = 'python platon_wrapper.py emcee params.json'
+
+            # Connect to the EC2 instance and run commands
+            client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+            stdin, stdout, stderr = client.exec_command(command)
+            output = stdout.read()
+            log_output(output)
+
+            transfer_output_files(instance, key, client)
+            terminate_ec2(instance)
+            log_execution_time(start_time)
+
+        else:
+            self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
+
 
     def retrieve_multinest(self):
         """Perform the atmopsheric retrieval via multinested sampling."""
@@ -196,12 +258,83 @@ class PlatonWrapper():
 
         Parameters
         ----------
-        params : dict
-            A dictionary of parameters and their values for running the
-            software.  See "Use" documentation for further details.
+        params : str or dict
+            Either a path to a params file to use, or a dictionary of
+            parameters and their values for running the software.
+            See "Use" documentation for further details.
         """
+
+        # Read in params.json file if necessary
+        if isinstance(params, str):
+            try:
+                with open(params, 'r') as f:
+                    params = json.load(f)
+            except:
+                pass
 
         _validate_parameters(params)
         _apply_factors(params)
         self.params = params
         self.fit_info = self.retriever.get_default_fit_info(**self.params)
+
+        # Write out current params to file
+        with open('params.json', 'w') as f:
+            json.dump(params, f)
+
+    def use_aws(self, ssh_file, ec2_template_id):
+        """Sets appropriate parameters in order to perform processing
+        using an AWS EC2 instance.
+
+        Parameters
+        ----------
+        ssh_file : str
+            The path to a public SSH key used to connect to the EC2
+            instance.
+        ec2_template_id : str
+            A template id that points to a pre-built EC2 instance.
+        """
+
+        self.ssh_file = ssh_file
+        self.ec2_template_id = ec2_template_id
+        self.aws = True
+
+
+if __name__ == '__main__':
+
+    # Parse arguments
+    args = _parse_args()
+
+    # Initialize the object and set the parameters
+    pw = PlatonWrapper()
+    pw.set_parameters(args.params)
+
+    # Fit for the stellar radius and planetary mass using Gaussian priors.  This
+    # is a way to account for the uncertainties in the published values
+    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
+    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+
+    # Fit for other parameters using uniform priors
+    R_guess = 1.4 * R_jup
+    T_guess = 1200
+    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
+    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
+    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+    pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
+    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+
+    # Define bins, depths, and errors
+    pw.wavelengths = 1e-6*np.array([1.119, 1.1387])
+    pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
+    pw.depths = 1e-6 * np.array([14512.7, 14546.5])
+    pw.errors = 1e-6 * np.array([50.6, 35.5])
+
+    # Do some retrievals
+    if args.method == 'multinest':
+        pw.retrieve_multinest()
+        pw.save_results()
+    elif args.method == 'emcee':
+        pw.retrieve_emcee()
+
+    # Make corner plot of results
+    pw.make_plot()

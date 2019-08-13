@@ -37,14 +37,13 @@ Dependencies
 
 import logging
 
-from scp import SCPClient
-
 from aws_tools import build_environment
 from aws_tools import configure_logging
 from aws_tools import create_ec2
 from aws_tools import log_execution_time
 from aws_tools import log_output
 from aws_tools import terminate_ec2
+from aws_tools import transfer_output_files
 
 
 def run_tests(instance, key, client):
@@ -74,26 +73,6 @@ def run_tests(instance, key, client):
     stdin, stdout, stderr = client.exec_command(command)
     output = stdout.read()
     log_output(output)
-
-
-def transfer_output_files(instance, key, client):
-    """Copy output files from EC2 user back to the user
-
-    Parameters
-    ----------
-    instance : obj
-        A ``boto3`` AWS EC2 instance object.
-    key : obj
-        A ``paramiko.rsakey.RSAKey`` object.
-    client : obj
-        A ``paramiko.client.SSHClient`` object.
-    """
-
-    logging.info('Copying output files')
-
-    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
-    scp = SCPClient(client.get_transport())
-    scp.get('exoctk/exoctk/tests/BestFit.txt')
 
 
 if __name__ == '__main__':
