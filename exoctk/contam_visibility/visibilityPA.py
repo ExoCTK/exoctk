@@ -51,7 +51,7 @@ def convert_ddmmss_to_float(astring):
 
 
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
-    """Check the visibility at a range of position angles
+    """Check the visibility at a range of position angles.
 
     Parameters
     ----------
@@ -216,8 +216,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
-    #return paGood, paBad, gd, fig
-    return terr_x, terr_y, berr_x, berr_y
+    return paGood, paBad, gd, fig
 
 def fill_between(fig, xdata, pamin, pamax, **kwargs):
     # addressing NIRSpec issue
@@ -320,7 +319,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Draw the curve and PA min/max patch
     fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
-              source=SOURCE, alpha=.5)
+               source=SOURCE, alpha=.5)
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
@@ -359,4 +358,5 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
                   names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
+
     return paMin, paMax, gd, fig, table

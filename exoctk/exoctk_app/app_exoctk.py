@@ -3,8 +3,9 @@ from functools import wraps
 import os
 import json
 from pkg_resources import resource_filename
- 
+
 import astropy.constants as constants
+from astropy.coordinates import SkyCoord
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
 import astropy.units as u
@@ -260,7 +261,7 @@ def groups_integrations():
     # Load default form
     form = fv.GroupsIntsForm()
 
-    if request.method == 'GET':       
+    if request.method == 'GET':
 
         # http://0.0.0.0:5000/groups_integrations?k_mag=8.131&transit_duration=0.09089&target=WASP-18+b
         target_name = request.args.get('target')
@@ -284,7 +285,7 @@ def groups_integrations():
                 err = 'The Transit Duration from ExoMAST experienced some issues. Try a different spelling or source.'
                 return render_template('groups_integrations_error.html', err=err)
         return render_template('groups_integrations.html', form=form, sat_data=sat_data)
-        
+
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -409,18 +410,18 @@ def contam_visibility():
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
 
-    if request.method == 'GET':       
+    if request.method == 'GET':
 
-        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b       
+        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b
         target_name = request.args.get('target')
         form.targname.data = target_name
 
         ra = request.args.get('ra')
         form.ra.data = ra
-        
+
         dec = request.args.get('dec')
         form.dec.data = dec
-                
+
         return render_template('contam_visibility.html', form=form)
 
     # Reload page with stellar data from ExoMAST
@@ -434,12 +435,12 @@ def contam_visibility():
                 data, url = get_target_data(form.targname.data)
 
                 # Update the coordinates
-                ra = data.get('RA')
-                dec = data.get('DEC')
+                ra_deg = data.get('RA')
+                dec_deg = data.get('DEC')
 
                 # Set the form values
-                form.ra.data = ra
-                form.dec.data = dec
+                form.ra.data = ra_deg
+                form.dec.data = dec_deg
                 form.target_url.data = url
 
             except:
@@ -519,8 +520,14 @@ def contam_visibility():
             # Contamination plot too
             if form.calculate_contam_submit.data:
 
+                # First convert ra and dec to HH:MM:SS
+                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                sc = SkyCoord(ra_deg, dec_deg, unit='deg')
+                ra_dec = sc.to_string('hmsdms')
+                ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
+
                 # Make field simulation
-                contam_cube = fs.sossFieldSim(form.ra.data, form.dec.data, binComp=form.companion.data)
+                contam_cube = fs.sossFieldSim(ra_hms, dec_dms, binComp=form.companion.data)
                 contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
 
                 # Get scripts
@@ -584,12 +591,12 @@ def _param_fort_validation(args):
     r_unit = args.get('r_unit', 'R_jup')
     rstar = args.get('rstar', 1)
     rstar_unit = args.get('rstar_unit', 'R_sun')
-    
-    input_args = {'temp': temp, 'chem': chem, 'cloud': cloud, 'pmass': pmass, 
-                  'm_unit': m_unit, 'reference_radius': reference_radius, 
+
+    input_args = {'temp': temp, 'chem': chem, 'cloud': cloud, 'pmass': pmass,
+                  'm_unit': m_unit, 'reference_radius': reference_radius,
                   'r_unit': r_unit, 'rstar': rstar, 'rstar_unit': rstar_unit}
 
-    return input_args 
+    return input_args
 
 
 @app_exoctk.route('/fortney', methods=['GET', 'POST'])
@@ -600,7 +607,7 @@ def fortney():
 
     # Grab the inputs arguments from the URL
     args = flask.request.args
-    
+
     input_args = _param_fort_validation(args)
     fig, fh, temp_out = fortney_grid(input_args)
 
@@ -634,7 +641,7 @@ def generic():
 
     # Write table string
     table_string = fh.getvalue()
-    
+
     # Web-ify bokeh plot
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
@@ -692,11 +699,11 @@ def fortney_download():
 @app_exoctk.route('/zip_data_download')
 def zip_data_download():
     """Download the zipped ExoCTK data"""
-    
+
     return send_file(resource_filename('exoctk', 'data/exoctk_data.zip'), mimetype='application/zip',
         attachment_filename='exoctk_data.zip',
-        as_attachment=True) 
-    
+        as_attachment=True)
+
 
 
 def check_auth(username, password):
