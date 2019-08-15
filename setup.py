@@ -44,7 +44,7 @@ for root, _, files in os.walk("exoctk"):
         for fname in files if not fname.endswith(".py") and not fname.endswith(".pyc")]
 
 setup(name='exoctk',
-      version='0.3.0',
+      version='0.4.0',
       description='Observation reduction and planning tools for exoplanet science',
       packages=find_packages(".", exclude=["*.tests"]),
       package_data={'exoctk': FILES},
