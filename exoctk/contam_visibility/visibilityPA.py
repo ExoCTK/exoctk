@@ -51,7 +51,7 @@ def convert_ddmmss_to_float(astring):
 
 
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
-    """Check the visibility at a range of position angles
+    """Check the visibility at a range of position angles.
 
     Parameters
     ----------
