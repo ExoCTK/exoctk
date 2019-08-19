@@ -215,14 +215,14 @@ class PlatonWrapper():
             # Transfer a copy of this script
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             scp = SCPClient(client.get_transport())
-            scp.put('params.json')
+            scp.put('platon_wrapper.py')
 
             command = 'python platon_wrapper.py emcee params.json'
 
             # Connect to the EC2 instance and run commands
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             stdin, stdout, stderr = client.exec_command(command)
-            output = stdout.read()
+            output = stderr.read()
             log_output(output)
 
             transfer_output_files(instance, key, client)
@@ -272,14 +272,14 @@ class PlatonWrapper():
             except:
                 pass
 
+        # Write out current params to file
+        with open('params.json', 'w') as f:
+            json.dump(params, f)
+
         _validate_parameters(params)
         _apply_factors(params)
         self.params = params
         self.fit_info = self.retriever.get_default_fit_info(**self.params)
-
-        # Write out current params to file
-        with open('params.json', 'w') as f:
-            json.dump(params, f)
 
     def use_aws(self, ssh_file, ec2_template_id):
         """Sets appropriate parameters in order to perform processing
