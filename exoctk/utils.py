@@ -3,6 +3,8 @@
 """
 A module for utility funtions
 """
+
+import glob
 import itertools
 import os
 import re
@@ -16,12 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
-EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
-
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
             'square-root', 'logarithmic', 'exponential',
@@ -32,6 +28,34 @@ FILTERS = svo.filters()
 
 # Set the version
 VERSION = '0.2'
+
+# Get the location of EXOCTK_DATA environvment variable and check that it is valid
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+
+# If the variable is blank or doesn't exist
+if not EXOCTK_DATA:
+    raise ValueError(
+        'The $EXOCTK_DATA environment variable is not set.  Please set the '
+        'value of this variable to point to the location of the ExoCTK data '
+        'download folder.  Users may retreive this folder by clicking the '
+        '"ExoCTK Data Download" button on the ExoCTK website.'
+    )
+
+# If the variable exists but doesn't point to a real location
+if not os.path.exists(EXOCTK_DATA):
+    raise FileNotFoundError(
+        'The $EXOCTK_DATA environment variable is set to a location that '
+        'cannot be accessed.')
+
+# If the variable exists, points to a real location, but is missing contents
+for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
+    if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
+        raise KeyError('Missing {}/ directory from {}'.format(item, EXOCTK_DATA))
+
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
 
 
 def color_gen(colormap='viridis', key=None, n=10):
