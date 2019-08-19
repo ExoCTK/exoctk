@@ -33,24 +33,26 @@ VERSION = '0.2'
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
 # If the variable is blank or doesn't exist
-if not EXOCTK_DATA:
-    raise ValueError(
-        'The $EXOCTK_DATA environment variable is not set.  Please set the '
-        'value of this variable to point to the location of the ExoCTK data '
-        'download folder.  Users may retreive this folder by clicking the '
-        '"ExoCTK Data Download" button on the ExoCTK website.'
-    )
+ON_TRAVIS = os.path.expanduser('~') == '/Users/travis'
+if not ON_TRAVIS:
+    if not EXOCTK_DATA:
+        raise ValueError(
+            'The $EXOCTK_DATA environment variable is not set.  Please set the '
+            'value of this variable to point to the location of the ExoCTK data '
+            'download folder.  Users may retreive this folder by clicking the '
+            '"ExoCTK Data Download" button on the ExoCTK website.'
+        )
 
-# If the variable exists but doesn't point to a real location
-if not os.path.exists(EXOCTK_DATA):
-    raise FileNotFoundError(
-        'The $EXOCTK_DATA environment variable is set to a location that '
-        'cannot be accessed.')
+    # If the variable exists but doesn't point to a real location
+    if not os.path.exists(EXOCTK_DATA):
+        raise FileNotFoundError(
+            'The $EXOCTK_DATA environment variable is set to a location that '
+            'cannot be accessed.')
 
-# If the variable exists, points to a real location, but is missing contents
-for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
-    if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
-        raise KeyError('Missing {}/ directory from {}'.format(item, EXOCTK_DATA))
+    # If the variable exists, points to a real location, but is missing contents
+    for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
+        if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
+            raise KeyError('Missing {}/ directory from {}'.format(item, EXOCTK_DATA))
 
 MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
