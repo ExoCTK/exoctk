@@ -561,6 +561,103 @@ def contam_visibility():
 
     return render_template('contam_visibility.html', form=form)
 
+@app_exoctk.route('/phase_overlap', methods=['GET', 'POST'])
+def phase_overlap():
+    """The phase overlap form page"""
+    # Load default form
+    form = fv.PhaseOverlapForm()
+    form.calculate_phase_overlap_submit.disabled = False
+
+    if request.method == 'GET':
+
+        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        obs_dur = request.args.get('obs_dur')
+        form.obs_dur.data = obs_dur
+
+        transit_dur = request.args.get('transit_dur')
+        form.transit_dur.data = transit_dur
+
+        period = request.args.get('period')
+        form.period.data = period
+
+        window_size = request.args.get('window_size')
+        form.window_size.data = window_size
+
+        return render_template('phase_overlap.html', form=form)
+
+    # Reload page with stellar/system data from ExoMAST
+    if form.resolve_submit.data:
+
+        if form.targname.data.strip() != '':
+
+            # Resolve the target in exoMAST
+            try:
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, url = get_target_data(form.targname.data)
+
+                # Transit duration in exomast is in days, need it in hours
+                if form.time_unit.data == 'day':
+                    trans_dur = data.get('transit_duration')
+                    obs_dur = 3*trans_dur + (1/24.) 
+                    period = data.get('period')
+                else:
+                    trans_dur = data.get('transit_duration')
+                    trans_dur *= u.Unit('day').to('hour')
+                    obs_dur = 3*trans_dur + 1
+                    period = data.get('period')
+                    period *= u.Unit('day').to('hour')
+
+                # Set the form values
+                form.obs_dur.data = obs_dur
+                form.transit_dur.data = trans_dur
+                form.period.data = period
+                form.target_url.data = url
+
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+        # Send it back to the main page
+        return render_template('phase_overlap.html', form=form)
+
+    if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_phase_overlap_submit.data):
+
+        try:
+
+            # Log the form inputs
+            try:
+                log_exoctk.log_form_input(request.form, 'phase_overlap', DB)
+            except:
+                pass
+
+            # Contamination plot too
+            if form.calculate_contam_submit.data:
+
+                # Make field simulation
+                #contam_cube = fs.sossFieldSim(ra_hms, dec_dms, binComp=form.companion.data)
+                #contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
+
+                # Get scripts
+                #contam_js = INLINE.render_js()
+                #contam_css = INLINE.render_css()
+                #contam_script, contam_div = components(contam_plot)
+
+            else:
+
+                #contam_script = contam_div = contam_js = contam_css = ''
+
+            return render_template('contam_visibility_results.html',
+                                   form=form)
+
+        except IOError:#Exception as e:
+            err = 'The following error occurred: ' + str(e)
+            return render_template('phase_overlap_errors.html', err=err)
+
+    return render_template('phase_overlap.html', form=form)
+
 
 @app_exoctk.route('/visib_result', methods=['POST'])
 def save_visib_result():
