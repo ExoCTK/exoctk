@@ -66,6 +66,25 @@ def calculate_phase(period, obsDur, winSize):
     
     return minphase, maxphase
 
+
+    def calculate_obsDur(transitDur):
+    ''' Function to calculate the min and max phase. 
+
+        Parameters
+        ----------
+        transitDur : float
+            The duration of the transit in hours.
+
+        Returns
+        -------
+        obsdur : float
+            The duration of the observation in hours. Maximum of 6 hours. '''
+
+    obsDur = np.min((6, 3*transitDur+1))
+
+    return obsDur
+
+
 def get_transit_details(target_name):
     '''send request to exomast restful api for target information.
     '''
@@ -86,23 +105,6 @@ def get_transit_details(target_name):
 
     # are t0, obsDur, and winSize available via ExoMAST api?
     return period, t0, obsDur, winSize 
-
-def calculate_obsDur(transitDur):
-    ''' Function to calculate the min and max phase. 
-
-        Parameters
-        ----------
-        transitDur : float
-            The duration of the transit in hours.
-
-        Returns
-        -------
-        obsdur : float
-            The duration of the observation in hours. '''
-
-    obsDur = np.min((6, 3*transitDur+1))
-
-    return obsDur
 
 
 def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, window_size=None):
