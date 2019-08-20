@@ -33,7 +33,7 @@ VERSION = '0.2'
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
 # If the variable is blank or doesn't exist
-ON_TRAVIS = os.path.expanduser('~') == '/home/travis'
+ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
 if not ON_TRAVIS:
     if not EXOCTK_DATA:
         raise ValueError(
