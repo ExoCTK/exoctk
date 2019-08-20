@@ -61,8 +61,8 @@ def calculate_phase(period, obsDur, winSize):
         maxphase : float
             The maximum phase constraint. '''
 
-    minphase = 1.0 - ((obsDur + winSize)/2.0/24/period)
-    maxphase = 1.0 - ((obsDur - winSize)/2.0/24/period)
+    minphase = 1.0 - ((0.5 + obsDur + winSize)/2.0/24/period)
+    maxphase = 1.0 - ((0.5 + obsDur - winSize)/2.0/24/period)
     
     return minphase, maxphase
 
