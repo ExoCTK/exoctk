@@ -88,14 +88,14 @@ from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 from scp import SCPClient
 
-from aws_tools import build_environment
-from aws_tools import configure_logging
-from aws_tools import create_ec2
-from aws_tools import log_execution_time
-from aws_tools import log_output
-from aws_tools import terminate_ec2
-from aws_tools import transfer_output_files
-from aws_tools import transfer_params_file
+from exoctk.atmospheric_retrievals.aws_tools import build_environment
+from exoctk.atmospheric_retrievals.aws_tools import configure_logging
+from exoctk.atmospheric_retrievals.aws_tools import create_ec2
+from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
+from exoctk.atmospheric_retrievals.aws_tools import log_output
+from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
+from exoctk.atmospheric_retrievals.aws_tools import transfer_output_files
+from exoctk.atmospheric_retrievals.aws_tools import transfer_params_file
 
 
 def _apply_factors(params):
@@ -217,13 +217,15 @@ class PlatonWrapper():
             scp = SCPClient(client.get_transport())
             scp.put('platon_wrapper.py')
 
-            command = 'python platon_wrapper.py emcee params.json'
+            command = './exoctk-aws-init.sh python platon_wrapper.py emcee params.json'
 
             # Connect to the EC2 instance and run commands
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             stdin, stdout, stderr = client.exec_command(command)
-            output = stderr.read()
+            output = stdout.read()
+            errors = stderr.read()
             log_output(output)
+            log_output(errors)
 
             transfer_output_files(instance, key, client)
             terminate_ec2(instance)
