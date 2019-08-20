@@ -75,6 +75,17 @@ class LimbDarkeningForm(BaseForm):
     filter_submit = SubmitField('Filter Selected')
     modelgrid_submit = SubmitField('Model Grid Selected')
 
+class PhaseOverlapForm(BaseForm):
+    """Form validation for the phase_overlap tool"""
+    # Form submits
+    calculate_submit = SubmitField('Calculate Phase')
+
+    # Form inputs
+    obs_dur = DecimalField('obs_dur', default=3, validators=[InputRequired('An observation duration is required!'), NumberRange(min=0, message='Observation duration must be a positive number')])
+    transit_dur = DecimalField('transit_dur', default=3, validators=[InputRequired('A transit duration is required!'), NumberRange(min=0, message='Transit duration must be a positive number')])
+    period = DecimalField('period', default=0.5, validators=[InputRequired('A period is required!'), NumberRange(min=0, message='Period must be a positive number')])
+    window_size = DecimalField('window_size', default=0.5, validators=[InputRequired('A window size is required!'), NumberRange(min=0, message='Window size must be a positive number')])
+    
 
 class GroupsIntsForm(BaseForm):
     """Form validation for the groups_integrations tool"""
