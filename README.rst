@@ -189,7 +189,7 @@ Next, one should activate the ``base`` environment:
   source activate base
 
 
-Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file:
+Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file. One can find these files under the `env` directory and should run the following command in that directory:
 
 ::
 
