@@ -3,117 +3,148 @@
 {% block content %}
 <!doctype html>
 
+<script>
+    $(document).ready(function(){
+
+        $('#inst').on('change', function() {
+            $('#modesubmit').click();
+        });
+
+    });
+</script>
+
 <div class='form-group'>
 	<h1>Contamination & Visibility Calculator</h1>
     <br>
 
 
-    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. 
-    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of 
-    	nearby stars. For a given target this contamination depends on the 
-    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a 
-    	given target and produces an estimate of the level of contamination as a function of the PA of the 
-    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST 
-    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments. 
+    	<p>This tool is designed for the slitless observation modes of all JWST instruments.
+    	For slitless observations, the spectrum of a target star may be contaminated by partially overlapping spectra of
+    	nearby stars. For a given target, this contamination depends on the
+    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam Grism Time Series, and MIRI LRS observations of a
+    	given target, and produces an estimate of the level of contamination as a function of the PA of the
+    	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
+    	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
-    <form action="/contam_visibility" method="POST" />
-    
+    <form class='form-horizontal' action="/contam_visibility" method="POST" />
+
+        {{ form.hidden_tag() }}
+
+        {% include 'target_resolve.html' %}
+
         <hr class="col-md-12">
-    
+
         <div class='form-group'>
-            
-            <label class="col-sm-2 control-label">Target Name</label>
-            <div class="col-sm-10">
-                <div class="input-group">
-                    <input type="text" name="targetname" value = "{{ contamVars['tname'] }}" size="30" maxlength="110"/><br>
-                </div>
-                <span id="helpBlock" class="help-block">Please omit spaces from target name</span>
-                <div class="input-group">
-                    <input class="btn btn-success" type="submit" name="submit" value="Resolve Target"/>
-                </div>
-                <span id="helpBlock" class="help-block">If target is unresolved, reload page and enter coordinates manually</span>
-            </div>
-        </div>
-        
-        <hr class="col-md-12">
-    
-        <div class='form-group'>
-            
+
             <label class="col-sm-2 control-label">Coordinates</label>
-            
+
             <div class="col-sm-10">
+
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>R.A.</div>
-                  <input type="text" name="ra" value = "{{ contamVars['ra'] }}" class='form-control'>
-                  <div class="input-group-addon" style='width:60px'>HH:MM:SS.S</div>
+                  <div class="input-group-addon" style='width:60px'>R.A.</div>
+                      {{ form.ra(value=form.ra.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The right ascension of the target</span>
-                
+                <br>
+
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>Decl.</div>
-                  <input type="text" name="dec" value = "{{ contamVars['dec'] }}" class='form-control'/>
-                  <div class="input-group-addon" style='width:60px'>HH:MM:SS.S</div>
+                  <div class="input-group-addon" style='width:60px'>Decl.</div>
+                      {{ form.dec(value=form.dec.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Decimal Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The declination of the target</span>
-
+                <br>
+                {% for error in form.ra.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.dec.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
-        
+		<hr class="col-md-12">
+
+		<div class='form-group'>
+
+				<label class="col-sm-2 control-label">Instrument - Mode</label>
+                <div class="col-sm-10">
+                    <select class='form-control' name="inst" id="inst" style='width:200px;'>
+                        {% for option in form.inst %}
+                            <div class='radio'>
+                                {{ option }}
+                            </div>
+                        {% endfor %}
+                    </select>
+				</div>
+		</div>
+        {{ form.mode_submit(id='modesubmit', style="visibility: hidden;") }}
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
-            
+
             <label for='' class="col-sm-2 control-label">Add a close binary companion not present in 2MASS (optional)</label>
-            <div class="col-sm-10">                        
-                <div class="form-group">
-                    <input type="text" name="bininfo" class='form-control' value="{{ contamVars['binComp'] }}"  size="50" maxlength="110">
-                </div>
+            <div class="col-sm-10">
+                {{ form.companion(value=form.companion.data, size=50, rows=1, class='form-control') }}
                 <span id="helpBlock" class="help-block">RA offset (&quot;), DEC offset (&quot;), 2MASS J (mag), H (mag) and Ks (mag) [comma separated, no spaces]</span>
             </div>
+            <br>
+            {% for error in form.companion.errors %}
+                <p style="color: red;">{{ error }}</p>
+            {% endfor %}
         </div>
-        
+
         <hr class="col-md-12">
 
         <div class='form-group'>
-            
+
             <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
-            
+
             <div class="col-sm-10">
+
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA min</div>
-                 <input type="number" name="pamin" min="0" max="359" value="{{ contamVars['PAmin'] }}" class='form-control'>
+                  <div class="input-group-addon" style='width:120px'>PA Min</div>
+                      {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The lower limit on the position angle</span>
-                
+                <br>
+
                 <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA max</div>
-                  <input type="number" name="pamax" min="1" max="360" value="{{ contamVars['PAmax'] }}" class='form-control'/>
+                  <div class="input-group-addon" style='width:120px'>PA Max</div>
+                      {{ form.pa_max(value=form.pa_max.data, size=10, placeholder="3 - 6", rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
                 </div>
                 <span id="helpBlock" class="help-block">The upper limit on the position angle</span>
-
+                <br>
+                {% for error in form.pa_min.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.pa_max.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
-        
+
         <hr class="col-md-12">
-                
         <div class='form-group'>
-            
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
-              <p>
-                <input id='submit' name='submit' class="btn btn-success" type='submit' value='Calculate Visibility Only'></p>
-                <span id="helpBlock" class="help-block">This takes about 2 seconds.</span>
-              </p>
-              <br>
-               <p>
-                 <input id='submit'  name='submit' class="btn btn-success" type='submit' value='Calculate Visibility and Contamination'></p>
-                 <span id="helpBlock" class="help-block">This takes more than 2 seconds.</span>
-               </p>
-              </div>
+                <p>
+                    {{ form.calculate_submit(class="btn btn-success") }}
+                    <span id="helpBlock" class="help-block">Calculate only the visibility of the target.</span>
+                </p>
+                <br>
+                <p>
+                    {{ form.calculate_contam_submit(disabled=form.calculate_contam_submit.disabled, class="btn btn-success") }}
+                    <span id="helpBlock" class="help-block">Calculate the visibility and the contamination. This can take up to 20 seconds!</span>
+                    <span id="helpBlock" class="help-block">(Currently only available for SOSS mode)</span>
+                </p>
+            </div>
         </div>
-
     </form>
 </div>
 

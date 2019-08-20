@@ -71,351 +71,373 @@
             means we may predict less groups -- and put you in LESS danger of
             oversaturating your observation.)</p> 
 
-    <form class='form-horizontal' id='searchform' method='post' action='integrations_groups_results' >
-        
+    <form class='form-horizontal' id='searchform' method='post'>
+        {{ form.hidden_tag() }}
+
+        {% include 'target_resolve.html' %}
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
-            
+
             <label for='mag' class="col-sm-2 control-label">Stellar Parameters</label>
             <div class="col-sm-10">
+
                 <div class="input-group">
-                    <input type="text" name="mag" size="7" rows="1" placeholder="magnitude" class='form-control' />
-                    <div class="input-group-addon" style='width:50px'>\(\small \text{mag}\)</div>
-                 </div>
-                 <span id="helpBlock" class="help-block">The vega magnitude of the target.</span>
-            </div>
-            
-        </div>
-        
-        <br>
-        
-        <div class='form-group'>
-                        
-            <label for='band' class="col-sm-2 control-label"></label>
-            <div class="col-sm-10">
-                <div class="input-group">
-               
-                     <select class='form-control' name="band">
-                         <option value="k">K</option>
-                         </select>
-                   
+                    {{ form.kmag(value=form.kmag.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{mag}\)</div>
                 </div>
-                 <span id="helpBlock" class="help-block">The photometric band
-                     of the above magnitude. (More bands will be available soon.) </span>
+                <span id="helpBlock" class="help-block">The K-band vega magnitude of the target</span>
+                <br>
+                {% for error in form.kmag.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
-                
+
         </div>
-        
+
         <div class='form-group'>
-                        
+
             <label for='mod' class="col-sm-2 control-label"></label>
             <div class="col-sm-10">
                 <div class="input-group">
-               
-                     <select class='form-control' name="mod">
-                        <option value="a0i">A0I 9750 2.0</option>
-                        <option value="aov">A0V 9500 2.0</option>
-                        <option value="a1v">A1V 9250 4.0</option>
-                        <option value="a5i">A5I 8500 2.0</option>
-                        <option value="a3v">A3V 8250 4.0</option>
-                        <option value="a5v">A5V 8250 4.0</option>
-                        <option value="f0i">F0I 7750 2.0</option>
-                        <option value="f0v">F0V 7250 1.5</option>
-                        <option value="f5i">F5I 7000 4.0</option>
-                        <option value="f2v">F2V 7000 4.0</option>
-                        <option value="f5v">F5V 6500 4.0</option>
-                        <option value="f8v">F8V 6250 4.5</option>
-                        <option value="g0v">G0V 6000 4.5</option>
-                        <option value="g0iii">G0III 5750 3.0</option>
-                        <option value="g2v">G2V 5750 4.5</option>
-                        <option value="g5v">G5V 5750 4.5</option>
-                        <option value="g0i">G0I 5500 1.5</option>
-                        <option value="g8v">G8V 5500 4.5</option>
-                        <option value="g5iii">G5III 5250 2.5</option>
-                        <option value="g5i">G5I 4740 1.0</option>
-                        <option value="k0v">K0V 5250 4.5</option>
-                        <option value="k0iii">K0III 4750 2.0</option>
-                        <option value="k2v">K2V 4750 4.5</option>
-                        <option value="k0i">K0I 4500 1.0</option>
-                        <option value="k5v">K5V 4250 1.5</option>
-                        <option value="k5iii">K5III 4000 1.5</option>
-                        <option value="k7v">K7V 4000 4.5</option>
-                        <option value="k5i">K5I 3750 0.5</option>
-                        <option value="m0i">M0I 3750 0.0</option>
-                        <option value="m0iii">M0III 2750 1.5</option>
-                        <option value="m0v">M0V 3750 4.5</option>
-                        <option value="m2i">M2I 3500 0.0</option>
-                        <option value="m2v">M2V 3500 4.5</option>
-                        <option value="m5v">M5V 3500 5.0</option>
+
+                    <select class='form-control' name="mod" style='width:184px;'>
+                        {% for option in form.mod %}
+                            <div class='radio'>
+                                {{ option }}
+                            </div>
+                        {% endfor %}
                     </select>
-                   
+
                 </div>
-                 <span id="helpBlock" class="help-block"> Stellar phoenix model
-                 that most closely matches your star. </span>
+                 <span id="helpBlock" class="help-block">Phoenix stellar atmosphere model that most closely matches your star</span>
             </div>
-                
+
         </div>
-        <hr class="col-md-12">
         
+        <hr class="col-md-12">
+
         <div class='form-group'>
-            
-            <label for='obs_time' class="col-sm-2 control-label">Observation Time</label>
+
+            <label for='mag' class="col-sm-2 control-label">Observation Time</label>
             <div class="col-sm-10">
-                <div class="input-group">
-                    <input type="text" name="obs_time" size="7" rows="1" placeholder="time" class='form-control' />
-                    <div class="input-group-addon" style='width:50px'>\(\small \text{hours}\)</div>
-                 </div>
-                 <span id="helpBlock" class="help-block">The length of the observation in hours</span>
+
+                <div class="input-group" style='float:left;'>
+                    {{ form.obs_duration(value=form.obs_duration.data, size=6, rows=1, class='form-control') }}
+                </div>
+                <div class="input-group" style='float:left;'>
+                    <select class='form-control' name="time_unit" style='width:100px;'>
+                        {% for option in form.time_unit %}
+                            <div class='radio'>
+                                {{ option }}
+                            </div>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style='clear:both;'></div>
+                <span id="helpBlock" class="help-block">The length of the observation</span>
+                <br>
+                {% for error in form.obs_duration.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
-            
+
         </div>
-        
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
-            
+
             <label for='n_group' class="col-sm-2 control-label">Groups Per Integration</label>
             <div class="col-sm-10">
                 <div class="input-group">
-                    <input type="text" name="n_group" size="7" rows="1" value='optimize' placeholder="groups" class='form-control' />
-                    <div class="input-group-addon" style='width:50px'></div>
-                 </div>
-                 <span id="helpBlock" class="help-block">If you are unsure, just enter <code>optimize</code></span>
+                    {{ form.n_group(value=form.n_group.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'></div>
+                </div>
+                <span id="helpBlock" class="help-block">Enter "0" to optimize the number of groups</span>
+                <br>
+                {% for error in form.n_group.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
-            
+
+        </div>
+
+        <hr class="col-md-12">
+
+        <div class='form-group'>
+            <label for='ins' class="col-sm-2 control-label">Instrument</label>
+            <div class="col-sm-10">
+                <select class='form-control' name="ins" id="ins" style='width:186px;'>
+                    {% for option in form.ins %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
+                </select>
+                <span id="helpBlock" class="help-block">The JWST instrument</span>
+            </div>
         </div>
         
         <hr class="col-md-12">
-        
-        <div class='form-group'>                
-            <label for='ins' class="col-sm-2 control-label">Instrument</label>
-            <div class="col-sm-2">
-                <select class='form-control' name="ins" id="ins" data-placeholder="INS" >
-                    <option value="miri"> MIRI</option>
-                    <option value="nircam">NIRCam</option>
-                    <option value="niriss">NIRISS</option>
-                    <option value="nirspec">NIRSpec</option>
-                </select>
-                   
-            </div>
-            
-                 <p class="help-block">The JWST instrument</p>
-        </div>        
-        <hr class="col-md-12">
-        
+
         <div class='form-group' id="instrument-mode-section">
-                        
+
             <label for='filt' class="col-sm-2 control-label">Filter</label>
-            <div class="col-sm-2" id="miri_filt" >
-                <select class='form-control' name="miri_filt">
-                    <option value="lrs">LRS</option>
-                </select>
-            </div>
-            
-            <div class="col-sm-2" id="nircam_filt" style="display:none;">
-                <select class='form-control' name="nircam_filt">
-                    <option value="f322w2">F322W2</option>
-                    <option value="f444w">F444W</option>
-                    <option value="f277w">F277W</option>   
+            <div class="col-sm-3" id="miri_filt" >
+                <select class='form-control' name="miri_filt" style='width:186px;'>
+                    {% for option in form.miri_filt %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
-            <div class="col-sm-2" id="niriss_filt" style="display:none;">
-                <select class='form-control' name="niriss_filt">
-                    <option value="soss">SOSS</option>
+            <div class="col-sm-3" id="nircam_filt" style="display:none;">
+                <select class='form-control' name="nircam_filt" style='width:186px;'>
+                    {% for option in form.nircam_filt %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-sm-3" id="niriss_filt" style="display:none;">
+                <select class='form-control' name="niriss_filt" style='width:186px;'>
+                    {% for option in form.niriss_filt %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
             <div class="col-sm-3" id="nirspec_filt" style="display:none;">
-                <select class='form-control' name="nirspec_filt">
-                    <option value="f070lp_g140h">F070LP/G140H</option>
-                    <option value="f100lp_g140h">F100LP/G140H</option>
-                    <option value="f070lp_g140m">F070LP/G140M</option>
-                    <option value="f100lp_g140m">F100LP/G140M</option>
-                    <option value="f170lp_g235h">F170LP/G235H</option>
-                    <option value="f170lp_g235m">F170LP/G235M</option>     
-                    <option value="f290lp_g395h">F290LP/G395H</option>
-                    <option value="f290lp_g395m">F290LP/G395M</option>   
+                <select class='form-control' name="nirspec_filt" style='width:186px;'>
+                    {% for option in form.nirspec_filt %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-            <p class="help-block">The photometric bandpass or grism for your science observation.</p>
+            <div class="col-sm-10 col-sm-offset-2">
+                <span id="helpBlock" class="help-block">The photometric bandpass or grism for your science observation</span>
             </div>
+        </div>
 
-            <br>
-        
         <div class='form-group' id="instrument-mode-section">
 
             <label for='filt_ta' class='col-sm-2 control-label' ></label>
-            <div class="col-sm-2" id="miri_filt_ta" >
-                <select class='form-control' name="miri_filt_ta">
-                    <option value="f560w">F560W</option>
-                    <option value="f100w">F100W</option>
-                    <option value="f1500w">F1500W</option>
+            <div class="col-sm-3" id="miri_filt_ta" >
+                <select class='form-control' name="miri_filt_ta" style='width:186px;'>
+                    {% for option in form.miri_filt_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
-            <div class="col-sm-2" id="nircam_filt_ta" style="display:none;"> 
-                <select class='form-control' name="nircam_filt_ta">    
-                    <option value="f335m">F335M</option>
+            <div class="col-sm-3" id="nircam_filt_ta" style="display:none;">
+                <select class='form-control' name="nircam_filt_ta" style='width:186px;'>
+                    {% for option in form.nircam_filt_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
-            <div class="col-sm-2" id="niriss_filt_ta" style="display:none;">
-                <select class='form-control' name="niriss_filt_ta">
-                    <option value="f480m">F480M</option>
+            <div class="col-sm-3" id="niriss_filt_ta" style="display:none;">
+                <select class='form-control' name="niriss_filt_ta" style='width:186px;'>
+                    {% for option in form.niriss_filt_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
-            <div class="col-sm-2" id="nirspec_filt_ta" style="display:none;">
-                <select class='form-control' name="nirspec_filt_ta">
-                    <option value="f110w">F110W</option>
-                    <option value="f140x">F140X</option>
-                    <option value="clear">CLEAR</option>`
+            <div class="col-sm-3" id="nirspec_filt_ta" style="display:none;">
+                <select class='form-control' name="nirspec_filt_ta" style='width:186px;'>
+                    {% for option in form.nirspec_filt_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
-                   
             </div>
-            <p class="help-block">The filter for target acquisition.</p>
+            
+            <div class="col-sm-10 col-sm-offset-2">
+                <span id="helpBlock" class="help-block">The filter for target acquisition</span>
             </div>
+        </div>
 
         <hr class="col-md-12">
-        
+
         <div class='form-group' id="instrument-mode-section">
-                        
+
             <label for='subarray' class="col-sm-2 control-label">Subarray</label>
             <div class="col-sm-3" id="miri_sub" >
-                <select class='form-control' name="miri_subarray">
-                    <option value='slitlessprism'>SLITLESSPRISM</option>
+                <select class='form-control' name="miri_subarray" style='width:186px;'>
+                    {% for option in form.miri_subarray %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
             <div class="col-sm-3" id="nircam_sub" style="display:none;">
-                <select class='form-control' name="nircam_subarray">    
-                    <option value='full'>FULL FRAME</option>    
-                    <option value='subgrism256'>SUBGRISM256</option>    
-                    <option value='subgrism128'>SUBGRISM128</option>
-                    <option value='subgrism64'>SUBGRISM64</option>    
+                <select class='form-control' name="nircam_subarray" style='width:186px;'>
+                    {% for option in form.nircam_subarray %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-            
+
             <div class="col-sm-3" id="niriss_sub" style="display:none;">
-                <select class='form-control' name="niriss_subarray">
-                    <option value='substrip256'>SUBSTRIP256</option>
-                    <option value='substrip96'>SUBSTRIP96</option>
+                <select class='form-control' name="niriss_subarray" style='width:186px;'>
+                    {% for option in form.niriss_subarray %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
             <div class="col-sm-3" id="nirspec_sub" style="display:none;">
-                <select class='form-control' name="nirspec_subarray">
-                    <option value='sub2048'>SUB2048</option>    
-                    <option value='sub1024a'>SUB1024A</option>
-                    <option value='sub1024b'>SUB1024B</option>    
-                    <option value='sub512'>SUB512</option>
+                <select class='form-control' name="nirspec_subarray" style='width:186px;'>
+                    {% for option in form.nirspec_subarray %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-                 <p class="help-block">The full frame or subarray mode for your science observation.</p>
-        </div>
-        
-        <br> 
-        
-        <div class='form-group'>
             
+            <div class="col-sm-10 col-sm-offset-2">
+                <span id="helpBlock" class="help-block">The full frame or subarray mode for your science observation</span>
+            </div>
+        </div>
+
+        <div class='form-group'>
+
             <label for='subarray_ta' class='col-sm-2 control-label'></label>
             <div class="col-sm-3" id="miri_sub_ta" >
-                <select class='form-control' name="miri_subarray_ta">
-                    <option value='slitlessprism'>SLITLESSPRISM</option>
+                <select class='form-control' name="miri_subarray_ta" style='width:186px;'>
+                    {% for option in form.miri_subarray_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-            
+
             <div class="col-sm-3" id="nircam_sub_ta" style="display:none;">
-                <select class='form-control' name="nircam_subarray_ta">    
-                    <option value='sub32tats'>SUB32TATS</option>
+                <select class='form-control' name="nircam_subarray_ta" style='width:186px;'>
+                    {% for option in form.nircam_subarray_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-            
+
             <div class="col-sm-4" id="niriss_sub_ta" style="display:none;">
-                <select class='form-control' name="niriss_subarray_ta">    
-                    <option value='nrm'>SUBTASOSS -- BRIGHT</option>
-                    <option value='im'>SUBTASOSS -- FAINT</option>
+                <select class='form-control' name="niriss_subarray_ta" style='width:186px;'>
+                    {% for option in form.niriss_subarray_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
 
             <div class="col-sm-3" id="nirspec_sub_ta" style="display:none;">
-                <select class='form-control' name="nirspec_subarray_ta">    
-                    <option value='full'>FULL</option>
-                    <option value='sub32'>SUB32</option>
-                    <option value='sub2048'>SUB2048</option>
+                <select class='form-control' name="nirspec_subarray_ta" style='width:186px;'>
+                    {% for option in form.nirspec_subarray_ta %}
+                        <div class='radio'>
+                            {{ option }}
+                        </div>
+                    {% endfor %}
                 </select>
             </div>
-                 <p class="help-block">The subarray mode for target acquisition. </p>
+            <div class="col-sm-10 col-sm-offset-2">
+                <span id="helpBlock" class="help-block">The subarray mode for target acquisition</span>
+            </div>
         </div>
-        
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
             <label for="sat_mode" class="col-sm-2 control-label">Maximum Saturation</label>
             <div class="col-sm-10">
-                <div class='radio-inline'>
-                    <label>
-                        <input type="radio" name="sat_mode" value="counts"/> Counts
-                    </label>
-                </div>
-                <div class='radio-inline'>
-                    <label>
-                        <input type="radio" name="sat_mode" value="well" checked/> Full well fraction
-                    </label>
-                </div>
+                {% for subfield in form.sat_mode %}
+                    <div class='radio'>
+                        {{ subfield(style='margin-left:0px;') }}{{ subfield.label }}
+                    </div>
+                {% endfor %}
                 <span id="helpBlock" class="help-block">How to measure the
                     saturation.</span>
             </div>
-            
+
         </div>
-        
+
         <br>
-        
+
         <div class='form-group'>
-            
+
             <label for='sat_max' class="col-sm-2 control-label"></label>
             <div class="col-sm-10">
                 <div class="input-group">
-                    <input type="text" name="sat_max" size="7" rows="1" value='0.95' placeholder="Counts or Full Well Fraction" class='form-control' />
-                    <div class="input-group-addon" style='width:50px'></div>
-                 </div>
-                 <span id="helpBlock" class="help-block">The level of
-                     saturation.</span>
+                    {{ form.sat_max(value=form.sat_max.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'></div>
+                </div>
+                <span id="helpBlock" class="help-block">The level of saturation</span>
+                <br>
+                {% for error in form.sat_max.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
-    
-            <p class="myBody">
-                Some background on saturation levels to inform your decision --
-                following is the saturation cap built into the ETC, and the 
+
+            <div class="col-sm-10 col-sm-offset-2">
+                Some background on saturation levels to inform your decision: 
+                The following is the saturation cap built into the ETC, and the
                 current estimates of max possible saturation (which is what we
-                use when you opt for well fraction). 
-            </p>
-            
+                use when you opt for well fraction).
+
                 <br></br>
-                    <table id="myTable">
-                        <tr class="header">
-                            <th>MIRI</th>
-                            <th>NIRCam</th>
-                            <th>NIRSpec</th>
-                            <th>NIRISS</th>
-                            <th> fullwell </th>
-                        </tr>
-                        <tr>
-                            <td>{{ sat_data['miri'] }}</td>
-                            <td>{{ sat_data['nircam'] }}</td>
-                            <td>{{ sat_data['nirspec'] }}</td>
-                            <td>{{ sat_data['niriss'] }}</td>
-                            <td> JWST ETC recommendation </td>
-                        </tr>
-                        <tr>
-                            <td>{{ 250000 }}</td>
-                            <td>{{ 60000 }}</td>
-                            <td>{{ 65500 }}</td>
-                            <td>{{ 75000 }}</td>
-                            <td> max possible saturation </td> 
-                        </tr>
-                    </table>
+                <table id="myTable">
+                    <tr class="header">
+                        <th>MIRI</th>
+                        <th>NIRCam</th>
+                        <th>NIRSpec</th>
+                        <th>NIRISS</th>
+                        <th> fullwell </th>
+                    </tr>
+                    <tr>
+                        <td>{{ sat_data['miri'] }} </td>
+                        <td>{{ sat_data['nircam'] }}</td>
+                        <td>{{ sat_data['nirspec'] }}</td>
+                        <td>{{ sat_data['niriss'] }} [e-]</td>
+                        <td> JWST ETC recommendation </td>
+                    </tr>
+                    <tr>
+                        <td>{{ 250000 }}</td>
+                        <td>{{ 60000 }}</td>
+                        <td>{{ 65500 }}</td>
+                        <td>{{ 75000 }}</td>
+                        <td> max possible saturation </td>
+                    </tr>
+                </table>
+            </div>
 
         </div>
         
@@ -426,8 +448,7 @@
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
               <p>
-                <input id='submit' class="btn btn-success" type='submit' value='Calculate Groups and Integrations'></p>
-                <!-- <span id="helpBlock" class="help-block">This can take up to 20 seconds! Please be patient.</span> -->
+                {{ form.calculate_submit(class="btn btn-success") }}
               </p>
              </div>
         </div>

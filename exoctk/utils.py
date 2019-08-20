@@ -3,11 +3,74 @@
 """
 A module for utility funtions
 """
+import itertools
+import os
+import re
+import requests
+import urllib
+
 from astropy.io import fits
+import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import numpy as np
-import re
+from svo_filters import svo
+
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
+
+# Supported profiles
+PROFILES = ['uniform', 'linear', 'quadratic',
+            'square-root', 'logarithmic', 'exponential',
+            '3-parameter', '4-parameter']
+
+# Supported filters
+FILTERS = svo.filters()
+
+# Set the version
+VERSION = '0.2'
+
+
+def color_gen(colormap='viridis', key=None, n=10):
+    """Color generator for Bokeh plots
+
+    Parameters
+    ----------
+    colormap: str, sequence
+        The name of the color map
+
+    Returns
+    -------
+    generator
+        A generator for the color palette
+    """
+    if colormap in dir(bpal):
+        palette = getattr(bpal, colormap)
+
+        if isinstance(palette, dict):
+            if key is None:
+                key = list(palette.keys())[0]
+            palette = palette[key]
+
+        elif callable(palette):
+            palette = palette(n)
+
+        else:
+            raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    elif isinstance(colormap, (list, tuple)):
+        palette = colormap
+
+    else:
+        raise TypeError("pallette must be a bokeh palette name or a sequence of color hex values.")
+
+    yield from itertools.cycle(palette)
+
+
+COLORS = color_gen('Category10')
 
 
 def interp_flux(mu, flux, params, values):
@@ -112,87 +175,7 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     for ii in range(nbins):
         specnew[ii] = np.sum(spec0int[inds2[ii][0]: inds2[ii][1]])
 
-    if plot:
-        plt.figure()
-        plt.loglog(wave, flux, c='b')
-        plt.loglog(wavnew, specnew, c='r')
-
     return specnew
-
-
-def multiplot(rows, columns, ylabel='', xlabel='', sharey=True, sharex=True,
-              fontsize=20, figsize=(15, 7), title='', **kwargs):
-    """
-    Creates subplots with given number or *rows* and *columns*.
-
-    Parameters
-    ----------
-    rows: int
-        The number of rows in the figure
-    columns: int
-        The number of columns in the figure
-    ylabel: str, list
-        The shared y-label or list of y-labels for each column
-    xlabel: str, list
-        The shared y-label or list of y-labels for each column
-    sharey: bool
-        Same y-axis limits
-    sharex: bool
-        Same x-axis limits
-    fontsize: int
-        The fontsize to use throughout the figure
-    figsize: tuple, list
-        The (x, y) dimenstions of the figure
-    title: str
-        The title of the figure
-    Returns
-    -------
-    list
-        A list of the figure and axes objects for the current figure
-
-    Example
-    -------
-    >>> fig, (ax11, ax12, ax13), (ax21, ax22, ax23) = multiplot(2, 3)
-    >>> ax11.plot(x, y, label='Row 1, Col 1 Plot')
-    """
-    # Initialize the plot
-    fig, axes = plt.subplots(rows, columns, sharey=sharey, sharex=sharex,
-                             figsize=figsize)
-    plt.rc('text', usetex=True)
-    plt.rc('font', size=fontsize)
-
-    # Set the y-label(s)
-    if ylabel:
-        if isinstance(ylabel, str):
-            fig.text(0.04, 0.54, ylabel, ha='center', va='center',
-                     rotation='vertical', **kwargs)
-        else:
-            if columns > 1:
-                for a, l in zip(axes, ylabel):
-                    a[0].set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
-            else:
-                for a, l in zip(axes, ylabel):
-                    a.set_ylabel(l, fontsize=fontsize, labelpad=fontsize)
-
-    # Set the x-label(s)
-    if xlabel:
-        if isinstance(xlabel, str):
-            fig.text(0.54, 0.04, xlabel, ha='center', va='center', **kwargs)
-        else:
-            if rows > 1:
-                for a, l in zip(axes, xlabel):
-                    a[0].set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
-            else:
-                for a, l in zip(axes, xlabel):
-                    a.set_xlabel(l, fontsize=fontsize, labelpad=fontsize)
-
-    # Plot formatting
-    plt.suptitle(title)
-    plt.subplots_adjust(right=0.96, top=0.93 if title else 0.96, bottom=0.15,
-                        left=0.12, hspace=0, wspace=0)
-    fig.canvas.draw()
-
-    return [fig] + list(axes)
 
 
 def writeFITS(filename, extensions, headers=()):
@@ -327,7 +310,7 @@ def medfilt(x, window_len):
 
 def filter_table(table, **kwargs):
     """Retrieve the filtered rows
-    
+
     Parameters
     ----------
     table: astropy.table.Table, pandas.DataFrame
@@ -335,11 +318,11 @@ def filter_table(table, **kwargs):
     param: str
         The parameter to filter by, e.g. 'Teff'
     value: str, float, int, sequence
-        The criteria to filter by, 
+        The criteria to filter by,
         which can be single valued like 1400
         or a range with operators [<,<=,>,>=],
         e.g. ('>1200','<=1400')
-    
+
     Returns
     -------
     astropy.table.Table, pandas.DataFrame
@@ -471,3 +454,93 @@ def find_closest(axes, points, n=1, values=False):
             return
 
     return results
+
+def build_target_url(target_name):
+    '''Build restful api url based on target name.
+
+    Parameters
+        ----------
+        target_name : string
+            The name of the target transit.
+
+        Returns
+        -------
+        target_url : string
+    '''
+    # Encode the target name string.
+    encode_target_name = urllib.parse.quote(target_name, encoding='utf-8')
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/{}/properties/".format(encode_target_name)
+
+    return target_url
+
+def get_canonical_name(target_name):
+    '''Get ExoMAST prefered name for exoplanet.
+
+        Parameters
+        ----------
+        target_name : string
+            The name of the target transit.
+
+        Returns
+        -------
+        canonical_name : string
+    '''
+
+    target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
+
+    # Create params dict for url parsing. Easier than trying to format yourself.
+    params = {"name":target_name}
+
+    r = requests.get(target_url, params=params)
+    planetnames = r.json()
+    canonical_name = planetnames['canonicalName']
+
+    return canonical_name
+
+def get_target_data(target_name):
+    """
+    Send request to exomast restful api for target information.
+
+    Parameters
+    ----------
+    target_name : string
+        The name of the target transit
+
+    Returns
+    -------
+    target_data: json:
+        json object with target data.
+    """
+
+    canonical_name = get_canonical_name(target_name)
+
+    target_url = build_target_url(canonical_name)
+
+    r = requests.get(target_url)
+
+    if r.status_code == 200:
+        target_data = r.json()
+    else:
+        print('Whoops, no data for this target!')
+
+    # Some targets have multiple catalogs
+    # nexsci is the first choice.
+    if len(target_data) > 1:
+        # Get catalog names from exomast and make then the keys of a dictionary
+        # and the values are its position in the json object.
+        catalog_dict = {data['catalog_name']: index for index, data in enumerate(target_data)}
+
+        # Parse based on catalog accuracy.
+        if 'nexsci' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['nexsci']]
+        elif 'exoplanets.org' in list(catalog_dict.keys()):
+            target_data = target_data[catalog_dict['exoplanets.org']]
+        else:
+            target_data = target_data[0]
+    else:
+        target_data = target_data[0]
+
+    # Strip spaces and non numeric or alphabetic characters and combine.
+    url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
+
+    return target_data, url

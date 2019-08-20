@@ -3,22 +3,24 @@
 """
 A module for creating and managing grids of model spectra
 """
+from functools import partial
 from glob import glob
+import multiprocessing
+import os
+import pickle
+from pkg_resources import resource_filename
+import time
+import warnings
+
 from astropy.io import fits
 from astropy.utils.exceptions import AstropyWarning
-from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import zoom
-from functools import partial
-from pkg_resources import resource_filename
-import multiprocessing
 import astropy.table as at
 import astropy.units as q
-import pickle
-import warnings
-import numpy as np
-import os
-import time
 import h5py
+import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import zoom
+
 from . import utils
 
 warnings.simplefilter('ignore', category=AstropyWarning)
@@ -106,6 +108,7 @@ class ModelGrid(object):
 
             # Print update...
             if model_directory.endswith('/*'):
+
                 print("Indexing models...")
 
             # Create some attributes
@@ -395,7 +398,7 @@ class ModelGrid(object):
             # Interpolate flux values at each wavelength
             # using a pool for multiple processes
             print('Interpolating grid point [{}]...'.format(label))
-            processes = 4
+            processes = 8
             mu_index = range(flux.shape[-2])
             start = time.time()
             pool = multiprocessing.Pool(processes)

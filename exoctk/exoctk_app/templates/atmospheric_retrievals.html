@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+        <script src='{{ url_for('static',filename='js/jquery-1.12.0.min.js')}}'></script>
+
+{% block content %}
+
+        <div class='form-group'>
+            <h1>Atmospheric Retrievals</h1>
+            <br>
+            <p>
+            The <tt>atmospheric_retrievals</tt> subpackage within the <tt>exoctk</tt> package currently contains a module for performing retrievals via the <a href="https://platon.readthedocs.io/en/latest/" target="_blank"><tt>PLATON</tt></a> package. <a href="https://github.com/ExoCTK/exoctk/blob/master/exoctk/notebooks/atmopsheric_retrievals_demo.ipynb" target="_blank">This Jupyter notebook</a> contains a demo of how to use the <a href="https://github.com/ExoCTK/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py" target="_blank"><tt>platon_wrapper</tt></a> module.
+            </p>
+
+            <p>
+            Users who wish to use the <tt>atmospheric_retrievals</tt> tools may do so by installing the <tt>exoctk</tt> package.  Please see the <a href="https://github.com/exoctk/exoctk/tree/master#installation" target="_blank">installation instructions</a> for further details.
+            </p>
+
+        </div>
+
+{% endblock %}

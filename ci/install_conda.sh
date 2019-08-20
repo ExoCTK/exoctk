@@ -24,3 +24,7 @@ echo "Updating Miniconda"
 conda update conda
 conda update --all
 conda info -a || exit 1
+
+echo "Installing numpy"
+conda install numpy
+pip install Flask

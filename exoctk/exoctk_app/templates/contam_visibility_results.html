@@ -9,37 +9,42 @@
         {{ contam_js|indent(4)|safe }}
         {{ contam_css|indent(4)|safe }}
         {{ contam_script|safe }}
-        
+
     	<h1>Contamination & Visibility Calculator</h1>
         <br>
 
 
-    	<p>This tool is designed for Single-Object Slit-less Spectroscopy (SOSS) mode of NIRISS. 
-    	For slitless observations, the spectrum of a target star may be contaminated by partlially overlapping spectra of 
-    	nearby stars. For a given target this contamination depends on the 
-    	position angle (PA) at which the observations are taken. This tool simulates SOSS observations of a 
-    	given target and produces an estimate of the level of contamination as a function of the PA of the 
-    	observation; it may be used to plan observations at the optimal PA. The tool also computes the JWST 
-    	accessibility windows of the target, along with the corresponding accessible PAs for NIRISS observations. In the future, functionality will be extended to calculate contamination by other instruments. 
+    	<p>This tool is designed for the slitless observation modes of all JWST instruments.
+    	For slitless observations, the spectrum of a target star may be contaminated by partially overlapping spectra of
+    	nearby stars. For a given target, this contamination depends on the
+    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam Grism Time Series, and MIRI LRS observations of a
+    	given target, and produces an estimate of the level of contamination as a function of the PA of the
+    	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
+    	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
     	</p>
         <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
 
-    	{% if contamVars['visPA'] ==  True %}
+
             <hr>
     		<h3>Target Visibility</h3>
     		{{ vis_plot | safe }}
             <br><br>
     		<p>Figure explication:</p>
     		<ul>
-    			<li>The curve indicates the nominal PA of NIRISS as a function of the calendar date.</li>
-    			<li>The shaded region indicates the range of PAs accessible by rolling the telescope.</li>
+    			<li>The solid line indicates the Nominal Aperture PA (of the instrument) as a function of the calendar date.</li>
+    			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
     			<li>On dates where there is no curve, the target is inaccessible.</li>
-    			<li>The TXT file provides the same information detailed on a daily basis, with at the end a summary of the accessible and non-accessible PA ranges.</li>
+          <li>Note that it is possible for the Minimum Aperture PA to be larger than the Maximum Aperture PA if the maximum boresight roll takes the Maximum Aperture PA beyond 360 degrees.</li>
+    			<li>The downloadable CSV file provides the same information (and more) in table format with columns:
+            <p>
+              Minimum V3 PA, Maximum V3 PA, Minimum Aperture PA, Maximum Aperture PA, Nominal Aperture PA, Gregorian Calendar Date, and Modified Julian Date.
+            </p>
+          </li>
     		</ul>
-	
-    	{% endif %}
 
-    	{% if contamVars['contam'] == True %}
+
+
+    	{% if contam_plot %}
             <hr>
     		<h3>Target Contamination</h3>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
@@ -73,13 +78,19 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
     		</ul>
 
     	{% endif %}
-	
+
     	<br>
-	
+
    	<form action="/contam_visibility">
     		<p><input class="btn btn-success" type = "submit" value = "Try Another Target"></p>
     	</form>
-
+      <form action="/visib_result" method="post">
+          <input type="hidden" name="data_file" value="{{ vis_table }}" />
+          <input class="btn btn-success" type='submit' value='Download CSV File'></p>
+      <form action="/visib_result" method="post">
+          <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
+          <input type="hidden" name="instrumentname" value="{{ form.inst.data }}" />
+      </form>
     </body>
 
 {% endblock %}

@@ -5,10 +5,11 @@ Email: jfilippazzo@stsci.edu
 """
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from bokeh.plotting import figure, show
 
-from .models import Model
+from .models import Model, CompositeModel
 from .fitters import lmfitter
+from ..utils import COLORS
 
 
 class LightCurveFitter:
@@ -38,8 +39,7 @@ class LightCurveFitter:
 
 
 class LightCurve(Model):
-    def __init__(self, time, flux, unc=None, parameters=None, units='MJD',
-                 name=None):
+    def __init__(self, time, flux, unc=None, parameters=None, units='MJD', name='My Light Curve'):
         """
         A class to store the actual light curve
 
@@ -54,6 +54,10 @@ class LightCurve(Model):
         parameters: str, object (optional)
             The orbital parameters of the star/planet system,
             may be a path to a JSON file or a parameter object
+        units: str
+            The time units
+        name: str
+            A name for the object
         """
         # Initialize the model
         super().__init__()
@@ -80,6 +84,9 @@ class LightCurve(Model):
         self.units = units
         self.name = name
 
+        # Place to save the fit results
+        self.results = []
+
     def fit(self, model, fitter='lmfit', **kwargs):
         """Fit the model to the lightcurve
 
@@ -90,18 +97,61 @@ class LightCurve(Model):
         fitter: str
             The name of the fitter to use
         """
+        # Empty default fit
+        fit_model = None
+
+        # Make sure the model is a CompositeModel
+        if not isinstance(model, type(CompositeModel)):
+            model = CompositeModel([model])
+
         if fitter == 'lmfit':
 
             # Run the fit
-            return lmfitter(self.time, self.flux, model, self.unc)
+            fit_model = lmfitter(self.time, self.flux, model, self.unc, **kwargs)
 
-    def plot(self):
-        """Plot the light curve with all available fits"""
-        plt.figure()
+        else:
+            raise ValueError("{} is not a valid fitter.".format(fitter))
 
-        plt.errorbar(self.time, self.flux, yerr=self.unc, marker='o',
-                     ls='none', label=self.name)
+        # Store it
+        if fit_model is not None:
+            self.results.append(fit_model)
 
-        plt.xlabel(self.units)
-        plt.ylabel('Flux')
-        plt.legend(loc=0, frameon=False)
+    def plot(self, fits=True, draw=True):
+        """Plot the light curve with all available fits
+
+        Parameters
+        ----------
+        fits: bool
+            Plot the fit models
+        draw: bool
+            Show the figure, else return it
+
+        Returns
+        -------
+        bokeh.plotting.figure
+            The figure
+        """
+        # Make the figure
+        fig = figure(width=800, height=400)
+
+        # Draw the data
+        fig.circle(self.time, self.flux, legend=self.name)
+
+        # Plot fit models
+        if fits and len(self.results) > 0:
+            for model in self.results:
+                model.plot(self.time, fig=fig, color=next(COLORS))
+
+        # Format axes
+        fig.xaxis.axis_label = str(self.units)
+        fig.yaxis.axis_label = 'Flux'
+
+        # Draw or return
+        if draw:
+            show(fig)
+        else:
+            return fig
+
+    def reset(self):
+        """Reset the results"""
+        self.results = []

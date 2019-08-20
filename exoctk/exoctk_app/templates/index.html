@@ -3,57 +3,64 @@
 
 
                 <div class="row">
-                    <div class="col-md-9">
-                    
-                    ExoCTK (the Exoplanet Characterization Tool Kit) is an open-source, modular, data analysis software package 
-                    focused primarily on atmospheric characterization of exoplanets and observation planning. 
-                    This web application runs the most recent available version of ExoCTK through this web portal designed to
-                    single out the most useful tools for observation planning, forward modeling, data reduction, limb darkening,
-                    light curve fitting, and retrievals. </p> 
+                    <div class="col-md-12">
+
+                        <p style='padding: 0 30px;'> The Exoplanet
+                        Characterization ToolKit (ExoCTK) is an open-source,
+                        modular, data analysis software package focused
+                        primarily on the atmospheric characterization of
+                        exoplanets and time-series observation planning. The
+                        web application runs the most recently released version
+                        of ExoCTK through a web portal designed to provide the
+                        most useful tools for observation planning, forward
+                        modeling, data reduction, limb darkening, light curve
+                        fitting, and retrievals. The full version of ExoCTK is
+                        available through <a
+                         href="https://github.com/ExoCTK/exoctk">GitHub.</a></p>
                     </div>
                 </div>
                 <hr class="col-md-12">
                 <div class="form-group col-sm-12">
-                    
-                    
+
+
                     <div class="col-sm-6">
                         <h3>Observation Planning</h3>
                         <span id="helpBlock" class="help-block">Tools for observation planning with JWST.</span>
                         <a class="btn btn-primary" href="./groups_integrations">Groups and Integrations</a>
                         <a class="btn btn-primary" href="./contam_visibility">Contamination Overlap</a>
                     </div>
-                    
+
                     <div class="col-sm-6">
                         <h3>Forward Modeling</h3>
                         <span id="helpBlock" class="help-block">Atmospheric forward modeling tools.</span>
                         <a class="btn btn-primary" href="./fortney">Fortney Grid</a>
-                        <a class="btn btn-default disabled" href="./platon">Platon</a>
+                        <a class="btn btn-primary" href="./generic">Generic Grid</a>
                     </div>
-                    
+
                 </div>
-                
+
                 <div class="form-group col-sm-12">
-                    
+
                     <div class="col-sm-6">
                         <h3>Limb Darkening Calculator</h3>
                         <p>Tools to estimate limb darkening in your host star.</p>
                             <p><a class="btn btn-primary" href="./limb_darkening">Limb Darkening Calculator</a></p>
                     </div>
-                    
+
                     <div class="col-sm-6">
                         <h3>Atmospheric Retrievals</h3>
                         <span id="helpBlock" class="help-block">Tools for Bayesian atmospheric retrievals.</span>
-                        <a class="btn btn-default disabled" href="./retrievals">Atmospheric Retrievals</a>
+                        <a class="btn btn-primary" href="./atmospheric_retrievals">Atmospheric Retrievals</a>
                     </div>
-                    
+
                 </div>
-                
+
                 <div class="form-group col-sm-12">
-                    
+
                     <div class="col-sm-6">
                         <h3>Light Curve Fitting</h3>
                         <span id="helpBlock" class="help-block">Tools to fit the parameters of derived light curves.</span>
-                        <a class="btn btn-default disabled" href="./light_curve">Light Curve Fitting</a>
+                        <a class="btn btn-primary" href="./lightcurve_fitting">Light Curve Fitting</a>
                     </div>
 
                     <div class="col-sm-6">
@@ -61,30 +68,7 @@
                         <span id="helpBlock" class="help-block">A variety of data reduction tools.</span>
                         <a class="btn btn-default disabled" href="./data_reduction">Data Reduction</a>
                     </div>
-                    
-                </div>
-                
-                <hr class="col-md-12">
-                <br>
-                
-                    
-                <div class="form-group col-sm-12">
-                <div class="col-sm-6">
-                    <h3> GitHub Source Code</h3>
-                        <ul>
-                            <li><a href="https://github.com/ExoCTK/ExoCTK">ExoCTK</a> is the computing package behind the website.</li>
-                            <li><a href="https://github.com/ExoCTK/ExoCTKWeb">ExoCTKWeb</a> is the literal source code of this website.</li>
-                            <li><a href="https://github.com/ExoCTK/PandExo_HST">PandExo_HST</a> is our counterpart for HST observations.</li>
-                        </ul>
-                    </div>
 
-                    <div class="col-sm-6">
-                        <h3>ExoCTK Data</h3>
-                        <ul>
-                            <li><a href="{{url_for('groups_integrations_download')}}">This</a> is the JSON data file required to run the Groups and Integrations Calculator through ExoCTK.</li>
-                            <li><a
-                                   href="{{url_for('fortney_download')}}">This</a> is an SQLite database of the Fortney Grid of stellar models.
-                </div>
                 </div>
 
 <script src="//cdn.datatables.net/1.10.7/js/jquery.dataTables.min.js"></script>

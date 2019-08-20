@@ -13,14 +13,16 @@ import datetime
 import math
 import pkg_resources
 
-import matplotlib
-# matplotlib.use('Agg')
+from astropy.table import Table
+from astropy.time import Time
+from bokeh.plotting import figure, ColumnDataSource
+from bokeh.models import HoverTool, ranges
+from bokeh.models.widgets import Panel, Tabs
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 import numpy as np
 
 from . import ephemeris_old2x as EPH
+from jwst_gtvt.find_tgt_info import get_table
 
 
 D2R = math.pi/180.  # degrees to radians
@@ -49,7 +51,7 @@ def convert_ddmmss_to_float(astring):
 
 
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
-    """Check the visibility at a range of position angles
+    """Check the visibility at a range of position angles.
 
     Parameters
     ----------
@@ -61,7 +63,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         The target name
     ephFileName: str
         The filename of the ephemeris file
-    fig: matplotlib.pyplot.figure, bokeh.plotting.figure
+    fig: bokeh.plotting.figure
         The figure to plot to
 
     Returns
@@ -72,7 +74,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
         The bad position angle.
     gd : matplotlib.dates object
        The greogrian date.
-    fig : matplotlib.pyplot object
+    fig : bokeh.plotting.figure object
         The plotted figure.
 
     """
@@ -150,7 +152,11 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # Make a figure
     if fig is None or fig == True:
-        fig = plt.gcf()
+        tools = 'crosshair, reset, hover, save'
+        radec = ', '.join([str(ra), str(dec)])
+        fig = figure(tools=tools, plot_width=800, plot_height=400,
+                     x_axis_type='datetime',
+                     title=targetName or radec)
 
     # Do all figure calculations
     iBad, = np.where(vis == False)
@@ -180,76 +186,177 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     paMinTmp = np.copy(paMin)
     paMinTmp[np.where(paMin > paMax)[0]] = 0
 
-    # Add fits to matplotlib
-    if isinstance(fig, matplotlib.figure.Figure):
+    # Convert datetime to a number for Bokeh
+    gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
+                   for n, d in enumerate(gdMasked)]
+    color = 'green'
 
-        # Make axes
-        ax = plt.axes()
-        plt.title(targetName)
+    # Draw the curve and error
+    fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
-        # plot nominal PA
-        plt.plot(gdMasked, paMasked, color='k')
+    # Top
+    terr_y = np.concatenate([paMin[i0_top:i1_top+1],
+                            paMaxTmp[i0_top:i1_top+1][::-1]])
+    terr_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
+                            gdMaskednum[i0_top:i1_top+1][::-1]])
+    fig.patch(terr_x, terr_y, color=color, fill_alpha=0.2, line_alpha=0)
 
-        # plot ranges allowed through roll
-        if wrap:
-            i = np.argmax(paMin)
-            goUp = paMin[i-2] < paMin[i-1]  # PA going up at wrap point?
 
-            # top part
-            plt.fill_between(gd[i0_top:i1_top+1], paMin[i0_top:i1_top+1],
-                             paMaxTmp[i0_top:i1_top+1],
-                             where=vis[i0_top:i1_top+1], lw=0, facecolor='k',
-                             alpha=0.5)
+    # Bottom
+    berr_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
+                            paMax[i0_bot:i1_bot+1][::-1]])
+    berr_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
+                            gdMaskednum[i0_bot:i1_bot+1][::-1]])
+    fig.patch(berr_x, berr_y, color='red', fill_alpha=0.2, line_alpha=0)
+    from bokeh.plotting import show
+    show(fig)
 
-            # bottom part
-            plt.fill_between(gd[i0_bot:i1_bot+1], paMinTmp[i0_bot:i1_bot+1],
-                             paMax[i0_bot:i1_bot+1],
-                             where=vis[i0_bot:i1_bot+1], lw=0, facecolor='k',
-                             alpha=0.5)
 
-        else:
-            plt.fill_between(gd, paMin, paMax, where=vis, lw=0, facecolor='k',
-                             alpha=0.5)
-
-        plt.ylabel('Position Angle (degrees)')
-        plt.xlim(min(gd), max(gd))
-        ax.xaxis.set_major_locator(mdates.MonthLocator())
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
-        ax.xaxis.set_minor_locator(mdates.DayLocator(list(range(1, 32, 5))))
-        plt.ylim(0, 360)
-        ax.yaxis.set_major_locator(MultipleLocator(25))
-        ax.yaxis.set_minor_locator(MultipleLocator(5))
-        plt.grid()
-        for label in ax.get_xticklabels():
-            label.set_rotation(45)
-
-    # Or to bokeh!
-    else:
-
-        # Convert datetime to a number for Bokeh
-        gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
-                       for n, d in enumerate(gdMasked)]
-        color = 'green'
-
-        # Draw the curve and error
-        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
-
-        # Top
-        err_y = np.concatenate([paMin[i0_top:i1_top+1],
-                                paMaxTmp[i0_top:i1_top+1][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
-                                gdMaskednum[i0_top:i1_top+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-        # Bottom
-        err_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
-                                paMax[i0_bot:i1_bot+1][::-1]])
-        err_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
-                                gdMaskednum[i0_bot:i1_bot+1][::-1]])
-        fig.patch(err_x, err_y, color=color, fill_alpha=0.2, line_alpha=0)
-
-        # Plot formatting
-        fig.xaxis.axis_label = 'Date'
-        fig.yaxis.axis_label = 'Position Angle (degrees)'
+    # Plot formatting
+    fig.xaxis.axis_label = 'Date'
+    fig.yaxis.axis_label = 'Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
+
+def fill_between(fig, xdata, pamin, pamax, **kwargs):
+    # addressing NIRSpec issue
+
+    # now creating the patches for the arrays
+    nanbot = np.where([np.isnan(i) for i in pamin])[0]
+    nantop = np.where([np.isnan(i) for i in pamax])[0]
+    yb = np.split(pamin, nanbot)
+    xs = np.split(xdata, nanbot)
+    yt = np.split(pamax, nantop)
+    for x, bot, top in zip(xs, yb, yt):
+        x = np.append(x, x[::-1])
+        y = np.append(bot, top[::-1])
+        fig.patch(x, y, **kwargs)
+    return fig
+
+def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
+    """Plot the visibility (at a range of position angles) against time.
+
+    Parameters
+    ----------
+    ra : float
+        The RA of the target.
+    dec : float
+        The Dec of the target.
+    instrument : str
+        Name of the instrument. Can either be (case-sensitive):
+        'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
+    ephFileName : str
+        The filename of the ephemeris file.
+    output : str
+        Switches on plotting with Bokeh. Parameter value must be 'bokeh'.
+
+    Returns
+    -------
+    paGood : float
+        The good position angle.
+    paBad : float
+        The bad position angle.
+    gd : matplotlib.dates object
+       The gregorian date.
+    fig : bokeh.plotting.figure object
+        The plotted figure.
+
+    """
+    # getting calculations from GTVT (General Target Visibility Tool)
+    tab = get_table(ra, dec)
+
+    gd = tab['Date']
+    paMin = tab[str(instrument)+' min']
+    paMax = tab[str(instrument)+' max']
+    paNom = tab[str(instrument)+' nom']
+    v3min = tab['V3PA min']
+    v3max = tab['V3PA max']
+
+    # addressing NIRSpec issue*
+    # *the issue that NIRSpec's angle goes beyond 360 degrees with some targs,
+    # thus resetting back to 0 degrees, which can make the plot look weird
+    index = np.arange(0, len(paNom), 1)
+
+    for idx in index:
+
+        try:
+            a1 = paNom[idx]
+            b1 = paNom[idx+1]
+
+            if (np.isfinite(a1)==True) & (np.isfinite(b1)==True):
+                delta = np.abs(a1-b1)
+
+                if delta>250:
+                    print(a1,b1,delta)
+                    gd = np.insert(gd, idx+1, np.nan)
+                    paMin = np.insert(paMin, idx+1, np.nan)
+                    paMax = np.insert(paMax, idx+1, np.nan)
+                    paNom = np.insert(paNom, idx+1, np.nan)
+                    v3min = np.insert(v3min, idx+1, np.nan)
+                    v3max = np.insert(v3min, idx+1, np.nan)
+        except:
+            pass
+
+    # Setting up HoverTool parameters & other variables
+    COLOR = 'green'
+    TOOLS = 'pan, wheel_zoom, box_zoom, reset, save'
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
+                                        panom=paNom,\
+                                        pamax=paMax,\
+                                        date=gd))
+    TOOLTIPS = [('Date','@date{%F}'),\
+                ('Maximum Aperture PA', '@pamax'),\
+                ('Nominal Aperture PA', '@panom'),\
+                ('Minimum Aperture PA', '@pamin')]
+
+    # Time to plot
+    if output=='bokeh':
+        fig = figure(tools=TOOLS,\
+                     plot_width=800,\
+                     plot_height=400,\
+                     x_axis_type='datetime',\
+                     title='Target Visibility with '+str(instrument))
+
+    # Draw the curve and PA min/max patch
+    fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
+               source=SOURCE, alpha=.5)
+    fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
+    fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
+
+    # Adding HoverTool
+    fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
+                            formatters={'date':'datetime'},\
+                            mode='vline'))
+
+    # Plot formatting
+    fig.xaxis.axis_label = 'Date'
+    fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.y_range = ranges.Range1d(0, 360)
+
+    # Making the output table
+    # Creating new lists w/o the NaN values
+    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = \
+    [], [], [], [], [], [], []
+
+    for vmin, vmax, pnom, pmin, pmax, date in zip(v3min, v3max, paNom, paMin, paMax, gd):
+        if np.isfinite(pmin)==True:
+            v3minnan.append(vmin)
+            v3maxnan.append(vmax)
+            paNomnan.append(pnom)
+            paMinnan.append(pmin)
+            paMaxnan.append(pmax)
+            gdnan.append(date)
+
+    # Adding MJD column
+    mjdnan = []
+    for date in gdnan:
+        t = Time(str(date), format='iso')
+        mjd = t.mjd
+        mjdnan.append(mjd)
+
+    # Adding lists to a table object
+    table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
+                  names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
+                         'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
+
+    return paMin, paMax, gd, fig, table
