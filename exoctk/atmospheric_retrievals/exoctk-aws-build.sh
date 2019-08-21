@@ -49,7 +49,13 @@ pip install boto3==1.9.199
 pip install corner==2.0.1
 pip install h5py==2.8.0
 pip install lmfit==0.9.13
+pip install matplotlib==3.1.0
 pip install pandas==0.25.0
 pip install paramiko==2.4.2
-pip install platon==4.0
+pip install platon==3.1
 pip install scp==0.13.2
+
+echo ''
+echo '~~~~~ THE ENVIRONMENT BEING USED ~~~~~'
+echo ''
+conda env export
