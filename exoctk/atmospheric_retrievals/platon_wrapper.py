@@ -209,15 +209,25 @@ class PlatonWrapper():
         print('Corner plot saved to {}'.format(self.output_plot))
         logging.info('Corner plot saved to {}'.format(self.output_plot))
 
-    def retrieve_emcee(self):
-        """Perform the atmopsheric retrieval via emcee."""
+    def retrieve(self, method):
+        """Perform the atmopsheric retrieval via the given method
+
+        Parameters
+        ----------
+        method : str
+            The method by which to perform atmospheric retrievals.  Can
+            either be ``emcee`` or ``multinest``."""
 
         logging.info('')
         logging.info('Performing atmopsheric retrievals via emcee')
         logging.info('')
 
-        self.method = 'emcee'
 
+        # Ensure that the method parameter is valid
+        assert method in ['multinest', 'emcee'], 'Unrecognized method: {}'.format(method)
+        self.method = method
+
+        # For processing on AWS
         if self.aws:
 
             start_time = configure_logging()
@@ -229,7 +239,7 @@ class PlatonWrapper():
             # Transfer a copy of this script
             transfer_to_ec2(instance, key, client, 'platon_wrapper.py')
 
-            command = './exoctk-aws-init.sh python platon_wrapper.py emcee params.json'
+            command = './exoctk-aws-init.sh python platon_wrapper.py {} params.json'.format(self.method)
 
             # Connect to the EC2 instance and run commands
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
@@ -239,20 +249,25 @@ class PlatonWrapper():
             log_output(output)
             log_output(errors)
 
-            transfer_from_ec2(instance, key, client, 'BestFit.txt')
-            transfer_from_ec2(instance, key, client, 'emcee_corner.png')
+            # Trasfer output products from EC2 to user
+            if self.method == 'emcee':
+                transfer_from_ec2(instance, key, client, 'BestFit.txt')
+                transfer_from_ec2(instance, key, client, 'emcee_corner.png')
+            elif self.method == 'multinest':
+                transfer_from_ec2(instance, key, client, 'multinest_resuts.dat')
+                transfer_from_ec2(instance, key, client, 'multinest_corner.png')
+
+            # Terminate the EC2 and log the execution time
             terminate_ec2(instance)
             log_execution_time(start_time)
 
+        # For processing locally
         else:
-            self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
+            if self.method == 'emcee':
+                self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
+            elif self.method == 'multinest':
+                self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
 
-
-    def retrieve_multinest(self):
-        """Perform the atmopsheric retrieval via multinested sampling."""
-
-        self.method = 'multinest'
-        self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
 
     def save_results(self):
         """Save the results of the retrieval to an output file."""
@@ -359,11 +374,9 @@ if __name__ == '__main__':
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
     # Do some retrievals
+    pw.retrieve(args.method)
     if args.method == 'multinest':
-        pw.retrieve_multinest()
         pw.save_results()
-    elif args.method == 'emcee':
-        pw.retrieve_emcee()
 
     # Make corner plot of results
     pw.make_plot()
