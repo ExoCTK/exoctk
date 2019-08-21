@@ -83,6 +83,7 @@ import argparse
 import json
 
 import corner
+import matplotlib
 import numpy as np
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
@@ -94,7 +95,7 @@ from exoctk.atmospheric_retrievals.aws_tools import create_ec2
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
 from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
-from exoctk.atmospheric_retrievals.aws_tools import transfer_output_files
+from exoctk.atmospheric_retrievals.aws_tools import transfer_output_file
 from exoctk.atmospheric_retrievals.aws_tools import transfer_params_file
 
 
@@ -185,6 +186,8 @@ class PlatonWrapper():
     def make_plot(self):
         """Create a corner plot that shows the results of the retrieval."""
 
+        matplotlib.rcParams['text.usetex'] = False
+
         if self.method == 'emcee':
             fig = corner.corner(self.result.flatchain, range=[0.99] * self.result.flatchain.shape[1],
                                 labels=self.fit_info.fit_param_names)
@@ -227,7 +230,8 @@ class PlatonWrapper():
             log_output(output)
             log_output(errors)
 
-            transfer_output_files(instance, key, client)
+            transfer_output_file(instance, key, client, 'BestFit.txt')
+            transfer_output_file(instance, key, client, 'emcee_corner.png')
             terminate_ec2(instance)
             log_execution_time(start_time)
 

@@ -40,10 +40,11 @@ import logging
 from aws_tools import build_environment
 from aws_tools import configure_logging
 from aws_tools import create_ec2
+from aws_tools import get_config
 from aws_tools import log_execution_time
 from aws_tools import log_output
 from aws_tools import terminate_ec2
-from aws_tools import transfer_output_files
+from aws_tools import transfer_output_file
 
 
 def run_tests(instance, key, client):
@@ -77,11 +78,15 @@ def run_tests(instance, key, client):
 
 if __name__ == '__main__':
 
+    # Get configuration
+    ssh_file = get_config()['ssh_file']
+    template_id = get_config()['template_id']
+
     # Configure logging
     start_time = configure_logging()
 
     # Initialize EC2 instance
-    instance, key, client = create_ec2()
+    instance, key, client = create_ec2(ssh_file, template_id)
 
     # Build ExoCTK environment
     build_environment(instance, key, client)
@@ -90,7 +95,7 @@ if __name__ == '__main__':
     run_tests(instance, key, client)
 
     # Transfer output files to user
-    transfer_output_files(instance, key, client)
+    transfer_output_file(instance, key, client, 'exoctk/exoctk/tests/BestFit.txt')
 
     # Terminate EC2 instance
     terminate_ec2(instance)
