@@ -44,7 +44,7 @@ from aws_tools import get_config
 from aws_tools import log_execution_time
 from aws_tools import log_output
 from aws_tools import terminate_ec2
-from aws_tools import transfer_output_file
+from aws_tools import transfer_from_ec2
 
 
 def run_tests(instance, key, client):
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     run_tests(instance, key, client)
 
     # Transfer output files to user
-    transfer_output_file(instance, key, client, 'exoctk/exoctk/tests/BestFit.txt')
+    transfer_from_ec2(instance, key, client, 'exoctk/exoctk/tests/BestFit.txt')
 
     # Terminate EC2 instance
     terminate_ec2(instance)

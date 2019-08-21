@@ -95,8 +95,8 @@ from exoctk.atmospheric_retrievals.aws_tools import create_ec2
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
 from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
-from exoctk.atmospheric_retrievals.aws_tools import transfer_output_file
-from exoctk.atmospheric_retrievals.aws_tools import transfer_params_file
+from exoctk.atmospheric_retrievals.aws_tools import transfer_from_ec2
+from exoctk.atmospheric_retrievals.aws_tools import transfer_to_ec2
 
 
 def _apply_factors(params):
@@ -212,13 +212,11 @@ class PlatonWrapper():
             start_time = configure_logging()
             instance, key, client = create_ec2(self.ssh_file, self.ec2_template_id)
             build_environment(instance, key, client)
-            transfer_params_file(instance, key, client)
+            transfer_to_ec2(instance, key, client, 'params.json')
 
             # Temporary
             # Transfer a copy of this script
-            client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
-            scp = SCPClient(client.get_transport())
-            scp.put('platon_wrapper.py')
+            transfer_to_ec2(instance, key, client, 'platon_wrapper.py')
 
             command = './exoctk-aws-init.sh python platon_wrapper.py emcee params.json'
 
@@ -230,8 +228,8 @@ class PlatonWrapper():
             log_output(output)
             log_output(errors)
 
-            transfer_output_file(instance, key, client, 'BestFit.txt')
-            transfer_output_file(instance, key, client, 'emcee_corner.png')
+            transfer_from_ec2(instance, key, client, 'BestFit.txt')
+            transfer_from_ec2(instance, key, client, 'emcee_corner.png')
             terminate_ec2(instance)
             log_execution_time(start_time)
 

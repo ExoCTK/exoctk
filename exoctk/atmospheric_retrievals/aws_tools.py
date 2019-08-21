@@ -224,8 +224,8 @@ def terminate_ec2(instance):
     logging.info('Terminated EC2 instance {}'.format(instance.id))
 
 
-def transfer_output_file(instance, key, client, filename):
-    """Copy output files from EC2 user back to the user
+def transfer_from_ec2(instance, key, client, filename):
+    """Copy files from EC2 user back to the user
 
     Parameters
     ----------
@@ -239,14 +239,14 @@ def transfer_output_file(instance, key, client, filename):
         The path to the file to transfer
     """
 
-    logging.info('Copying {}'.format(filename))
+    logging.info('Copying {} from EC2'.format(filename))
 
     client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
     scp = SCPClient(client.get_transport())
     scp.get(filename)
 
 
-def transfer_params_file(instance, key, client):
+def transfer_to_ec2(instance, key, client, filename):
     """Copy parameter file from user to EC2 instance
 
     Parameters
@@ -257,10 +257,12 @@ def transfer_params_file(instance, key, client):
         A ``paramiko.rsakey.RSAKey`` object.
     client : obj
         A ``paramiko.client.SSHClient`` object.
+    filename : str
+        The path to the file to transfer
     """
 
-    logging.info('Copying parameter file')
+    logging.info('Copying {} to EC2'.format(filename))
 
     client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
     scp = SCPClient(client.get_transport())
-    scp.put('params.json')
+    scp.put(filename)
