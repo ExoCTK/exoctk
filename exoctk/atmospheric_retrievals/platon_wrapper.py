@@ -81,6 +81,8 @@ Dependencies
 
 import argparse
 import json
+import logging
+import sys
 
 import corner
 import matplotlib
@@ -186,6 +188,10 @@ class PlatonWrapper():
     def make_plot(self):
         """Create a corner plot that shows the results of the retrieval."""
 
+        logging.info('')
+        logging.info('Creating corner plot')
+        logging.info('')
+
         matplotlib.rcParams['text.usetex'] = False
 
         if self.method == 'emcee':
@@ -201,9 +207,14 @@ class PlatonWrapper():
         self.output_plot = '{}_corner.png'.format(self.method)
         fig.savefig(self.output_plot)
         print('Corner plot saved to {}'.format(self.output_plot))
+        logging.info('Corner plot saved to {}'.format(self.output_plot))
 
     def retrieve_emcee(self):
         """Perform the atmopsheric retrieval via emcee."""
+
+        logging.info('')
+        logging.info('Performing atmopsheric retrievals via emcee')
+        logging.info('')
 
         self.method = 'emcee'
 
@@ -246,11 +257,16 @@ class PlatonWrapper():
     def save_results(self):
         """Save the results of the retrieval to an output file."""
 
+        logging.info('')
+        logging.info('Saving results')
+        logging.info('')
+
         # Save the results
         self.output_results = '{}_results.dat'.format(self.method)
         with open(self.output_results, 'w') as f:
             f.write(str(self.result))
         print('Results file saved to {}'.format(self.output_results))
+        logging.info('Results file saved to {}'.format(self.output_results))
 
     def set_parameters(self, params):
         """Set necessary parameters to perform the retrieval.
@@ -268,17 +284,24 @@ class PlatonWrapper():
             See "Use" documentation for further details.
         """
 
+        logging.info('')
+        logging.info('Setting parameters')
+        logging.info('')
+
         # Read in params.json file if necessary
         if isinstance(params, str):
             try:
+                logging.info('Using file {}'.format(params))
                 with open(params, 'r') as f:
                     params = json.load(f)
-            except:
-                pass
+            except FileNotFoundError:
+                print('Unable to access file: {}'.format(params))
+                sys.exit()
 
         # Write out current params to file
         with open('params.json', 'w') as f:
             json.dump(params, f)
+            logging.info('Saved parameter file to params.json')
 
         _validate_parameters(params)
         _apply_factors(params)
@@ -297,6 +320,8 @@ class PlatonWrapper():
         ec2_template_id : str
             A template id that points to a pre-built EC2 instance.
         """
+
+        logging.info('Using AWS for processing')
 
         self.ssh_file = ssh_file
         self.ec2_template_id = ec2_template_id
