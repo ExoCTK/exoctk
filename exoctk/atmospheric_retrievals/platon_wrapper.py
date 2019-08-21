@@ -89,7 +89,6 @@ import matplotlib
 import numpy as np
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
-from scp import SCPClient
 
 from exoctk.atmospheric_retrievals.aws_tools import build_environment
 from exoctk.atmospheric_retrievals.aws_tools import configure_logging
@@ -222,7 +221,6 @@ class PlatonWrapper():
         logging.info('Performing atmopsheric retrievals via emcee')
         logging.info('')
 
-
         # Ensure that the method parameter is valid
         assert method in ['multinest', 'emcee'], 'Unrecognized method: {}'.format(method)
         self.method = method
@@ -267,7 +265,6 @@ class PlatonWrapper():
                 self.result = self.retriever.run_emcee(self.bins, self.depths, self.errors, self.fit_info)
             elif self.method == 'multinest':
                 self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
-
 
     def save_results(self):
         """Save the results of the retrieval to an output file."""
