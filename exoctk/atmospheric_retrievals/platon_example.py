@@ -86,11 +86,9 @@ def example(method):
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
     # Do some retrievals
+    pw.retrieve(method)
     if method == 'multinest':
-        pw.retrieve_multinest()
         pw.save_results()
-    elif method == 'emcee':
-        pw.retrieve_emcee()
 
     # Make corner plot of results
     pw.make_plot()
