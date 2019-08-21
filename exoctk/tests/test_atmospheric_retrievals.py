@@ -83,7 +83,7 @@ def test_platon_emcee():
     """
 
     pw = initialize_platon_wrapper_object()
-    pw.retrieve_emcee()
+    pw.retrieve('emcee')
 
     assert pw.result
 
@@ -95,6 +95,6 @@ def test_platon_multinest():
     """
 
     pw = initialize_platon_wrapper_object()
-    pw.retrieve_multinest()
+    pw.retrieve('multinest')
 
     assert pw.result
