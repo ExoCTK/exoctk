@@ -66,3 +66,11 @@ exoctk/notebooks/*.eps
 exoctk/notebooks/*.p
 exoctk/data/core/modelgrid/model_grid.p
 exoctk/data/core/modelgrid/model_grid_flux.hdf5
+exoctk/atmospheric_retrievals/aws_config.json
+exoctk/atmospheric_retrievals/params.json
+exoctk/atmospheric_retrievals/logs/
+exoctk/atmospheric_retrievals/*.dat
+exoctk/atmospheric_retrievals/*.txt
+exoctk/atmospheric_retrievals/*.png
+
+
