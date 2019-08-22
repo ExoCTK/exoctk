@@ -15,12 +15,12 @@ export EXOCTK_DATA=''
 echo 'Set $EXOCTK_DATA'
 
 echo ''
-echo '~~~~~ CREATING exoctk-aws CONDA ENVIRONMENT ~~~~~'
+echo '~~~~~ CREATING base CONDA ENVIRONMENT ~~~~~'
 echo ''
-conda create --yes -n exoctk-aws python=3.6 git numpy flask pytest
+conda create --yes -n exoctk-3.6 python=3.6 git numpy flask pytest
 conda init bash
 source ~/.bashrc
-conda activate exoctk-aws
+conda activate exoctk-3.6
 
 echo ''
 echo '~~~~~ INSTALLING jwst_gtvt ~~~~~'
@@ -38,22 +38,19 @@ cd exoctk/
 git remote add bourque https://github.com/bourque/exoctk.git
 git fetch bourque
 git checkout -b implement-aws bourque/implement-aws
+conda env update -f env/environment-3.6.yml
+conda init bash
+source ~/.bashrc
+conda activate exoctk-3.6
 python setup.py develop
 
 echo ''
 echo '~~~~~ INSTALLING ADDITIONAL LIBRARIES ~~~~~'
 echo ''
 pip install bibtexparser==1.1.0
-pip install bokeh==1.3.1
-pip install boto3==1.9.199
 pip install corner==2.0.1
-pip install h5py==2.8.0
 pip install lmfit==0.9.13
-pip install matplotlib==3.1.0
-pip install pandas==0.25.0
-pip install paramiko==2.4.2
 pip install platon==3.1
-pip install scp==0.13.2
 
 echo ''
 echo '~~~~~ THE ENVIRONMENT BEING USED ~~~~~'
