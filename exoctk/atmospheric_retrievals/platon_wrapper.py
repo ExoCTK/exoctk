@@ -252,7 +252,7 @@ class PlatonWrapper():
                 transfer_from_ec2(instance, key, client, 'BestFit.txt')
                 transfer_from_ec2(instance, key, client, 'emcee_corner.png')
             elif self.method == 'multinest':
-                transfer_from_ec2(instance, key, client, 'multinest_resuts.dat')
+                transfer_from_ec2(instance, key, client, 'multinest_results.dat')
                 transfer_from_ec2(instance, key, client, 'multinest_corner.png')
 
             # Terminate the EC2 and log the execution time
