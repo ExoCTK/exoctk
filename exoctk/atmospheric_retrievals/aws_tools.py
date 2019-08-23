@@ -89,7 +89,7 @@ def configure_logging():
 
     # Create the subdirectory if necessary
     if not os.path.exists('logs/'):
-        os.mkdirs('logs/')
+        os.mkdir('logs/')
 
     # Make sure no other root lhandlers exist before configuring the logger
     for handler in logging.root.handlers[:]:
