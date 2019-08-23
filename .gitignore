@@ -72,5 +72,4 @@ exoctk/atmospheric_retrievals/logs/
 exoctk/atmospheric_retrievals/*.dat
 exoctk/atmospheric_retrievals/*.txt
 exoctk/atmospheric_retrievals/*.png
-
-
+exoctk/atmospheric_retrievals/*.obj
