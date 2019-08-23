@@ -228,7 +228,6 @@ class PlatonWrapper():
         # For processing on AWS
         if self.aws:
 
-            start_time = configure_logging()
             instance, key, client = create_ec2(self.ssh_file, self.ec2_template_id)
             build_environment(instance, key, client)
             transfer_to_ec2(instance, key, client, 'pw.obj')
@@ -257,7 +256,7 @@ class PlatonWrapper():
 
             # Terminate the EC2 and log the execution time
             terminate_ec2(instance)
-            log_execution_time(start_time)
+            log_execution_time(self.start_time)
 
         # For processing locally
         else:
@@ -296,9 +295,7 @@ class PlatonWrapper():
             See "Use" documentation for further details.
         """
 
-        logging.info('')
-        logging.info('Setting parameters')
-        logging.info('')
+        print('Setting parameters')
 
         _validate_parameters(params)
         _apply_factors(params)
@@ -318,15 +315,18 @@ class PlatonWrapper():
             A template id that points to a pre-built EC2 instance.
         """
 
-        logging.info('Using AWS for processing')
+        print('Using AWS for processing')
 
+        self.start_time = configure_logging()
         self.ssh_file = ssh_file
         self.ec2_template_id = ec2_template_id
-        self.aws = True
 
         # Write out object to file
         with open('pw.obj', 'wb') as f:
             pickle.dump(self, f)
+        print('Saved PlatonWrapper object to pw.obj')
+
+        self.aws = True
 
 
 if __name__ == '__main__':
