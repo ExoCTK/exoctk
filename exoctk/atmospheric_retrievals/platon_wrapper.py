@@ -82,6 +82,7 @@ Dependencies
 import argparse
 import json
 import logging
+import pickle
 import sys
 
 import corner
@@ -128,7 +129,6 @@ def _parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('method', type=str, help='Retrieval method (either "emcee" or "multinest"')
-    parser.add_argument('params', type=str, default='params.json', help='Parameter file')
     args = parser.parse_args()
 
     return args
@@ -231,13 +231,13 @@ class PlatonWrapper():
             start_time = configure_logging()
             instance, key, client = create_ec2(self.ssh_file, self.ec2_template_id)
             build_environment(instance, key, client)
-            transfer_to_ec2(instance, key, client, 'params.json')
+            transfer_to_ec2(instance, key, client, 'pw.obj')
 
             # Temporary
             # Transfer a copy of this script
             transfer_to_ec2(instance, key, client, 'platon_wrapper.py')
 
-            command = './exoctk-aws-init.sh python platon_wrapper.py {} params.json'.format(self.method)
+            command = './exoctk-aws-init.sh python platon_wrapper.py {}'.format(self.method)
 
             # Connect to the EC2 instance and run commands
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
@@ -300,21 +300,6 @@ class PlatonWrapper():
         logging.info('Setting parameters')
         logging.info('')
 
-        # Read in params.json file if necessary
-        if isinstance(params, str):
-            try:
-                logging.info('Using file {}'.format(params))
-                with open(params, 'r') as f:
-                    params = json.load(f)
-            except FileNotFoundError:
-                print('Unable to access file: {}'.format(params))
-                sys.exit()
-
-        # Write out current params to file
-        with open('params.json', 'w') as f:
-            json.dump(params, f)
-            logging.info('Saved parameter file to params.json')
-
         _validate_parameters(params)
         _apply_factors(params)
         self.params = params
@@ -339,36 +324,19 @@ class PlatonWrapper():
         self.ec2_template_id = ec2_template_id
         self.aws = True
 
+        # Write out object to file
+        with open('pw.obj', 'wb') as f:
+            pickle.dump(self, f)
+
 
 if __name__ == '__main__':
 
     # Parse arguments
     args = _parse_args()
 
-    # Initialize the object and set the parameters
-    pw = PlatonWrapper()
-    pw.set_parameters(args.params)
-
-    # Fit for the stellar radius and planetary mass using Gaussian priors.  This
-    # is a way to account for the uncertainties in the published values
-    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
-
-    # Fit for other parameters using uniform priors
-    R_guess = 1.4 * R_jup
-    T_guess = 1200
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
-    pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
-
-    # Define bins, depths, and errors
-    pw.wavelengths = 1e-6*np.array([1.119, 1.1387])
-    pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
-    pw.depths = 1e-6 * np.array([14512.7, 14546.5])
-    pw.errors = 1e-6 * np.array([50.6, 35.5])
+    # Read in PlatonWrapper object
+    with open('pw.obj', 'rb') as f:
+        pw = pickle.load(f)
 
     # Do some retrievals
     pw.retrieve(args.method)
