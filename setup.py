@@ -36,7 +36,8 @@ REQUIRES = ['asteval',
             'sphinx_astropy',
             'sqlalchemy',
             'svo_filters',
-            'wtforms']
+            'wtforms',
+            'git+https://github.com/spacetelescope/jwst_gtvt.git']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
