@@ -36,8 +36,9 @@ REQUIRES = ['asteval',
             'sphinx_astropy',
             'sqlalchemy',
             'svo_filters',
-            'wtforms',
-            'git+https://github.com/spacetelescope/jwst_gtvt.git']
+            'wtforms']
+
+DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
@@ -50,6 +51,7 @@ setup(name='exoctk',
       packages=find_packages(".", exclude=["*.tests"]),
       package_data={'exoctk': FILES},
       install_requires=REQUIRES,
+      dependency_links=DEPENDENCY_LINKS,
       author='The ExoCTK Group',
       author_email='exoctk@gmail.com',
       license='MIT',
