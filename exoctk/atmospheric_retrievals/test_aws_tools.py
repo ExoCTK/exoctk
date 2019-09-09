@@ -80,13 +80,13 @@ if __name__ == '__main__':
 
     # Get configuration
     ssh_file = get_config()['ssh_file']
-    ec2_template_id = get_config()['ec2_template_id']
+    ec2_id = get_config()['ec2_id']
 
     # Configure logging
     start_time = configure_logging()
 
     # Initialize EC2 instance
-    instance, key, client = create_ec2(ssh_file, ec2_template_id)
+    instance, key, client = create_ec2(ssh_file, ec2_id)
 
     # Build ExoCTK environment
     build_environment(instance, key, client)

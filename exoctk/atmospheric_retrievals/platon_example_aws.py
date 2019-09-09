@@ -32,14 +32,14 @@ Dependencies
     Users must have a ``aws_config.json`` file present within the
     ``atmospheric_retrievals`` subdirectory.  This file must be of
     a valid JSON format and contain two key/value pairs,
-    ``ec2_template_id`` and ``ssh_file``, e.g.:
+    ``ec2_id`` and ``ssh_file``, e.g.:
 
     {
-    "ec2_template_id" : "lt-021de8b904bc2b728",
+    "ec2_id" : "lt-021de8b904bc2b728",
     "ssh_file" : "~/.ssh/my_ssh_key.pem"
     }
 
-    where the ``ec2_template_id`` contains the ID for an EC2 launch
+    where the ``ec2_id`` contains the ID for an EC2 launch
     template, and ``ssh_file`` points to the SSH public key used for
     logging into an AWS account.
 """
@@ -63,7 +63,7 @@ def example_aws(method):
     """
 
     ssh_file = get_config()['ssh_file']
-    ec2_template_id = get_config()['ec2_template_id']
+    ec2_id = get_config()['ec2_id']
 
     # Define the fit parameters
     params = {
@@ -105,7 +105,7 @@ def example_aws(method):
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
     # Set use for AWS and perform retreival
-    pw.use_aws(ssh_file, ec2_template_id)
+    pw.use_aws(ssh_file, ec2_id)
     pw.retrieve(method)
 
 
