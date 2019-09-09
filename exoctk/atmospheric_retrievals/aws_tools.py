@@ -220,19 +220,33 @@ def start_ec2(ssh_file, ec2_id):
     return instance, key, client
 
 
-def terminate_ec2(instance):
-    """Terminates the given AWS EC2 instance
+def stop_ec2(ec2_id, instance):
+    """Terminates or stops the given AWS EC2 instance.
+
+    The instance is terminated if the supplied ``ec2_id`` is a EC2
+    template ID.  The instance is stopped if the supplied ``ec2_id``
+    is an ID for a particular EC2 instance.
 
     Parameters
     ----------
+    ec2_id : str
+        The AWS EC2 template id (e.g. ``lt-021de8b904bc2b728``) or
+        instance ID (e.g. ``i-0d0c8ca4ab324b260``).
     instance : obj
         A ``boto3`` AWS EC2 instance object.
     """
 
     ec2 = boto3.resource('ec2')
-    ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 
-    logging.info('Terminated EC2 instance {}'.format(instance.id))
+    # If the given ec2_id is for an EC2 template, then terminate the EC2 instance
+    if ec2_id.split('-')[0] == 'lt':
+        ec2.instances.filter(InstanceIds=[instance.id]).terminate()
+        logging.info('Terminated EC2 instance {}'.format(instance.id))
+
+    # If the given ec2_id is for an existing EC2 instance, then stop it
+    else:
+        instance.stop()
+        logging.info('Stopped EC2 instance {}'.format(ec2_id))
 
 
 def transfer_from_ec2(instance, key, client, filename):

@@ -96,7 +96,7 @@ from exoctk.atmospheric_retrievals.aws_tools import configure_logging
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
 from exoctk.atmospheric_retrievals.aws_tools import start_ec2
-from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
+from exoctk.atmospheric_retrievals.aws_tools import stop_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_from_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_to_ec2
 
@@ -257,8 +257,8 @@ class PlatonWrapper():
                 transfer_from_ec2(instance, key, client, 'multinest_results.dat')
                 transfer_from_ec2(instance, key, client, 'multinest_corner.png')
 
-            # Terminate the EC2 and log the execution time
-            terminate_ec2(instance)
+            # Terminate or stop the EC2 and log the execution time
+            stop_ec2(self.ec2_id, instance)
             log_execution_time(self.start_time)
 
         # For processing locally
