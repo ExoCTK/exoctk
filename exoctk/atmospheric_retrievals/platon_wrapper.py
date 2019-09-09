@@ -96,6 +96,7 @@ from exoctk.atmospheric_retrievals.aws_tools import configure_logging
 from exoctk.atmospheric_retrievals.aws_tools import create_ec2
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
+from exoctk.atmospheric_retrievals.aws_tools import start_ec2_instance
 from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_from_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_to_ec2
@@ -177,7 +178,7 @@ class PlatonWrapper():
     def __init__(self):
         """Initialize the class object."""
 
-        self.ec2_template_id = ''
+        self.ec2_id = ''
         self.output_results = 'results.dat'
         self.output_plot = 'corner.png'
         self.retriever = Retriever()
@@ -228,8 +229,12 @@ class PlatonWrapper():
         # For processing on AWS
         if self.aws:
 
-            instance, key, client = create_ec2(self.ssh_file, self.ec2_template_id)
-            build_environment(instance, key, client)
+            if self.build_required:
+                instance, key, client = create_ec2(self.ssh_file, self.ec2_id)
+                build_environment(instance, key, client)
+            else:
+                start_ec2_instance(self.ec2_id)
+
             transfer_to_ec2(instance, key, client, 'pw.obj')
 
             # Temporary
@@ -302,7 +307,7 @@ class PlatonWrapper():
         self.params = params
         self.fit_info = self.retriever.get_default_fit_info(**self.params)
 
-    def use_aws(self, ssh_file, ec2_template_id):
+    def use_aws(self, ssh_file, ec2_id):
         """Sets appropriate parameters in order to perform processing
         using an AWS EC2 instance.
 
@@ -311,7 +316,7 @@ class PlatonWrapper():
         ssh_file : str
             The path to a public SSH key used to connect to the EC2
             instance.
-        ec2_template_id : str
+        ec2_id : str
             A template id that points to a pre-built EC2 instance.
         """
 
@@ -319,7 +324,11 @@ class PlatonWrapper():
 
         self.start_time = configure_logging()
         self.ssh_file = ssh_file
-        self.ec2_template_id = ec2_template_id
+        self.ec2_id = ec2_id
+
+        # If the ec2_id is a template ID, then building the instance is required
+        if ec2_id.split('-')[0] == 'lt':
+            self.build_required = True
 
         # Write out object to file
         with open('pw.obj', 'wb') as f:

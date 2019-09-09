@@ -113,7 +113,7 @@ def configure_logging():
     return start_time
 
 
-def create_ec2(ssh_file, ec2_template_id):
+def create_ec2(ssh_file, ec2_id):
     """Create an AWS EC2 instance with the given launch template ID
     from the AWS config file.
 
@@ -122,7 +122,7 @@ def create_ec2(ssh_file, ec2_template_id):
     ssh_file : str
         Relative path to SSH public key to be used by AWS (e.g.
         ``~/.ssh/exoctk.pem``).
-    ec2_template_id : str
+    ec2_id : str
         The AWS EC2 template id (e.g. ``lt-021de8b904bc2b728``).
 
     Returns
@@ -136,7 +136,7 @@ def create_ec2(ssh_file, ec2_template_id):
     """
 
     ec2 = boto3.resource('ec2')
-    LaunchTemplate = {'LaunchTemplateId': ec2_template_id}
+    LaunchTemplate = {'LaunchTemplateId': ec2_id}
     instances = ec2.create_instances(
         LaunchTemplate=LaunchTemplate,
         MaxCount=1,
@@ -207,6 +207,14 @@ def log_output(output):
     output = output.replace('\t', '  ').replace('\r', '').replace("\'", "").split('\n')
     for line in output:
         logging.info(line)
+
+
+def start_ec2_instance(ec2_id):
+    """
+    """
+
+    ec2 = boto3.resource('ec2')
+    ec2.Instance(ec2_id).start()
 
 
 def terminate_ec2(instance):
