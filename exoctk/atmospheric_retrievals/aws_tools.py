@@ -64,7 +64,6 @@ def build_environment(instance, key, client):
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             scp = SCPClient(client.get_transport())
             scp.put('exoctk-aws-build.sh', '~/exoctk-aws-build.sh')
-            scp.put('exoctk-aws-init.sh', '~/exoctk-aws-init.sh')
             stdin, stdout, stderr = client.exec_command('chmod 700 exoctk-aws-build.sh && ./exoctk-aws-build.sh')
             connected = True
         except:
@@ -111,49 +110,6 @@ def configure_logging():
     start_time = time.time()
 
     return start_time
-
-
-def create_ec2(ssh_file, ec2_id):
-    """Create an AWS EC2 instance with the given launch template ID
-    from the AWS config file.
-
-    Parameters
-    ----------
-    ssh_file : str
-        Relative path to SSH public key to be used by AWS (e.g.
-        ``~/.ssh/exoctk.pem``).
-    ec2_id : str
-        The AWS EC2 template id (e.g. ``lt-021de8b904bc2b728``).
-
-    Returns
-    -------
-    instance : obj
-        A ``boto3`` AWS EC2 instance object.
-    key : obj
-        A ``paramiko.rsakey.RSAKey`` object.
-    client : obj
-        A ``paramiko.client.SSHClient`` object.
-    """
-
-    ec2 = boto3.resource('ec2')
-    LaunchTemplate = {'LaunchTemplateId': ec2_id}
-    instances = ec2.create_instances(
-        LaunchTemplate=LaunchTemplate,
-        MaxCount=1,
-        MinCount=1)
-    instance = instances[0]
-
-    logging.info('Launched EC2 instance {}'.format(instance.id))
-
-    instance.wait_until_running()
-    instance.load()
-
-    # Establish SSH key and client
-    key = paramiko.RSAKey.from_private_key_file(ssh_file)
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    return instance, key, client
 
 
 def get_config():
@@ -209,12 +165,59 @@ def log_output(output):
         logging.info(line)
 
 
-def start_ec2_instance(ec2_id):
-    """
+def start_ec2(ssh_file, ec2_id):
+    """Create a new EC2 instance or start an existing EC2 instance.
+
+    A new EC2 instance will be created if the supplied ``ec2_id`` is an
+    EC2 template ID.  An existing EC2 instance will be started if the
+    supplied ``ec2_id`` is an ID for an existing EC2 instance.
+
+    Parameters
+    ----------
+    ssh_file : str
+        Relative path to SSH public key to be used by AWS (e.g.
+        ``~/.ssh/exoctk.pem``).
+    ec2_id : str
+        The AWS EC2 template id (e.g. ``lt-021de8b904bc2b728``) or
+        instance ID (e.g. ``i-0d0c8ca4ab324b260``).
+
+    Returns
+    -------
+    instance : obj
+        A ``boto3`` AWS EC2 instance object.
+    key : obj
+        A ``paramiko.rsakey.RSAKey`` object.
+    client : obj
+        A ``paramiko.client.SSHClient`` object.
     """
 
     ec2 = boto3.resource('ec2')
-    ec2.Instance(ec2_id).start()
+
+    # If the given ec2_id is for an EC2 template, then create the EC2 instance
+    if ec2_id.split('-')[0] == 'lt':
+        LaunchTemplate = {'LaunchTemplateId': ec2_id}
+        instances = ec2.create_instances(
+            LaunchTemplate=LaunchTemplate,
+            MaxCount=1,
+            MinCount=1)
+        instance = instances[0]
+        logging.info('Launched EC2 instance {}'.format(instance.id))
+
+    # If the given ec2_id is for an existing EC2 instance, then start it
+    else:
+        instance = ec2.Instance(ec2_id)
+        instance.start()
+        logging.info('Started EC2 instance {}'.format(ec2_id))
+
+    instance.wait_until_running()
+    instance.load()
+
+    # Establish SSH key and client
+    key = paramiko.RSAKey.from_private_key_file(ssh_file)
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    return instance, key, client
 
 
 def terminate_ec2(instance):
@@ -271,6 +274,19 @@ def transfer_to_ec2(instance, key, client, filename):
 
     logging.info('Copying {} to EC2'.format(filename))
 
-    client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
-    scp = SCPClient(client.get_transport())
-    scp.put(filename)
+    connected = False
+    iterations = 0
+    while not connected:
+        if iterations >= 10:
+            logging.critical('Could not connect to {}'.format(instance.public_dns_name))
+            break
+        try:
+            client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
+            scp = SCPClient(client.get_transport())
+            scp.put(filename)
+            connected = True
+        except:
+            logging.warning('Couldn not connect to {}, retrying.'.format(instance.public_dns_name))
+            time.sleep(5)
+            iterations += 1
+

@@ -93,10 +93,9 @@ from platon.constants import R_sun, R_jup, M_jup
 
 from exoctk.atmospheric_retrievals.aws_tools import build_environment
 from exoctk.atmospheric_retrievals.aws_tools import configure_logging
-from exoctk.atmospheric_retrievals.aws_tools import create_ec2
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
-from exoctk.atmospheric_retrievals.aws_tools import start_ec2_instance
+from exoctk.atmospheric_retrievals.aws_tools import start_ec2
 from exoctk.atmospheric_retrievals.aws_tools import terminate_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_from_ec2
 from exoctk.atmospheric_retrievals.aws_tools import transfer_to_ec2
@@ -229,21 +228,20 @@ class PlatonWrapper():
         # For processing on AWS
         if self.aws:
 
+            # Start or create an EC2 instance
+            instance, key, client = start_ec2(self.ssh_file, self.ec2_id)
+
+            # Build the environment on EC2 instance if necessary
             if self.build_required:
-                instance, key, client = create_ec2(self.ssh_file, self.ec2_id)
                 build_environment(instance, key, client)
-            else:
-                start_ec2_instance(self.ec2_id)
 
+            # Transfer needed files to EC2
             transfer_to_ec2(instance, key, client, 'pw.obj')
-
-            # Temporary
-            # Transfer a copy of this script
-            transfer_to_ec2(instance, key, client, 'platon_wrapper.py')
-
-            command = './exoctk-aws-init.sh python platon_wrapper.py {}'.format(self.method)
+            transfer_to_ec2(instance, key, client, 'exoctk-aws-init.sh')
+            transfer_to_ec2(instance, key, client, 'platon_wrapper.py')  # Will no longer need when in production
 
             # Connect to the EC2 instance and run commands
+            command = './exoctk-aws-init.sh python platon_wrapper.py {}'.format(self.method)
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read()
@@ -329,6 +327,8 @@ class PlatonWrapper():
         # If the ec2_id is a template ID, then building the instance is required
         if ec2_id.split('-')[0] == 'lt':
             self.build_required = True
+        else:
+            self.build_required = False
 
         # Write out object to file
         with open('pw.obj', 'wb') as f:

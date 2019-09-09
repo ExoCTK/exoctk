@@ -57,7 +57,6 @@ echo '~~~~~ INSTALLING ADDITIONAL LIBRARIES ~~~~~'
 echo ''
 pip install bibtexparser==1.1.0
 pip install corner==2.0.1
-pip install gnumpy==0.2
 pip install lmfit==0.9.13
 pip install platon==3.1
 
