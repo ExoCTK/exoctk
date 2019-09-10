@@ -29,7 +29,12 @@ Use
 Dependencies
 ------------
 
-    Users must have a ``aws_config.json`` file present within the
+    Dependent libraries include:
+
+    - numpy
+    - platon
+
+    Users must also have a ``aws_config.json`` file present within the
     ``atmospheric_retrievals`` subdirectory.  This file must be of
     a valid JSON format and contain two key/value pairs,
     ``ec2_id`` and ``ssh_file``, e.g.:
@@ -39,9 +44,15 @@ Dependencies
     "ssh_file" : "~/.ssh/my_ssh_key.pem"
     }
 
-    where the ``ec2_id`` contains the ID for an EC2 launch
-    template, and ``ssh_file`` points to the SSH public key used for
-    logging into an AWS account.
+    where the ``ec2_id`` contains the ID for an EC2 launch template
+    or an existing EC2 instance, and ``ssh_file`` points to the SSH
+    public key used for logging into an AWS account.
+
+    Note that if the ``ec2_id`` points to a launch template (i.e. the
+    string starts with ``lt-``), a new EC2 instance will be created and
+    launched.  However, if the ``ec2_id`` points to an existing EC2
+    instance (i.e. the string starts with ``i-``), the existing EC2
+    instance will be started and used.
 """
 
 import numpy as np
@@ -52,8 +63,8 @@ from exoctk.atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
 
 def example_aws(method):
-    """Performs an example run of the emcee and multinest retrievals
-    using AWS
+    """Performs an example run of the ``emcee`` and ``multinest``
+    retrievals using AWS
 
     Parameters
     ----------
@@ -112,4 +123,4 @@ def example_aws(method):
 if __name__ == '__main__':
 
     example_aws('multinest')
-    # example_aws('emcee')
+    example_aws('emcee')

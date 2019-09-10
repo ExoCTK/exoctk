@@ -14,15 +14,31 @@ Use
     This script is inteneded to be imported and used by other modules,
     for example:
 
-        from aws_tools import create_ec2
-        create_ec2()
+        from aws_tools import get_config
+        get_config()
 
 Dependencies
 ------------
 
+    Dependent libraries include:
+
     - boto3
     - paramiko
     - scp
+
+    Users must also have a ``aws_config.json`` file present within the
+    ``atmospheric_retrievals`` subdirectory.  This file must be of
+    a valid JSON format and contain two key/value pairs,
+    ``ec2_id`` and ``ssh_file``, e.g.:
+
+    {
+    "ec2_id" : "lt-021de8b904bc2b728",
+    "ssh_file" : "~/.ssh/my_ssh_key.pem"
+    }
+
+    where the ``ec2_id`` contains the ID for an EC2 launch template
+    or an existing EC2 instance, and ``ssh_file`` points to the SSH
+    public key used for logging into an AWS account.
 """
 
 import datetime
@@ -75,7 +91,10 @@ def build_environment(instance, key, client):
 
 
 def configure_logging():
-    """Creates a log file that logs the execution of the script
+    """Creates a log file that logs the execution of the script.
+
+    Log files are written to a ``logs/`` subdirectory within the
+    current working directory.
 
     Returns
     -------
@@ -113,8 +132,8 @@ def configure_logging():
 
 
 def get_config():
-    """Return a dictionary that holds the contents of the ``jwql``
-    config file.
+    """Return a dictionary that holds the contents of the
+    ``aws_config.json`` config file.
 
     Returns
     -------
@@ -151,7 +170,7 @@ def log_execution_time(start_time):
 
 
 def log_output(output):
-    """Logs the standard output of the EC2 instance.
+    """Logs the given output of the EC2 instance.
 
     Parameters
     ----------
@@ -303,4 +322,3 @@ def transfer_to_ec2(instance, key, client, filename):
             logging.warning('Couldn not connect to {}, retrying.'.format(instance.public_dns_name))
             time.sleep(5)
             iterations += 1
-
