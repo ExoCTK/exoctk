@@ -1,4 +1,4 @@
-"""A wrapper around the PLATON atmospheric retrieval tool.
+"""A wrapper around the ``platon`` atmospheric retrieval tool.
 
 This module serves as a wrapper around the atmospheric retrieval
 software for ``platon``.  It provides methods for performing retreivals
@@ -69,12 +69,13 @@ Use
         pw.make_plot()
 
     More examples of how to use this software is provided in the
-    ``platon_examples.py`` module.
+    ``platon_example.py`` and ``platon_example_aws.py`` modules.
 
 Dependencies
 ------------
 
     - ``corner``
+    - ``matplotlib``
     - ``numpy``
     - ``platon``
 """

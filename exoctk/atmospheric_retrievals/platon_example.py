@@ -24,6 +24,12 @@ Use
         >>> from platon_example import example
         example('emcee')
         example('multinest')
+
+Dependencies
+------------
+
+    - numpy
+    - platon
 """
 
 import numpy as np
