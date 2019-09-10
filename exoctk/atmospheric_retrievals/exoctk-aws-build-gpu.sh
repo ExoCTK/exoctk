@@ -28,7 +28,6 @@ export LD_LIBRARY_PATH=/usr/local/cuda-10.1/lib64
 echo ''
 echo '~~~~~ INSTALLING ANACONDA ~~~~~'
 echo ''
-sudo yum -y install bzip2
 curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 chmod 700 ./Miniconda3-latest-Linux-x86_64.sh
 bash ./Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
