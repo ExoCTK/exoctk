@@ -34,7 +34,7 @@ from exoctk.contam_visibility import sossContamFig as cf
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_target_data, get_canonical_name, FORTGRID_DIR, EXOCTKLOG_DIR, GENERICGRID_DIR
+from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
 
 import log_exoctk
@@ -49,10 +49,10 @@ app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 
 # Load the database to log all form submissions
-if EXOCTKLOG_DIR is None:
+if get_env_variables()['exoctklog_dir'] is None:
     dbpath = ':memory:'
 else:
-    dbpath = os.path.realpath(os.path.join(EXOCTKLOG_DIR, 'exoctk_log.db'))
+    dbpath = os.path.realpath(os.path.join(get_env_variables()['exoctklog_dir'], 'exoctk_log.db'))
     if not os.path.isfile(dbpath):
         log_exoctk.create_db(dbpath)
 try:
@@ -302,12 +302,12 @@ def groups_integrations():
                 # Transit duration in exomast is in days, need it in hours
                 if form.time_unit.data == 'day':
                     trans_dur = data.get('transit_duration')
-                    obs_dur = 3*trans_dur + (1/24.) 
+                    obs_dur = 3*trans_dur + (1/24.)
                 else:
                     trans_dur = data.get('transit_duration')
                     trans_dur *= u.Unit('day').to('hour')
                     obs_dur = 3*trans_dur + 1
-                    
+
 
                 # Model guess
                 logg_targ = data.get('stellar_gravity') or 4.5
@@ -699,7 +699,7 @@ def groups_integrations_download():
 def fortney_download():
     """Download the fortney grid data"""
 
-    fortney_data = os.path.join(FORTGRID_DIR, 'fortney_grid.db')
+    fortney_data = os.path.join(get_env_variables()['fortgrid_dir'], 'fortney_grid.db')
     return send_file(fortney_data, attachment_filename='fortney_grid.db',
                      as_attachment=True)
 
