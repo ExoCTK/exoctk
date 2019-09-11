@@ -1,7 +1,7 @@
 """Module to hold our forward models that until now have been floating in the
-web application. 
+web application.
 
-Right now this includes database interaction and model rescaling software. 
+Right now this includes database interaction and model rescaling software.
 
 
 Authors
@@ -14,7 +14,7 @@ Hannah Wakeford
 Use
 ---
 This is meant to be run through the Flask application, or can be run manually
-with a provided list or arguments. 
+with a provided list or arguments.
 """
 
 ## -- IMPORTS
@@ -35,6 +35,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 
+from exoctk.utils import get_env_variables
+
 ## -- FUNCTIONS
 
 def fortney_grid(args, write_plot=False, write_table=False):
@@ -44,7 +46,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
     Parameters
     ----------
     args : dict
-        Dictionary of arguments for the Fortney Grid. Must include : 
+        Dictionary of arguments for the Fortney Grid. Must include :
         temp
         chem
         cloud
@@ -64,16 +66,16 @@ def fortney_grid(args, write_plot=False, write_table=False):
     fig : bokeh object
         The unsaved bokeh plot.
     fh : ascii table object
-        The unsaved ascii table. 
+        The unsaved ascii table.
     temp_out : list of str of int
         The list of temperatures in the model grid.
     """
 
-    # Check for Fortney Grid database 
-    print(os.path.join(os.environ.get('EXOCTK_DATA'), 'fortney/fortney_models.db'))
+    # Check for Fortney Grid database
+    print(os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
     try:
         db = create_engine('sqlite:///' +
-                os.path.join(os.environ.get('EXOCTK_DATA'), 'fortney/fortney_models.db'))
+                os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
         header = pd.read_sql_table('header', db)
     except:
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
@@ -111,7 +113,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
             ray = 0
 
         fort_grav = 25.0 * u.m / u.s**2
-        
+
         df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) &
                         (header.noTiO == noTiO) & (header.ray == ray) &
                         (header.flat == flat)]
@@ -150,10 +152,10 @@ def fortney_grid(args, write_plot=False, write_table=False):
     tab = at.Table(data=[x, y])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
-    
+
     if write_table:
         tab.write('fortney.dat', format='ascii.no_header')
-        
+
     fig = figure(plot_width=1100, plot_height=400)
     fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
@@ -162,28 +164,28 @@ def fortney_grid(args, write_plot=False, write_table=False):
     if write_plot:
         output_file('fortney.html')
         save(fig)
-    
+
     # Return temperature list for the fortney grid page
     temp_out = list(map(str, header.temp.unique()))
-    
+
     return fig, fh, temp_out
 
 
 def generic_grid(input_args, write_plot=False, write_table=False):
     """
-    Build a plot and table from the generic grid results. 
+    Build a plot and table from the generic grid results.
 
     Parameters
     ----------
     input_args : dict
         A dictionary of the form output from the generic grid form.
-        If manual input must include : 
+        If manual input must include :
         r_star : The radius of the star.
         r_planet : The radius of the planet.
         gravity : The gravity.
         temperature : The temperature.
         condensation : local or rainout
-        metallicity 
+        metallicity
         c_o : carbon/oxygen ratio
         haze
         cloud
@@ -197,29 +199,25 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     plot : bokeh object
         Unsaved bokeh plot.
     table : ascii table object
-        Unsaved ascii table. 
+        Unsaved ascii table.
     closest_match : dict
         A dictionary with the parameters/model name of the closest
         match in the grid.
     error_message : str
         An error message, or lack therof.
     """
-    
-    # Find path to the database. 
-    try:
-        database_path = os.path.join(os.environ.get('EXOCTK_DATA'), 'generic/generic_grid_db.hdf5')
-    except FileNotFoundError:
-        print("You need to export 'EXOCTK_DATA' for this to work.")
-        raise FileNotFoundError
+
+    # Find path to the database.
+    database_path = os.path.join(get_env_variables()['exoctk_data'], 'generic/generic_grid_db.hdf5')
 
     # Build rescaled model
     solution, inputs, closest_match, error_message = rescale_generic_grid(input_args, database_path)
-    
+
     # Build file out
     tab = at.Table(data=[solution['wv'], solution['spectra']])
     fh = StringIO()
     tab.write(fh, format='ascii.no_header')
-    
+
     if write_table:
         tab.write('generic.dat')
 
@@ -230,35 +228,35 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Transit Depth (Rp/R*)^2'
-    
+
     if write_plot:
         output_file('generic.html')
         save(fig)
-        
+
     return fig, fh, closest_match, error_message
 
 
 def rescale_generic_grid(input_args, database_path):
-    """ Pulls a model from the generic grid, rescales it, 
+    """ Pulls a model from the generic grid, rescales it,
     and returns the model and wavelength.
 
     Parameters
     ----------
     input_args : dict
         A dictionary of the form output from the generic grid form.
-        If manual input must include : 
+        If manual input must include :
         r_star : The radius of the star.
         r_planet : The radius of the planet.
         gravity : The gravity.
         temperature : The temperature.
         condensation : local or rainout
-        metallicity 
+        metallicity
         c_o : carbon/oxygen ratio
         haze
         cloud
     database_path : str
         Path to the generic grid database.
-        
+
     Returns
     -------
     wv : np.array
@@ -274,15 +272,15 @@ def rescale_generic_grid(input_args, database_path):
         Either False, for no error, or a message about what went wrong.
     """
     error_message = ''
-    try:   
+    try:
         # Parameter validation
         # Set up some nasty tuples first
         scaling_space = [('r_star', [0.05, 10000]),
                          ('r_planet', [0.0,  10000]),
                          ('gravity', [.5, 50]),
                          ('temperature', [400, 2600])]
-        
-        inputs = {} 
+
+        inputs = {}
         # First check the scaling
         for tup in scaling_space:
             key, space = tup
@@ -292,7 +290,7 @@ def rescale_generic_grid(input_args, database_path):
             else:
                 error_message = 'One of the scaling parameters was out of range: {}.'.format(key)
                 break
-        
+
         # Map to nearest model key
         temp_range = np.arange(600, 2700, 100)
         grav_range = np.array([5, 10, 20, 50])
@@ -305,14 +303,14 @@ def rescale_generic_grid(input_args, database_path):
 
         # Check the model parameters
         str_temp_range = ['0400'] + ['0{}'.format(elem)[-4:] for elem in temp_range]
-        model_space = [('condensation', ['local', 'rainout']), 
+        model_space = [('condensation', ['local', 'rainout']),
                        ('model_temperature', str_temp_range),
                        ('model_gravity', ['05', '10', '20', '50']),
                        ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
                        ('c_o', ['0.35', '0.56', '0.70', '1.00']),
                        ('haze', ['0001', '0010', '0150', '1100']),
                        ('cloud', ['0.00', '0.06', '0.20','1.00'])]
-        
+
         model_key = ''
         for tup in model_space:
             key, space = tup
@@ -323,29 +321,29 @@ def rescale_generic_grid(input_args, database_path):
                 error_message = 'One of the model parameters was out of range.'
                 break
         model_key = model_key[:-1]
-    
+
 
         # Define constants
         boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
         permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
-        optical_depth = 0.56 
+        optical_depth = 0.56
         r_sun = 69580000000 # cm
         r_jupiter = 6991100000 # cm
- 
+
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
-        
+
         with h5py.File(database_path, 'r') as f:
             # Can't use the final NaN value
             model_wv = f['/wavelength'][...][:-1]
             model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
-            
+
         radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
         r_star = inputs['r_star'] * r_sun
         r_planet = inputs['r_planet'] * r_jupiter
         model_grav = model_grav * 1e2
         inputs['gravity'] = inputs['gravity'] * 1e2
-        
+
         # Start with baseline based on model parameters
         scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
         r_planet_base = np.sqrt(radius_ratio) * r_sun
@@ -359,7 +357,7 @@ def rescale_generic_grid(input_args, database_path):
         solution['altitude'] = solution['scale_height'] * \
                                np.log10(opacity/optical_depth * \
                                         np.sqrt((2 * np.pi * r_planet) / \
-                                                (boltzmann * inputs['temperature'] * inputs['gravity']))) 
+                                                (boltzmann * inputs['temperature'] * inputs['gravity'])))
         solution['radius'] = solution['altitude'] + r_planet
 
         # Sort data
@@ -367,7 +365,7 @@ def rescale_generic_grid(input_args, database_path):
         solution['wv'] = model_wv[sort]
         solution['radius'] = solution['radius'][sort]
         solution['spectra'] = (solution['radius']/r_star)**2
-    
+
     except (KeyError, ValueError) as e:
         error_message = 'One of the parameters to make up the model was missing or out of range.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
@@ -378,5 +376,5 @@ def rescale_generic_grid(input_args, database_path):
         closest_match = {'model_key': model_key, 'model_temperature': 400,
                 'model_gravity': 50}
         inputs = input_args
-    
+
     return solution, inputs, closest_match, error_message
