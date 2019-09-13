@@ -58,6 +58,8 @@ Dependencies
     instance will be started and used.
 """
 
+import time
+
 import numpy as np
 from platon.constants import R_sun, R_jup, M_jup
 
@@ -184,4 +186,5 @@ def example_aws_long(method):
 if __name__ == '__main__':
 
     example_aws_long('multinest')
+    time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
     example_aws_long('emcee')

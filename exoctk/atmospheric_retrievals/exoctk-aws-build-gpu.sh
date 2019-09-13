@@ -76,15 +76,9 @@ echo '~~~~~ INSTALLING ADDITIONAL LIBRARIES ~~~~~'
 echo ''
 pip install bibtexparser==1.1.0
 pip install corner==2.0.1
-pip install gnumpy==0.2
 pip install lmfit==0.9.13
 pip install platon==3.1
-
-echo ''
-echo '~~~~~ REPLACING gnumpy and npmat with python 3 compliant versions ~~~~~'
-echo ''
-sudo cp /home/ec2-user/exoctk/exoctk/atmospheric_retrievals/gnumpy.py /home/ec2-user/miniconda3/envs/exoctk-3.6/lib/python3.6/site-packages/gnumpy.py
-sudo cp /home/ec2-user/exoctk/exoctk/atmospheric_retrievals/npmat.py /home/ec2-user/miniconda3/envs/exoctk-3.6/lib/python3.6/site-packages/npmat.py
+pip install git+https://github.com/ExoCTK/gnumpy.git
 
 echo ''
 echo '~~~~~ INSTALLING cudamat ~~~~~'
