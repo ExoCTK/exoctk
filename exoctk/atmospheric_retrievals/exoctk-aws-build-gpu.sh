@@ -78,7 +78,14 @@ pip install bibtexparser==1.1.0
 pip install corner==2.0.1
 pip install lmfit==0.9.13
 pip install platon==3.1
-pip install git+https://github.com/ExoCTK/gnumpy.git
+
+echo ''
+echo '~~~~~ INSTALLING gnumpy ~~~~~'
+echo ''
+git clone https://github.com/ExoCTK/gnumpy3.git
+cd gnumpy3
+python setup.py develop
+cd ../
 
 echo ''
 echo '~~~~~ INSTALLING cudamat ~~~~~'
