@@ -225,7 +225,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             if (intx != 0) or (inty != 0):
                 mod = models[k, my0:my1, mx0:mx1]
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
-
+                #mod = models[k, 1500:1500+2048, 100:100+256]
+                #simuCube[kPA+2, 0:dimY, 0:dimX] += mod*fluxscale
     return simuCube
 
 def fieldSim(ra, dec, instrument, binComp=''):
@@ -253,8 +254,10 @@ def fieldSim(ra, dec, instrument, binComp=''):
 
     # Calling the variables which depend on what instrument you use
     if instrument=='NIRISS':
-        dimX = 256
-        dimY = 2048
+        #dimX = 256
+        #dimY = 2048
+        dimX = 257 # columns in your simulation array (PandExo)
+        dimY = 2301 # rows in your simulation array (PandExo)
         rad = 2.5 # radius (in arcmins) to query for neighboring stars
         pixel_scale = 0.065 # arcsec/pixel
         xval, yval = 856, 107 # <- Q: sweetSpot can be off the sub-array?
@@ -327,7 +330,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
     dimYmod = modelParam['dimymod']
     jhMod = modelParam['jhmod']
     hkMod = modelParam['hkmod']
-    teffMod = modelParam['teffmod']
+    #teffMod = modelParam['teffmod']
+    teffMod = np.linspace(2000, 6000, 41)
 
     # find/assign Teff of each star
     starsT = np.empty(nStars)
@@ -365,12 +369,16 @@ def fieldSim(ra, dec, instrument, binComp=''):
 
     # cube of trace simulation at every degree of field rotation,
     # +target at O1 and O2
-    simuCube = np.zeros([nPA+2, dimY, dimX])
+    simuCube = np.zeros([nPA+2, dimY+1, dimX+1])
 
-    fitsFiles = ['/Users/jmedina/Desktop/pandexo_T2800.fits']
+    mypath = '/Users/jmedina/Desktop/pandexo_niriss_traces'
+    fitsFiles = glob.glob(os.path.join(mypath, 'o12*.fits'))
+    fitsFiles = np.sort(fitsFiles) # **organizes the elements from lowest to
+                                   # highest temp (2000->6000K)
 
     # Big loop to generate a simulation at each instrument PA
     for kPA in range(PAtab.size):
+        print('ANGLE: ', kPA)
         APA = PAtab[kPA]
         V3PA = APA+add_to_apa  # from APT
         sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
@@ -387,25 +395,30 @@ def fieldSim(ra, dec, instrument, binComp=''):
         starsInFOV = stars[ind]
 
         for i in range(len(ind)):
+            # are these the coordinates of the stars
+            # on the detector (w/ undeviated wavelength)?
             intx = round(starsInFOV['dx'][i])
             inty = round(starsInFOV['dy'][i])
 
+            # **this indexing assumes that teffMod is
+            # sorted the same way fitsFiles was sorted
             k = np.where(teffMod == starsInFOV['T'][i])[0][0]
+            print(starsInFOV['T'][i], teffMod)
             print(k)
-            print(teffMod)
-            print(starsInFOV['T'])
 
             fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
 
             # deal with subection sizes
+            modelPadX = 0 # or maybe dimX-256 ?
+            modelPadY = 0 # or maybe dimY-2048 ?
             mx0 = int(modelPadX-intx)
             mx1 = int(modelPadX-intx+dimX)
             my0 = int(modelPadY-inty)
             my1 = int(modelPadY-inty+dimY)
-            print(intx, inty)
-            print(mx0, mx1, my0, my1)
+            print('intx,y ',intx, inty)
 
-            if (mx0 > dimXmod) or (my0 > dimYmod):
+
+            if (mx0 > dimX) or (my0 > dimY):
                 continue
             if (mx1 < 0) or (my1 < 0):
                 continue
@@ -413,35 +426,49 @@ def fieldSim(ra, dec, instrument, binComp=''):
             x0 = (mx0 < 0)*(-mx0)
             y0 = (my0 < 0)*(-my0)
             mx0 *= (mx0 >= 0)
-            mx1 = dimXmod if mx1 > dimXmod else mx1
+            mx1 = dimX if mx1 > dimX else mx1
             my0 *= (my0 >= 0)
-            my1 = dimYmod if my1 > dimYmod else my1
+            my1 = dimY if my1 > dimY else my1
 
+            print('y0 ', y0)
+            print('my1 ', my1)
+            print('my0 ', my0)
+            print('x0 ', x0)
+            print('mx1 ', mx1)
+            print('mx0 ', mx0)
             # if target and first kPA, add target traces of order 1 and 2
             # in output cube
+            # the target will have intx = 0, inty = 0
             if (intx == 0) & (inty == 0) & (kPA == 0):
-                #fNameModO12 = fitsFiles[k]
-                fNameModO12 = fitsFiles[0]
+                fNameModO12 = fitsFiles[k]
                 modelO12 = fits.getdata(fNameModO12)
                 #ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
                 #ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
                 #simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
                 #simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
-                ord1 = modelO12[0, 0:dimY, 0:97]*fluxscale
-                ord2 = modelO12[1, 0:dimY, 0:97]*fluxscale
-                simuCube[0, 0:dimY, 0:97] = ord1
-                simuCube[1, 0:dimY, 0:97] = ord2
+                print('size')
+                print(modelO12.shape)
+                print('fluxscale ', fluxscale)
+                ord12 = modelO12[0, y0:y0+my1-my0, x0:x0+mx1-mx0]*fluxscale
+                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord12
 
             if (intx != 0) or (inty != 0):
                 #mod = models[k, my0:my1, mx0:mx1]
                 #simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
-                fNameModO12 = fitsFiles[0]
+                fNameModO12 = fitsFiles[k]
                 modelO12 = fits.getdata(fNameModO12)
-                simuCube[kPA+2, 0:dimY, 0:97] += modelO12[0, 0:dimY, 0:97]*fluxscale
+                print('BLAH2')
+                print(simuCube.shape, modelO12.shape)
+                print(y0+my1-my0-y0, x0+mx1-mx0-x0)
+                print(my1-my0, mx1-mx0)
+
+
+                simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += modelO12[0, my0:my1, mx0:mx1]*fluxscale
 
     return simuCube
 
 
 if __name__ == '__main__':
     ra, dec = "04 25 29.0162", "-30 36 01.603"  # Wasp 79
-    sossFieldSim(ra, dec)
+    #sossFieldSim(ra, dec)
+    fieldSim(ra, dec, instrument='NIRISS')
