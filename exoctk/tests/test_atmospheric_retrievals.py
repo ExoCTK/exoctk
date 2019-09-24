@@ -24,7 +24,7 @@ import pytest
 
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
-ON_TRAVIS = os.path.expanduser('~') == '/Users/travis'
+ON_TRAVIS = os.path.expanduser('~') in ['/Users/travis', '/home/travis']
 
 def initialize_platon_wrapper_object():
     """Return a ``PlatonWrapper`` object for use by the tests within
