@@ -26,9 +26,6 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 # Supported filters
 FILTERS = svo.filters()
 
-# Set the version
-VERSION = '0.2'
-
 # Get the location of EXOCTK_DATA environvment variable and check that it is valid
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
