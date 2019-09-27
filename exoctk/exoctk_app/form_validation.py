@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
-from exoctk.utils import MODELGRID_DIR, FILTERS, PROFILES
+from exoctk.utils import get_env_variables, FILTERS, PROFILES
 from svo_filters import svo
 
 
@@ -46,7 +46,8 @@ class FortneyModelForm(BaseForm):
 class LimbDarkeningForm(BaseForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
-    default_modelgrid = os.path.join(MODELGRID_DIR, 'ATLAS9/')
+    modelgrid_dir = get_env_variables()['modelgrid_dir']
+    default_modelgrid = os.path.join(modelgrid_dir, 'ATLAS9/')
     mg = ModelGrid(default_modelgrid, resolution=500)
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
