@@ -51,12 +51,12 @@ class LimbDarkeningForm(BaseForm):
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(MODELGRID_DIR, 'ACES/'), 'Phoenix ACES'), (os.path.join(MODELGRID_DIR, 'ATLAS9/'), 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(MODELGRID_DIR, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(MODELGRID_DIR, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
 
     # Stellar parameters
-    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {}'.format(*teff_rng))])
-    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))])
-    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))])
+    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
+    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(logg_rng[0]), max=float(logg_rng[1]), message='Surface gravity must be between {} and {} for this model grid'.format(*logg_rng))])
+    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
 
     # LD profile
