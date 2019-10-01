@@ -52,7 +52,7 @@ class LimbDarkeningForm(BaseForm):
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(MODELGRID_DIR, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(MODELGRID_DIR, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(modelgrid_dir, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(modelgrid_dir, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
 
     # Stellar parameters
     teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
