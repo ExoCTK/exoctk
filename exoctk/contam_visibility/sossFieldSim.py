@@ -263,8 +263,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
         xval, yval = 856, 107 # <- Q: sweetSpot can be off the sub-array?
         add_to_apa = 0.57
     elif instrument=='NIRCam':
-        dimX = 2048
-        dimY = 2048 # <- Q: should be conservative w/ sub-array size?
+        dimX = 51
+        dimY = 1343 # <- Q: should be conservative w/ sub-array size?
         rad = 2.5
         pixel_scale = 0.065
         xval, yval = 16, 16
@@ -371,10 +371,14 @@ def fieldSim(ra, dec, instrument, binComp=''):
     # +target at O1 and O2
     simuCube = np.zeros([nPA+2, dimY+1, dimX+1])
 
+    #mypath = '/user/jmedina/Forks/exoctk/exoctk/data/contam_visibility/traces/nircam_f444w/'
     mypath = '/Users/jmedina/Desktop/pandexo_niriss_traces'
-    fitsFiles = glob.glob(os.path.join(mypath, 'o12*.fits'))
+    fitsFiles = glob.glob(os.path.join(mypath, 'o1*.0.fits'))
     fitsFiles = np.sort(fitsFiles) # **organizes the elements from lowest to
                                    # highest temp (2000->6000K)
+    #mypath = '/user/jfilippazzo/Modules/ExoCTK/TOR/idlSaveFiles'
+    #fitsFiles = glob.glob(os.path.join(mypath, 'modelO*.sav'))
+    #fitsFiles = np.sort(fitsFiles)
 
     # Big loop to generate a simulation at each instrument PA
     for kPA in range(PAtab.size):
@@ -417,7 +421,6 @@ def fieldSim(ra, dec, instrument, binComp=''):
             my1 = int(modelPadY-inty+dimY)
             print('intx,y ',intx, inty)
 
-
             if (mx0 > dimX) or (my0 > dimY):
                 continue
             if (mx1 < 0) or (my1 < 0):
@@ -439,24 +442,30 @@ def fieldSim(ra, dec, instrument, binComp=''):
             # if target and first kPA, add target traces of order 1 and 2
             # in output cube
             # the target will have intx = 0, inty = 0
+
             if (intx == 0) & (inty == 0) & (kPA == 0):
                 fNameModO12 = fitsFiles[k]
-                modelO12 = fits.getdata(fNameModO12)
-                #ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
-                #ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
-                #simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
-                #simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
-                print('size')
-                print(modelO12.shape)
+                #print('GENERATE THIS TRACE O12 SEPARATELY IN PANDEXO: ', fNameModO12)
+                print(fNameModO12)
+                modelO1 = fits.getdata(fNameModO12, 1)
+                modelO2 = fits.getdata(fNameModO12, 2)
+                ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+                ord2 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
+                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
+
                 print('fluxscale ', fluxscale)
-                ord12 = modelO12[0, y0:y0+my1-my0, x0:x0+mx1-mx0]*fluxscale
-                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord12
+                order1 = modelO1[0, y0:y0+my1-my0, x0:x0+mx1-mx0]*fluxscale
+                order2 = modelO2[0, y0:y0+my1-my0, x0:x0+mx1-mx0]*fluxscale
+                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = order1
+                simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = order2
 
             if (intx != 0) or (inty != 0):
                 #mod = models[k, my0:my1, mx0:mx1]
                 #simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
                 fNameModO12 = fitsFiles[k]
                 modelO12 = fits.getdata(fNameModO12)
+                #modelO12 = readsav(fNameModO12)
                 print('BLAH2')
                 print(simuCube.shape, modelO12.shape)
                 print(y0+my1-my0-y0, x0+mx1-mx0-x0)
