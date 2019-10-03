@@ -128,14 +128,14 @@ def limb_darkening():
         feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
 
         # Update the validation parameters by setting validator attributes
-        setattr(form.teff.validators[1], 'min', teff_rng[0])
-        setattr(form.teff.validators[1], 'max', teff_rng[1])
+        setattr(form.teff.validators[1], 'min', float(teff_rng[0]))
+        setattr(form.teff.validators[1], 'max', float(teff_rng[1]))
         setattr(form.teff.validators[1], 'message', 'Effective temperature must be between {} and {}'.format(*teff_rng))
-        setattr(form.logg.validators[1], 'min', logg_rng[0])
-        setattr(form.logg.validators[1], 'max', logg_rng[1])
+        setattr(form.logg.validators[1], 'min', float(logg_rng[0]))
+        setattr(form.logg.validators[1], 'max', float(logg_rng[1]))
         setattr(form.logg.validators[1], 'message', 'Surface gravity must be between {} and {}'.format(*logg_rng))
-        setattr(form.feh.validators[1], 'min', feh_rng[0])
-        setattr(form.feh.validators[1], 'max', feh_rng[1])
+        setattr(form.feh.validators[1], 'min', float(feh_rng[0]))
+        setattr(form.feh.validators[1], 'max', float(feh_rng[1]))
         setattr(form.feh.validators[1], 'message', 'Metallicity must be between {} and {}'.format(*feh_rng))
 
         # Send it back to the main page
@@ -158,9 +158,8 @@ def limb_darkening():
         form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
 
         # Grism details
-        if '.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper():
-            kwargs = {'n_bins': form.n_bins.data, 'pixels_per_bin': form.n_pix.data,
-                      'wl_min': form.wave_min.data*u.um, 'wl_max': form.wave_max.data*u.um}
+        if ('.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper()) or form.bandpass.data.lower() == 'tophat':
+            kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
         else:
             kwargs = {}
 
