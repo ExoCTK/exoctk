@@ -14,14 +14,17 @@ from . import visibilityPA as vpa
 
 TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
 
-disp_nircam = 0.001 # microns
-lam0_nircam = 2.369
-lam1_nircam = 4.417
 def tolam(x):
     dlam = disp*x
     lam = 2.369+dlam
 
     return lam
+
+disp_nircam = 0.001 # microns
+lam0_nircam322w2 = 2.369
+lam1_nircam322w2 = 4.417
+lam0_nircam444w = 3.063
+lam1_nircam444w = 5.111
 
 def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
                  tmpDir="", fig='', to_html=True):
@@ -208,11 +211,11 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
     for row in np.arange(rows):
         i = np.argmax(trace1[row, :])
         #tr = trace1[row, i-20:i+41]
-        tr = trace1[row, i-60:i+1]
+        tr = trace1[row, i-20:i+41]
         w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
-        contamO1[row, :] = np.sum(cube[:, row, i-60:i+1]*ww, axis=1)
+        contamO1[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
 
     TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
 
@@ -230,9 +233,12 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
     if instrument == 'NIRISS':
         xlim0 = lamO1.min()
         xlim1 = lamO1.max()
-    elif 'NIRCam' in instrument:
-        xlim0 = lam0_nircam
-        xlim1 = lam1_nircam
+    elif instrument == 'NIRCam F322W2':
+        xlim0 = lam0_nircam322w2
+        xlim1 = lam1_nircam322w2
+    elif instrument == 'NIRCam F444W':
+        xlim0 = lam0_nircam444w
+        xlim1 = lam1_nircam444w
     ylim0 = PA.min()-0.5*dPA
     ylim1 = PA.max()+0.5*dPA
     color_mapper = LinearColorMapper(palette=inferno(8)[::-1],
@@ -255,7 +261,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
             line_color='blue', legend='> 0.001')
     s3.line(100*np.sum(contamO1 >= 0.01, axis=0)/rows, PA-dPA/2,
             line_color='green', legend='> 0.01')
-    s3.xaxis.axis_label = '% channels contaminated'
+    s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
 
 
