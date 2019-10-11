@@ -536,7 +536,7 @@ def contam_visibility():
 
                 contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
 
-                contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
+                contam_plot = cf.contam(contam_cube, form.inst.data, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
 
                 # Get scripts
                 contam_js = INLINE.render_js()
