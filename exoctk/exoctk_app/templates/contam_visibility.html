@@ -138,8 +138,8 @@
                     <span id="helpBlock" class="help-block">Calculate only the visibility of the target.</span>
                 </p>
                 <br>
-                <p>                               % disabled=form.calculate_contam_submit.disabled,
-                    {{ form.calculate_contam_submit(class="btn btn-success") }}
+                <p>
+                    {{ form.calculate_contam_submit(disabled=form.calculate_contam_submit.disabled, class="btn btn-success") }}
                     <span id="helpBlock" class="help-block">Calculate the visibility and the contamination. This can take up to 20 seconds!</span>
                     <span id="helpBlock" class="help-block">(Currently only available for SOSS mode)</span>
                 </p>

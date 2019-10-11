@@ -460,7 +460,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if form.inst.data != 'NIRISS':
+        if (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
