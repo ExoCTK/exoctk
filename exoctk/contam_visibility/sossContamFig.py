@@ -14,6 +14,15 @@ from . import visibilityPA as vpa
 
 TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
 
+disp_nircam = 0.001 # microns
+lam0_nircam = 2.369
+lam1_nircam = 4.417
+def tolam(x):
+    dlam = disp*x
+    lam = 2.369+dlam
+
+    return lam
+
 def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
                  tmpDir="", fig='', to_html=True):
     """ Generate the contamination plot.
@@ -162,7 +171,7 @@ def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
 
     return fig_with_tabs
 
-def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
+def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
            fig='', to_html=True):
     # Get data from FITS file
     if isinstance(cube, str):
@@ -170,14 +179,19 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
         cube = hdu[0].data
         hdu.close()
 
-    trace1 = cube[0, :, :] # target star order 1 trace
-    cube = cube[2:, :, :]  # neighbor star order 1 and 2 traces in all the angles
+    if instrument != 'NIRISS':
+        trace1 = cube[0, :, :] # target star order 1 trace
+        cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
+
+    elif instrument=='NIRISS':
+        trace1 = cube[0, :, :]
+        trace2 = cube[1, :, :]
+        cube = cube[2:, :, :]
 
     plotPAmin, plotPAmax = paRange
 
     # start calculations
-    loc = 'data/contam_visibility/lambda_order1-2.txt'
-    lam_file = pkg_resources.resource_filename('exoctk', loc)
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
     nPA = cube.shape[0]
@@ -213,8 +227,12 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # Contam plot
-    xlim0 = lamO1.min()
-    xlim1 = lamO1.max()
+    if instrument == 'NIRISS':
+        xlim0 = lamO1.min()
+        xlim1 = lamO1.max()
+    elif 'NIRCam' in instrument:
+        xlim0 = lam0_nircam
+        xlim1 = lam1_nircam
     ylim0 = PA.min()-0.5*dPA
     ylim1 = PA.max()+0.5*dPA
     color_mapper = LinearColorMapper(palette=inferno(8)[::-1],
@@ -237,7 +255,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
             line_color='blue', legend='> 0.001')
     s3.line(100*np.sum(contamO1 >= 0.01, axis=0)/rows, PA-dPA/2,
             line_color='green', legend='> 0.01')
-    s3.xaxis.axis_label = '% channels contam.'
+    s3.xaxis.axis_label = '% channels contaminated'
     s3.yaxis.major_label_text_font_size = '0pt'
 
 
@@ -320,7 +338,7 @@ def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
         contamO2[y, :] = np.sum(cube[:, y, i-20:i+41]*ww, axis=1)
 
     # Otherwise, it's a Bokeh plot
-    
+
     TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
 
     y = np.array([0., 0.])
