@@ -41,7 +41,7 @@
             <label class="col-sm-2 control-label">Coordinates</label>
 
             <div class="col-sm-10">
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:60px'>R.A.</div>
                       {{ form.ra(value=form.ra.data, size=10, rows=1, class='form-control') }}
@@ -104,7 +104,7 @@
             <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
 
             <div class="col-sm-10">
-                
+
                 <div class="input-group">
                   <div class="input-group-addon" style='width:120px'>PA Min</div>
                       {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
@@ -138,8 +138,8 @@
                     <span id="helpBlock" class="help-block">Calculate only the visibility of the target.</span>
                 </p>
                 <br>
-                <p>
-                    {{ form.calculate_contam_submit(disabled=form.calculate_contam_submit.disabled, class="btn btn-success") }}
+                <p>                               % disabled=form.calculate_contam_submit.disabled,
+                    {{ form.calculate_contam_submit(class="btn btn-success") }}
                     <span id="helpBlock" class="help-block">Calculate the visibility and the contamination. This can take up to 20 seconds!</span>
                     <span id="helpBlock" class="help-block">(Currently only available for SOSS mode)</span>
                 </p>

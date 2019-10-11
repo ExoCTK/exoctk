@@ -482,7 +482,7 @@ def contam_visibility():
             if form.calculate_contam_submit.data:
 
                 # Make field simulation
-                contam_cube = fs.sossFieldSim(form.ra.data, form.dec.data, binComp=form.companion.data)
+                contam_cube = fs.fieldSim(form.ra.data, form.dec.data, form.inst.data, binComp=form.companion.data)
                 contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
 
                 # Get scripts
