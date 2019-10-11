@@ -69,6 +69,7 @@ def index():
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
     """The limb darkening form page. """
+    print('safkjhsdkjfhadkjh')
     # Load default form
     form = fv.LimbDarkeningForm()
 
@@ -779,7 +780,40 @@ def atmospheric_retrievals():
     return render_template('atmospheric_retrievals.html')
 
 
+@app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
+def phase_constraint():
+    # Load default form
+    form = fv.PhaseConstraint()
+
+    print('1')
+    # Reload page with stellar data from ExoMAST
+    if form.resolve_submit.data:
+        print('2')
+        if form.targname.data.strip() != '':
+            print('3')
+            try:
+                print('4')
+                # Resolve the target in exoMAST
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, target_url = get_target_data(form.targname.data)
+
+                # Update the form data
+                form.period.data = data.get('orbital_period')
+                form.transit_dur.data = data.get('transit_duration')
+                form.transit_time.data = data.get('transit_time')
+                form.target_url.data = str(target_url)
+
+                return render_template('phase_constraint.html', form=form)
+                
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+    # Send it back to the main page
+    return render_template('phase_constraint.html', form=form)
+
+
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port)
+    app_exoctk.run(host='0.0.0.0', port=port, debug=True)
