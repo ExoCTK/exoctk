@@ -635,6 +635,7 @@ def phase_overlap():
 
             # Contamination plot too
             if form.calculate_contam_submit.data:
+                pass
 
                 # Make field simulation
                 #contam_cube = fs.sossFieldSim(ra_hms, dec_dms, binComp=form.companion.data)
@@ -646,7 +647,7 @@ def phase_overlap():
                 #contam_script, contam_div = components(contam_plot)
 
             else:
-
+                    pass
                 #contam_script = contam_div = contam_js = contam_css = ''
 
             return render_template('contam_visibility_results.html',

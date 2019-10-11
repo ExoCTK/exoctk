@@ -146,22 +146,24 @@ def phase_overlap_constraint_main(target_name, period=None, obs_duration=None, w
         window_size = 1.0
 
     minphase, maxphase = calculate_phase(period, obs_duration, window_size)
+
+    return minphase, maxphase
     
     # Is this the return that we want?
-    print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
+    #print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
 
 # Need to make entry point for this!
-if __name__ == '__main__':
-    args = docopt(__doc__, version='0.1')
+#if __name__ == '__main__':
+#    args = docopt(__doc__, version='0.1')
 
     # Ugh, docopt datatypes are funky.
     # This converts entries from strs to floats
-    for k,v in args.items():
-        try:
-            args[k] = float(v)
-        except (ValueError, TypeError):
+ #   for k,v in args.items():
+ #       try:
+ #           args[k] = float(v)
+ #       except (ValueError, TypeError):
             # Handles None and char strings.
-            continue
+ #           continue
     
-    phase_overlap_constraint(args['<target_name>'], args['--period'], 
-                             args['--transit_duration'], args['--window_size'])
+ #   phase_overlap_constraint(args['<target_name>'], args['--period'], 
+ #                            args['--transit_duration'], args['--window_size'])
