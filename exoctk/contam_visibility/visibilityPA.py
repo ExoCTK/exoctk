@@ -16,7 +16,7 @@ import pkg_resources
 from astropy.table import Table
 from astropy.time import Time
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models import HoverTool
+from bokeh.models import HoverTool, ranges
 from bokeh.models.widgets import Panel, Tabs
 import matplotlib.dates as mdates
 import numpy as np
@@ -51,7 +51,7 @@ def convert_ddmmss_to_float(astring):
 
 
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
-    """Check the visibility at a range of position angles
+    """Check the visibility at a range of position angles.
 
     Parameters
     ----------
@@ -216,8 +216,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
 
-    #return paGood, paBad, gd, fig
-    return terr_x, terr_y, berr_x, berr_y
+    return paGood, paBad, gd, fig
 
 def fill_between(fig, xdata, pamin, pamax, **kwargs):
     # addressing NIRSpec issue
@@ -300,7 +299,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Setting up HoverTool parameters & other variables
     COLOR = 'green'
-    TOOLS = 'pan, wheel_zoom, reset, save'
+    TOOLS = 'pan, wheel_zoom, box_zoom, reset, save'
     SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
                                         panom=paNom,\
                                         pamax=paMax,\
@@ -319,10 +318,10 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      title='Target Visibility with '+str(instrument))
 
     # Draw the curve and PA min/max patch
-    fig.line('date', 'panom', color=COLOR, legend='Nominal Aperture PA',\
-              source=SOURCE)
-    fig = fill_between(fig, gd, paMin, paMax, color=COLOR, fill_alpha=0.2,\
-                        line_alpha=0.1)
+    fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
+               source=SOURCE, alpha=.5)
+    fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
+    fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
     fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
@@ -332,6 +331,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.y_range = ranges.Range1d(0, 360)
 
     # Making the output table
     # Creating new lists w/o the NaN values

@@ -137,6 +137,42 @@ or, clone the repository directly from GitHub:
   cd exoctk
   python setup.py [install|devlop]
 
+Obtain the ``exoctk`` Data 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To obtain the ``exoctk`` data, visit the `ExoCTK website <https://exoctk.stsci.edu/>`_ and navigate to the "ExoCTK Data Download" tab. 
+This will start a download of a zipped package of all the data you need to run
+``exoctk``. 
+
+Because it is a fairly hefty data download, you'll need to be thoughtful about
+how you unzip it. 
+
+- For Mac OS, use the default application to unzip the file (Archive Utility or
+  similar depending on version.) 
+- For Windows, use the default application to unzip the file (Extract or
+  similar depending on version.)
+- For Linux, use the java unzip :
+
+::
+
+    jar -xf exoctk_data.zip
+
+- If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be corrupted. 
+
+The data will unzip in the appropriate structure, with the top layer
+``exoctk_data``. Export an environment variable for ``EXOCTK_DATA``. 
+
+- For Mac OS/Linux, add the line
+
+::
+
+    export EXOCTK_DATA='/path/to/your/unzipped/directory/exoctk_data/'
+
+to your `.bashrc` or `.bash_profile`. 
+
+- For Windows, add an evironment variable using System Utility. 
+
+
 Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 You can install the ExoCTK ``conda`` environment via the ``env/environment-<PYTHON_VERSION>.yml`` files (relative to the parent directory of where the repository was installed).  Note that there are separate environment files for each version of ``python`` that ``exoctk`` supports.  First, one should ensure that their version of ``conda`` is up to date:
@@ -150,10 +186,10 @@ Next, one should activate the ``base`` environment:
 
 ::
 
-  source activate base
+  conda activate base
 
 
-Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file:
+Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file. One can find these files under the ``env`` directory and should run the following command in that directory:
 
 ::
 
@@ -166,7 +202,7 @@ Lastly, one can activate the newly-created environment with:
 
 ::
 
-  source activate exoctk-<PYTHON_VERSION>
+  conda activate exoctk-<PYTHON_VERSION>
 
 where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.6``)
 

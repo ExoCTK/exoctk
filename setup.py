@@ -5,25 +5,40 @@ from setuptools import setup, find_packages
 REQUIRES = ['asteval',
             'astropy',
             'astroquery',
+            'awscli',
+            'bandit',
             'bibtexparser',
             'bokeh',
             'corner',
             'cython',
-            'Flask',
+            'docopt',
+            'docutils==0.14',
+            'flake8',
+            'flask',
+            'flask_wtf',
+            'gunicorn',
             'h5py',
+            'ipython',
             'lmfit',
             'matplotlib',
             'numba',
             'numpy',
             'numpydoc',
             'pandas',
+            'paramiko',
             'platon',
             'pysynphot',
+            'pytest',
+            'pyyaml==5.1.0',
             'scipy<1.2',
+            'scp',
             'sphinx',
-            'wtforms',
-            'Flask_WTF',
-            'svo_filters']
+            'sphinx_astropy',
+            'sqlalchemy',
+            'svo_filters',
+            'wtforms']
+
+DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
@@ -31,11 +46,12 @@ for root, _, files in os.walk("exoctk"):
         for fname in files if not fname.endswith(".py") and not fname.endswith(".pyc")]
 
 setup(name='exoctk',
-      version='0.3.0',
+      version='0.4.0',
       description='Observation reduction and planning tools for exoplanet science',
       packages=find_packages(".", exclude=["*.tests"]),
       package_data={'exoctk': FILES},
       install_requires=REQUIRES,
+      dependency_links=DEPENDENCY_LINKS,
       author='The ExoCTK Group',
       author_email='exoctk@gmail.com',
       license='MIT',

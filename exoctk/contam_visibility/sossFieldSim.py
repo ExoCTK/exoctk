@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import readsav
 from astropy.io import fits
+from exoctk.utils import get_env_variables
 
 TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
 if TRACES_PATH == '':
