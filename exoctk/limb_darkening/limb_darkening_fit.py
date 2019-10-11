@@ -4,9 +4,11 @@
 A module to calculate limb darkening coefficients from a grid of model spectra
 """
 import inspect
+import warnings
 
 import astropy.table as at
 import astropy.units as q
+from astropy.utils.exceptions import AstropyWarning
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -14,12 +16,16 @@ import numpy as np
 from scipy.optimize import curve_fit
 from svo_filters import svo
 import bokeh.plotting as bkp
+from bokeh.models import Range1d
 
 from .. import utils
 from .. import modelgrid
 
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
 rc('text', usetex=True)
+
+warnings.simplefilter('ignore', category=AstropyWarning)
+warnings.simplefilter('ignore', category=FutureWarning)
 
 
 def ld_profile(name='quadratic', latex=False):
@@ -141,20 +147,22 @@ class LDC:
         self.model_grid = model_grid
 
         # Table for results
-        columns = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'coeffs',
+        columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'coeffs',
                    'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max',
                    'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld',
-                   'ld_min', 'ldfunc', 'flux', 'bandpass']
-        dtypes = [float, float, float, '|S20', '|S20', object, object, object,
+                   'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
+        dtypes = ['|S20', float, float, float, '|S20', '|S20', object, object, object,
                   np.float16, np.float16, np.float16, object, object,
                   np.float16, object, object, np.float16, object, object,
-                  object]
+                  object, '|S20']
         self.results = at.Table(names=columns, dtype=dtypes)
 
         self.ld_color = {'quadratic': 'blue', '4-parameter': 'red',
                          'exponential': 'green', 'linear': 'orange',
                          'square-root': 'cyan', '3-parameter': 'magenta',
                          'logarithmic': 'pink', 'uniform': 'purple'}
+
+        self.count = 1
 
     @staticmethod
     def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
@@ -192,7 +200,7 @@ class LDC:
         return dn_err, up_err
 
     def calculate(self, Teff, logg, FeH, profile, mu_min=0.05, ld_min=0.01,
-                  bandpass=None, **kwargs):
+                  bandpass=None, name=None, color='blue', **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
         spectrum. If the model grid does not contain a spectrum of the given
@@ -220,6 +228,10 @@ class LDC:
         bandpass: svo_filters.svo.Filter() (optional)
             The photometric filter through which the limb darkening
             is to be calculated
+        name: str (optional)
+            A name for the calculation
+        color: str (optional)
+            A color for the plotted result
         """
         # Define the limb darkening profile function
         ldfunc = ld_profile(profile)
@@ -237,7 +249,7 @@ class LDC:
 
         # Use tophat oif no bandpass
         if bandpass is None:
-            units = self.model_grid.wl_units
+            units = self.model_grid.wave_units
             bandpass = svo.Filter('tophat', wave_min=np.min(wave)*units,
                                   wave_max=np.max(wave)*units)
 
@@ -248,8 +260,8 @@ class LDC:
         # Make sure the bandpass has coverage
         bp_min = bandpass.wave_min
         bp_max = bandpass.wave_max
-        mg_min = self.model_grid.wave_rng[0]*self.model_grid.wl_units
-        mg_max = self.model_grid.wave_rng[-1]*self.model_grid.wl_units
+        mg_min = self.model_grid.wave_rng[0]
+        mg_max = self.model_grid.wave_rng[-1]
         if bp_min < mg_min or bp_max > mg_max:
             raise ValueError('Bandpass {} not covered by model grid of\
                               wavelength range {}'.format(bandpass.filterID,
@@ -300,6 +312,17 @@ class LDC:
 
             # Make a dictionary or the results
             result = {}
+
+            # Check the count
+            result['name'] = name or 'Calculation {}'.format(self.count)
+            self.count += 1
+            if len(bandpass.centers[0]) == len(scaled_ld) and name is None:
+                result['name'] = '{} {}'.format(str(round(bandpass.centers[0][n], 2)), self.model_grid.wave_units)
+
+            # Set a color if possible
+            result['color'] = color
+
+            # Add the results
             result['Teff'] = Teff
             result['logg'] = logg
             result['FeH'] = FeH
@@ -359,10 +382,10 @@ class LDC:
         for row in table:
 
             # Set color for plot
-            color = self.ld_color[row['profile']]
+            color = row['color'] or self.ld_color[row['profile']]
 
             # Set label for plot
-            label = row['profile']
+            label = row['name']
 
             # Generate smooth curve
             ldfunc = row['ldfunc']
@@ -376,7 +399,7 @@ class LDC:
 
             # Matplotlib fig by default
             if fig is None:
-                fig = plt.gcf()
+                fig = bkp.figure()
 
             # Add fits to matplotlib
             if isinstance(fig, matplotlib.figure.Figure):
@@ -401,6 +424,13 @@ class LDC:
 
             # Or to bokeh!
             else:
+
+                # Set the plot elements
+                fig.x_range = Range1d(0, 1)
+                fig.y_range = Range1d(0, 1)
+                fig.xaxis.axis_label = 'mu'
+                fig.yaxis.axis_label = 'Normalized Intensity'
+                fig.legend.location = "bottom_right"
 
                 # Plot the fitted points
                 fig.circle(row['raw_mu'], row['raw_ld'], fill_color='black')

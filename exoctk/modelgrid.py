@@ -24,6 +24,7 @@ from scipy.ndimage import zoom
 from . import utils
 
 warnings.simplefilter('ignore', category=AstropyWarning)
+warnings.simplefilter('ignore', category=FutureWarning)
 
 
 class ModelGrid(object):
@@ -56,7 +57,7 @@ class ModelGrid(object):
     def __init__(self, model_directory, bibcode='2013A & A...553A...6H',
                  names={'Teff': 'PHXTEFF', 'logg': 'PHXLOGG',
                         'FeH': 'PHXM_H', 'mass': 'PHXMASS', 'Lbol': 'PHXLUM'},
-                 resolution=None, wl_units=q.um, **kwargs):
+                 resolution=None, wave_units=q.um, **kwargs):
         """
         Initializes the model grid by creating a table with a column
         for each parameter and ingests the spectra
@@ -74,7 +75,7 @@ class ModelGrid(object):
         resolution: int (optional)
             The desired wavelength resolution (lambda/d_lambda)
             of the grid spectra
-        wl_units: astropy.units.quantity
+        wave_units: astropy.units.quantity
         """
         # Make sure we can use glob if a directory
         # is given without a wildcard
@@ -114,7 +115,7 @@ class ModelGrid(object):
             # Create some attributes
             self.path = os.path.dirname(model_directory)+'/'
             self.refs = None
-            self.wave_rng = (0, 40)
+            self.wave_rng = (0*q.um, 40*q.um)
             self.flux_file = os.path.join(self.path, 'model_grid_flux.hdf5')
             self.flux = None
             self.wavelength = None
@@ -199,9 +200,9 @@ class ModelGrid(object):
         self.n_bins = 1
 
         # Set the wavelength_units
-        self.wl_units = q.AA
-        if wl_units:
-            self.set_units(wl_units)
+        self.wave_units = q.AA
+        if wave_units:
+            self.set_units(wave_units)
         else:
             self.const = 1
 
@@ -318,8 +319,8 @@ class ModelGrid(object):
                 raw_wave *= self.const
 
                 # Trim the wavelength and flux arrays
-                idx, = np.where(np.logical_and(raw_wave >= self.wave_rng[0],
-                                               raw_wave <= self.wave_rng[1]))
+                idx, = np.where(np.logical_and(raw_wave*self.wave_units >= self.wave_rng[0],
+                                               raw_wave*self.wave_units <= self.wave_rng[1]))
                 flux = raw_flux[:, idx]
                 wave = raw_wave[idx]
 
@@ -514,7 +515,7 @@ class ModelGrid(object):
             print('Data already loaded.')
 
     def customize(self, Teff_rng=(2300, 8000), logg_rng=(0, 6),
-                  FeH_rng=(-2, 1), wave_rng=(0, 40), n_bins=''):
+                  FeH_rng=(-2, 1), wave_rng=(0*q.um, 40*q.um), n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
         surface gravity, and metallicity. Also sets the wavelength range
@@ -624,18 +625,18 @@ class ModelGrid(object):
 
         self.__init__(self.path)
 
-    def set_units(self, wl_units=q.um):
+    def set_units(self, wave_units=q.um):
         """
         Set the wavelength and flux units
 
         Parameters
         ----------
-        wl_units: str, astropy.units.core.PrefixUnit/CompositeUnit
+        wave_units: str, astropy.units.core.PrefixUnit/CompositeUnit
             The wavelength units
         """
         # Set wavelength units
-        old_unit = self.wl_units
-        self.wl_units = q.Unit(wl_units)
+        old_unit = self.wave_units
+        self.wave_units = q.Unit(wave_units)
 
         # Update the wavelength
-        self.const = (old_unit/self.wl_units).decompose()._scale
+        self.const = (old_unit/self.wave_units).decompose()._scale
