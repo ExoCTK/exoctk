@@ -320,8 +320,7 @@ def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
         contamO2[y, :] = np.sum(cube[:, y, i-20:i+41]*ww, axis=1)
 
     # Otherwise, it's a Bokeh plot
-
-
+    
     TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
 
     y = np.array([0., 0.])

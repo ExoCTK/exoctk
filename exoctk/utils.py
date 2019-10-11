@@ -3,6 +3,8 @@
 """
 A module for utility funtions
 """
+
+import glob
 import itertools
 import os
 import re
@@ -16,12 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
-EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
-
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
             'square-root', 'logarithmic', 'exponential',
@@ -30,8 +26,35 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 # Supported filters
 FILTERS = svo.filters()
 
-# Set the version
-VERSION = '0.2'
+# Get the location of EXOCTK_DATA environvment variable and check that it is valid
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+
+# If the variable is blank or doesn't exist
+ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
+if not ON_TRAVIS:
+    if not EXOCTK_DATA:
+        raise ValueError(
+            'The $EXOCTK_DATA environment variable is not set.  Please set the '
+            'value of this variable to point to the location of the ExoCTK data '
+            'download folder.  Users may retreive this folder by clicking the '
+            '"ExoCTK Data Download" button on the ExoCTK website.'
+        )
+
+    # If the variable exists but doesn't point to a real location
+    if not os.path.exists(EXOCTK_DATA):
+        raise FileNotFoundError(
+            'The $EXOCTK_DATA environment variable is set to a location that '
+            'cannot be accessed.')
+
+    # If the variable exists, points to a real location, but is missing contents
+    for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
+        if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
+            raise KeyError('Missing {}/ directory from {}'.format(item, EXOCTK_DATA))
+
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
 
 
 def color_gen(colormap='viridis', key=None, n=10):
@@ -310,7 +333,7 @@ def medfilt(x, window_len):
 
 def filter_table(table, **kwargs):
     """Retrieve the filtered rows
-    
+
     Parameters
     ----------
     table: astropy.table.Table, pandas.DataFrame
@@ -318,11 +341,11 @@ def filter_table(table, **kwargs):
     param: str
         The parameter to filter by, e.g. 'Teff'
     value: str, float, int, sequence
-        The criteria to filter by, 
+        The criteria to filter by,
         which can be single valued like 1400
         or a range with operators [<,<=,>,>=],
         e.g. ('>1200','<=1400')
-    
+
     Returns
     -------
     astropy.table.Table, pandas.DataFrame
@@ -461,7 +484,7 @@ def build_target_url(target_name):
     Parameters
         ----------
         target_name : string
-            The name of the target transit. 
+            The name of the target transit.
 
         Returns
         -------
@@ -479,7 +502,7 @@ def get_canonical_name(target_name):
         Parameters
         ----------
         target_name : string
-            The name of the target transit. 
+            The name of the target transit.
 
         Returns
         -------
@@ -487,20 +510,65 @@ def get_canonical_name(target_name):
     '''
 
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
-    
+
     # Create params dict for url parsing. Easier than trying to format yourself.
     params = {"name":target_name}
-    
+
     r = requests.get(target_url, params=params)
     planetnames = r.json()
     canonical_name = planetnames['canonicalName']
-    
+
     return canonical_name
+
+def get_env_variables():
+    """Returns a dictionary containing various environment variable
+    information.
+
+    Returns
+    -------
+    env_variables : dict
+        A dictionary containing various environment variable data
+    """
+
+    env_variables = {}
+
+    # Get the location of EXOCTK_DATA environvment variable and check that it is valid
+    env_variables['exoctk_data'] = os.environ.get('EXOCTK_DATA')
+
+    # If the variable is blank or doesn't exist
+    ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
+    if not ON_TRAVIS:
+        if not env_variables['exoctk_data']:
+            raise ValueError(
+                'The $EXOCTK_DATA environment variable is not set.  Please set the '
+                'value of this variable to point to the location of the ExoCTK data '
+                'download folder.  Users may retreive this folder by clicking the '
+                '"ExoCTK Data Download" button on the ExoCTK website.'
+            )
+
+        # If the variable exists but doesn't point to a real location
+        if not os.path.exists(env_variables['exoctk_data']):
+            raise FileNotFoundError(
+                'The $EXOCTK_DATA environment variable is set to a location that '
+                'cannot be accessed.')
+
+        # If the variable exists, points to a real location, but is missing contents
+        for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
+            if item not in [os.path.basename(item) for item in glob.glob(os.path.join(env_variables['exoctk_data'], '*'))]:
+                raise KeyError('Missing {}/ directory from {}'.format(item, env_variables['exoctk_data']))
+
+    env_variables['modelgrid_dir'] = os.path.join(env_variables['exoctk_data'], 'modelgrid/')
+    env_variables['fortgrid_dir'] = os.path.join(env_variables['exoctk_data'], 'fortney/')
+    env_variables['exoctklog_dir'] = os.path.join(env_variables['exoctk_data'], 'exoctk_log/')
+    env_variables['genericgrid_dir'] = os.path.join(env_variables['exoctk_data'], 'generic/')
+
+    return env_variables
+
 
 def get_target_data(target_name):
     """
     Send request to exomast restful api for target information.
-        
+
     Parameters
     ----------
     target_name : string
