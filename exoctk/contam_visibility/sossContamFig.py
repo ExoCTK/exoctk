@@ -12,10 +12,11 @@ import numpy as np
 
 from . import visibilityPA as vpa
 
-def contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
-           fig='', to_html=True):
-    """
-    Generate the contamination plot.
+TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
+
+def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
+                 tmpDir="", fig='', to_html=True):
+    """ Generate the contamination plot.
 
     Parameters
     ----------
@@ -161,7 +162,7 @@ def contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir=""
 
     return fig_with_tabs
 
-def nircam_contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
+def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
            fig='', to_html=True):
     # Get data from FITS file
     if isinstance(cube, str):
@@ -246,8 +247,8 @@ def nircam_contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir=
 
     return fig
 
-def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
-           fig='', to_html=True):
+def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
+                    tmpDir="", fig='', to_html=True):
     """
     Generate the contamination plot.
 
@@ -287,15 +288,20 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
     plotPAmin, plotPAmax = paRange
 
     # start calculations
-    loc = 'data/contam_visibility/lambda_order1-2.txt'
-    lam_file = pkg_resources.resource_filename('exoctk', loc)
+
+    #lam_file = pkg_resources.resource_filename('exoctk', loc)
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+    print('LAMMMMM')
+    print(lamO2, lamO2.shape)
+
 
     ny = trace2dO1.shape[0]
     nPA = cube.shape[0]
     dPA = 360//nPA
     PA = np.arange(nPA)*dPA
 
+    print(np.arange(ny), np.arange(ny).shape)
     contamO1 = np.zeros([ny, nPA])
     contamO2 = np.zeros([ny, nPA])
     for y in np.arange(ny):

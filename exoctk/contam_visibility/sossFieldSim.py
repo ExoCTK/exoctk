@@ -15,7 +15,7 @@ if TRACES_PATH == '':
                      variable and data set up before we can continue.")
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
-    """Produce a SOSS field simulation for a target
+    """ Produce a SOSS field simulation for a target
 
     Parameters
     ----------
@@ -70,7 +70,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     nStars = allRA.size
 
     # Restoring model parameters
-    modelParam = readsav(os.path.join(IDLSAVE_PATH, 'modelsInfo.sav'),
+    modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
                          verbose=False)
     models = modelParam['models']
     modelPadX = modelParam['modelpadx']
@@ -123,7 +123,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
     # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-    saveFiles = glob.glob(os.path.join(IDLSAVE_PATH, '*.sav'))[:-1]
+    saveFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRISS', '*.sav'))[:-1]
     # pdb.set_trace()
 
     # Big loop to generate a simulation at each instrument PA
@@ -253,242 +253,246 @@ def fieldSim(ra, dec, instrument, binComp=''):
     """
 
     # Calling the variables which depend on what instrument you use
-    if instrument=='NIRISS':
+    #if instrument=='NIRISS':
         #dimX = 256
         #dimY = 2048
-        dimX = 257 # columns in your simulation array (PandExo)
-        dimY = 2301 # rows in your simulation array (PandExo)
-        rad = 2.5 # radius (in arcmins) to query for neighboring stars
-        pixel_scale = 0.065 # arcsec/pixel
-        xval, yval = 856, 107 # <- Q: sweetSpot can be off the sub-array?
-        add_to_apa = 0.57
-    elif instrument=='NIRCam F444W':
-        dimX = 51
-        dimY = 1343 # <- Q: should be conservative w/ sub-array size?
-        rad = 2.5
-        pixel_scale = 0.065
-        xval, yval = 16, 16
-        add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
-    elif instrument=='NIRCam F322W2':
-        dimX = 51
-        dimY = 1823 # <- Q: should be conservative w/ sub-array size?
-        rad = 2.5
-        pixel_scale = 0.065
-        xval, yval = 16, 16
-        add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
-    #elif instrument=='MIRI':
-    #    dimX = 256
-    #    dimY =
-    #    rad =
-    #    pixel_scale =
-    #    xval, yval =
-    #    add_to_apa =
-    #elif instrument=='NIRSpec':
-    #    dimX = 256
-    #    dimY =
-    #    rad =
-    #    pixel_scale = 0.065
-    #    xval, yval =
-    #    add_to_apa =
+        #dimX = 257 # columns in your simulation array (PandExo)
+        #dimY = 2301 # rows in your simulation array (PandExo)
+        #rad = 2.5 # radius (in arcmins) to query for neighboring stars
+        #pixel_scale = 0.065 # arcsec/pixel
+        #xval, yval = 856, 107 # <- Q: sweetSpot can be off the sub-array?
+        #add_to_apa = 0.57
+    if instrument=='NIRISS':
+        simuCube = sossFieldSim(ra, dec)
 
-    # stars in large field around target
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
-    targetRA = targetcrd.ra.value
-    targetDEC = targetcrd.dec.value
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad*u.arcmin)
+    else:
+        if instrument=='NIRCam F444W':
+            dimX = 51
+            dimY = 1343 # <- Q: should be conservative w/ sub-array size?
+            rad = 2.5
+            pixel_scale = 0.065
+            xval, yval = 16, 16
+            add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
+        elif instrument=='NIRCam F322W2':
+            dimX = 51
+            dimY = 1823 # <- Q: should be conservative w/ sub-array size?
+            rad = 2.5
+            pixel_scale = 0.065
+            xval, yval = 16, 16
+            add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
+        #elif instrument=='MIRI':
+        #    dimX = 256
+        #    dimY =
+        #    rad =
+        #    pixel_scale =
+        #    xval, yval =
+        #    add_to_apa =
+        #elif instrument=='NIRSpec':
+        #    dimX = 256
+        #    dimY =
+        #    rad =
+        #    pixel_scale = 0.065
+        #    xval, yval =
+        #    add_to_apa =
 
-    # coordinates of all stars in FOV, including target
-    allRA = info['ra'].data.data
-    allDEC = info['dec'].data.data
-    Jmag = info['j_m'].data.data
-    Hmag = info['h_m'].data.data
-    Kmag = info['k_m'].data.data
-    J_Hobs = Jmag-Hmag
-    H_Kobs = Hmag-Kmag
+        # stars in large field around target
+        targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
+        targetRA = targetcrd.ra.value
+        targetDEC = targetcrd.dec.value
+        info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
+                                 radius=rad*u.arcmin)
 
-    # target coords
-    aa = ((targetRA-allRA)*np.cos(targetDEC))
-    distance = np.sqrt(aa**2 + (targetDEC-allDEC)**2)
-    targetIndex = np.argmin(distance)  # the target
-
-    # add any missing companion
-    if binComp != '':
-        deg2rad = np.pi/180
-        bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
+        # coordinates of all stars in FOV, including target
+        allRA = info['ra'].data.data
+        allDEC = info['dec'].data.data
+        Jmag = info['j_m'].data.data
+        Hmag = info['h_m'].data.data
+        Kmag = info['k_m'].data.data
         J_Hobs = Jmag-Hmag
         H_Kobs = Hmag-Kmag
 
-    # number of stars
-    nStars = allRA.size
+        # target coords
+        aa = ((targetRA-allRA)*np.cos(targetDEC))
+        distance = np.sqrt(aa**2 + (targetDEC-allDEC)**2)
+        targetIndex = np.argmin(distance)  # the target
 
-    # Restoring model parameters
-    modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
-                         verbose=False)
-    models = modelParam['models']
-    modelPadX = modelParam['modelpadx']
-    modelPadY = modelParam['modelpady']
-    dimXmod = modelParam['dimxmod']
-    dimYmod = modelParam['dimymod']
-    jhMod = modelParam['jhmod']
-    hkMod = modelParam['hkmod']
-    #teffMod = modelParam['teffmod']
-    teffMod = np.linspace(2000, 6000, 41)
+        # add any missing companion
+        if binComp != '':
+            deg2rad = np.pi/180
+            bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
+            allRA = np.append(allRA, (allRA[targetIndex] + bb))
+            allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
+            Jmag = np.append(Jmag, binComp[2])
+            Hmag = np.append(Kmag, binComp[3])
+            Kmag = np.append(Kmag, binComp[4])
+            J_Hobs = Jmag-Hmag
+            H_Kobs = Hmag-Kmag
 
-    # find/assign Teff of each star
-    starsT = np.empty(nStars)
-    for j in range(nStars):
-        color_separation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
-        min_separation_ind = np.argmin(color_separation)
-        starsT[j] = teffMod[min_separation_ind]
+        # number of stars
+        nStars = allRA.size
 
-    radeg = 180/np.pi
-    sweetSpot = dict(x=xval, y=yval, RA=allRA[targetIndex],
-                     DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
+        # Restoring model parameters
+        modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
+                             verbose=False)
+        models = modelParam['models']
+        modelPadX = modelParam['modelpadx']
+        modelPadY = modelParam['modelpady']
+        dimXmod = modelParam['dimxmod']
+        dimYmod = modelParam['dimymod']
+        jhMod = modelParam['jhmod']
+        hkMod = modelParam['hkmod']
+        #teffMod = modelParam['teffmod']
+        teffMod = np.linspace(2000, 6000, 41)
 
-    # offset between all stars and target
-    dRA = (allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
-    dDEC = (allDEC - sweetSpot['DEC'])*3600
+        # find/assign Teff of each star
+        starsT = np.empty(nStars)
+        for j in range(nStars):
+            color_separation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
+            min_separation_ind = np.argmin(color_separation)
+            starsT[j] = teffMod[min_separation_ind]
 
-    # Put field stars positions and magnitudes in structured array
-    _ = dict(RA=allRA, DEC=allDEC, dRA=dRA, dDEC=dDEC, jmag=Jmag, T=starsT,
-             x=np.empty(nStars), y=np.empty(nStars), dx=np.empty(nStars),
-             dy=np.empty(nStars))
-    stars = np.empty(nStars,
-                     dtype=[(key, val.dtype) for key, val in _.items()])
-    for key, val in _.items():
-        stars[key] = val
+        radeg = 180/np.pi
+        sweetSpot = dict(x=xval, y=yval, RA=allRA[targetIndex],
+                         DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
 
-    # Initialize final fits cube that contains the modelled traces
-    # with contamination
-    PAmin = 0  # instrument PA, degrees
-    PAmax = 360
-    dPA = 1  # degrees
+        # offset between all stars and target
+        dRA = (allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
+        dDEC = (allDEC - sweetSpot['DEC'])*3600
 
-    # Set of IPA values to cover
-    PAtab = np.arange(PAmin, PAmax, dPA)    # degrees
-    nPA = len(PAtab)
+        # Put field stars positions and magnitudes in structured array
+        _ = dict(RA=allRA, DEC=allDEC, dRA=dRA, dDEC=dDEC, jmag=Jmag, T=starsT,
+                 x=np.empty(nStars), y=np.empty(nStars), dx=np.empty(nStars),
+                 dy=np.empty(nStars))
+        stars = np.empty(nStars,
+                         dtype=[(key, val.dtype) for key, val in _.items()])
+        for key, val in _.items():
+            stars[key] = val
 
-    # cube of trace simulation at every degree of field rotation,
-    # +target at O1 and O2
+        # Initialize final fits cube that contains the modelled traces
+        # with contamination
+        PAmin = 0  # instrument PA, degrees
+        PAmax = 360
+        dPA = 1  # degrees
 
-    if instrument == 'NIRISS':
-        simuCube = np.zeros([nPA+2, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
-        fitsFiles = np.sort(fitsFiles) # **organizes the elements from lowest to
-                                       # highest temp (2000->6000K)
-    elif instrument == 'NIRCam F444W':
-        simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
-        fitsFiles = np.sort(fitsFiles)
-        print(TRACES_PATH)
+        # Set of IPA values to cover
+        PAtab = np.arange(PAmin, PAmax, dPA)    # degrees
+        nPA = len(PAtab)
 
-    elif instrument == 'NIRCam F322W2':
-        simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
-        fitsFiles = np.sort(fitsFiles)
+        # cube of trace simulation at every degree of field rotation,
+        # +target at O1 and O2
+
+        if instrument == 'NIRISS':
+            simuCube = np.zeros([nPA+2, dimY+1, dimX+1])
+            savFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'modelOrder*.sav'))
+            savFiles = np.sort(savFiles) # **organizes the elements from lowest to
+                                           # highest temp (2000->6000K)
+        elif instrument == 'NIRCam F444W':
+            simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
+            fitsFiles = np.sort(fitsFiles)
+            print(TRACES_PATH)
+
+        elif instrument == 'NIRCam F322W2':
+            simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
+            fitsFiles = np.sort(fitsFiles)
 
 
-    # Big loop to generate a simulation at each instrument PA
-    for kPA in range(PAtab.size):
-        print('ANGLE: ', kPA)
-        APA = PAtab[kPA]
-        V3PA = APA+add_to_apa  # from APT
-        sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
-        cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
-        ps = pixel_scale
-        stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
-        stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
-        stars['x'] = stars['dx']+sweetSpot['x']
-        stars['y'] = stars['dy']+sweetSpot['y']
+        # Big loop to generate a simulation at each instrument PA
+        for kPA in range(PAtab.size):
+            print('ANGLE: ', kPA)
+            APA = PAtab[kPA]
+            V3PA = APA+add_to_apa  # from APT
+            sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
+            cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
+            ps = pixel_scale
+            stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
+            stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
+            stars['x'] = stars['dx']+sweetSpot['x']
+            stars['y'] = stars['dy']+sweetSpot['y']
 
-        # Retain stars that are within the Direct Image NIRISS POM FOV
-        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
-                        (stars['y'] >= -154) & (stars['y'] <= dimY+174))
-        starsInFOV = stars[ind]
+            # Retain stars that are within the Direct Image NIRISS POM FOV
+            ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
+                            (stars['y'] >= -154) & (stars['y'] <= dimY+174))
+            starsInFOV = stars[ind]
 
-        for i in range(len(ind)):
-            # are these the coordinates of the stars
-            # on the detector (w/ undeviated wavelength)?
-            intx = round(starsInFOV['dx'][i])
-            inty = round(starsInFOV['dy'][i])
+            for i in range(len(ind)):
+                # are these the coordinates of the stars
+                # on the detector (w/ undeviated wavelength)?
+                intx = round(starsInFOV['dx'][i])
+                inty = round(starsInFOV['dy'][i])
 
-            # **this indexing assumes that teffMod is
-            # sorted the same way fitsFiles was sorted
-            k = np.where(teffMod == starsInFOV['T'][i])[0][0]
-            print(starsInFOV['T'][i], teffMod)
-            print(k)
+                # **this indexing assumes that teffMod is
+                # sorted the same way fitsFiles was sorted
+                k = np.where(teffMod == starsInFOV['T'][i])[0][0]
+                print(starsInFOV['T'][i], teffMod)
+                print(k)
 
-            fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
+                fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
 
-            # deal with subection sizes
-            if instrument!='NIRISS':
-                modelPadX = 0
-                modelPadY = 0
-            mx0 = int(modelPadX-intx)
-            mx1 = int(modelPadX-intx+dimX)
-            my0 = int(modelPadY-inty)
-            my1 = int(modelPadY-inty+dimY)
-            print('intx,y ',intx, inty)
-
-            if (mx0 > dimX) or (my0 > dimY):
-                continue
-            if (mx1 < 0) or (my1 < 0):
-                continue
-
-            x0 = (mx0 < 0)*(-mx0)
-            y0 = (my0 < 0)*(-my0)
-            mx0 *= (mx0 >= 0)
-            mx1 = dimX if mx1 > dimX else mx1
-            my0 *= (my0 >= 0)
-            my1 = dimY if my1 > dimY else my1
-
-            print('y0 ', y0)
-            print('my1 ', my1)
-            print('my0 ', my0)
-            print('x0 ', x0)
-            print('mx1 ', mx1)
-            print('mx0 ', mx0)
-            # if target and first kPA, add target traces of order 1 and 2
-            # in output cube
-            # the target will have intx = 0, inty = 0
-
-            if (intx == 0) & (inty == 0) & (kPA == 0):
-                fNameModO12 = fitsFiles[k]
-                #print('GENERATE THIS TRACE O12 SEPARATELY IN PANDEXO: ', fNameModO12)
-                print(fNameModO12)
-                modelO1 = fits.getdata(fNameModO12, 1)
-                ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-                simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
-                if instrument=='NIRISS':
-                    mod = models[k, my0:my1, mx0:mx1]
-                    modelO2 = fits.getdata(fNameModO12, 2)
-                    ord2 = modelO2[0, my0:my1, mx0:mx1]*fluxscale
-                    simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
-
-                print('fluxscale ', fluxscale)
-
-            if (intx != 0) or (inty != 0):
-                if instrument=='NIRISS':
-                    mod = models[k, my0:my1, mx0:mx1]
-                    simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
+                # deal with subection sizes
+                if instrument!='NIRISS':
+                    modelPadX = 0
+                    modelPadY = 0
                 else:
-                    fNameModO12 = fitsFiles[k]
-                    modelO12 = fits.getdata(fNameModO12)
-                #modelO12 = readsav(fNameModO12)
+                    print(modelPadX, modelPadY)
+                mx0 = int(modelPadX-intx)
+                mx1 = int(modelPadX-intx+dimX)
+                my0 = int(modelPadY-inty)
+                my1 = int(modelPadY-inty+dimY)
+                print('intx,y ',intx, inty)
+
+                if (mx0 > dimX) or (my0 > dimY):
+                    continue
+                if (mx1 < 0) or (my1 < 0):
+                    continue
+
+                x0 = (mx0 < 0)*(-mx0)
+                y0 = (my0 < 0)*(-my0)
+                mx0 *= (mx0 >= 0)
+                mx1 = dimX if mx1 > dimX else mx1
+                my0 *= (my0 >= 0)
+                my1 = dimY if my1 > dimY else my1
+
+                print('y0 ', y0)
+                print('my1 ', my1)
+                print('my0 ', my0)
+                print('x0 ', x0)
+                print('mx1 ', mx1)
+                print('mx0 ', mx0)
+                # if target and first kPA, add target traces of order 1 and 2
+                # in output cube
+                # the target will have intx = 0, inty = 0
+
+                if (intx == 0) & (inty == 0) & (kPA == 0):
+
+                    if instrument=='NIRISS':
+                        fNameModO12 = savFiles[k]
+                        modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
+                        ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
+                        ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
+                        simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
+                        simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
+
+                    else:
+                        fNameModO12 = fitsFiles[k]
+                        modelO1 = fits.getdata(fNameModO12, 1)
+                        ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+                        simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
 
-
-                    simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += modelO12[0, my0:my1, mx0:mx1]*fluxscale
+                if (intx != 0) or (inty != 0):
+                    if instrument=='NIRISS':
+                        mod = models[k, my0:my1, mx0:mx1]
+                        simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
+                    else:
+                        fNameModO12 = fitsFiles[k]
+                        modelO12 = fits.getdata(fNameModO12)
+                        simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += modelO12[0, my0:my1, mx0:mx1]*fluxscale
 
     return simuCube
 
-def fsnircam(ra, dec, instrument, binComp=''):
+def _fsnircam(ra, dec, instrument, binComp=''):
     """Produce a field simulation for a target
     Parameters
     ----------
