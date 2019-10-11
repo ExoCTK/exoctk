@@ -1,0 +1,46 @@
+{%extends "base.html" %}
+
+{% block content %}
+<!doctype html>
+<link rel="stylesheet" href="/static/css/select2-bootstrap-theme.min.css">
+<link rel="stylesheet" href="/static/css/icheck-bootstrap.min.css">
+<script type="text/javascript" async
+        scr="/static/js/starter.form.js">
+</script>
+<script type="text/javascript" async
+        src="/static/js/select2.min.js">
+</script>
+
+<div class='form-group'>
+    <h1>Phase Constraint Calculator</h1>
+    <br>
+            
+    <p>
+        A nice description of the tool. 
+        
+    </p>
+
+    <form class='form-horizontal' action="/phase_constraint" method="POST">
+        {{ form.hidden_tag() }}
+
+        {% include 'target_resolve.html' %}
+
+        <hr class="col-md-12">
+
+        <div class='form-group'>
+
+            <label for='mag' class="col-sm-2 control-label">Stellar Parameters</label>
+            <div class="col-sm-10">
+
+                <div class="input-group">
+                    {{ form.period(value=form.period.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{mag}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">The K-band vega magnitude of the target</span>
+            </div>
+        
+        </div>
+
+</div>
+
+{% endblock %}

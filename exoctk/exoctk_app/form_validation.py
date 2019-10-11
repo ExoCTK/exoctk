@@ -134,3 +134,10 @@ class ContamVisForm(BaseForm):
     companion = StringField('companion', default='')
     pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
     pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])
+
+
+class PhaseConstraint(BaseForm):
+    period = DecimalField('p') 
+    transit_time = DecimalField('transit_time') 
+    obs_duration = DecimalField('obs_duration') 
+    window_size = DecimalField('window_size', default=1.0)
