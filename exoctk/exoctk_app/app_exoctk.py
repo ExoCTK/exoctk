@@ -156,10 +156,7 @@ def limb_darkening():
         form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
 
         # Grism details
-        if ('.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper()) or form.bandpass.data.lower() == 'tophat':
-            kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
-        else:
-            kwargs = {}
+        kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
 
         # Make filter object and plot
         bandpass = svo.Filter(form.bandpass.data, **kwargs)
