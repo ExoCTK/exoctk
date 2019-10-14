@@ -497,3 +497,6 @@ class LDC:
                 plt.show()
             else:
                 bkp.show(fig)
+
+        else:
+            return fig
