@@ -100,14 +100,20 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
             The maximum phase constraint. '''
 
     if obs_duration == None:
-        if period == None:
-            data = get_target_data(target_name)
-            
-            period = data['orbital_period']
-            transit_dur = data['transit_duration']
-            t0 = data['transit_time']
-
+        data = get_target_data(target_name)
+        transit_dur = data['transit_duration']
         obs_duration = calculate_obsDur(transit_dur)
+    
+    if period == None:
+        data = get_target_data(target_name)
+        period = data['orbital_period']
+    
+    if obs_duration == None and period == None:
+        data = get_target_data(target_name)
+        period = data['orbital_period']
+        transit_dur = data['transit_duration']
+
+    obs_duration = calculate_obsDur(transit_dur)
 
     minphase, maxphase = calculate_phase(period, obs_duration, window_size)
     

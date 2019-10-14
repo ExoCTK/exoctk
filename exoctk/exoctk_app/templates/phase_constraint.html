@@ -14,10 +14,9 @@
 <div class='form-group'>
     <h1>Phase Constraint Calculator</h1>
     <br>
-            
+
     <p>
         A nice description of the tool. 
-        
     </p>
 
     <form class='form-horizontal' action="/phase_constraint" method="POST">
@@ -29,17 +28,55 @@
 
         <div class='form-group'>
 
-            <label for='mag' class="col-sm-2 control-label">Stellar Parameters</label>
+            <label for='mag' class="col-sm-2 control-label">Period</label>
             <div class="col-sm-10">
-
+            
                 <div class="input-group">
                     {{ form.period(value=form.period.data, size=10, rows=1, class='form-control') }}
-                    <div class="input-group-addon" style='width:60px'>\(\small \text{mag}\)</div>
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Days}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">The K-band vega magnitude of the target</span>
+                <span id="helpBlock" class="help-block">Period of Target</span>
             </div>
-        
+
+            <br>
+            
+            <label for='mag' class="col-sm-2 control-label">Transit Time</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Transit time of Target</span>
+            </div>
+
+            <label for='mag' class="col-sm-2 control-label">Start Time</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.obs_duration(value=form.obs_duration.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Start time of your Observation</span>
+            </div>
+
+            <br>
+
+            <hr class="col-md-12">
+            
+            <label for='mag' class="col-sm-2 control-label">Window Size</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.window_size(value=1, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Size of Transit Window (Default 1 Hour)</span>
+            </div>
+            
         </div>
+        
+
 
 </div>
 
