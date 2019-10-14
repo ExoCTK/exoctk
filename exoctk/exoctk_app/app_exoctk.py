@@ -785,14 +785,10 @@ def phase_constraint():
     # Load default form
     form = fv.PhaseConstraint()
 
-    print('1')
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
-        print('2')
         if form.targname.data.strip() != '':
-            print('3')
             try:
-                print('4')
                 # Resolve the target in exoMAST
                 form.targname.data = get_canonical_name(form.targname.data)
                 data, target_url = get_target_data(form.targname.data)
