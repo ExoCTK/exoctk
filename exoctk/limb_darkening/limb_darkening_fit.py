@@ -17,6 +17,7 @@ from scipy.optimize import curve_fit
 from svo_filters import svo
 import bokeh.plotting as bkp
 from bokeh.models import Range1d
+from bokeh.models.widgets import Panel, Tabs
 
 from .. import utils
 from .. import modelgrid
@@ -200,7 +201,7 @@ class LDC:
         return dn_err, up_err
 
     def calculate(self, Teff, logg, FeH, profile, mu_min=0.05, ld_min=0.01,
-                  bandpass=None, name=None, color='blue', **kwargs):
+                  bandpass=None, name=None, color=None, **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
         spectrum. If the model grid does not contain a spectrum of the given
@@ -320,7 +321,7 @@ class LDC:
                 result['name'] = '{} {}'.format(str(round(bandpass.centers[0][n], 2)), self.model_grid.wave_units)
 
             # Set a color if possible
-            result['color'] = color
+            result['color'] = color or self.ld_color[profile]
 
             # Add the results
             result['Teff'] = Teff
@@ -362,6 +363,49 @@ class LDC:
                       self.results.colnames}
             self.results.add_row(result)
 
+    def plot_tabs(self, show=False, **kwargs):
+        """Plot the LDCs in a tabbed figure
+
+        Parameters
+        ----------
+        fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
+            An existing figure to plot on
+        show: bool
+            Show the figure
+        """
+        # Change names to reflect ld profile
+        old_names = self.results['name']
+        for n, row in enumerate(self.results):
+            self.results[n]['name'] = row['profile']
+
+        # Draw a figure for each wavelength bin
+        tabs = []
+        for wav in np.unique(self.results['wave_eff']):
+
+            # Plot it
+            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
+                        plot_width=800, plot_height=400)
+            self.plot(wave_eff=wav, fig=fig)
+
+            # Plot formatting
+            fig.legend.location = 'bottom_right'
+            fig.xaxis.axis_label = 'mu'
+            fig.yaxis.axis_label = 'Intensity'
+
+            tabs.append(Panel(child=fig, title=str(wav)))
+
+        # Make the final tabbed figure
+        final = Tabs(tabs=tabs)
+
+        # Put the names back
+        self.results['name'] = old_names
+
+        if show:
+            bkp.show(final)
+        else:
+            return final
+
     def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
 
@@ -381,10 +425,8 @@ class LDC:
 
         for row in table:
 
-            # Set color for plot
-            color = row['color'] or self.ld_color[row['profile']]
-
-            # Set label for plot
+            # Set color and label for plot
+            color = row['color']
             label = row['name']
 
             # Generate smooth curve
