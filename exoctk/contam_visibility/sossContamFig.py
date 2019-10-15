@@ -174,7 +174,7 @@ def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
 
     return fig_with_tabs
 
-def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
+def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[], tmpDir="",
            fig='', to_html=True):
     # Get data from FITS file
     if isinstance(cube, str):
@@ -205,7 +205,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
     PA = np.arange(nPA)*dPA
 
     contamO1 = np.zeros([rows, nPA])
-
+    if instrument=='NIRISS':
+        contamO2 = np.zeros([rows, nPA])
 # JENNY: try to understand what's going on in this forloop.
 # i think this is what's making the contam plot look weird
     for row in np.arange(rows):
@@ -216,6 +217,16 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
         contamO1[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
+
+        if instrument=='NIRISS':
+            if lamO2[row] < 0.6:
+                continue
+            i = np.argmax(trace2[row, :])
+            tr = trace2[row, i-20:i+41]
+            w = tr/np.sum(tr**2)
+            ww = np.tile(w, nPA).reshape([nPA, tr.size])
+            contamO2[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
+
 
     TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
 
@@ -245,7 +256,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
                                      low=-4, high=1)
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
-    s2 = figure(tools=TOOLS, width=500, height=500, title=None,
+    s2 = figure(tools=TOOLS, width=500, height=500,
+                title='Target Contamination with {}'.format(instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
     fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))
@@ -253,6 +265,17 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
     s2.yaxis.axis_label = 'Position Angle (degrees)'
+
+    # Add bad PAs
+    bad_PA_color = '#dddddd'
+    bad_PA_alpha = 0.7
+    #for ybad0, ybad1 in badPA:
+    badPAs = np.asarray(badPAs)
+    s2.patch([xlim0, xlim1, xlim1, xlim0],
+             [badPAs.max(), badPAs.max(), badPAs.min(), badPAs.min()],
+             color=bad_PA_color, alpha=bad_PA_alpha)
+        #s3.patch([0, 100, 100, 0], [ybad1, ybad1, ybad0, ybad0],
+        #         color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
 
     # Line plot
     s3 = figure(tools=TOOLS, width=150, height=500,
@@ -264,10 +287,53 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPA=[], tm
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
 
+    # ~~~~~~ Order 2 ~~~~~~
+    # Contam plot
+    if instrument=='NIRISS':
+        xlim0 = lamO2.min()
+        xlim1 = lamO2.max()
+        ylim0 = PA.min()-0.5*dPA
+        ylim1 = PA.max()+0.5*dPA
+        xlim0 = 0.614
+        s5 = figure(tools=TOOLS, width=500, height=500,
+                    title='Target Contamination with {}'.format(instrument),
+                    x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
+        fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
+        s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
+                 color_mapper=color_mapper)
+        #s5.yaxis.major_label_text_font_size = '0pt'
+        s5.xaxis.axis_label = 'Wavelength (um)'
+        s5.yaxis.axis_label = 'Position Angle (degrees)'
 
-    fig = gridplot(children=[[s2, s3]])
+        # Add bad PAs
+        #for ybad0, ybad1 in badPAs:
+        #    s2.patch([xlim0, xlim1, xlim1, xlim0],
+        #             [ybad1, ybad1, ybad0, ybad0],
+        #             color=bad_PA_color, alpha=bad_PA_alpha)
+        #    s3.patch([0, 100, 100, 0], [ybad1, ybad1, ybad0, ybad0],
+        #             color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
 
+        # Line plot
+        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
+                    x_range=Range1d(0,100), title=None)
+        s6.line(100*np.sum(contamO2 >= 0.001, axis=0)/rows, PA-dPA/2,
+                line_color='blue', legend='> 0.001')
+        s6.line(100*np.sum(contamO2 >= 0.01, axis=0)/rows, PA-dPA/2,
+                line_color='green', legend='> 0.01')
+        s6.xaxis.axis_label = '% channels contam.'
+        s6.yaxis.major_label_text_font_size = '0pt'
+    # ~~~~~~ Plotting ~~~~~~
+    if instrument!='NIRISS':
+        fig = gridplot(children=[[s2, s3]])
+    else:
 
+        fig1 = gridplot(children=[[s2, s3]])
+        fig2 = gridplot(children=[[s5, s6]])
+
+        tab1 = Panel(child=fig1, title='Order 1')
+        tab2 = Panel(child=fig2, title='Order 2')
+
+        fig = Tabs(tabs=[tab1, tab2])
 
     return fig
 
@@ -504,8 +570,9 @@ def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
     fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
     s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
-    s5.yaxis.major_label_text_font_size = '0pt'
+    #s5.yaxis.major_label_text_font_size = '0pt'
     s5.xaxis.axis_label = 'Wavelength (um)'
+    s5.yaxis.axis_label = 'Position Angle (degrees)'
     """
     # Line plot
     s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
