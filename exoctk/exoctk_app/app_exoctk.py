@@ -482,7 +482,7 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
-            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
+            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
 
             # Make output table
             vers = '0.3'
@@ -536,7 +536,7 @@ def contam_visibility():
 
                 contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
 
-                contam_plot = cf.contam(contam_cube, form.inst.data, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
+                contam_plot = cf.contam(contam_cube, form.inst.data, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
 
                 # Get scripts
                 contam_js = INLINE.render_js()

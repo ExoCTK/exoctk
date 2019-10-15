@@ -239,9 +239,9 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     Parameters
     ----------
     ra : float
-        The RA of the target.
+        The RA of the target (in degrees).
     dec : float
-        The Dec of the target.
+        The Dec of the target (in degrees).
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
         'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
@@ -359,4 +359,13 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                   names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
 
-    return paMin, paMax, gd, fig, table
+    # Getting bad PAs
+    allPAs = np.arange(0, 360, 1)
+    badPAs = []
+    for pa in allPAs:
+        if (pa not in np.round(paMinnan)) & (pa not in np.round(paMaxnan)) & (pa not in np.round(paNomnan)):
+            print('the bad PAs:', pa)
+            badPAs.append(pa)
+
+    #print(badPAs)
+    return paMin, paMax, gd, fig, table, badPAs
