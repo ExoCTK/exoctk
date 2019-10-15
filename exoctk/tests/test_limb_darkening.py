@@ -54,7 +54,7 @@ def test_ldc_plot():
 
     # Tabbed plot
     fig = ld_session.plot_tabs()
-    assert str(type(fig)) == "<class 'bokeh.models.widgets.panels.Tabs'>"
+    assert str(type(fig)) in ["<class 'bokeh.models.widgets.panels.Tabs'>", "<class 'bokeh.models.layouts.Tabs'>"]
 
 
 def test_ldc_calculation_no_filter():
