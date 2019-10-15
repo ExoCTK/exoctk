@@ -30,7 +30,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
     Returns
     -------
     tuple
-        The time and flux
+        The time, flux, and transit parameters
     """
     try:
 
@@ -71,7 +71,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
             fig.yaxis.axis_label = 'Relative Flux'
             show(fig)
 
-        return time, flux
+        return time, flux, params.__dict__
 
     except:
         raise ValueError('{}: Could not simulate light curve for this target'.format(target))
