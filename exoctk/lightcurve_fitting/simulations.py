@@ -54,7 +54,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
         params.u = [0.1, 0.1]
 
         # Generate a time axis
-        time = np.linspace(t0-dt, t0+dt, 1000)
+        time = np.linspace(t0-dt, t0+dt, npts)
 
         # Make the transit model
         transit = batman.TransitModel(params, time, transittype='primary')
@@ -74,4 +74,4 @@ def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
         return time, flux
 
     except:
-        raise NameError('{}: Could not simulate light curve for this target'.format(target))
+        raise ValueError('{}: Could not simulate light curve for this target'.format(target))
