@@ -1,5 +1,5 @@
 asteval==0.9.13
-astropy==3.2.1
+astropy==3.2.3
 astroquery==0.3.9
 awscli==1.16.230
 bandit==1.6.2
