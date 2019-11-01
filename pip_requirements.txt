@@ -1,7 +1,7 @@
 asteval==0.9.13
 astropy==3.2.3
 astroquery==0.3.10
-awscli==1.16.230
+awscli==1.16.271
 bandit==1.6.2
 batman-package==2.4.6
 bibtexparser==1.1.0
