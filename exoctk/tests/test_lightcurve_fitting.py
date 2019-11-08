@@ -21,7 +21,7 @@ import unittest
 
 import numpy as np
 
-from ..lightcurve_fitting import lightcurve, models, parameters
+from ..lightcurve_fitting import lightcurve, models, parameters, simulations
 
 
 class TestLightcurve(unittest.TestCase):
@@ -141,3 +141,20 @@ class TestParameters(unittest.TestCase):
         # Test the auto attribute assignment
         self.assertEqual(self.params.param1.values, ('param1', 123.456, 'free'))
         self.assertEqual(self.params.param2.values, ('param2', 234.567, 'free', 200, 300))
+
+
+class TestSimulations(unittest.TestCase):
+    """Test the simulations.py module"""
+    def setUp(self):
+        """Setup for the tests"""
+        pass
+
+    def test_simulation(self):
+        """Test the simulations can be made properly"""
+        # Test to pass
+        npts = 1234
+        time, flux, params = simulations.simulate_lightcurve('WASP-19b', npts=npts, plot=True)
+        self.assertEqual(len(time), npts)
+
+        # Test to fail
+        self.assertRaises(ValueError, simulations.simulate_lightcurve, 'foobar')
