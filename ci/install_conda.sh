@@ -29,3 +29,4 @@ echo "Installing numpy"
 conda install numpy
 pip install Flask
 pip install sphinx
+pip install python-dateutil==2.8.0
