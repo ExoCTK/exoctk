@@ -12,8 +12,6 @@ import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.embed import components
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
 from bokeh.plotting import figure
 import flask
 from flask import Flask, Response
@@ -158,10 +156,7 @@ def limb_darkening():
         form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
 
         # Grism details
-        if ('.G' in form.bandpass.data.upper() and 'GAIA' not in form.bandpass.data.upper()) or form.bandpass.data.lower() == 'tophat':
-            kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
-        else:
-            kwargs = {}
+        kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
 
         # Make filter object and plot
         bandpass = svo.Filter(form.bandpass.data, **kwargs)
@@ -182,24 +177,8 @@ def limb_darkening():
         for prof in form.profiles.data:
             ld.calculate(*star_params, prof, mu_min=float(form.mu_min.data), bandpass=bandpass)
 
-        # Draw a figure for each wavelength bin
-        tabs = []
-        for wav in np.unique(ld.results['wave_eff']):
-
-            # Plot it
-            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
-                        plot_width=800, plot_height=400)
-            ld.plot(wave_eff=wav, fig=fig)
-
-            # Plot formatting
-            fig.legend.location = 'bottom_right'
-            fig.xaxis.axis_label = 'mu'
-            fig.yaxis.axis_label = 'Intensity'
-
-            tabs.append(Panel(child=fig, title=str(wav)))
-
-        final = Tabs(tabs=tabs)
+        # Draw tabbed figure
+        final = ld.plot_tabs()
 
         # Get HTML
         script, div = components(final)
@@ -221,7 +200,8 @@ def limb_darkening():
             co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
                     c.startswith('e')) and len(c) == 2 and not
                     np.all([np.isnan(i) for i in table[c]])]
-            table = table[['wave_min', 'wave_max'] + co_cols]
+            table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
+            table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
 
