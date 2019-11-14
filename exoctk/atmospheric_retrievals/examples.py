@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 
-"""This module provides an example of how to use the
-``platon_wrapper`` module in ExoCTK's ``atmopsheric_retrieval``
-subpackage, with focus on utilizing the feature for performing the
-processing on AWS.
+"""This module provides examples of how to use the ``platon_wrapper``
+module in ExoCTK's ``atmopsheric_retrieval`` subpackage.  Each example
+can be run using either the ``multinest`` method or the ``emcee``
+method.  See the docstring of each example function for further
+details.
 
 Authors
 -------
@@ -13,21 +14,22 @@ Authors
 Use
 ---
 
-    To run the example, one can execute this script via the command
+    To run all examples, one can execute this script via the command
     line as such:
 
         >>> python platon_example_aws.py
 
-    To run individual examples, one can import the ``example_aws()``
-    function and pass as a parameter which example to run.  Available
+    To run individual examples, one can import the example functions
+    and pass as a parameter which method to run.  Available
     examples include:
 
-        from platon_example_aws import example_aws, example_aws_long
+        from examples import example, example_aws, example_aws_long
+        example('emcee')
+        example('multinest')
         example_aws('emcee')
         example_aws('multinest')
         example_aws_long('emcee')
         example_aws_long('multinest')
-
 
 Dependencies
 ------------
@@ -67,8 +69,9 @@ from platon.constants import R_sun, R_jup, M_jup
 from exoctk.atmospheric_retrievals.aws_tools import get_config
 from exoctk.atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
+
 def example(method):
-    """Performs a short example run of the emcee and multinest retrievals
+    """Performs a short example run of the retrievals.
 
     Parameters
     ----------
@@ -130,9 +133,10 @@ def example(method):
 
     return pw
 
+
 def example_aws(method):
-    """Performs an example run of the ``emcee`` and ``multinest``
-    retrievals using AWS
+    """Performs an example run of the ``emcee`` or ``multinest``
+    retrievals using AWS.
 
     Parameters
     ----------
@@ -190,7 +194,7 @@ def example_aws(method):
 
 def example_aws_long(method):
     """Performs an longer example run of the ``emcee`` and
-    `multinest`` retrievals using AWS
+    `multinest`` retrievals using AWS.
 
     Parameters
     ----------

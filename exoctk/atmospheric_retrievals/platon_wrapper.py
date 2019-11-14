@@ -3,7 +3,8 @@
 This module serves as a wrapper around the atmospheric retrieval
 software for ``platon``.  It provides methods for performing retreivals
 through multinested sampling and EMCEE methods.  For more information
-about ``platon``, please see ``https://platon.readthedocs.io``.
+about ``platon``, please see ``https://platon.readthedocs.io``.  For
+examples of how to use this software, see the ``examples.py`` module.
 
 Authors
 -------
@@ -69,7 +70,7 @@ Use
         pw.make_plot()
 
     More examples of how to use this software is provided in the
-    ``platon_example.py`` and ``platon_example_aws.py`` modules.
+    ``examples.py`` module.
 
 Dependencies
 ------------
