@@ -60,6 +60,7 @@ Dependencies
     instance will be started and used.
 """
 
+import logging
 import time
 
 import numpy as np
@@ -240,7 +241,7 @@ def example_aws_long(method):
     pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Get bins, depths, and errors
-    bins, depths, errors = get_example_data('hd209458b')
+    bins, depths, errors = get_example_data('wasp-19b')
 
     pw.bins = bins
     pw.depths = depths
@@ -272,6 +273,8 @@ def get_example_data(object_name):
         A 1D ``numpy`` array of depth error values.
     """
 
+    logging.info('Using data for {}'.format(object_name))
+
     # Read in the data
     df = pandas.read_csv('data/{}.csv'.format(object_name), names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
 
@@ -293,5 +296,5 @@ def get_example_data(object_name):
 if __name__ == '__main__':
 
     example_aws_long('multinest')
-    # time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
-    # example_aws_long('emcee')
+    time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
+    example_aws_long('emcee')

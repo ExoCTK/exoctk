@@ -141,7 +141,7 @@ def get_config():
         A dictionary that holds the contents of the config file.
     """
 
-    config_file_location = 'aws_config.json'
+    config_file_location = os.path.join(os.path.dirname(__file__), 'aws_config.json')
 
     if not os.path.isfile(config_file_location):
         raise FileNotFoundError('Missing AWS configuration file ("aws_config.json")')
