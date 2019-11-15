@@ -17,14 +17,21 @@ Use
         pytest -s test_atmospheric_retrievals.py
 """
 
+import glob
+import shutil
+
 import numpy as np
 import os
 from platon.constants import R_sun, R_jup, M_jup
 import pytest
 
+from ..atmospheric_retrievals.aws_tools import configure_logging
+from ..atmospheric_retrievals.aws_tools import get_config
+from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
 ON_TRAVIS = os.path.expanduser('~') == '/Users/travis'
+
 
 def initialize_platon_wrapper_object():
     """Return a ``PlatonWrapper`` object for use by the tests within
@@ -76,8 +83,44 @@ def initialize_platon_wrapper_object():
     return pw
 
 
+def test_apply_factors():
+    """Test the ``_apply_factors()`` function in ``platon_wrapper``
+    module.
+    """
+
+    params = {'Rs': 1.19, 'Mp': 0.73, 'Rp': 1.4}
+    params = _apply_factors(params)
+
+    assert isinstance(params, dict)
+    assert params['Rs'] == 827883000.0
+    assert params['Mp'] == 1.3856787e+27
+    assert params['Rp'] == 100088800.0
+
+
+def test_configure_logging():
+    """Tests the ``configure_logging`` function in ``aws_tools``
+    module.
+    """
+
+    configure_logging()
+    log_file = glob.glob('logs/aws_wrapper_????-??-??-??-??.log')[0]
+    assert log_file
+    os.remove(log_file)
+    shutil.rmtree('/logs', ignore_errors=True)
+
+
+def test_get_config():
+    """Tests the ``get_config`` function in ``aws_tools`` module."""
+
+    settings = get_config()
+
+    assert isinstance(settings, dict)
+    assert 'ec2_id' in settings
+    assert 'ssh_file' in settings
+
+
 @pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
-def test_platon_emcee():
+def test_retrieve_emcee():
     """Test that the ``emcee`` method of ``platon_wrapper``
     produces results for a small example.
     """
@@ -89,7 +132,7 @@ def test_platon_emcee():
 
 
 @pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
-def test_platon_multinest():
+def test_retrieve_multinest():
     """Test that the ``multinest`` method of ``platon_wrapper``
     produces results for a small example.
     """
