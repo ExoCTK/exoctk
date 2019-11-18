@@ -82,19 +82,21 @@ Dependencies
 """
 
 import argparse
-import json
+import datetime
+import getpass
 import logging
+import os
 import pickle
+import socket
 import sys
+import time
 
 import corner
 import matplotlib
-import numpy as np
 from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
 from exoctk.atmospheric_retrievals.aws_tools import build_environment
-from exoctk.atmospheric_retrievals.aws_tools import configure_logging
 from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
 from exoctk.atmospheric_retrievals.aws_tools import start_ec2
@@ -185,6 +187,45 @@ class PlatonWrapper():
         self.retriever = Retriever()
         self.ssh_file = ''
         self.aws = False
+        self._configure_logging()
+
+    def _configure_logging(self):
+        """Creates a log file that logs the execution of the script.
+
+        Log files are written to a ``logs/`` subdirectory within the
+        current working directory.
+
+        Returns
+        -------
+        start_time : obj
+            The start time of the script execution
+        """
+
+        # Define save location
+        log_file = 'logs/{}.log'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M'))
+
+        # Create the subdirectory if necessary
+        if not os.path.exists('logs/'):
+            os.mkdir('logs/')
+
+        # Make sure no other root lhandlers exist before configuring the logger
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+
+        # Create the log file
+        logging.basicConfig(filename=log_file,
+                            format='%(asctime)s %(levelname)s: %(message)s',
+                            datefmt='%m/%d/%Y %H:%M:%S %p',
+                            level=logging.INFO)
+        print('Log file initialized to {}'.format(log_file))
+
+        # Log environment information
+        logging.info('User: ' + getpass.getuser())
+        logging.info('System: ' + socket.gethostname())
+        logging.info('Python Version: ' + sys.version.replace('\n', ''))
+        logging.info('Python Executable Path: ' + sys.executable)
+
+        self.start_time = time.time()
 
     def make_plot(self):
         """Create a corner plot that shows the results of the retrieval."""
@@ -300,7 +341,8 @@ class PlatonWrapper():
             See "Use" documentation for further details.
         """
 
-        print('Setting parameters')
+        print('Setting parameters: {}'.format(params))
+        logging.info('Setting parameters: {}'.format(params))
 
         _validate_parameters(params)
         _apply_factors(params)
@@ -321,8 +363,8 @@ class PlatonWrapper():
         """
 
         print('Using AWS for processing')
+        logging.info('Using AWS for processing')
 
-        self.start_time = configure_logging()
         self.ssh_file = ssh_file
         self.ec2_id = ec2_id
 
@@ -336,6 +378,7 @@ class PlatonWrapper():
         with open('pw.obj', 'wb') as f:
             pickle.dump(self, f)
         print('Saved PlatonWrapper object to pw.obj')
+        logging.info('Saved PlatonWrapper object to pw.obj')
 
         self.aws = True
 
