@@ -41,13 +41,9 @@ Dependencies
     public key used for logging into an AWS account.
 """
 
-import datetime
-import getpass
 import json
 import logging
 import os
-import socket
-import sys
 import time
 
 import boto3
@@ -88,47 +84,6 @@ def build_environment(instance, key, client):
 
     output = stdout.read()
     log_output(output)
-
-
-def configure_logging():
-    """Creates a log file that logs the execution of the script.
-
-    Log files are written to a ``logs/`` subdirectory within the
-    current working directory.
-
-    Returns
-    -------
-    start_time : obj
-        The start time of the script execution
-    """
-
-    # Define save location
-    log_file = 'logs/aws_wrapper_{}.log'.format(datetime.datetime.now().strftime('%Y-%m-%d-%H-%M'))
-
-    # Create the subdirectory if necessary
-    if not os.path.exists('logs/'):
-        os.mkdir('logs/')
-
-    # Make sure no other root lhandlers exist before configuring the logger
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-
-    # Create the log file
-    logging.basicConfig(filename=log_file,
-                        format='%(asctime)s %(levelname)s: %(message)s',
-                        datefmt='%m/%d/%Y %H:%M:%S %p',
-                        level=logging.INFO)
-    print('Log file initialized to {}'.format(log_file))
-
-    # Log environment information
-    logging.info('User: ' + getpass.getuser())
-    logging.info('System: ' + socket.gethostname())
-    logging.info('Python Version: ' + sys.version.replace('\n', ''))
-    logging.info('Python Executable Path: ' + sys.executable)
-
-    start_time = time.time()
-
-    return start_time
 
 
 def get_config():

@@ -207,19 +207,27 @@ def example_aws_long(method):
     ssh_file = get_config()['ssh_file']
     ec2_id = get_config()['ec2_id']
 
-    # Define the fit parameters
+    # # For hd209458b
+    # params = {
+    #     'Rs': 1.19,  # Required
+    #     'Mp': 0.73,  # Required
+    #     'Rp': 1.4,  # Required
+    #     'T': 1200.0,  # Required
+    #     'logZ': 0,  # Optional
+    #     'CO_ratio': 0.53,  # Optional
+    #     'log_cloudtop_P': 4,  # Optional
+    #     'log_scatt_factor': 0,  # Optional
+    #     'scatt_slope': 4,  # Optional
+    #     'error_multiple': 1,  # Optional
+    #     'T_star': 6091}  # Optional
+
+    # For WASP-19b
     params = {
-        'Rs': 1.19,  # Required
-        'Mp': 0.73,  # Required
-        'Rp': 1.4,  # Required
-        'T': 1200.0,  # Required
-        'logZ': 0,  # Optional
-        'CO_ratio': 0.53,  # Optional
-        'log_cloudtop_P': 4,  # Optional
-        'log_scatt_factor': 0,  # Optional
-        'scatt_slope': 4,  # Optional
-        'error_multiple': 1,  # Optional
-        'T_star': 6091}  # Optional
+        'Rs': 1.018,  # Required
+        'Mp': 1.139,  # Required
+        'Rp': 1.410,  # Required
+        'T': 2077.0,  # Required
+        'T_star': 5460}  # Optional
 
     # Initialize the object, set parameters, and perform retreival
     pw = PlatonWrapper()
@@ -231,14 +239,14 @@ def example_aws_long(method):
     pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
 
     # Fit for other parameters using uniform priors
-    R_guess = 1.4 * R_jup
-    T_guess = 1200
+    R_guess = 1.410 * R_jup
+    # T_guess = 2077.0
     pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
-    pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+    # pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
+    # pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+    # pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+    # pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
+    # pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Get bins, depths, and errors
     bins, depths, errors = get_example_data('wasp-19b')
@@ -248,7 +256,7 @@ def example_aws_long(method):
     pw.errors = errors
 
     # Set use for AWS and perform retreival
-    pw.use_aws(ssh_file, ec2_id)
+    # pw.use_aws(ssh_file, ec2_id)
     pw.retrieve(method)
 
 
