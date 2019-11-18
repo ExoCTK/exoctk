@@ -220,7 +220,7 @@ class PlatonWrapper():
             either be ``emcee`` or ``multinest``."""
 
         logging.info('')
-        logging.info('Performing atmopsheric retrievals via emcee')
+        logging.info('Performing atmopsheric retrievals via {}'.format(method))
         logging.info('')
 
         # Ensure that the method parameter is valid
