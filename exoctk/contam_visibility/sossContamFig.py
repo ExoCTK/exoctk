@@ -250,6 +250,10 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[], t
     elif instrument == 'NIRCam F444W':
         xlim0 = lam0_nircam444w
         xlim1 = lam1_nircam444w
+    elif instrument == 'MIRI':
+        xlim0 = 5
+        xlim1 = 12
+
     ylim0 = PA.min()-0.5*dPA
     ylim1 = PA.max()+0.5*dPA
     color_mapper = LinearColorMapper(palette=inferno(8)[::-1],
@@ -270,10 +274,11 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[], t
     bad_PA_color = '#dddddd'
     bad_PA_alpha = 0.7
     #for ybad0, ybad1 in badPA:
-    badPAs = np.asarray(badPAs)
-    s2.patch([xlim0, xlim1, xlim1, xlim0],
-             [badPAs.max(), badPAs.max(), badPAs.min(), badPAs.min()],
-             color=bad_PA_color, alpha=bad_PA_alpha)
+    if len(badPAs)>0:
+        badPAs = np.asarray(badPAs)
+        s2.patch([xlim0, xlim1, xlim1, xlim0],
+                 [badPAs.max(), badPAs.max(), badPAs.min(), badPAs.min()],
+                 color=bad_PA_color, alpha=bad_PA_alpha)
         #s3.patch([0, 100, 100, 0], [ybad1, ybad1, ybad0, ybad0],
         #         color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
 
@@ -398,6 +403,8 @@ def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
         i = np.argmax(trace2dO1[y, :]) # where is the highest pixel value in the row?
         tr = trace2dO1[y, i-20:i+41] # pulling out the trace itself from the array
         w = tr/np.sum(tr**2)
+        print(tr)
+        print(np.sum(tr**2))
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO1[y, :] = np.sum(cube[:, y, i-20:i+41]*ww, axis=1)
 

@@ -281,13 +281,13 @@ def fieldSim(ra, dec, instrument, binComp=''):
             pixel_scale = 0.065
             xval, yval = 16, 16
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
-        #elif instrument=='MIRI':
-        #    dimX = 256
-        #    dimY =
-        #    rad =
-        #    pixel_scale =
-        #    xval, yval =
-        #    add_to_apa =
+        elif instrument=='MIRI':
+            dimX = 55
+            dimY = 427
+            rad = 2.5
+            pixel_scale = 0.019
+            xval, yval = 16, 16
+            add_to_apa = 5.0152
         #elif instrument=='NIRSpec':
         #    dimX = 256
         #    dimY =
@@ -398,6 +398,12 @@ def fieldSim(ra, dec, instrument, binComp=''):
             fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument.replace(' ', '_'), 'o1*.0.fits'))
             fitsFiles = np.sort(fitsFiles)
 
+        elif instrument == 'MIRI':
+            simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
+            print(TRACES_PATH)
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument, '_*.0.fits'))
+            fitsFiles = np.sort(fitsFiles)
+
 
         # Big loop to generate a simulation at each instrument PA
         for kPA in range(PAtab.size):
@@ -476,6 +482,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
                         simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
 
                     else:
+                        print('FITS FILES')
+                        print(len(fitsFiles))
                         fNameModO12 = fitsFiles[k]
                         modelO1 = fits.getdata(fNameModO12, 1)
                         ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale

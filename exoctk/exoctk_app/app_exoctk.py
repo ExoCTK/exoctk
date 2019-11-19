@@ -460,7 +460,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
+        if (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
@@ -485,7 +485,7 @@ def contam_visibility():
             pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
 
             # Make output table
-            vers = '0.3'
+            vers = '1.0'
             today = datetime.datetime.now()
             fh = StringIO()
             fh.write('# Hi! This is your Visibility output file for... \n')

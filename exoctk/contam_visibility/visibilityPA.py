@@ -367,5 +367,12 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
             print('the bad PAs:', pa)
             badPAs.append(pa)
 
+    #for bpa, idx in zip(badPAs, np.arange(0,len(badPAs), 1)):
+    #    if bpa == badPAs[0]:
+    #        n0 = 0
+    #    if bpa-1 > n0:
+    #        badPAs.insert(idx, np.nan)
+    #    n0=bpa
+
     #print(badPAs)
     return paMin, paMax, gd, fig, table, badPAs
