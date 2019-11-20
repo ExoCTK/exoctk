@@ -254,15 +254,6 @@ def fieldSim(ra, dec, instrument, binComp=''):
     """
 
     # Calling the variables which depend on what instrument you use
-    #if instrument=='NIRISS':
-        #dimX = 256
-        #dimY = 2048
-        #dimX = 257 # columns in your simulation array (PandExo)
-        #dimY = 2301 # rows in your simulation array (PandExo)
-        #rad = 2.5 # radius (in arcmins) to query for neighboring stars
-        #pixel_scale = 0.065 # arcsec/pixel
-        #xval, yval = 856, 107 # <- Q: sweetSpot can be off the sub-array?
-        #add_to_apa = 0.57
     if instrument=='NIRISS':
         simuCube = sossFieldSim(ra, dec)
 
@@ -272,29 +263,22 @@ def fieldSim(ra, dec, instrument, binComp=''):
             dimY = 1343 # <- Q: should be conservative w/ sub-array size?
             rad = 2.5
             pixel_scale = 0.065
-            xval, yval = 16, 16
+            xval, yval = 1096.9968649303112, 34.99693173255946 # got from PYSIAF
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif instrument=='NIRCam F322W2':
             dimX = 51
             dimY = 1823 # <- Q: should be conservative w/ sub-array size?
             rad = 2.5
             pixel_scale = 0.065
-            xval, yval = 16, 16
+            xval, yval = 468.0140991987737, 35.007956285677665
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif instrument=='MIRI':
             dimX = 55
             dimY = 427
             rad = 2.5
             pixel_scale = 0.019
-            xval, yval = 0.1, 0.1#16, 16
+            xval, yval = 38.5, 829.0
             add_to_apa = 5.0152
-        #elif instrument=='NIRSpec':
-        #    dimX = 256
-        #    dimY =
-        #    rad =
-        #    pixel_scale = 0.065
-        #    xval, yval =
-        #    add_to_apa =
 
         # stars in large field around target
         targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
@@ -401,7 +385,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
         elif instrument == 'MIRI':
             simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
             print(TRACES_PATH)
-            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument, '_*.0.fits'))
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument, 'flipped*.fits'))
             fitsFiles = np.sort(fitsFiles)
 
 
@@ -419,9 +403,13 @@ def fieldSim(ra, dec, instrument, binComp=''):
             stars['y'] = stars['dy']+sweetSpot['y']
 
             # Retain stars that are within the Direct Image NIRISS POM FOV
-            ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
-                            (stars['y'] >= -154) & (stars['y'] <= dimY+174))
+            ind, = np.where((stars['x'] >= -20000) & (stars['x'] <= dimY+20000) &
+                            (stars['y'] >= -20000) & (stars['y'] <= dimY+20000))
             starsInFOV = stars[ind]
+
+            print('INDDDDD')
+            print(ind)
+            print(stars['x'])
 
             for i in range(len(ind)):
                 # are these the coordinates of the stars
