@@ -174,7 +174,7 @@ def _contam_test(cube, targetName='noName', paRange=[0, 360], badPA=[],
 
     return fig_with_tabs
 
-def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[], tmpDir="",
+def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=np.asarray([]), tmpDir="",
            fig='', to_html=True):
     # Get data from FITS file
     if isinstance(cube, str):
@@ -276,12 +276,9 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[], t
     #for ybad0, ybad1 in badPA:
     if len(badPAs)>0:
         badPAs = np.asarray(badPAs)
-        s2.patch([xlim0, xlim1, xlim1, xlim0],
-                 [badPAs.max(), badPAs.max(), badPAs.min(), badPAs.min()],
+        s2.quad(top=[350, 100], bottom=[300, 0],
+                left=[xlim0, xlim0], right=[xlim1, xlim1],
                  color=bad_PA_color, alpha=bad_PA_alpha)
-        #s3.patch([0, 100, 100, 0], [ybad1, ybad1, ybad0, ybad0],
-        #         color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
-
     # Line plot
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
