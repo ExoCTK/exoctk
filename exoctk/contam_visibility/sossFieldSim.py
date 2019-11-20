@@ -403,8 +403,10 @@ def fieldSim(ra, dec, instrument, binComp=''):
             stars['y'] = stars['dy']+sweetSpot['y']
 
             # Retain stars that are within the Direct Image NIRISS POM FOV
-            ind, = np.where((stars['x'] >= -20000) & (stars['x'] <= dimY+20000) &
-                            (stars['y'] >= -20000) & (stars['y'] <= dimY+20000))
+            #ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
+            #                (stars['y'] >= -154) & (stars['y'] <= dimY+174))
+            ind, = np.where((stars['x'] >= -8000) & (stars['x'] <= dimY+8000) &
+                            (stars['y'] >= -8000) & (stars['y'] <= dimY+8000))
             starsInFOV = stars[ind]
 
             print('INDDDDD')
@@ -483,6 +485,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
                         mod = models[k, my0:my1, mx0:mx1]
                         simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
                     else:
+                        print("MIRI IS WORKING???????? ")
                         fNameModO12 = fitsFiles[k]
                         modelO12 = fits.getdata(fNameModO12)
                         simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += modelO12[0, my0:my1, mx0:mx1]*fluxscale
