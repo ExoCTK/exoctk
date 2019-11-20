@@ -318,14 +318,15 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      title='Target Visibility with '+str(instrument))
 
     # Draw the curve and PA min/max patch
-    fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
-               source=SOURCE, alpha=.5)
+    nom = fig.line('date', 'panom', line_color=COLOR, legend='Nominal Aperture PA',\
+                alpha=.5, source=SOURCE)
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
-    fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
-                            formatters={'date':'datetime'},\
+    fig.add_tools(HoverTool(renderers=[nom],
+                            tooltips=TOOLTIPS,
+                            formatters={'date':'datetime'},
                             mode='vline'))
 
     # Plot formatting

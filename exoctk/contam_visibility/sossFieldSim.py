@@ -286,7 +286,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
             dimY = 427
             rad = 2.5
             pixel_scale = 0.019
-            xval, yval = 16, 16
+            xval, yval = 0.1, 0.1#16, 16
             add_to_apa = 5.0152
         #elif instrument=='NIRSpec':
         #    dimX = 256
