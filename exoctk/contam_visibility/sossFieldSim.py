@@ -403,6 +403,9 @@ def fieldSim(ra, dec, instrument, binComp=''):
             stars['y'] = stars['dy']+sweetSpot['y']
 
             # Retain stars that are within the Direct Image NIRISS POM FOV
+            # I think this extends the subarray edges to the detector edges.
+            # like it keeps the stars that fall out of the subarray but still
+            # fall into the detector.
             #ind, = np.where((stars['x'] >= -162) & (stars['x'] <= dimY+185) &
             #                (stars['y'] >= -154) & (stars['y'] <= dimY+174))
             ind, = np.where((stars['x'] >= -8000) & (stars['x'] <= dimY+8000) &
@@ -422,8 +425,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
                 # **this indexing assumes that teffMod is
                 # sorted the same way fitsFiles was sorted
                 k = np.where(teffMod == starsInFOV['T'][i])[0][0]
-                print(starsInFOV['T'][i], teffMod)
-                print(k)
+
 
                 fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
 
@@ -433,6 +435,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
                     modelPadY = 0
                 else:
                     print(modelPadX, modelPadY)
+
                 mx0 = int(modelPadX-intx)
                 mx1 = int(modelPadX-intx+dimX)
                 my0 = int(modelPadY-inty)
@@ -440,9 +443,16 @@ def fieldSim(ra, dec, instrument, binComp=''):
                 print('intx,y ',intx, inty)
 
                 if (mx0 > dimX) or (my0 > dimY):
+                    #print('broken here')
+                    #print(mx0, dimX, my0, dimY)
                     continue
                 if (mx1 < 0) or (my1 < 0):
+                    #print('or broken here')
+                    #print(mx1, my1)
                     continue
+
+                print('made it here')
+                print(dimX, dimY)
 
                 x0 = (mx0 < 0)*(-mx0)
                 y0 = (my0 < 0)*(-my0)
@@ -462,7 +472,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
                 # the target will have intx = 0, inty = 0
 
                 if (intx == 0) & (inty == 0) & (kPA == 0):
-
+                    print('fuuuuuuuuuuu')
                     if instrument=='NIRISS':
                         fNameModO12 = savFiles[k]
                         modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
@@ -472,15 +482,15 @@ def fieldSim(ra, dec, instrument, binComp=''):
                         simuCube[1, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord2
 
                     else:
-                        print('FITS FILES')
-                        print(len(fitsFiles))
                         fNameModO12 = fitsFiles[k]
                         modelO1 = fits.getdata(fNameModO12, 1)
                         ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
                         simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
 
+
                 if (intx != 0) or (inty != 0):
+                    print('this is a milestone')
                     if instrument=='NIRISS':
                         mod = models[k, my0:my1, mx0:mx1]
                         simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
