@@ -276,7 +276,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
             dimX = 55
             dimY = 427
             rad = 2.5
-            pixel_scale = 0.019
+            pixel_scale = 0.19
             xval, yval = 38.5, 829.0
             add_to_apa = 5.0152
 
@@ -391,9 +391,10 @@ def fieldSim(ra, dec, instrument, binComp=''):
 
         # Big loop to generate a simulation at each instrument PA
         for kPA in range(PAtab.size):
+            print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
             print('ANGLE: ', kPA)
-            APA = PAtab[kPA]
-            V3PA = APA+add_to_apa  # from APT
+            APA = PAtab[kPA] # Aperture Position Angle (PA of instrument)
+            V3PA = APA+add_to_apa  # from APT (PA of V3 axis)
             sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
             cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
             ps = pixel_scale
@@ -412,9 +413,9 @@ def fieldSim(ra, dec, instrument, binComp=''):
                             (stars['y'] >= -8000) & (stars['y'] <= dimY+8000))
             starsInFOV = stars[ind]
 
-            print('INDDDDD')
-            print(ind)
-            print(stars['x'])
+            #print('INDDDDD')
+            #print(ind)
+            #print(stars['x'])
 
             for i in range(len(ind)):
                 # are these the coordinates of the stars
@@ -442,17 +443,19 @@ def fieldSim(ra, dec, instrument, binComp=''):
                 my1 = int(modelPadY-inty+dimY)
                 print('intx,y ',intx, inty)
 
+                # this is where MIRI breaks
                 if (mx0 > dimX) or (my0 > dimY):
-                    #print('broken here')
-                    #print(mx0, dimX, my0, dimY)
+                    print('broken here')
+                    print(mx0, dimX, my0, dimY)
                     continue
                 if (mx1 < 0) or (my1 < 0):
-                    #print('or broken here')
-                    #print(mx1, my1)
+                    print('or broken here')
+                    print(mx1, my1)
                     continue
 
                 print('made it here')
-                print(dimX, dimY)
+                print(mx0, dimX, my0, dimY)
+                print(mx1, my1)
 
                 x0 = (mx0 < 0)*(-mx0)
                 y0 = (my0 < 0)*(-my0)
@@ -461,12 +464,12 @@ def fieldSim(ra, dec, instrument, binComp=''):
                 my0 *= (my0 >= 0)
                 my1 = dimY if my1 > dimY else my1
 
-                print('y0 ', y0)
-                print('my1 ', my1)
-                print('my0 ', my0)
-                print('x0 ', x0)
-                print('mx1 ', mx1)
-                print('mx0 ', mx0)
+                #print('y0 ', y0)
+                #print('my1 ', my1)
+                #print('my0 ', my0)
+                #print('x0 ', x0)
+                #print('mx1 ', mx1)
+                #print('mx0 ', mx0)
                 # if target and first kPA, add target traces of order 1 and 2
                 # in output cube
                 # the target will have intx = 0, inty = 0
