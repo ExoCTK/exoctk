@@ -443,7 +443,7 @@ def _originalContam(cube, targetName='noName', paRange=[0, 360], badPA=[],
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    s2.yaxis.axis_label = 'Position Angle (degrees)'
+    s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
     """
     # Line plot
     s3 = figure(tools=TOOLS, width=150, height=500,
