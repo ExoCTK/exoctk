@@ -262,21 +262,21 @@ def fieldSim(ra, dec, instrument, binComp=''):
             dimX = 51
             dimY = 1343 # <- Q: should be conservative w/ sub-array size?
             rad = 2.5
-            pixel_scale = 0.065
+            pixel_scale = 0.063 # arsec
             xval, yval = 1096.9968649303112, 34.99693173255946 # got from PYSIAF
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif instrument=='NIRCam F322W2':
             dimX = 51
             dimY = 1823 # <- Q: should be conservative w/ sub-array size?
             rad = 2.5
-            pixel_scale = 0.065
+            pixel_scale = 0.063 # arsec
             xval, yval = 468.0140991987737, 35.007956285677665
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif instrument=='MIRI':
             dimX = 55
             dimY = 427
             rad = 2.5
-            pixel_scale = 0.19
+            pixel_scale = 0.11 # arsec
             xval, yval = 38.5, 829.0
             add_to_apa = 5.0152
 
