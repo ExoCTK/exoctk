@@ -275,9 +275,20 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=np.as
     bad_PA_alpha = 0.7
     #for ybad0, ybad1 in badPA:
     if len(badPAs)>0:
-        badPAs = np.asarray(badPAs)
-        s2.quad(top=[350, 100], bottom=[300, 0],
-                left=[xlim0, xlim0], right=[xlim1, xlim1],
+
+        tops, bottoms, lefts, rights = [], [], [], []
+        for idx in range(0, len(badPAs)):
+            PAgroup = badPAs[idx]
+            top_idx = np.max(PAgroup)
+            bot_idx = np.min(PAgroup)
+
+            tops.append(top_idx)
+            bottoms.append(bot_idx)
+            lefts.append(xlim0)
+            rights.append(xlim1)
+
+        s2.quad(top=tops, bottom=bottoms,
+                left=lefts, right=rights,
                  color=bad_PA_color, alpha=bad_PA_alpha)
     # Line plot
     s3 = figure(tools=TOOLS, width=150, height=500,
