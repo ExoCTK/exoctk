@@ -278,7 +278,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
             rad = 2.5
             pixel_scale = 0.11 # arsec
             xval, yval = 38.5, 829.0
-            add_to_apa = 5.0152
+            add_to_apa = 4.83425324
 
         # stars in large field around target
         targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
@@ -385,7 +385,7 @@ def fieldSim(ra, dec, instrument, binComp=''):
         elif instrument == 'MIRI':
             simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
             print(TRACES_PATH)
-            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument, 'flipped*.fits'))
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, instrument, '_*.fits'))
             fitsFiles = np.sort(fitsFiles)
 
 

@@ -363,20 +363,26 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     # Getting bad PAs
     allPAs = np.arange(0, 360, 1)
     badPAs = []
+
     for pa in allPAs:
         if (pa not in np.round(paMinnan)) & (pa not in np.round(paMaxnan)) & (pa not in np.round(paNomnan)):
             print('the bad PAs:', pa)
             badPAs.append(pa)
 
-    for badpa, idx in zip(badPAs, np.arange(0, len(badPAs), 1)):
-        if badpa == badPAs[0]:
-            n0 = badpa
-        else:
-            if badpa-1 > n0:
-                badPAs.insert(idx, np.nan)
-        n0 = badpa
+    badPAs = np.sort(badPAs)
+    grouped_badPAs = [[badPAs[0]]]
 
-    badPAs = np.asarray(badPAs)
+    for idx in range(1, len(badPAs)):
+
+        if ((badPAs[idx - 1] + 1) == badPAs[idx]):
+            print((badPAs[idx - 1] + 1))
+            print(badPAs[idx])
+            grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
+
+        elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
+            grouped_badPAs.append([badPAs[idx]])
+
+    grouped_badPAs = np.asarray(grouped_badPAs)
 
     #for bpa, idx in zip(badPAs, np.arange(0,len(badPAs), 1)):
     #    if bpa == badPAs[0]:
@@ -386,4 +392,4 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     #    n0=bpa
 
     #print(badPAs)
-    return paMin, paMax, gd, fig, table, badPAs
+    return paMin, paMax, gd, fig, table, grouped_badPAs
