@@ -231,7 +231,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     return simuCube
 
 def fieldSim(ra, dec, instrument, binComp=''):
-    """Produce a field simulation for a target
+    """Produce a field simulation for a target.
     Parameters
     ----------
     ra : float
