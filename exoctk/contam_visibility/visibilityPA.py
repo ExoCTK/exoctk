@@ -233,7 +233,7 @@ def fill_between(fig, xdata, pamin, pamax, **kwargs):
         fig.patch(x, y, **kwargs)
     return fig
 
-def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
+def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, output='bokeh'):
     """Plot the visibility (at a range of position angles) against time.
 
     Parameters
@@ -262,7 +262,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
         The plotted figure.
 
     """
-    # getting calculations from GTVT (General Target Visibility Tool)
+    # Getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
 
     gd = tab['Date']
@@ -272,9 +272,11 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     v3min = tab['V3PA min']
     v3max = tab['V3PA max']
 
-    # addressing NIRSpec issue*
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Addressing NIRSpec issue*
     # *the issue that NIRSpec's angle goes beyond 360 degrees with some targs,
     # thus resetting back to 0 degrees, which can make the plot look weird
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     index = np.arange(0, len(paNom), 1)
 
     for idx in index:
@@ -315,11 +317,15 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      plot_width=800,\
                      plot_height=400,\
                      x_axis_type='datetime',\
-                     title='Target Visibility with '+str(instrument))
+                     title='{} Visibility with {}'.format(targetName,
+                                                          instrument))
 
-    # Draw the curve and PA min/max patch
-    nom = fig.line('date', 'panom', line_color=COLOR, legend='Nominal Aperture PA',\
-                alpha=.5, source=SOURCE)
+    # Draw the curve and PA min/max circles
+    nom = fig.line('date', 'panom',
+                    line_color=COLOR,
+                    legend='Nominal Aperture PA',
+                    alpha=.5,
+                    source=SOURCE)
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
@@ -365,10 +371,17 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     badPAs = []
 
     for pa in allPAs:
-        if (pa not in np.round(paMinnan)) & (pa not in np.round(paMaxnan)) & (pa not in np.round(paNomnan)):
+        if (pa not in np.round(paMinnan)) & \
+           (pa not in np.round(paMaxnan)) & \
+           (pa not in np.round(paNomnan)):
             print('the bad PAs:', pa)
             badPAs.append(pa)
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Grouping the bad PAs into lists within the badPAs list.
+    # This will make bad PA shading easier in the contamination Bokeh plot
+    # (sossContamFig.py)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     badPAs = np.sort(badPAs)
     grouped_badPAs = [[badPAs[0]]]
 
@@ -384,12 +397,4 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     grouped_badPAs = np.asarray(grouped_badPAs)
 
-    #for bpa, idx in zip(badPAs, np.arange(0,len(badPAs), 1)):
-    #    if bpa == badPAs[0]:
-    #        n0 = 0
-    #    if bpa-1 > n0:
-    #        badPAs.insert(idx, np.nan)
-    #    n0=bpa
-
-    #print(badPAs)
     return paMin, paMax, gd, fig, table, grouped_badPAs
