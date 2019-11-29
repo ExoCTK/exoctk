@@ -49,7 +49,7 @@
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
             {{ contam_plot | safe }}
             <br>
-            <div style="width:162px; height:22px; text-align:center;">
+            <div style="width:162; height:22px; text-align:center;">
             log(contam. level)
             </div>
             <div style="border:1px solid black; width:162px; height:22px;">
@@ -67,15 +67,17 @@
             <div style="width:162px; height:22px; text-align:center;">
 good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
             <br><br>
+
     		<p>Figure explication:</p>
     		<ul>
-    			<li>There larger panel on the left shows the contamination of the target star's order 1 spectrum due to orders 1 and 2 of its neighboring stars.</li>
+          <li>You can flip between orders 1 and 2 for NIRISS SOSS by clicking the tabs labelled Order 1 and Order 2 located just above the plot.</li>
+    			<li>The larger panel on the left shows the contamination of the target star's order 1 spectrum due to orders 1 and 2 of its neighboring stars.</li>
           <li>The color scale denotes the level of contamination (see scale below plot).</li>
     			<li>The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
     			<li>The smaller panel on the right shows for each order the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
     			<li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
-    			<li>You can flip between orders 1 and 2 for NIRISS SOSS by clicking the tabs labelled Order 1 and Order 2 located above the plot.</li>
     		</ul>
+
 
     	{% endif %}
 
