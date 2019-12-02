@@ -97,7 +97,6 @@ from platon.retriever import Retriever
 from platon.constants import R_sun, R_jup, M_jup
 
 from exoctk.atmospheric_retrievals.aws_tools import build_environment
-from exoctk.atmospheric_retrievals.aws_tools import log_execution_time
 from exoctk.atmospheric_retrievals.aws_tools import log_output
 from exoctk.atmospheric_retrievals.aws_tools import start_ec2
 from exoctk.atmospheric_retrievals.aws_tools import stop_ec2
@@ -120,6 +119,23 @@ def _apply_factors(params):
     params['Rp'] = params['Rp'] * R_jup
 
     return params
+
+
+def _log_execution_time(start_time):
+    """Logs the execution time of the retrieval.
+
+    Parameters
+    ----------
+    start_time : obj
+        The start time of the retrieval execution
+    """
+
+    end_time = time.time()
+
+    # Log execution time
+    hours, remainder_time = divmod(end_time - start_time, 60 * 60)
+    minutes, seconds = divmod(remainder_time, 60)
+    logging.info('Retrieval Execution Time: {}:{}:{}'.format(int(hours), int(minutes), int(seconds)))
 
 
 def _parse_args():
@@ -230,9 +246,8 @@ class PlatonWrapper():
     def make_plot(self):
         """Create a corner plot that shows the results of the retrieval."""
 
-        logging.info('')
+        print('Creating corner plot')
         logging.info('Creating corner plot')
-        logging.info('')
 
         matplotlib.rcParams['text.usetex'] = False
 
@@ -260,9 +275,8 @@ class PlatonWrapper():
             The method by which to perform atmospheric retrievals.  Can
             either be ``emcee`` or ``multinest``."""
 
-        logging.info('')
+        print('Performing atmopsheric retrievals via {}'.format(method))
         logging.info('Performing atmopsheric retrievals via {}'.format(method))
-        logging.info('')
 
         # Ensure that the method parameter is valid
         assert method in ['multinest', 'emcee'], 'Unrecognized method: {}'.format(method)
@@ -300,9 +314,8 @@ class PlatonWrapper():
                 transfer_from_ec2(instance, key, client, 'multinest_results.dat')
                 transfer_from_ec2(instance, key, client, 'multinest_corner.png')
 
-            # Terminate or stop the EC2 and log the execution time
+            # Terminate or stop the EC2 instance
             stop_ec2(self.ec2_id, instance)
-            log_execution_time(self.start_time)
 
         # For processing locally
         else:
@@ -311,12 +324,13 @@ class PlatonWrapper():
             elif self.method == 'multinest':
                 self.result = self.retriever.run_multinest(self.bins, self.depths, self.errors, self.fit_info, plot_best=False)
 
+        _log_execution_time(self.start_time)
+
     def save_results(self):
         """Save the results of the retrieval to an output file."""
 
-        logging.info('')
+        print('Saving results')
         logging.info('Saving results')
-        logging.info('')
 
         # Save the results
         self.output_results = '{}_results.dat'.format(self.method)

@@ -107,23 +107,6 @@ def get_config():
     return settings
 
 
-def log_execution_time(start_time):
-    """Logs the execution time of the script.
-
-    Parameters
-    ----------
-    start_time : obj
-        The start time of the script execution
-    """
-
-    end_time = time.time()
-
-    # Log execution time
-    hours, remainder_time = divmod(end_time - start_time, 60 * 60)
-    minutes, seconds = divmod(remainder_time, 60)
-    logging.info('Script Execution Time: {}:{}:{}'.format(int(hours), int(minutes), int(seconds)))
-
-
 def log_output(output):
     """Logs the given output of the EC2 instance.
 
