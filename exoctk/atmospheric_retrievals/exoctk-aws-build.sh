@@ -27,14 +27,7 @@ echo '~~~~~ INSTALLING jwst_gtvt ~~~~~'
 echo ''
 git clone https://github.com/spacetelescope/jwst_gtvt.git
 cd jwst_gtvt
-python setup.py develop
-cd ../
-
-echo ''
-echo '~~~~~ INSTALLING cudamat ~~~~~'
-echo ''
-git clone https://github.com/cudamat/cudamat.git
-cd cudamat
+git checkout cd6bc76f66f478eafbcc71834d3e735c73e03ed5
 python setup.py develop
 cd ../
 
@@ -51,6 +44,7 @@ conda init bash
 source ~/.bashrc
 conda activate exoctk-3.6
 python setup.py develop
+cd ../
 
 echo ''
 echo '~~~~~ INSTALLING ADDITIONAL LIBRARIES ~~~~~'
@@ -59,6 +53,17 @@ pip install bibtexparser==1.1.0
 pip install corner==2.0.1
 pip install lmfit==0.9.13
 pip install platon==3.1
+
+echo ''
+echo '~~~~~ BUILDING EXOCTK_DATA DIRECTORY ~~~~~'
+echo ''
+mkdir exoctk_data/
+mkdir exoctk_data/exoctk_contam/
+mkdir exoctk_data/exoctk_log/
+mkdir exoctk_data/fortney/
+mkdir exoctk_data/generic/
+mkdir exoctk_data/groups_integrations/
+mkdir exoctk_data/modelgrid/
 
 echo ''
 echo '~~~~~ THE ENVIRONMENT BEING USED ~~~~~'
