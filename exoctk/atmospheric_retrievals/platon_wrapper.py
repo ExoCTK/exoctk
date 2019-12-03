@@ -16,7 +16,9 @@ Use
 
     Users can perform the atmospheric retrieval by instantiating a
     ``PlatonWrapper`` object and passing fit parameters within the
-    python environment.  An example of this is provided below
+    python environment.  An example of this is provided below.  For
+    more examples of how to use this software, including ways to use
+    AWS for performing computations, see the ``examples.py`` module.
     ::
 
         import numpy as np
@@ -60,8 +62,8 @@ Use
         pw.errors = 1e-6 * np.array([50.6, 35.5, 35.2, 34.6, 34.1, 33.7, 33.5, 33.6, 33.8, 33.7, 33.4, 33.4, 33.5, 33.9, 34.4, 34.5, 34.7, 35.0, 35.4, 35.9, 36.4, 36.6, 37.1, 37.8, 38.6, 39.2, 39.9, 40.8])
 
         # Perform the retrieval by your favorite method
-        pw.retrieve_multinest()
-        pw.retrieve_emcee()
+        pw.retrieve('multinest')  # OR
+        pw.retrieve_('emcee')
 
         # Save the results to an output file
         pw.save_results()
@@ -69,15 +71,12 @@ Use
         # Save a plot of the results
         pw.make_plot()
 
-    More examples of how to use this software is provided in the
-    ``examples.py`` module.
-
 Dependencies
 ------------
 
     - ``corner``
+    - ``exoctk``
     - ``matplotlib``
-    - ``numpy``
     - ``platon``
 """
 
@@ -294,11 +293,11 @@ class PlatonWrapper():
 
             # Transfer needed files to EC2
             transfer_to_ec2(instance, key, client, 'pw.obj')
-            transfer_to_ec2(instance, key, client, 'exoctk-aws-init.sh')
+            transfer_to_ec2(instance, key, client, 'exoctk-aws-init.sh')  # Will no longer need when in production
             transfer_to_ec2(instance, key, client, 'platon_wrapper.py')  # Will no longer need when in production
 
             # Connect to the EC2 instance and run commands
-            command = './exoctk-aws-init.sh python platon_wrapper.py {}'.format(self.method)
+            command = './exoctk-aws-init.sh python exoctk/exoctk/atmospheric_retrievals/platon_wrapper.py {}'.format(self.method)
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read()
