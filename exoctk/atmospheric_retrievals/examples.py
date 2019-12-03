@@ -17,7 +17,7 @@ Use
     To run all examples, one can execute this script via the command
     line as such:
 
-        >>> python platon_example_aws.py
+        >>> python examples.py
 
     To run individual examples, one can import the example functions
     and pass as a parameter which method to run.  Available
@@ -36,7 +36,9 @@ Dependencies
 
     Dependent libraries include:
 
+    - exoctk
     - numpy
+    - pandas
     - platon
 
     Users must also have a ``aws_config.json`` file present within the
@@ -320,6 +322,16 @@ def get_example_data(object_name):
 
 if __name__ == '__main__':
 
-    example_aws_long('multinest')
-    time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
+    # # A short example using local machine
+    # example('multinest')
+    # example('emcee')
+
+    # # A short example using AWS
+    # example_aws_short('multinest')
+    # # time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
+    # example_aws_short('emcee')
+
+    # A long example using AWS
+    # example_aws_long('multinest')
+    # time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
     example_aws_long('emcee')
