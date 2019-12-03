@@ -23,11 +23,11 @@ Use
     and pass as a parameter which method to run.  Available
     examples include:
 
-        from examples import example, example_aws, example_aws_long
+        from examples import example, example_aws_short, example_aws_long
         example('emcee')
         example('multinest')
-        example_aws('emcee')
-        example_aws('multinest')
+        example_aws_short('emcee')
+        example_aws_short('multinest')
         example_aws_long('emcee')
         example_aws_long('multinest')
 
@@ -72,7 +72,8 @@ from exoctk.atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
 
 def example(method):
-    """Performs a short example run of the retrievals.
+    """Performs a short example run of the retrievals using local
+    machine.
 
     Parameters
     ----------
@@ -135,8 +136,8 @@ def example(method):
     return pw
 
 
-def example_aws(method):
-    """Performs an example run of the ``emcee`` or ``multinest``
+def example_aws_short(method):
+    """Performs an short example run of the ``emcee`` or ``multinest``
     retrievals using AWS.
 
     Parameters
@@ -209,44 +210,60 @@ def example_aws_long(method):
 
     # # For hd209458b
     # params = {
-    #     'Rs': 1.19,  # Required
-    #     'Mp': 0.73,  # Required
-    #     'Rp': 1.4,  # Required
-    #     'T': 1200.0,  # Required
-    #     'logZ': 0,  # Optional
-    #     'CO_ratio': 0.53,  # Optional
-    #     'log_cloudtop_P': 4,  # Optional
-    #     'log_scatt_factor': 0,  # Optional
-    #     'scatt_slope': 4,  # Optional
-    #     'error_multiple': 1,  # Optional
-    #     'T_star': 6091}  # Optional
+    #     'Rs': 1.19,
+    #     'Mp': 0.73,
+    #     'Rp': 1.39,
+    #     'T': 1476.81}
 
     # For WASP-19b
     params = {
-        'Rs': 1.018,  # Required
-        'Mp': 1.139,  # Required
-        'Rp': 1.410,  # Required
-        'T': 2077.0,  # Required
-        'T_star': 5460}  # Optional
+        'Rs': 1.000,
+        'Mp': 1.069,
+        'Rp': 1.392,
+        'T': 2100.42}
+
+    # # For hat-p-1b
+    # params = {
+    #     'Rs': 1.17,
+    #     'Mp': 0.525,
+    #     'Rp': 1.319,
+    #     'T': 1322.67}
+
+    # # For hat-p-12b
+    # params = {
+    #     'Rs': 0.7,
+    #     'Mp': 0.211,
+    #     'Rp': 0.959,
+    #     'T': 957.35}
 
     # Initialize the object, set parameters, and perform retreival
     pw = PlatonWrapper()
     pw.set_parameters(params)
 
-    # Fit for the stellar radius and planetary mass using Gaussian priors.  This
-    # is a way to account for the uncertainties in the published values
-    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+    # # Fit for the stellar radius and planetary mass using Gaussian priors.  This
+    # # is a way to account for the uncertainties in the published values
+    # pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
+    # pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
 
     # Fit for other parameters using uniform priors
-    R_guess = 1.410 * R_jup
-    # T_guess = 2077.0
+    R_guess = 1.410 * R_jup  # For WASP-19b
+    T_guess = 2100.42
+
+    # R_guess = 1.39 * R_jup  # For hd209458b
+    # T_guess = 1476.81
+
+    # R_guess = 1.319 * R_jup  # For hat-p-1b
+    # T_guess = 1322.67
+
+    # R_guess = 0.959 * R_jup  # For hat-p-12b
+    # T_guess = 957.35
+
     pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    # pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
-    # pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    # pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+    pw.fit_info.add_uniform_fit_param('T', 0.9*T_guess, 1.1*T_guess)
+    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
+    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
     # pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    # pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Get bins, depths, and errors
     bins, depths, errors = get_example_data('wasp-19b')
@@ -256,14 +273,14 @@ def example_aws_long(method):
     pw.errors = errors
 
     # Set use for AWS and perform retreival
-    # pw.use_aws(ssh_file, ec2_id)
+    pw.use_aws(ssh_file, ec2_id)
     pw.retrieve(method)
 
 
 def get_example_data(object_name):
     """Return ``bins``, ``depths``, and ``errors`` for the given
     ``object_name``.  Data is read in from a ``csv`` file with a
-    corresponding filename.
+    filename corresponding to ``object_name``.
 
     Parameters
     ----------
@@ -284,7 +301,7 @@ def get_example_data(object_name):
     logging.info('Using data for {}'.format(object_name))
 
     # Read in the data
-    df = pandas.read_csv('data/{}.csv'.format(object_name), names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
+    df = pandas.read_csv('example_data/{}.csv'.format(object_name), names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
 
     # Remove and rows outside of wavelength range (3e-7 to 3e-5)
     df = df.loc[(1e-6*df['wavelengths'] - 1e-6*df['bin_sizes'] >= 3e-7) & (1e-6*df['wavelengths'] + 1e-6*df['bin_sizes'] <= 3e-5)]
