@@ -25,7 +25,6 @@ import os
 from platon.constants import R_sun, R_jup, M_jup
 import pytest
 
-from ..atmospheric_retrievals.aws_tools import configure_logging
 from ..atmospheric_retrievals.aws_tools import get_config
 from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
@@ -95,18 +94,6 @@ def test_apply_factors():
     assert params['Rs'] == 827883000.0
     assert params['Mp'] == 1.3856787e+27
     assert params['Rp'] == 100088800.0
-
-
-def test_configure_logging():
-    """Tests the ``configure_logging`` function in ``aws_tools``
-    module.
-    """
-
-    configure_logging()
-    log_file = glob.glob('logs/aws_wrapper_????-??-??-??-??.log')[0]
-    assert log_file
-    os.remove(log_file)
-    shutil.rmtree('/logs', ignore_errors=True)
 
 
 def test_get_config():

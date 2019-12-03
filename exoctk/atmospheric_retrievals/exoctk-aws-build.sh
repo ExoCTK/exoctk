@@ -23,15 +23,6 @@ source ~/.bashrc
 conda activate exoctk-3.6
 
 echo ''
-echo '~~~~~ INSTALLING jwst_gtvt ~~~~~'
-echo ''
-git clone https://github.com/spacetelescope/jwst_gtvt.git
-cd jwst_gtvt
-git checkout cd6bc76f66f478eafbcc71834d3e735c73e03ed5
-python setup.py develop
-cd ../
-
-echo ''
 echo '~~~~~ INSTALLING exoctk ~~~~~'
 echo ''
 git clone https://github.com/ExoCTK/exoctk.git
@@ -43,6 +34,16 @@ conda env update -f env/environment-3.6.yml
 conda init bash
 source ~/.bashrc
 conda activate exoctk-3.6
+python setup.py develop
+cd ../
+
+echo ''
+echo '~~~~~ INSTALLING jwst_gtvt ~~~~~'
+echo ''
+rm -fr /home/ec2-user/miniconda3/envs/exoctk-3.6/lib/python3.6/site-packages/jwst_gtvt
+git clone https://github.com/spacetelescope/jwst_gtvt.git
+cd jwst_gtvt
+git checkout cd6bc76f66f478eafbcc71834d3e735c73e03ed5
 python setup.py develop
 cd ../
 
