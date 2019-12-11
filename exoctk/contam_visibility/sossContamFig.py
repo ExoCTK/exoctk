@@ -60,8 +60,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     contamO1 = np.zeros([rows, nPA])
     if instrument=='NIRISS':
         contamO2 = np.zeros([rows, nPA])
-# JENNY: try to understand what's going on in this forloop.
-# i think this is what's making the contam plot look weird
+
     for row in np.arange(rows):
         i = np.argmax(trace1[row, :])
         #tr = trace1[row, i-20:i+41]
@@ -121,7 +120,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    s2.yaxis.axis_label = 'Position Angle (degrees)'
+    #s2.yaxis.axis_label = 'Position Angle (degrees)'
 
     # Add bad PAs
     bad_PA_color = '#dddddd'
@@ -143,6 +142,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         s2.quad(top=tops, bottom=bottoms,
                 left=lefts, right=rights,
                  color=bad_PA_color, alpha=bad_PA_alpha)
+
     # Line plot
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
@@ -171,13 +171,22 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         s5.xaxis.axis_label = 'Wavelength (um)'
         s5.yaxis.axis_label = 'Position Angle (degrees)'
 
-        # Add bad PAs
-        #for ybad0, ybad1 in badPAs:
-        #    s2.patch([xlim0, xlim1, xlim1, xlim0],
-        #             [ybad1, ybad1, ybad0, ybad0],
-        #             color=bad_PA_color, alpha=bad_PA_alpha)
-        #    s3.patch([0, 100, 100, 0], [ybad1, ybad1, ybad0, ybad0],
-        #             color=bad_PA_color, alpha=bad_PA_alpha, legend='Bad PA')
+        if len(badPAs)>0:
+
+            tops, bottoms, lefts, rights = [], [], [], []
+            for idx in range(0, len(badPAs)):
+                PAgroup = badPAs[idx]
+                top_idx = np.max(PAgroup)
+                bot_idx = np.min(PAgroup)
+
+                tops.append(top_idx)
+                bottoms.append(bot_idx)
+                lefts.append(xlim0)
+                rights.append(xlim1)
+
+            s5.quad(top=tops, bottom=bottoms,
+                    left=lefts, right=rights,
+                     color=bad_PA_color, alpha=bad_PA_alpha)
 
         # Line plot
         s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
@@ -192,14 +201,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     if instrument!='NIRISS':
         fig = gridplot(children=[[s2, s3]])
     else:
-
-        fig1 = gridplot(children=[[s2, s3]])
-        fig2 = gridplot(children=[[s5, s6]])
-
-        tab1 = Panel(child=fig1, title='Order 1')
-        tab2 = Panel(child=fig2, title='Order 2')
-
-        fig = Tabs(tabs=[tab1, tab2])
+        fig = gridplot(children=[[s6, s5], [s2, s3]])
 
     return fig
 
