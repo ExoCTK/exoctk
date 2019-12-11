@@ -363,7 +363,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     # Adding lists to a table object
     table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
-                  names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
+                  names=('min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
 
     # Getting bad PAs
