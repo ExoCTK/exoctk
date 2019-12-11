@@ -491,13 +491,13 @@ def contam_visibility():
             vers = '1.0'
             today = datetime.datetime.now()
             fh = StringIO()
-            fh.write('# Hi! This is your Visibility output file for... \n')
-            fh.write('# Target: {} \n'.format(str(title)))
-            fh.write('# Instrument: {} \n'.format(form.inst.data))
-            fh.write('# \n')
-            fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
-            fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
-            fh.write('# \n')
+            #fh.write('# Hi! This is your Visibility output file for... \n')
+            #fh.write('# Target: {} \n'.format(str(title)))
+            #fh.write('# Instrument: {} \n'.format(form.inst.data))
+            #fh.write('# \n')
+            #fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
+            #fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
+            #fh.write('# \n')
             table.write(fh, format='csv', delimiter=',')
             visib_table = fh.getvalue()
 
@@ -513,9 +513,9 @@ def contam_visibility():
             # Make plot
             TOOLS = 'crosshair, reset, hover, save'
             fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime', title=title)
-            fh = StringIO()
-            table.write(fh, format='ascii')
-            visib_table = fh.getvalue()
+            #fh = StringIO()
+            #table.write(fh, format='ascii')
+            #visib_table = fh.getvalue()
 
             # Format x axis
             day0 = datetime.date(2019, 6, 1)
