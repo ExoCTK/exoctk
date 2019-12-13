@@ -214,7 +214,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
-    fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
 
