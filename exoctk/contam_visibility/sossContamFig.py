@@ -162,7 +162,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         ylim1 = PA.max()+0.5*dPA
         xlim0 = 0.614
         s5 = figure(tools=TOOLS, width=500, height=500,
-                    title='Target Contamination with {}'.format(instrument),
+                    title='{} Contamination with {}'.format(targetName, instrument),
                     x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
         fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
         s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
