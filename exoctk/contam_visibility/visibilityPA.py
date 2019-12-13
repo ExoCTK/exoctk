@@ -337,7 +337,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
-    fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.yaxis.axis_label = 'Aperture Position Angle (degrees)'
     fig.y_range = ranges.Range1d(0, 360)
 
     # Making the output table
