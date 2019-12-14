@@ -381,7 +381,6 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     # This addresses a bokeh shading issue that accidentally shades
     # accessible PAs (e.g: trappist-1b)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     remove_pa = []
     for badpa in badPAs:
 
