@@ -378,6 +378,21 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
             badPAs.append(pa)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # This addresses a bokeh shading issue that accidentally shades
+    # accessible PAs (e.g: trappist-1b)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    remove_pa = []
+    for badpa in badPAs:
+
+        for panom in paNomnan:
+            diff = np.abs(badpa-panom)
+            if diff < 7:
+                remove_pa.append(badpa)
+
+    for pa in np.unique(remove_pa):
+        badPAs.remove(pa)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Grouping the bad PAs into lists within the badPAs list.
     # This will make bad PA shading easier in the contamination Bokeh plot
     # (sossContamFig.py)
