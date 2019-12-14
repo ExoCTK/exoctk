@@ -80,7 +80,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
             contamO2[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
 
 
-    TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
+    TOOLS = 'pan, box_zoom, crosshair, reset, hover'
 
     y = np.array([0., 0.])
     y1 = 0.07
@@ -221,6 +221,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                      color=bad_PA_color, alpha=bad_PA_alpha)
 
     # ~~~~~~ Plotting ~~~~~~
+
     if instrument!='NIRISS':
         fig = gridplot(children=[[s2, s3]])
     else:
