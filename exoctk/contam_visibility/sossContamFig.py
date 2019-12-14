@@ -199,22 +199,23 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
 
-        if len(badPAs)>0:
+    if len(badPAs)>0:
 
-            tops, bottoms, lefts, rights = [], [], [], []
-            for idx in range(0, len(badPAs)):
-                PAgroup = badPAs[idx]
-                top_idx = np.max(PAgroup)
-                bot_idx = np.min(PAgroup)
+        tops, bottoms, lefts, rights = [], [], [], []
+        for idx in range(0, len(badPAs)):
+            PAgroup = badPAs[idx]
+            top_idx = np.max(PAgroup)
+            bot_idx = np.min(PAgroup)
 
-                tops.append(top_idx)
-                bottoms.append(bot_idx)
-                lefts.append(0)
-                rights.append(100)
+            tops.append(top_idx)
+            bottoms.append(bot_idx)
+            lefts.append(0)
+            rights.append(100)
 
-            s3.quad(top=tops, bottom=bottoms,
-                    left=lefts, right=rights,
-                     color=bad_PA_color, alpha=bad_PA_alpha)
+        s3.quad(top=tops, bottom=bottoms,
+                left=lefts, right=rights,
+                 color=bad_PA_color, alpha=bad_PA_alpha)
+        if instrument=='NIRISS':
             s6.quad(top=tops, bottom=bottoms,
                     left=rights, right=lefts,
                      color=bad_PA_color, alpha=bad_PA_alpha)
