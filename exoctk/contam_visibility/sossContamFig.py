@@ -113,7 +113,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
     s2 = figure(tools=TOOLS, width=500, height=500,
-                title='{} Contamination with {}'.format(targetName, instrument),
+                title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
     fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))
@@ -162,7 +162,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         ylim1 = PA.max()+0.5*dPA
         xlim0 = 0.614
         s5 = figure(tools=TOOLS, width=500, height=500,
-                    title='{} Contamination with {}'.format(targetName, instrument),
+                    title='Order 2 {} Contamination with {}'.format(targetName, instrument),
                     x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
         fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
         s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
@@ -190,7 +190,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
         # Line plot
         s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
-                    x_range=Range1d(0,100), title=None)
+                    x_range=Range1d(100, 0), title=None)
         s6.line(100*np.sum(contamO2 >= 0.001, axis=0)/rows, PA-dPA/2,
                 line_color='blue', legend='> 0.001')
         s6.line(100*np.sum(contamO2 >= 0.01, axis=0)/rows, PA-dPA/2,
@@ -201,7 +201,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     if instrument!='NIRISS':
         fig = gridplot(children=[[s2, s3]])
     else:
-        fig = gridplot(children=[[s6, s5], [s2, s3]])
+        fig = gridplot(children=[[s6, s5, s2, s3]])
 
     return fig
 
