@@ -120,7 +120,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    #s2.yaxis.axis_label = 'Position Angle (degrees)'
+    if instrument != 'NIRISS':
+        s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     # Add bad PAs
     bad_PA_color = '#dddddd'
@@ -169,7 +170,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                  color_mapper=color_mapper)
         #s5.yaxis.major_label_text_font_size = '0pt'
         s5.xaxis.axis_label = 'Wavelength (um)'
-        s5.yaxis.axis_label = 'Position Angle (degrees)'
+        s5.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
         if len(badPAs)>0:
 
@@ -197,6 +198,27 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 line_color='green', legend='> 0.01')
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
+
+        if len(badPAs)>0:
+
+            tops, bottoms, lefts, rights = [], [], [], []
+            for idx in range(0, len(badPAs)):
+                PAgroup = badPAs[idx]
+                top_idx = np.max(PAgroup)
+                bot_idx = np.min(PAgroup)
+
+                tops.append(top_idx)
+                bottoms.append(bot_idx)
+                lefts.append(0)
+                rights.append(100)
+
+            s3.quad(top=tops, bottom=bottoms,
+                    left=lefts, right=rights,
+                     color=bad_PA_color, alpha=bad_PA_alpha)
+            s6.quad(top=tops, bottom=bottoms,
+                    left=rights, right=lefts,
+                     color=bad_PA_color, alpha=bad_PA_alpha)
+
     # ~~~~~~ Plotting ~~~~~~
     if instrument!='NIRISS':
         fig = gridplot(children=[[s2, s3]])
