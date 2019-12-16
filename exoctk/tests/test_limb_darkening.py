@@ -39,6 +39,24 @@ def test_ldc_object():
     assert isinstance(ld_session, ldf.LDC)
 
 
+def test_ldc_plot():
+    """Test that the LDC plots work"""
+    print('Testing LDC object plotting...')
+
+    ld_session = ldf.LDC(MODELGRID)
+
+    # Run the calculations
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
+
+    # Regular plot
+    fig = ld_session.plot()
+    assert str(type(fig)) == "<class 'bokeh.plotting.figure.Figure'>"
+
+    # Tabbed plot
+    fig = ld_session.plot_tabs()
+    assert str(type(fig)) in ["<class 'bokeh.models.widgets.panels.Tabs'>", "<class 'bokeh.models.layouts.Tabs'>"]
+
+
 def test_ldc_calculation_no_filter():
     """Test to see if a calculation can be performed with no filter and
     that they are appended to the results table"""
