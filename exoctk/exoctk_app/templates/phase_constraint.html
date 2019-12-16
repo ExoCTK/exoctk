@@ -32,7 +32,7 @@
             <div class="col-sm-10">
             
                 <div class="input-group">
-                    {{ form.period(value=form.period.data, size=10, rows=1, class='form-control') }}
+                    {{ form.orbital_period(value=form.orbital_period.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Days}\)</div>
                 </div>
                 <span id="helpBlock" class="help-block">Period of Target</span>
@@ -40,22 +40,22 @@
 
             <br>
             
-            <label for='mag' class="col-sm-2 control-label">Transit Time</label>
-            <div class="col-sm-10">
-            
-                <div class="input-group">
-                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
-                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
-                </div>
-                <span id="helpBlock" class="help-block">Transit time of Target</span>
-            </div>
-
             <label for='mag' class="col-sm-2 control-label">Start Time</label>
             <div class="col-sm-10">
             
                 <div class="input-group">
-                    {{ form.obs_duration(value=form.obs_duration.data, size=10, rows=1, class='form-control') }}
+                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Transit time of Target</span>
+            </div>
+
+            <label for='mag' class="col-sm-2 control-label">Transit Duration</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.transit_duration(value=form.transit_duration.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
                 <span id="helpBlock" class="help-block">Start time of your Observation</span>
             </div>

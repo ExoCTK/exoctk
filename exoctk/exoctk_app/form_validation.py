@@ -137,7 +137,7 @@ class ContamVisForm(BaseForm):
 
 
 class PhaseConstraint(BaseForm):
-    period = DecimalField('p') 
+    orbital_period = DecimalField('orbital_period') 
     transit_time = DecimalField('transit_time') 
-    obs_duration = DecimalField('obs_duration') 
+    transit_duration = DecimalField('transit_duration')
     window_size = DecimalField('window_size', default=1.0)
