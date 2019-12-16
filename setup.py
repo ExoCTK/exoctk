@@ -38,7 +38,7 @@ REQUIRES = ['asteval',
             'svo_filters',
             'wtforms']
 
-DEPENDENCY_LINKS = ['https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
+DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
