@@ -15,7 +15,7 @@ TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),
                            'traces')
 if TRACES_PATH == '':
     raise NameError("You need to have an exported 'EXOCTK_DATA' environment \
-                     variable and data set up before we can continue.")
+                     variable and data set up before we can continue")
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target
