@@ -788,22 +788,22 @@ def phase_constraint():
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
         if form.targname.data.strip() != '':
-            try:
-                # Resolve the target in exoMAST
-                form.targname.data = get_canonical_name(form.targname.data)
-                data, target_url = get_target_data(form.targname.data)
+            # try:
+            # Resolve the target in exoMAST
+            form.targname.data = get_canonical_name(form.targname.data)
+            data, target_url = get_target_data(form.targname.data)
 
-                # Update the form data
-                form.period.data = data.get('orbital_period')
-                form.transit_dur.data = data.get('transit_duration')
-                form.transit_time.data = data.get('transit_time')
-                form.target_url.data = str(target_url)
+            # Update the form data
+            form.orbital_period.data = data.get('orbital_period')
+            form.transit_duration.data = data.get('transit_duration') *24. # Default units is d, need it in hours
+            form.transit_time.data = data.get('transit_time')
+            form.target_url.data = str(target_url)
 
-                return render_template('phase_constraint.html', form=form)
+            return render_template('phase_constraint.html', form=form)
                 
-            except:
-                form.target_url.data = ''
-                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+            # except:
+            #     form.target_url.data = ''
+            #     form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     # Send it back to the main page
     return render_template('phase_constraint.html', form=form)
