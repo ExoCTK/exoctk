@@ -1,8 +1,8 @@
 import os
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField
-from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
+from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
+from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
@@ -137,7 +137,16 @@ class ContamVisForm(BaseForm):
 
 
 class PhaseConstraint(BaseForm):
-    orbital_period = DecimalField('orbital_period') 
-    transit_time = DecimalField('transit_time') 
-    transit_duration = DecimalField('transit_duration')
-    window_size = DecimalField('window_size', default=1.0)
+
+    def validate_obs_dur(BaseForm, window_size, observation_duration):
+        if observation_duration.data < window_size.data*2.0:
+            raise ValidationError('Observation time must be 2 time greater than window size.')
+
+    calculate_submit = SubmitField('Calculate Phase Constraint')
+
+    orbital_period = FloatField('orbital_period') 
+    transit_time = FloatField('transit_time') 
+    window_size = FloatField('window_size', default=1.0)
+    observation_duration = FloatField('observation_duration', default=2.0, validators=[NumberRange(), validate_obs_dur])
+    minimum_phase = DecimalField('minimum_phase', default=0.0)
+    maximum_phase = DecimalField('maximum_phase', default=0.0)

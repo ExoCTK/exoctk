@@ -34,6 +34,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
+from exoctk.phase_constraint_overlap.phase_constraint_overlap import calculate_phase
 
 import log_exoctk
 from svo_filters import svo
@@ -788,26 +789,30 @@ def phase_constraint():
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
         if form.targname.data.strip() != '':
-            # try:
-            # Resolve the target in exoMAST
-            form.targname.data = get_canonical_name(form.targname.data)
-            data, target_url = get_target_data(form.targname.data)
+            try:
+                # Resolve the target in exoMAST
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, target_url = get_target_data(form.targname.data)
 
-            # Update the form data
-            form.orbital_period.data = data.get('orbital_period')
-            form.transit_duration.data = data.get('transit_duration') *24. # Default units is d, need it in hours
-            form.transit_time.data = data.get('transit_time')
-            form.target_url.data = str(target_url)
+                # Update the form data
+                form.orbital_period.data = data.get('orbital_period')
+                form.transit_time.data = data.get('transit_time')
+                form.target_url.data = str(target_url)
 
-            return render_template('phase_constraint.html', form=form)
-                
-            # except:
-            #     form.target_url.data = ''
-            #     form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+                return render_template('phase_constraint.html', form=form)
+                    
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+    if form.calculate_submit.data:
+        minphase, maxphase = calculate_phase(form.orbital_period.data, 
+                                             form.observation_duration.data, form.window_size.data)
+        form.minimum_phase.data = minphase
+        form.maximum_phase.data = maxphase
 
     # Send it back to the main page
     return render_template('phase_constraint.html', form=form)
-
 
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
