@@ -16,6 +16,7 @@ IDLSAVE_PATH = os.path.join(get_env_variables()['exoctk_data'],  'exoctk_contam'
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """Produce a SOSS field simulation for a target
 
+
     Parameters
     ----------
     ra: float
