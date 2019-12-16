@@ -124,8 +124,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     # Add bad PAs
-    bad_PA_color = '#dddddd'
-    bad_PA_alpha = 0.7
+    bad_PA_color = '#555555'
+    bad_PA_alpha = 0.6
     #for ybad0, ybad1 in badPA:
     if len(badPAs)>0:
 
