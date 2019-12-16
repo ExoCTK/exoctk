@@ -14,12 +14,6 @@ from . import visibilityPA as vpa
 
 TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
 
-def tolam(x):
-    dlam = disp*x
-    lam = 2.369+dlam
-
-    return lam
-
 disp_nircam = 0.001 # microns
 lam0_nircam322w2 = 2.369
 lam1_nircam322w2 = 4.417
