@@ -51,9 +51,6 @@ echo '~~~~~ INSTALLING exoctk ~~~~~'
 echo ''
 git clone https://github.com/ExoCTK/exoctk.git
 cd exoctk/
-git remote add bourque https://github.com/bourque/exoctk.git
-git fetch bourque
-git checkout -b implement-aws bourque/implement-aws
 conda env update -f env/environment-3.6.yml
 conda init bash
 source ~/.bashrc
