@@ -413,8 +413,9 @@ if __name__ == '__main__':
 
     # Do some retrievals
     pw.retrieve(args.method)
-    if args.method == 'multinest':
-        pw.save_results()
+
+    # Save results
+    pw.save_results()
 
     # Make corner plot of results
     pw.make_plot()
