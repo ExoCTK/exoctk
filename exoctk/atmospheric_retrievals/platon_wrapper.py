@@ -307,7 +307,7 @@ class PlatonWrapper():
 
             # Trasfer output products from EC2 to user
             if self.method == 'emcee':
-                transfer_from_ec2(instance, key, client, 'BestFit.txt')
+                transfer_from_ec2(instance, key, client, 'emcee_results.obj')
                 transfer_from_ec2(instance, key, client, 'emcee_corner.png')
             elif self.method == 'multinest':
                 transfer_from_ec2(instance, key, client, 'multinest_results.dat')
@@ -332,9 +332,15 @@ class PlatonWrapper():
         logging.info('Saving results')
 
         # Save the results
-        self.output_results = '{}_results.dat'.format(self.method)
-        with open(self.output_results, 'w') as f:
-            f.write(str(self.result))
+        if self.method == 'multinest':
+            self.output_results = 'multinest_results.dat'
+            with open(self.output_results, 'w') as f:
+                f.write(str(self.result))
+        elif self.method == 'emcee':
+            self.output_results = 'emcee_results.obj'
+            with open(self.output_results, 'wb') as f:
+                pickle.dump(self.result, f)
+
         print('Results file saved to {}'.format(self.output_results))
         logging.info('Results file saved to {}'.format(self.output_results))
 
