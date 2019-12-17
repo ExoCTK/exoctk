@@ -82,7 +82,7 @@ def contam(cube, targetName='noName', paRange=[0, 360], badPA=[], tmpDir="",
     # Otherwise, it's a Bokeh plot
     if fig:
 
-        TOOLS = 'pan, box_zoom, crosshair, reset, hover, save'
+        TOOLS = 'pan, wheel_zoom, box_zoom, crosshair, reset, hover'
 
         y = np.array([0., 0.])
         y1 = 0.07

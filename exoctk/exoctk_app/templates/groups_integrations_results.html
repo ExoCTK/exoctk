@@ -62,19 +62,19 @@
                     <table id="myTable">
                         <tr class="header">
                             <th> Integrations </th>
-                            <th> Groups (min) </th>
-                            <th> Groups (max) </th>
-                            <th> Total Duration Time with min (seconds) </th>
-                            <th> Total Duration Time with max </th>
-                            <th> Max Saturation Reached with min (counts) </th>
-                            <th> Max Saturation Reached with max </th>
+                            <th> Min # Groups </th>
+                            <th> Max # Groups </th>
+                            <th> Total Duration with Min Groups (seconds) </th>
+                            <th> Total Duration with Max Groups </th>
+                            <th> Counts Reached with Min Groups (electrons) </th>
+                            <th> Counts Reached with Max Groups  </th>
                         </tr>
                         <tr>
                             <td>1 (fixed for target acquisition)</td>
                             <td>{{ results_dict['max_ta_groups'] }}</td>
                             <td>{{ results_dict['min_ta_groups'] }}</td>
-                            <td>{{ results_dict['t_duration_ta_min'] }}</td>
                             <td>{{ results_dict['t_duration_ta_max'] }}</td>
+                            <td>{{ results_dict['t_duration_ta_min'] }}</td>
                             <td>{{ results_dict['max_sat_ta'] }}</td>
                             <td>{{ results_dict['min_sat_ta'] }}</td>
                         </tr>
@@ -119,7 +119,7 @@
                             <th> Groups </th>
                             <th> Integration Time (seconds) </th>
                             <th> Photon Collection Time (hours) </th>
-                            <th> Total Duration Time (hours) </th>
+                            <th> Observation Duration (hours) </th>
                             <th> Observation Efficiency </th>
                             <th> Maximum Sat Reached </th> 
                         </tr>

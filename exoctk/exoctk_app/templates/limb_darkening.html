@@ -72,16 +72,16 @@
                         </div>
                         <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
                         <br>
-                        {% for error in form.teff.errors %}
+                        {% for error in form.teff.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
-                        {% for error in form.logg.errors %}
+                        {% for error in form.logg.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
-                        {% for error in form.feh.errors %}
+                        {% for error in form.feh.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
-                        {% for error in form.mu_min.errors %}
+                        {% for error in form.mu_min.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
                     </div>
@@ -93,10 +93,10 @@
                     <div class="col-sm-10">
                         {% for subfield in form.modeldir %}
                             <div class='radio'>
-                                {% if subfield.label.text == 'Phoenix ACES' %}
-                                    {{ subfield(style='margin-left:0px;', id='aces', checked='checked') }}{{ subfield.label }}
+                                {% if subfield.label.text == 'Kurucz ATLAS9' %}
+                                    {{ subfield(style='margin-left:0px;', id='atlas9', checked='checked') }}{{ subfield.label }}
                                 {% else %}
-                                    {{ subfield(style='margin-left:0px;', id='atlas9') }}{{ subfield.label }}
+                                    {{ subfield(style='margin-left:0px;', id='aces') }}{{ subfield.label }}
                                 {% endif %}
                             </div>
                         {% endfor %}
