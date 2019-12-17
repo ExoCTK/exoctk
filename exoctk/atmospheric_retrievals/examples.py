@@ -63,6 +63,7 @@ Dependencies
 """
 
 import logging
+import shutil
 import time
 
 import numpy as np
@@ -112,10 +113,8 @@ def example(method):
     pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
 
     # Fit for other parameters using uniform priors
-    R_guess = 1.4 * R_jup
-    T_guess = 1200
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
+    pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.4 * R_jup), 1.1*(1.4 * R_jup))
+    pw.fit_info.add_uniform_fit_param('T', 0.5*1200, 1.5*1200)
     pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
     pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
     pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
@@ -129,8 +128,9 @@ def example(method):
 
     # Do some retrievals
     pw.retrieve(method)
-    if method == 'multinest':
-        pw.save_results()
+
+    # Save the results
+    pw.save_results()
 
     # Make corner plot of results
     pw.make_plot()
@@ -148,9 +148,6 @@ def example_aws_short(method):
         The method to use to perform the atmopsheric retrieval; can
         either be ``multinest`` or ``emcee``
     """
-
-    ssh_file = get_config()['ssh_file']
-    ec2_id = get_config()['ec2_id']
 
     # Define the fit parameters
     params = {
@@ -176,10 +173,8 @@ def example_aws_short(method):
     pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
 
     # Fit for other parameters using uniform priors
-    R_guess = 1.4 * R_jup
-    T_guess = 1200
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.5*T_guess, 1.5*T_guess)
+    pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.4 * R_jup), 1.1*(1.4 * R_jup))
+    pw.fit_info.add_uniform_fit_param('T', 0.5*1200, 1.5*1200)
     pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
     pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
     pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
@@ -192,6 +187,8 @@ def example_aws_short(method):
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
     # Set use for AWS and perform retreival
+    ssh_file = get_config()['ssh_file']
+    ec2_id = get_config()['ec2_id']
     pw.use_aws(ssh_file, ec2_id)
     pw.retrieve(method)
 
@@ -207,74 +204,51 @@ def example_aws_long(method):
         either be ``multinest`` or ``emcee``
     """
 
-    ssh_file = get_config()['ssh_file']
-    ec2_id = get_config()['ec2_id']
-
-    # # For hd209458b
-    # params = {
-    #     'Rs': 1.19,
-    #     'Mp': 0.73,
-    #     'Rp': 1.39,
-    #     'T': 1476.81}
-
-    # For WASP-19b
     params = {
-        'Rs': 1.000,
-        'Mp': 1.069,
-        'Rp': 1.392,
-        'T': 2100.42}
-
-    # # For hat-p-1b
-    # params = {
-    #     'Rs': 1.17,
-    #     'Mp': 0.525,
-    #     'Rp': 1.319,
-    #     'T': 1322.67}
-
-    # # For hat-p-12b
-    # params = {
-    #     'Rs': 0.7,
-    #     'Mp': 0.211,
-    #     'Rp': 0.959,
-    #     'T': 957.35}
+        'Rs': 1.19,
+        'Mp': 0.73,
+        'Rp': 1.39,
+        'T': 1476.81,
+        'logZ': 0,
+        'CO_ratio': 0.53,
+        'log_cloudtop_P': 4,
+        'log_scatt_factor': 0,
+        'scatt_slope': 4,
+        'error_multiple': 1,
+        'log_cloudtop_P': 4}
 
     # Initialize the object, set parameters, and perform retreival
     pw = PlatonWrapper()
     pw.set_parameters(params)
 
-    # # Fit for the stellar radius and planetary mass using Gaussian priors.  This
-    # # is a way to account for the uncertainties in the published values
-    # pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    # pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
-
-    # Fit for other parameters using uniform priors
-    R_guess = 1.410 * R_jup  # For WASP-19b
-    T_guess = 2100.42
-
-    # R_guess = 1.39 * R_jup  # For hd209458b
-    # T_guess = 1476.81
-
-    # R_guess = 1.319 * R_jup  # For hat-p-1b
-    # T_guess = 1322.67
-
-    # R_guess = 0.959 * R_jup  # For hat-p-12b
-    # T_guess = 957.35
-
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*R_guess, 1.1*R_guess)
-    pw.fit_info.add_uniform_fit_param('T', 0.9*T_guess, 1.1*T_guess)
-    pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
-    pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
-    # pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
-    pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+    if method == 'multinest':
+        pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
+        pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+        pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.39 * R_jup), 1.1*(1.39 * R_jup))
+        pw.fit_info.add_uniform_fit_param('T', 300, 3000)
+        pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 2)
+        pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+        pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 7)
+        pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
+    elif method == 'emcee':
+        pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
+        pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+        pw.fit_info.add_uniform_fit_param('Rp', 0, np.inf, 0.9*(1.39 * R_jup), 1.1*(1.39 * R_jup))
+        pw.fit_info.add_uniform_fit_param('T', 300, 3000, 0.5*1476.81, 1.5*1476.81)
+        pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 5, 0, 2)
+        pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
+        pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 7)
+        pw.fit_info.add_uniform_fit_param("error_multiple", 0, np.inf, 0.5, 5)
 
     # Get bins, depths, and errors
-    bins, depths, errors = get_example_data('wasp-19b')
-
+    bins, depths, errors = get_example_data('hd209458b')
     pw.bins = bins
     pw.depths = depths
     pw.errors = errors
 
     # Set use for AWS and perform retreival
+    ssh_file = get_config()['ssh_file']
+    ec2_id = get_config()['ec2_id']
     pw.use_aws(ssh_file, ec2_id)
     pw.retrieve(method)
 
@@ -322,16 +296,16 @@ def get_example_data(object_name):
 
 if __name__ == '__main__':
 
-    # # A short example using local machine
-    # example('multinest')
-    # example('emcee')
+    # A short example using local machine
+    example('multinest')
+    example('emcee')
 
-    # # A short example using AWS
-    # example_aws_short('multinest')
-    # # time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
-    # example_aws_short('emcee')
+    # A short example using AWS
+    example_aws_short('multinest')
+    time.sleep(120)  # Allow time for the EC2 instance to restart
+    example_aws_short('emcee')
 
     # A long example using AWS
-    # example_aws_long('multinest')
-    # time.sleep(120)  # Wait a few minutes for the existing EC2 instance to completely stop
+    example_aws_long('multinest')
+    time.sleep(120)  # Allow time for the EC2 instance to restart
     example_aws_long('emcee')
