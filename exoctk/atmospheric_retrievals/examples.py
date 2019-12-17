@@ -277,7 +277,8 @@ def get_example_data(object_name):
     logging.info('Using data for {}'.format(object_name))
 
     # Read in the data
-    df = pandas.read_csv('example_data/{}.csv'.format(object_name), names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
+    data_file = os.path.join(os.path.basename(__file__), 'example_data', '{}.csv'.format(object_name))
+    df = pandas.read_csv(data_file, names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
 
     # Remove and rows outside of wavelength range (3e-7 to 3e-5)
     df = df.loc[(1e-6*df['wavelengths'] - 1e-6*df['bin_sizes'] >= 3e-7) & (1e-6*df['wavelengths'] + 1e-6*df['bin_sizes'] <= 3e-5)]
@@ -306,6 +307,7 @@ if __name__ == '__main__':
     example_aws_short('emcee')
 
     # A long example using AWS
+    time.sleep(120)  # Allow time for the EC2 instance to restart
     example_aws_long('multinest')
     time.sleep(120)  # Allow time for the EC2 instance to restart
     example_aws_long('emcee')
