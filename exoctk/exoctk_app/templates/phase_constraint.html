@@ -16,7 +16,10 @@
     <br>
 
     <p>
-        A nice description of the tool. 
+        The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window.  
+        The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute 
+        the eclipse observation start window for planets on circular orbits.  Enter the minimum and maximum phase values 
+        into the APT special requirements section when planning your observations. 
     </p>
 
     <form class='form-horizontal' action="/phase_constraint" method="POST">
@@ -40,7 +43,7 @@
 
             <br>
             
-            <label for='mag' class="col-sm-2 control-label">Start Time</label>
+            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
             <div class="col-sm-10">
             
                 <div class="input-group">
@@ -61,7 +64,7 @@
                     {{ form.observation_duration(value=form.observation_duration.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">Length of Your Observation</span>
+                <span id="helpBlock" class="help-block">Length of Your Observation (Default 3*(transit duration)+1 [Hours] when using Resolver)</span>
             </div>
 
 
@@ -72,7 +75,7 @@
                     {{ form.window_size(value=1, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">Size of Transit Window (Default 1 Hour)</span>
+                <span id="helpBlock" class="help-block">Size of observation start window (Default 1 hour)</span>
             </div>
             
             <hr class="col-md-12">

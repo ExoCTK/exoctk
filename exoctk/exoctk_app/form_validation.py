@@ -138,15 +138,11 @@ class ContamVisForm(BaseForm):
 
 class PhaseConstraint(BaseForm):
 
-    def validate_obs_dur(BaseForm, window_size, observation_duration):
-        if observation_duration.data < window_size.data*2.0:
-            raise ValidationError('Observation time must be 2 time greater than window size.')
-
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
     orbital_period = FloatField('orbital_period') 
     transit_time = FloatField('transit_time') 
     window_size = FloatField('window_size', default=1.0)
-    observation_duration = FloatField('observation_duration', default=2.0, validators=[NumberRange(), validate_obs_dur])
+    observation_duration = FloatField('observation_duration', default=2.0)
     minimum_phase = DecimalField('minimum_phase', default=0.0)
     maximum_phase = DecimalField('maximum_phase', default=0.0)
