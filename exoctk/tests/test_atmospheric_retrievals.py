@@ -17,9 +17,6 @@ Use
         pytest -s test_atmospheric_retrievals.py
 """
 
-import glob
-import shutil
-
 import numpy as np
 import os
 from platon.constants import R_sun, R_jup, M_jup
