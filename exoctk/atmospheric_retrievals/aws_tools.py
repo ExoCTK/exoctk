@@ -71,6 +71,7 @@ def build_environment(instance, key, client):
     iterations = 0
     while not connected:
         if iterations == 12:
+            logging.critical('Could not connect to {}'.format(instance.public_dns_name))
             break
         try:
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
@@ -257,6 +258,6 @@ def transfer_to_ec2(instance, key, client, filename):
             scp.put(filename)
             connected = True
         except:
-            logging.warning('Couldn not connect to {}, retrying.'.format(instance.public_dns_name))
+            logging.warning('Could not connect to {}, retrying.'.format(instance.public_dns_name))
             time.sleep(5)
             iterations += 1

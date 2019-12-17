@@ -225,7 +225,7 @@ class PlatonWrapper():
         if not os.path.exists('logs/'):
             os.mkdir('logs/')
 
-        # Make sure no other root lhandlers exist before configuring the logger
+        # Make sure no other root handlers exist before configuring the logger
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
 

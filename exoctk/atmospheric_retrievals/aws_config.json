@@ -1,4 +1,4 @@
 {
-    "ec2_id" : "",
-    "ssh_file" : ""
+    "ec2_id" : "i-07717dc4bee75607a",
+    "ssh_file" : "/Users/bourque/.ssh/exoctk-kramer.pem"
 }
