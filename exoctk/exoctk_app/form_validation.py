@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
-from exoctk.utils import MODELGRID_DIR, FILTERS, PROFILES
+from exoctk.utils import get_env_variables, FILTERS, PROFILES
 from svo_filters import svo
 
 
@@ -46,17 +46,18 @@ class FortneyModelForm(BaseForm):
 class LimbDarkeningForm(BaseForm):
     """Form validation for the limb_darkening tool"""
     # Model grid
-    default_modelgrid = os.path.join(MODELGRID_DIR, 'ATLAS9/')
+    modelgrid_dir = get_env_variables()['modelgrid_dir']
+    default_modelgrid = os.path.join(modelgrid_dir, 'ATLAS9/')
     mg = ModelGrid(default_modelgrid, resolution=500)
     teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(MODELGRID_DIR, 'ACES/'), 'Phoenix ACES'), (os.path.join(MODELGRID_DIR, 'ATLAS9/'), 'Kurucz ATLAS9')], validators=[InputRequired('A model grid is required!')])
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(modelgrid_dir, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(modelgrid_dir, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
 
     # Stellar parameters
-    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=teff_rng[0], max=teff_rng[1], message='Effective temperature must be between {} and {}'.format(*teff_rng))])
-    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=logg_rng[0], max=logg_rng[1], message='Surface gravity must be between {} and {}'.format(*logg_rng))])
-    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=feh_rng[0], max=feh_rng[1], message='Metallicity must be between {} and {}'.format(*feh_rng))])
+    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
+    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(logg_rng[0]), max=float(logg_rng[1]), message='Surface gravity must be between {} and {} for this model grid'.format(*logg_rng))])
+    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
 
     # LD profile
@@ -82,7 +83,7 @@ class GroupsIntsForm(BaseForm):
     calculate_submit = SubmitField('Calculate Groups and Integrations')
 
     # Stellar Parameters
-    kmag = DecimalField('kmag', default=10.5, validators=[InputRequired('A K-band magnitude is required!')])
+    kmag = DecimalField('kmag', default=10.5, validators=[InputRequired('A K-band magnitude is required!'), NumberRange(min=5.1, max=11.9, message='K-band mag must be between 5-12, non-inclusive.')])
     obs_duration = DecimalField('obs_duration', default=3, validators=[InputRequired('An observation duration is required!'), NumberRange(min=0, message='Observation duration must be a positive number')])
     time_unit = SelectField('time_unit', default='hour', choices=[('hour', 'hours'), ('day', 'days')])
     models = [('a0i', 'A0I 9750 2.0'), ('aov', 'A0V 9500 2.0'), ('a1v', 'A1V 9250 4.0'), ('a5i', 'A5I 8500 2.0'), ('a3v', 'A3V 8250 4.0'), ('a5v', 'A5V 8250 4.0'), ('f0i', 'F0I 7750 2.0'), ('f0v', 'F0V 7250 1.5'), ('f5i', 'F5I 7000 4.0'), ('f2v', 'F2V 7000 4.0'), ('f5v', 'F5V 6500 4.0'), ('f8v', 'F8V 6250 4.5'), ('g0v', 'G0V 6000 4.5'), ('g0iii', 'G0III 5750 3.0'), ('g2v', 'G2V 5750 4.5'), ('g5v', 'G5V 5750 4.5'), ('g0i', 'G0I 5500 1.5'), ('g8v', 'G8V 5500 4.5'), ('g5iii', 'G5III 5250 2.5'), ('g5i', 'G5I 4740 1.0'), ('k0v', 'K0V 5250 4.5'), ('k0iii', 'K0III 4750 2.0'), ('k2v', 'K2V 4750 4.5'), ('k0i', 'K0I 4500 1.0'), ('k5v', 'K5V 4250 1.5'), ('k5iii', 'K5III 4000 1.5'), ('k7v', 'K7V 4000 4.5'), ('k5i', 'K5I 3750 0.5'), ('m0i', 'M0I 3750 0.0'), ('m0iii', 'M0III 3750 1.5'), ('m0v', 'M0V 3750 4.5'), ('m2i', 'M2I 3500 0.0'), ('m2v', 'M2V 3500 4.5'), ('m5v', 'M5V 3500 5.0')]
@@ -115,8 +116,8 @@ class GroupsIntsForm(BaseForm):
     nircam_subarray_ta = SelectField('nircam_subarray_ta', choices=[('sub32tats', 'SUB32TATS')])
 
     # Saturation
-    sat_mode = RadioField('modeldir', default='well', choices=[('counts', 'Counts'), ('well', 'Full well fraction')])
-    sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, max=1.0, message='Saturation level must be between 0 and 1')])
+    sat_mode = RadioField('sat_mode', default='well', choices=[('counts', 'Counts'), ('well', 'Full well fraction')])
+    sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, message='Saturation level must be positive.')])
 
 
 class ContamVisForm(BaseForm):
