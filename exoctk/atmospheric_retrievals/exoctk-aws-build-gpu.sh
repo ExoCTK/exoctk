@@ -36,9 +36,7 @@ echo ''
 echo '~~~~~ SETTING ENVIRONMENT VARIABLES ~~~~~'
 echo ''
 export PATH=/home/ec2-user/miniconda3/bin:$PATH
-echo 'Set $PATH'
 export EXOCTK_DATA=''
-echo 'Set $EXOCTK_DATA'
 
 echo ''
 echo '~~~~~ CREATING base CONDA ENVIRONMENT ~~~~~'
