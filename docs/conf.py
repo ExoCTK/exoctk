@@ -86,6 +86,16 @@ setup_py = dict(setup_info)
 # major.minor, call `check_sphinx_version("x.y.z")` here.
 # check_sphinx_version("1.2.1")
 
+# Add any Sphinx extension module names here, as strings. They can be
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# ones.
+extensions = ['sphinx_automodapi.automodapi',
+              'sphinx_automodapi.automodsumm',
+              'numpydoc',
+              'sphinx.ext.autodoc',
+              'sphinx.ext.mathjax',
+              'sphinx.ext.viewcode']
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns.append('_templates')
