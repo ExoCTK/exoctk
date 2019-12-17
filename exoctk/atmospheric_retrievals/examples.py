@@ -61,6 +61,13 @@ Dependencies
     launched.  However, if the ``ec2_id`` points to an existing EC2
     instance (i.e. the string starts with ``i-``), the existing EC2
     instance will be started and used.
+
+References
+----------
+
+    Example data was pulled from the "Transmission Spectra" tab from
+    corresponding ExoMAST pages, available at
+    https://exo.mast.stsci.edu/
 """
 
 import logging
