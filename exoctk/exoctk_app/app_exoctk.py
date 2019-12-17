@@ -8,6 +8,7 @@ import astropy.constants as constants
 from astropy.coordinates import SkyCoord
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
+from astropy.time import Time
 import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
@@ -34,7 +35,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
-from exoctk.phase_constraint_overlap.phase_constraint_overlap import calculate_phase
+from exoctk.phase_constraint_overlap.phase_constraint_overlap import calculate_phase, calculate_obsDur
 
 import log_exoctk
 from svo_filters import svo
@@ -796,7 +797,12 @@ def phase_constraint():
 
                 # Update the form data
                 form.orbital_period.data = data.get('orbital_period')
-                form.transit_time.data = data.get('transit_time')
+                
+                t_time = Time(data.get('transit_time'), format='mjd')
+                form.transit_time.data = t_time.jd
+
+                form.observation_duration.data = calculate_obsDur(data.get('transit_duration')*24.0)
+
                 form.target_url.data = str(target_url)
 
                 return render_template('phase_constraint.html', form=form)
