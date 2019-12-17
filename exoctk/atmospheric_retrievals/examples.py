@@ -36,12 +36,13 @@ Dependencies
 
     Dependent libraries include:
 
-    - exoctk
-    - numpy
-    - pandas
-    - platon
+    - ``exoctk``
+    - ``numpy``
+    - ``pandas``
+    - ``platon``
 
-    Users must also have a ``aws_config.json`` file present within the
+    To run the examples that use AWS, users must also have a
+    ``aws_config.json`` file present within the
     ``atmospheric_retrievals`` subdirectory.  This file must be of
     a valid JSON format and contain two key/value pairs,
     ``ec2_id`` and ``ssh_file``, e.g.:
@@ -63,7 +64,7 @@ Dependencies
 """
 
 import logging
-import shutil
+import os
 import time
 
 import numpy as np
@@ -139,8 +140,7 @@ def example(method):
 
 
 def example_aws_short(method):
-    """Performs an short example run of the ``emcee`` or ``multinest``
-    retrievals using AWS.
+    """Performs an short example run of the retrievals using AWS.
 
     Parameters
     ----------
@@ -194,8 +194,7 @@ def example_aws_short(method):
 
 
 def example_aws_long(method):
-    """Performs an longer example run of the ``emcee`` and
-    `multinest`` retrievals using AWS.
+    """Performs an longer example run of the retrievals using AWS.
 
     Parameters
     ----------

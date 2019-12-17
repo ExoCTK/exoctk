@@ -2,7 +2,7 @@
 
 This module serves as a wrapper around the atmospheric retrieval
 software for ``platon``.  It provides methods for performing retreivals
-through multinested sampling and EMCEE methods.  For more information
+through multinested sampling and MCMC methods.  For more information
 about ``platon``, please see ``https://platon.readthedocs.io``.  For
 examples of how to use this software, see the ``examples.py`` module.
 
@@ -18,7 +18,9 @@ Use
     ``PlatonWrapper`` object and passing fit parameters within the
     python environment.  An example of this is provided below.  For
     more examples of how to use this software, including ways to use
-    AWS for performing computations, see the ``examples.py`` module.
+    AWS for performing computations, see the ``examples.py`` module,
+    or the ``atmospheric_retrievals_demo.ipynb`` notebook under the
+    ``exoctk/notebooks/`` directory.
     ::
 
         import numpy as np
