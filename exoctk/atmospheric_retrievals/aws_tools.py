@@ -75,8 +75,8 @@ def build_environment(instance, key, client):
         try:
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             scp = SCPClient(client.get_transport())
-            scp.put('exoctk-aws-build.sh', '~/exoctk-aws-build.sh')
-            stdin, stdout, stderr = client.exec_command('chmod 700 exoctk-aws-build.sh && ./exoctk-aws-build.sh')
+            scp.put('build-exoctk-env-cpu.sh', '~/build-exoctk-env-cpu.sh')
+            stdin, stdout, stderr = client.exec_command('chmod 700 build-exoctk-env-cpu.sh && ./build-exoctk-env-cpu.sh')
             connected = True
         except:
             iterations += 1
