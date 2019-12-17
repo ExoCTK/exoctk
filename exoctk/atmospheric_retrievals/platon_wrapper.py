@@ -291,13 +291,11 @@ class PlatonWrapper():
             if self.build_required:
                 build_environment(instance, key, client)
 
-            # Transfer needed files to EC2
+            # Transfer object file to EC2
             transfer_to_ec2(instance, key, client, 'pw.obj')
-            transfer_to_ec2(instance, key, client, 'exoctk-env-init.sh')  # Will no longer need when in production
-            transfer_to_ec2(instance, key, client, 'platon_wrapper.py')  # Will no longer need when in production
 
             # Connect to the EC2 instance and run commands
-            command = './exoctk-env-init.sh python exoctk/exoctk/atmospheric_retrievals/platon_wrapper.py {}'.format(self.method)
+            command = './exoctk/exoctk/atmospheric_retrievals/exoctk-env-init.sh python exoctk/exoctk/atmospheric_retrievals/platon_wrapper.py {}'.format(self.method)
             client.connect(hostname=instance.public_dns_name, username='ec2-user', pkey=key)
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read()
