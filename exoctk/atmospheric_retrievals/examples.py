@@ -276,7 +276,7 @@ def get_example_data(object_name):
     logging.info('Using data for {}'.format(object_name))
 
     # Read in the data
-    data_file = os.path.join(os.path.basename(__file__), 'example_data', '{}.csv'.format(object_name))
+    data_file = os.path.join(os.path.dirname(__file__), 'example_data', '{}.csv'.format(object_name))
     df = pandas.read_csv(data_file, names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
 
     # Remove and rows outside of wavelength range (3e-7 to 3e-5)
