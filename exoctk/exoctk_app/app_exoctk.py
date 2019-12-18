@@ -35,7 +35,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
-from exoctk.phase_constraint_overlap.phase_constraint_overlap import calculate_phase, calculate_obsDur
+from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_obsDur
 
 import log_exoctk
 from svo_filters import svo
@@ -811,8 +811,10 @@ def phase_constraint():
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     if form.calculate_submit.data:
-        minphase, maxphase = calculate_phase(form.orbital_period.data, 
-                                             form.observation_duration.data, form.window_size.data)
+        minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
+                                                      period=form.orbital_period.data, 
+                                                      obs_duration=form.observation_duration.data, 
+                                                      window_size=form.window_size.data)
         form.minimum_phase.data = minphase
         form.maximum_phase.data = maxphase
 
