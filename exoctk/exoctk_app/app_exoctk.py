@@ -71,7 +71,6 @@ def index():
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
     """The limb darkening form page. """
-    print('safkjhsdkjfhadkjh')
     # Load default form
     form = fv.LimbDarkeningForm()
 

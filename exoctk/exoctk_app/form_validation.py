@@ -140,9 +140,9 @@ class PhaseConstraint(BaseForm):
 
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
-    orbital_period = FloatField('orbital_period') 
-    transit_time = FloatField('transit_time') 
+    orbital_period = FloatField('orbital_period', validators=InputRequired('Orbital period is a required field')) 
+    transit_time = FloatField('transit_time', validators=InputRequired('Transit time is a required field')) 
     window_size = FloatField('window_size', default=1.0)
-    observation_duration = FloatField('observation_duration', default=2.0)
+    observation_duration = FloatField('observation_duration', default=2.0, validators=InputRequired('Observation duration is a required field.'))
     minimum_phase = DecimalField('minimum_phase', default=0.0)
     maximum_phase = DecimalField('maximum_phase', default=0.0)
