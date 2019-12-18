@@ -100,18 +100,19 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
             The maximum phase constraint. '''
 
     if period == None:
-        data = get_target_data(target_name)
+        data, _ = get_target_data(target_name)
         period = data['orbital_period']
 
     if obs_duration == None:
-        data = get_target_data(target_name)
+        data, _  = get_target_data(target_name)
         transit_dur = data['transit_duration'] *24.0
         obs_duration = calculate_obsDur(transit_dur)
 
     minphase, maxphase = calculate_phase(period, obs_duration, window_size)
     
+    return minphase, maxphase
     # Is this the return that we want? Do we need to use t0 for something? 
-    print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
+    # print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
 
 # Need to make entry point for this!
 if __name__ == '__main__':
