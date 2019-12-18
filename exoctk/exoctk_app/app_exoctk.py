@@ -823,4 +823,4 @@ def phase_constraint():
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port, debug=True)
+    app_exoctk.run(host='0.0.0.0', port=port)
