@@ -39,6 +39,9 @@
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Days}\)</div>
                 </div>
                 <span id="helpBlock" class="help-block">Period of Target</span>
+                {% for error in form.orbital_period.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
 
             <br>
@@ -65,6 +68,9 @@
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
                 <span id="helpBlock" class="help-block">Length of Your Observation (Default 3*(transit duration)+1 [Hours] when using Resolver)</span>
+                {% for error in form.observation_duration.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
 
 

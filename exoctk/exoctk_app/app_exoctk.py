@@ -810,7 +810,7 @@ def phase_constraint():
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
-    if form.calculate_submit.data:
+    if form.validate_on_submit() and form.calculate_submit.data:
         minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                       period=form.orbital_period.data, 
                                                       obs_duration=form.observation_duration.data, 
