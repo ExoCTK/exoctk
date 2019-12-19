@@ -13,7 +13,7 @@ except ImportError:
 from .. import utils
 
 
-def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
+def simulate_lightcurve(target, radius=None, snr=1000., npts=1000, plot=False):
     """Simulate lightcurve data for the given target exoplanet
 
     Parameters
@@ -65,6 +65,8 @@ def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
 
         # Generate the lightcurves
         flux = []
+        if radius is None:
+            radius = params.rp
         radii = [radius] if isinstance(radius, (int, float)) else radius
         for r in radii:
             params.rp = r
