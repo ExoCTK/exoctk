@@ -170,7 +170,7 @@ def example_aws_short(method):
         'error_multiple': 1,  # Optional
         'T_star': 6091}  # Optional
 
-    # Initialize the object, set parameters, and perform retreival
+    # Initialize the object, set parameters, and perform retrieval
     pw = PlatonWrapper()
     pw.set_parameters(params)
 
@@ -193,7 +193,7 @@ def example_aws_short(method):
     pw.depths = 1e-6 * np.array([14512.7, 14546.5])
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
-    # Set use for AWS and perform retreival
+    # Set use for AWS and perform retrieval
     ssh_file = get_config()['ssh_file']
     ec2_id = get_config()['ec2_id']
     pw.use_aws(ssh_file, ec2_id)
@@ -223,7 +223,7 @@ def example_aws_long(method):
         'error_multiple': 1,
         'log_cloudtop_P': 4}
 
-    # Initialize the object, set parameters, and perform retreival
+    # Initialize the object, set parameters, and perform retrieval
     pw = PlatonWrapper()
     pw.set_parameters(params)
 
@@ -252,7 +252,7 @@ def example_aws_long(method):
     pw.depths = depths
     pw.errors = errors
 
-    # Set use for AWS and perform retreival
+    # Set use for AWS and perform retrieval
     ssh_file = get_config()['ssh_file']
     ec2_id = get_config()['ec2_id']
     pw.use_aws(ssh_file, ec2_id)
