@@ -1,7 +1,7 @@
 """A wrapper around the ``platon`` atmospheric retrieval tool.
 
 This module serves as a wrapper around the atmospheric retrieval
-software for ``platon``.  It provides methods for performing retreivals
+software for ``platon``.  It provides methods for performing retrievals
 through multinested sampling and MCMC methods.  For more information
 about ``platon``, please see ``https://platon.readthedocs.io``.  For
 examples of how to use this software, see the ``examples.py`` module.
