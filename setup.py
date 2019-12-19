@@ -9,6 +9,7 @@ REQUIRES = ['asteval',
             'bandit',
             'bibtexparser',
             'bokeh',
+            'boto3',
             'corner',
             'cython',
             'docopt',
@@ -30,7 +31,7 @@ REQUIRES = ['asteval',
             'pysynphot',
             'pytest',
             'pyyaml==5.1.0',
-            'scipy<1.2',
+            'scipy<1.3',
             'scp',
             'sphinx',
             'sphinx_astropy',
@@ -38,7 +39,7 @@ REQUIRES = ['asteval',
             'svo_filters',
             'wtforms']
 
-DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git']
+DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):

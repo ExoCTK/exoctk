@@ -13,24 +13,28 @@ except ImportError:
 from .. import utils
 
 
-def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
+def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
     """Simulate lightcurve data for the given target exoplanet
 
     Parameters
     ----------
     target: str
         The name of the target to simulate
+    radius: array-like, float
+        The radius or radii value(s) to use
     snr: float
         The signal to noise to use
     npts: int
         The number of points to plot
+    nframes: int
+        The number of frames to produce
     plot: bool
         Plot the figure
 
     Returns
     -------
     tuple
-        The time, flux, and transit parameters
+        The time, wavelengths, flux, and transit parameters
     """
     try:
 
@@ -58,20 +62,28 @@ def simulate_lightcurve(target, snr=1000., npts=1000, plot=False):
 
         # Make the transit model
         transit = batman.TransitModel(params, time, transittype='primary')
-        flux = transit.light_curve(params)
+
+        # Generate the lightcurves
+        flux = []
+        radii = [radius] if isinstance(radius, (int, float)) else radius
+        for r in radii:
+            params.rp = r
+            flux.append(transit.light_curve(params))
 
         # Add noise
-        flux = np.random.normal(loc=flux, scale=flux/snr)
+        ideal_flux = np.asarray(flux)
+        flux = np.random.normal(loc=ideal_flux, scale=ideal_flux/snr)
+        unc = flux - ideal_flux
 
         # Plot it
         if plot:
             fig = figure(title=name)
-            fig.circle(time, flux)
+            fig.circle(time, flux[0])
             fig.xaxis.axis_label = targ.get('transit_time_unit') or 'MJD'
             fig.yaxis.axis_label = 'Relative Flux'
             show(fig)
 
-        return time, flux, params.__dict__
+        return time, flux, unc, params.__dict__
 
     except:
         raise ValueError('{}: Could not simulate light curve for this target'.format(target))

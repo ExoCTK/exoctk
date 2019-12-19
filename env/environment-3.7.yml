@@ -5,6 +5,7 @@ channels:
 dependencies:
   - astropy=3.0.5
   - bokeh=1.0.1
+  - boto3=1.10.19
   - cython=0.29
   - docopt=0.6.2
   - docutils=0.14
@@ -40,4 +41,4 @@ dependencies:
     - pysynphot==0.9.12
     - sphinx==2.1.2
     - svo-filters==0.2.16
-    - git+https://github.com/spacetelescope/jwst_gtvt.git
+    - git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
