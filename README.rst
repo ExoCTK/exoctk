@@ -11,13 +11,14 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 
 * Contamination and Visibility Calculator
 * Integrations and Groups Calculator
-* Transit Light-Curve Fitter 
+* Transit Light-Curve Fitter
 * Limb Darkening Calculator
-* Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_. 
+* Atmopsheric Retrievals
+* Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_
 
-For more information on each package visit our documentation _`website <https://exoctk.readthedocs.io/en/latest/>`_. 
+For more information on each package visit our documentation `website <https://exoctk.readthedocs.io/en/latest/>`_.
 
-Most packages are also available through interactive tools at our _`website <https://exoctk.stsci.edu/>`_. 
+Most packages are also available through interactive tools at our `website <https://exoctk.stsci.edu/>`_.
 
 Transit Light-Curve Fitter
 -------------------------
@@ -102,7 +103,7 @@ and JWST) with their corresponding dates.
 Atmopsheric Retrievals
 ----------------------
 
-The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/platon_wrapper_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/atmopsheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
 
 Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/exoctk/exoctk/tree/master#installation>`_ for further details.
 
@@ -137,18 +138,18 @@ or, clone the repository directly from GitHub:
   cd exoctk
   python setup.py [install|devlop]
 
-Obtain the ``exoctk`` Data 
+Obtain the ``exoctk`` Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To obtain the ``exoctk`` data, visit the `ExoCTK website <https://exoctk.stsci.edu/>`_ and navigate to the "ExoCTK Data Download" tab. 
+To obtain the ``exoctk`` data, visit the `ExoCTK website <https://exoctk.stsci.edu/>`_ and navigate to the "ExoCTK Data Download" tab.
 This will start a download of a zipped package of all the data you need to run
-``exoctk``. 
+``exoctk``.
 
 Because it is a fairly hefty data download, you'll need to be thoughtful about
-how you unzip it. 
+how you unzip it.
 
 - For Mac OS, use the default application to unzip the file (Archive Utility or
-  similar depending on version.) 
+  similar depending on version.)
 - For Windows, use the default application to unzip the file (Extract or
   similar depending on version.)
 - For Linux, use the java unzip :
@@ -157,10 +158,10 @@ how you unzip it.
 
     jar -xf exoctk_data.zip
 
-- If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be corrupted. 
+- If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be corrupted.
 
 The data will unzip in the appropriate structure, with the top layer
-``exoctk_data``. Export an environment variable for ``EXOCTK_DATA``. 
+``exoctk_data``. Export an environment variable for ``EXOCTK_DATA``.
 
 - For Mac OS/Linux, add the line
 
@@ -168,9 +169,9 @@ The data will unzip in the appropriate structure, with the top layer
 
     export EXOCTK_DATA='/path/to/your/unzipped/directory/exoctk_data/'
 
-to your `.bashrc` or `.bash_profile`. 
+to your `.bashrc` or `.bash_profile`.
 
-- For Windows, add an evironment variable using System Utility. 
+- For Windows, add an evironment variable using System Utility.
 
 
 Environment Installation

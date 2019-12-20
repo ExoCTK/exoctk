@@ -214,7 +214,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
-    fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
 
@@ -233,15 +233,15 @@ def fill_between(fig, xdata, pamin, pamax, **kwargs):
         fig.patch(x, y, **kwargs)
     return fig
 
-def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
+def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, output='bokeh'):
     """Plot the visibility (at a range of position angles) against time.
 
     Parameters
     ----------
     ra : float
-        The RA of the target.
+        The RA of the target (in degrees).
     dec : float
-        The Dec of the target.
+        The Dec of the target (in degrees).
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
         'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
@@ -262,7 +262,7 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
         The plotted figure.
 
     """
-    # getting calculations from GTVT (General Target Visibility Tool)
+    # Getting calculations from GTVT (General Target Visibility Tool)
     tab = get_table(ra, dec)
 
     gd = tab['Date']
@@ -272,9 +272,11 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
     v3min = tab['V3PA min']
     v3max = tab['V3PA max']
 
-    # addressing NIRSpec issue*
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Addressing NIRSpec issue*
     # *the issue that NIRSpec's angle goes beyond 360 degrees with some targs,
     # thus resetting back to 0 degrees, which can make the plot look weird
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     index = np.arange(0, len(paNom), 1)
 
     for idx in index:
@@ -315,22 +317,27 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
                      plot_width=800,\
                      plot_height=400,\
                      x_axis_type='datetime',\
-                     title='Target Visibility with '+str(instrument))
+                     title='{} Visibility with {}'.format(targetName,
+                                                          instrument))
 
-    # Draw the curve and PA min/max patch
-    fig.circle('date', 'panom', color=COLOR, size=1, legend='Nominal Aperture PA',\
-               source=SOURCE, alpha=.5)
+    # Draw the curve and PA min/max circles
+    nom = fig.line('date', 'panom',
+                    line_color=COLOR,
+                    legend='Nominal Aperture PA',
+                    alpha=.5,
+                    source=SOURCE)
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
-    fig.add_tools(HoverTool(tooltips=TOOLTIPS,\
-                            formatters={'date':'datetime'},\
+    fig.add_tools(HoverTool(renderers=[nom],
+                            tooltips=TOOLTIPS,
+                            formatters={'date':'datetime'},
                             mode='vline'))
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
-    fig.yaxis.axis_label = 'Position Angle (degrees)'
+    fig.yaxis.axis_label = 'Aperture Position Angle (degrees)'
     fig.y_range = ranges.Range1d(0, 360)
 
     # Making the output table
@@ -356,7 +363,52 @@ def using_gtvt(ra, dec, instrument, ephFileName=None, output='bokeh'):
 
     # Adding lists to a table object
     table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
-                  names=('#min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
+                  names=('min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
                          'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
 
-    return paMin, paMax, gd, fig, table
+    # Getting bad PAs
+    allPAs = np.arange(0, 360, 1)
+    badPAs = []
+
+    for pa in allPAs:
+        if (pa not in np.round(paMinnan)) & \
+           (pa not in np.round(paMaxnan)) & \
+           (pa not in np.round(paNomnan)):
+            print('the bad PAs:', pa)
+            badPAs.append(pa)
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # This addresses a bokeh shading issue that accidentally shades
+    # accessible PAs (e.g: trappist-1b)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    remove_pa = []
+    for badpa in badPAs:
+
+        for panom in paNomnan:
+            diff = np.abs(badpa-panom)
+            if diff < 7:
+                remove_pa.append(badpa)
+
+    for pa in np.unique(remove_pa):
+        badPAs.remove(pa)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Grouping the bad PAs into lists within the badPAs list.
+    # This will make bad PA shading easier in the contamination Bokeh plot
+    # (sossContamFig.py)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    badPAs = np.sort(badPAs)
+    grouped_badPAs = [[badPAs[0]]]
+
+    for idx in range(1, len(badPAs)):
+
+        if ((badPAs[idx - 1] + 1) == badPAs[idx]):
+            print((badPAs[idx - 1] + 1))
+            print(badPAs[idx])
+            grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
+
+        elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
+            grouped_badPAs.append([badPAs[idx]])
+
+    grouped_badPAs = np.asarray(grouped_badPAs)
+
+    return paMin, paMax, gd, fig, table, grouped_badPAs

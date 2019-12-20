@@ -32,9 +32,8 @@
     		<p>Figure explication:</p>
     		<ul>
     			<li>The solid line indicates the Nominal Aperture PA (of the instrument) as a function of the calendar date.</li>
-    			<li>The shaded region indicates the range of PAs accessible after rolling the telescope.</li>
+    			<li>The dotted lines indicate the range of PAs accessible after rolling the telescope.</li>
     			<li>On dates where there is no curve, the target is inaccessible.</li>
-          <li>Note that it is possible for the Minimum Aperture PA to be larger than the Maximum Aperture PA if the maximum boresight roll takes the Maximum Aperture PA beyond 360 degrees.</li>
     			<li>The downloadable CSV file provides the same information (and more) in table format with columns:
             <p>
               Minimum V3 PA, Maximum V3 PA, Minimum Aperture PA, Maximum Aperture PA, Nominal Aperture PA, Gregorian Calendar Date, and Modified Julian Date.
@@ -50,10 +49,10 @@
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
             {{ contam_plot | safe }}
             <br>
-            <div style="width:162px; height:22px; text-align:center;">
+            <div style="width:164px; height:22px; text-align:center;">
             log(contam. level)
             </div>
-            <div style="border:1px solid black; width:162px; height:22px;">
+            <div style="border:1px solid black; width:164px; height:22px;">
                 <div style="border:none; width:20px; height:20px; background-color:#ffffff; float:left;"></div>
                 <div style="border:none; width:20px; height:20px; background-color:#e6e079; float:left;"></div>
                 <div style="border:none; width:20px; height:20px; background-color:#e5ac2d; float:left;"></div>
@@ -63,19 +62,21 @@
                 <div style="border:none; width:20px; height:20px; background-color:#2d2a86; float:left;"></div>
                 <div style="border:none; width:20px; height:20px; background-color:#000000; float:left;"></div>
             </div>
-            <div style="width:162px; height:22px; text-align:center;">
--4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>
-            <div style="width:162px; height:22px; text-align:center;">
-good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
+            <div style="width:164px; height:22px; text-align:center;">
+-4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>
+            <div style="width:164px; height:22px; text-align:center;">
+good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
             <br><br>
+
     		<p>Figure explication:</p>
     		<ul>
-    			<li>The two panels on the right are for the order 1 spectrum, while the two panels on the left are for the order 2 spectrum.</li>
-    			<li>In the middle two panels, the color scale encodes the level of contamination of the target spectrum by the surrounding field stars (scale shown below plot). The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
-    			<li>The two panels at the end summarize the middle two panels by showing for each order the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
-    			<li>The semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
-    			<li>The top two panels show the locations of various spectral features.</li>
+    			<li>The larger panel shows for each order the contamination of the target star's order 1 spectrum due to orders 1 and 2 of its neighboring stars.</li>
+          <li>The color scale denotes the level of contamination (see scale below plot).</li>
+    			<li>The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
+    			<li>The smaller panel shows for each order the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
+    			<li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
     		</ul>
+
 
     	{% endif %}
 
