@@ -263,7 +263,7 @@ class LDC:
         bp_max = bandpass.wave_max
         mg_min = self.model_grid.wave_rng[0]
         mg_max = self.model_grid.wave_rng[-1]
-        if bp_min < mg_min or bp_max > mg_max:
+        if bp_min.value < mg_min or bp_max.value > mg_max:
             raise ValueError('Bandpass {} not covered by model grid of\
                               wavelength range {}'.format(bandpass.filterID,
                                                           self.model_grid
