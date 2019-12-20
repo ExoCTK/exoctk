@@ -33,6 +33,7 @@ dependencies:
     - bandit==1.6.2
     - batman-package==2.4.6
     - bibtexparser==1.0.1
+    - botocore==1.13.40
     - corner==2.0.1
     - flask_wtf==0.14.2
     - lmfit==0.9.12
