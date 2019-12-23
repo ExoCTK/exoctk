@@ -13,28 +13,30 @@ except ImportError:
 from .. import utils
 
 
-def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
+def simulate_lightcurve(target, snr=1000., npts=1000, nbins=10, radius=None, ldcs=('quadratic', [0.1, 0.1]), plot=False):
     """Simulate lightcurve data for the given target exoplanet
 
     Parameters
     ----------
     target: str
         The name of the target to simulate
-    radius: array-like, float
-        The radius or radii value(s) to use
     snr: float
         The signal to noise to use
     npts: int
-        The number of points to plot
-    nframes: int
-        The number of frames to produce
+        The number of points in each lightcurve
+    nbins: int
+        The number of lightcurves
+    radius: array-like, float (optional)
+        The radius or radii value(s) to use
+    ldcs: sequence
+        The limb darkening profile name and coefficients
     plot: bool
         Plot the figure
 
     Returns
     -------
     tuple
-        The time, wavelengths, flux, and transit parameters
+        The time, flux, uncertainty, and transit parameters
     """
     try:
 
@@ -53,9 +55,9 @@ def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
         params.a = targ.get('a/Rs') or 15.
         params.ecc = targ.get('eccentricity') or 0.
         params.w = targ.get('omega') or 90.
-        params.limb_dark = 'quadratic'
+        params.limb_dark = 'nonlinear' if ldcs[0] == '4-parameter' else ldcs[0]
         params.transittype = 'primary'
-        params.u = [0.1, 0.1]
+        params.u = ldcs[1]
 
         # Generate a time axis
         time = np.linspace(t0-dt, t0+dt, npts)
@@ -65,7 +67,9 @@ def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
 
         # Generate the lightcurves
         flux = []
-        radii = [radius] if isinstance(radius, (int, float)) else radius
+        if radius is None:
+            radius = params.rp
+        radii = [radius]*nbins if isinstance(radius, (int, float)) else radius
         for r in radii:
             params.rp = r
             flux.append(transit.light_curve(params))
@@ -83,7 +87,7 @@ def simulate_lightcurve(target, radius, snr=1000., npts=1000, plot=False):
             fig.yaxis.axis_label = 'Relative Flux'
             show(fig)
 
-        return time, flux, unc, params.__dict__
+        return time, flux, unc, targ
 
-    except:
+    except IOError:
         raise ValueError('{}: Could not simulate light curve for this target'.format(target))
