@@ -13,6 +13,7 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 * Integrations and Groups Calculator
 * Transit Light-Curve Fitter 
 * Limb Darkening Calculator
+* Phase Constraint Calculator
 * Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_. 
 
 For more information on each package visit our documentation `website <https://exoctk.readthedocs.io/en/latest/>`_. 
@@ -106,6 +107,9 @@ The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currentl
 
 Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_ for further details.
 
+Limb Darkening Calculator
+-------------------------
+The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window. The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute the eclipse observation start window for planets on circular orbits. Enter the minimum and maximum phase values into the APT special requirements section when planning your observations. 
 
 Installation
 ------------

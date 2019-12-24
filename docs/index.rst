@@ -24,6 +24,8 @@ Transit Light-­Curve Fitting Tools
 
 Limb-­Darkening Calculator
 
+Phase Constraint Calculator
+
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
 All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
@@ -84,6 +86,15 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
   :maxdepth: 1
 
   source/exoctk.atmopspheric_retrievals
+
+**Phase Constraint Calculator**
+
+  The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window. The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute the eclipse observation start window for planets on circular orbits. Enter the minimum and maximum phase values into the APT special requirements section when planning your observations. 
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.phase_constraint
 
 ****************************************************
 Installation Instructions and Notebook Availability
