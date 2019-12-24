@@ -442,7 +442,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if form.inst.data != 'NIRISS':
+        if (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
@@ -464,19 +464,15 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([form.ra.data, form.dec.data])
-            pG, pB, dates, vis_plot, table = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), form.inst.data.split(' ')[0])
+            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data),
+                                                                    str(form.dec.data),
+                                                                    form.inst.data.split(' ')[0],
+                                                                    targetName=str(title))
 
             # Make output table
-            vers = '0.3'
+            vers = '1.0'
             today = datetime.datetime.now()
             fh = StringIO()
-            fh.write('# Hi! This is your Visibility output file for... \n')
-            fh.write('# Target: {} \n'.format(form.targname.data))
-            fh.write('# Instrument: {} \n'.format(form.inst.data))
-            fh.write('# \n')
-            fh.write('# This file was generated using ExoCTK v{} on {} \n'.format(vers, today))
-            fh.write('# Visit our GitHub: https://github.com/ExoCTK/exoctk \n')
-            fh.write('# \n')
             table.write(fh, format='csv', delimiter=',')
             visib_table = fh.getvalue()
 
@@ -492,9 +488,9 @@ def contam_visibility():
             # Make plot
             TOOLS = 'crosshair, reset, hover, save'
             fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime', title=title)
-            fh = StringIO()
-            table.write(fh, format='ascii')
-            visib_table = fh.getvalue()
+            #fh = StringIO()
+            #table.write(fh, format='ascii')
+            #visib_table = fh.getvalue()
 
             # Format x axis
             day0 = datetime.date(2019, 6, 1)
@@ -515,8 +511,10 @@ def contam_visibility():
                 ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
                 # Make field simulation
-                contam_cube = fs.sossFieldSim(ra_hms, dec_dms, binComp=form.companion.data)
-                contam_plot = cf.contam(contam_cube, title, paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPA=pB, fig='bokeh')
+
+                contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
+
+                contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
 
                 # Get scripts
                 contam_js = INLINE.render_js()

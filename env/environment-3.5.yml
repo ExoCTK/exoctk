@@ -5,6 +5,7 @@ channels:
 dependencies:
   - astropy=3.0.4
   - bokeh=0.13.0
+  - boto3=1.9.82
   - cython=0.28.5
   - docopt=0.6.2
   - docutils=0.14
@@ -15,31 +16,30 @@ dependencies:
   - ipython=6.5.0
   - matplotlib=3.0.0
   - numba=0.39.0
-  - numpy=1.15.2
+  - numpy=1.14.2
   - numpydoc=0.9.1
-  - pandas=0.23.4
+  - pandas=0.22.0
   - paramiko=1.18.4
   - pytest=3.8.1
   - python=3.5.6
   - pyyaml=3.13
   - scipy=1.1.0
   - scp=0.13.2
-  - sphinx=2.1.2
-  - sqlalchemy=1.2
+  - sphinx=2.3.0
+  - sqlalchemy=1.2.11
   - wtforms=2.2.1
   - pip:
-    - asteval==0.9.13
-    - astroquery==0.3.8
-    - awscli==1.16.210
+    - asteval==0.9.18
+    - astroquery==0.3.10
     - bandit==1.6.2
     - batman-package==2.4.6
     - bibtexparser==1.1.0
     - corner==2.0.1
     - flask_wtf==0.14.2
-    - lmfit==0.9.13
+    - lmfit==0.9.15
     - platon==4.0
-    - pysynphot==0.9.12
-    - sphinx_astropy==1.1.1
-    - sphinx-automodapi==0.11
+    - pysynphot==0.9.14
+    - sphinx_astropy==1.2
+    - sphinx-automodapi==0.12
     - svo-filters==0.2.19
-    - git+https://github.com/spacetelescope/jwst_gtvt.git
+    - git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
