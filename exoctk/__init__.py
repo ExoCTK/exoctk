@@ -14,8 +14,6 @@ from . import groups_integrations
 from . import limb_darkening
 from . import lightcurve_fitting
 
-print(os.path.abspath(__file__))
-
 try:
     setup_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'setup.py')
     with open(setup_file, 'r') as f:
