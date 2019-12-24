@@ -13,7 +13,6 @@ from . import contam_visibility
 from . import groups_integrations
 from . import limb_darkening
 from . import lightcurve_fitting
-from . import tests
 
 try:
     setup_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'setup.py')
