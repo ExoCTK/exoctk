@@ -30,6 +30,8 @@ FILTERS = svo.filters()
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
 # If the variable is blank or doesn't exist
+print('READ THE DOCS')
+print(os.path.expanduser('~'))
 ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
 if not ON_TRAVIS:
     if not EXOCTK_DATA:
