@@ -15,11 +15,11 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 * Limb Darkening Calculator
 * Atmospheric Retrievals
 * Phase Constraint Calculator
-* Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
+* Atmospheric Forward Modeling
 
-For more information on each package visit our documentation `website <https://exoctk.readthedocs.io/en/latest/>`_.
+For more information on each package visit our documentation at `readthedocs <https://exoctk.readthedocs.io/en/latest/>`_.
 
-Most packages are also available through interactive tools at our `website <https://exoctk.stsci.edu/>`_.
+Most packages are also available through interactive tools at our `web portal <https://exoctk.stsci.edu/>`_.
 
 Transit Light-Curve Fitter
 -------------------------
