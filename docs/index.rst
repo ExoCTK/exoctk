@@ -24,7 +24,9 @@ Transit Light-­Curve Fitting Tools
 
 Limb-­Darkening Calculator
 
-Atmospheric Forward Modeling - Currently only available through the _`website <https://exoctk.stsci.edu/fortney>`_.
+Phase Constraint Calculator
+
+Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
 All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
 
@@ -38,7 +40,7 @@ User Documentation
 
 **Contamination and Visibility Calculator**
 
-The Contamination Overlap tool is made up of two calculators: the visibility calculator, and the contamination calculator. The visibility calculator will determine at what position angles (PAs) your target is visible and when. The output results come in the form of an interactive Bokeh plot, but users also have the option of downloading their data in an ascii file format. The contamination calculator will determine the percentage of spectral contamination that lands on your target at every PA. The visibility calculator is currently available for all JWST instruments, and the contamination calculator will be released for NIRISS (Mode: Single Object Slitless Spectroscopy), NIRCam (Mode: Grism Time Series), and MIRI (Mode: Low-Resolution Spectroscopy).
+The Contamination Overlap tool is made up of two calculators: the visibility calculator, and the contamination calculator. The visibility calculator will determine at what position angles (PAs) your target is visible and when. The output results come in the form of interactive Bokeh plots, but users also have the option of downloading their data in an ascii file format. The contamination calculator will determine the percentage of spectral contamination that lands on your target at every PA. The visibility calculator is currently available for all JWST instruments, and the contamination calculator will be released for NIRISS (Mode: Single Object Slitless Spectroscopy), NIRCam (Mode: Grism Time Series), and MIRI (Mode: Low-Resolution Spectroscopy).
 
 .. toctree::
   :maxdepth: 1
@@ -74,16 +76,25 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 
   source/exoctk.limb_darkening
 
-**Atmopsheric Retrievals**
+**Atmospheric Retrievals**
 
-The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/platon_wrapper_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/ExoCTK/exoctk/blob/master/exoctk/notebooks/atmospheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/ExoCTK/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
 
-Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/exoctk/exoctk/tree/master#installation>`_ for further details.
+Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_ for further details.
 
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.atmopspheric_retrievals
+  source/exoctk.atmospheric_retrievals
+
+**Phase Constraint Calculator**
+
+  The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window. The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute the eclipse observation start window for planets on circular orbits. Enter the minimum and maximum phase values into the APT special requirements section when planning your observations.
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.phase_constraint
 
 ****************************************************
 Installation Instructions and Notebook Availability
