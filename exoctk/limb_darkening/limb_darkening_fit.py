@@ -258,16 +258,16 @@ class LDC:
         if not isinstance(bandpass, svo.Filter):
             raise TypeError("Invalid bandpass of type", type(bandpass))
 
-        # Make sure the bandpass has coverage
-        bp_min = bandpass.wave_min.value
-        bp_max = bandpass.wave_max.value
-        mg_min = self.model_grid.wave_rng[0].value
-        mg_max = self.model_grid.wave_rng[-1].value
-        if bp_min < mg_min or bp_max > mg_max:
-            raise ValueError('Bandpass {} not covered by model grid of\
-                              wavelength range {}'.format(bandpass.filterID,
-                                                          self.model_grid
-                                                              .wave_rng))
+        # # Make sure the bandpass has coverage
+        # bp_min = bandpass.wave_min.value
+        # bp_max = bandpass.wave_max.value
+        # mg_min = self.model_grid.wave_rng[0].value
+        # mg_max = self.model_grid.wave_rng[-1].value
+        # if bp_min < mg_min or bp_max > mg_max:
+        #     raise ValueError('Bandpass {} not covered by model grid of\
+        #                       wavelength range {}'.format(bandpass.filterID,
+        #                                                   self.model_grid
+        #                                                       .wave_rng))
 
         # Apply the filter
         try:
