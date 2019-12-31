@@ -1,8 +1,8 @@
 import os
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField
-from wtforms.validators import InputRequired, Length, NumberRange, AnyOf
+from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
+from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
@@ -134,3 +134,15 @@ class ContamVisForm(BaseForm):
     companion = StringField('companion', default='')
     pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
     pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])
+
+
+class PhaseConstraint(BaseForm):
+
+    calculate_submit = SubmitField('Calculate Phase Constraint')
+
+    orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')]) 
+    transit_time = FloatField('transit_time') 
+    window_size = FloatField('window_size', default=1.0)
+    observation_duration = FloatField('observation_duration', default=2.0, validators=[InputRequired('Observation duration is a required field.')])
+    minimum_phase = DecimalField('minimum_phase', default=0.0)
+    maximum_phase = DecimalField('maximum_phase', default=0.0)

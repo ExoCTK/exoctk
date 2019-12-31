@@ -8,6 +8,7 @@ import astropy.constants as constants
 from astropy.coordinates import SkyCoord
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
+from astropy.time import Time
 import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
@@ -34,6 +35,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
+from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_obsDur
 
 import log_exoctk
 from svo_filters import svo
@@ -776,6 +778,46 @@ def atmospheric_retrievals():
 
     return render_template('atmospheric_retrievals.html')
 
+
+@app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
+def phase_constraint():
+    # Load default form
+    form = fv.PhaseConstraint()
+
+    # Reload page with stellar data from ExoMAST
+    if form.resolve_submit.data:
+        if form.targname.data.strip() != '':
+            try:
+                # Resolve the target in exoMAST
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, target_url = get_target_data(form.targname.data)
+
+                # Update the form data
+                form.orbital_period.data = data.get('orbital_period')
+                
+                t_time = Time(data.get('transit_time'), format='mjd')
+                form.transit_time.data = t_time.jd
+
+                form.observation_duration.data = calculate_obsDur(data.get('transit_duration')*24.0)
+
+                form.target_url.data = str(target_url)
+
+                return render_template('phase_constraint.html', form=form)
+                    
+            except:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+    if form.validate_on_submit() and form.calculate_submit.data:
+        minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
+                                                      period=form.orbital_period.data, 
+                                                      obs_duration=form.observation_duration.data, 
+                                                      window_size=form.window_size.data)
+        form.minimum_phase.data = minphase
+        form.maximum_phase.data = maxphase
+
+    # Send it back to the main page
+    return render_template('phase_constraint.html', form=form)
 
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
