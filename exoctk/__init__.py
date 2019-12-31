@@ -12,6 +12,7 @@ from . import utils
 from . import contam_visibility
 from . import groups_integrations
 from . import limb_darkening
+from . import phase_constraint_overlap
 from . import lightcurve_fitting
 
 try:
@@ -20,6 +21,6 @@ try:
         data = f.readlines()
     __version__ = [line for line in data if 'version' in line][0].strip().split("version='")[-1].split("'")[0]
 
-except FileNotFoundError:
+except (FileNotFoundError, NotADirectoryError):
     print('Could not determine exoctk version')
     __version__ = 'null'

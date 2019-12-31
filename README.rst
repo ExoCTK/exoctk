@@ -13,12 +13,13 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 * Integrations and Groups Calculator
 * Transit Light-Curve Fitter
 * Limb Darkening Calculator
-* Atmopsheric Retrievals
-* Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_
+* Atmospheric Retrievals
+* Phase Constraint Calculator
+* Atmospheric Forward Modeling
 
-For more information on each package visit our documentation `website <https://exoctk.readthedocs.io/en/latest/>`_.
+For more information on each package visit our documentation at `readthedocs <https://exoctk.readthedocs.io/en/latest/>`_.
 
-Most packages are also available through interactive tools at our `website <https://exoctk.stsci.edu/>`_.
+Most packages are also available through interactive tools at our `web portal <https://exoctk.stsci.edu/>`_.
 
 Transit Light-Curve Fitter
 -------------------------
@@ -99,14 +100,16 @@ file for convenience. This is an example of an ascii file downloaded for the
 Kelt-8 target using NIRISS. It lists the position angles (for the instrument
 and JWST) with their corresponding dates.
 
-
-Atmopsheric Retrievals
+Atmospheric Retrievals
 ----------------------
 
-The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/exoctk/exoctk/blob/master/exoctk/notebooks/atmopsheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/exoctk/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/ExoCTK/exoctk/blob/master/exoctk/notebooks/atmospheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/ExoCTK/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
 
-Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/exoctk/exoctk/tree/master#installation>`_ for further details.
+Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_ for further details.
 
+Phase Constraint Calculator
+-------------------------
+The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window. The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute the eclipse observation start window for planets on circular orbits. Enter the minimum and maximum phase values into the APT special requirements section when planning your observations.
 
 Installation
 ------------
@@ -171,7 +174,7 @@ The data will unzip in the appropriate structure, with the top layer
 
 to your `.bashrc` or `.bash_profile`.
 
-- For Windows, add an evironment variable using System Utility.
+- For Windows, add an environment variable using System Utility.
 
 
 Environment Installation
@@ -234,4 +237,4 @@ If you find that the `exoctk` `conda` is missing a required dependency, please f
 Want to stay up-to-date with our releases and updates?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Subscribe to our newsletter by sending an email with a blank body and subject to `exoctk-news-subscribe-request@maillist.stsci.edu` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.
+Subscribe to our newsletter by sending an email with a blank body and subject to ``exoctk-news-subscribe-request@maillist.stsci.edu`` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.

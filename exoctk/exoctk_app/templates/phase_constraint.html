@@ -1,0 +1,126 @@
+{%extends "base.html" %}
+
+{% block content %}
+<!doctype html>
+<link rel="stylesheet" href="/static/css/select2-bootstrap-theme.min.css">
+<link rel="stylesheet" href="/static/css/icheck-bootstrap.min.css">
+<script type="text/javascript" async
+        scr="/static/js/starter.form.js">
+</script>
+<script type="text/javascript" async
+        src="/static/js/select2.min.js">
+</script>
+
+<div class='form-group'>
+    <h1>Phase Constraint Calculator</h1>
+    <br>
+
+    <p>
+        The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window.  
+        The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute 
+        the eclipse observation start window for planets on circular orbits.  Enter the minimum and maximum phase values 
+        into the APT special requirements section when planning your observations. 
+    </p>
+
+    <form class='form-horizontal' action="/phase_constraint" method="POST">
+        {{ form.hidden_tag() }}
+
+        {% include 'target_resolve.html' %}
+
+        <hr class="col-md-12">
+
+        <div class='form-group'>
+
+            <label for='mag' class="col-sm-2 control-label">Period</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.orbital_period(value=form.orbital_period.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Days}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Period of Target</span>
+                {% for error in form.orbital_period.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <br>
+            
+            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Transit time of Target</span>
+            </div>
+
+            <br>
+
+            <hr class="col-md-12">
+
+            <label for='mag' class="col-sm-2 control-label">Observation Duration</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.observation_duration(value=form.observation_duration.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Length of Your Observation (Default 3*(transit duration)+1 [Hours] when using Resolver)</span>
+                {% for error in form.observation_duration.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+
+            <label for='mag' class="col-sm-2 control-label">Window Size</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.window_size(value=1, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Size of observation start window (Default 1 hour)</span>
+            </div>
+            
+            <hr class="col-md-12">
+            <div class='form-group'>
+                <label for='submit' class="col-sm-2 control-label">Submit!</label>
+                <div class="col-sm-10">
+                    <p>
+                        {{ form.calculate_submit(class="btn btn-success") }}
+                        <span id="helpBlock" class="help-block">Calculate Phase Constraints for Target.</span>
+                    </p>
+                </div>
+            </div>
+            
+            <label for='mag' class="col-sm-2 control-label">Minimum Phase</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.minimum_phase(value=form.minimum_phase.data, size=10, rows=1, class='form-control') }}
+                </div>
+                <span id="helpBlock" class="help-block">Minimum Phase of Observation</span>
+            </div>
+
+            <br>
+
+            
+            <label for='mag' class="col-sm-2 control-label">Maximum Phase</label>
+            <div class="col-sm-10">
+            
+                <div class="input-group">
+                    {{ form.maximum_phase(value=form.maximum_phase.data, size=10, rows=1, class='form-control') }}
+                </div>
+                <span id="helpBlock" class="help-block">Maximum Phase of Observation</span>
+            </div>
+            
+
+        </div>
+        
+
+
+</div>
+
+{% endblock %}
