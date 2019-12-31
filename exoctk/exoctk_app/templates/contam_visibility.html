@@ -98,38 +98,6 @@
         </div>
 
         <hr class="col-md-12">
-
-        <div class='form-group'>
-
-            <label class="col-sm-2 control-label">Position Angle Range (optional)</label>
-
-            <div class="col-sm-10">
-
-                <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA Min</div>
-                      {{ form.pa_min(value=form.pa_min.data, size=10, rows=1, class='form-control') }}
-                  <div class="input-group-addon" style='width:60px'>Degrees</div>
-                </div>
-                <span id="helpBlock" class="help-block">The lower limit on the position angle</span>
-                <br>
-
-                <div class="input-group">
-                  <div class="input-group-addon" style='width:120px'>PA Max</div>
-                      {{ form.pa_max(value=form.pa_max.data, size=10, placeholder="3 - 6", rows=1, class='form-control') }}
-                  <div class="input-group-addon" style='width:60px'>Degrees</div>
-                </div>
-                <span id="helpBlock" class="help-block">The upper limit on the position angle</span>
-                <br>
-                {% for error in form.pa_min.errors %}
-                    <p style="color: red;">{{ error }}</p>
-                {% endfor %}
-                {% for error in form.pa_max.errors %}
-                    <p style="color: red;">{{ error }}</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <hr class="col-md-12">
         <div class='form-group'>
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
