@@ -30,8 +30,9 @@ FILTERS = svo.filters()
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
 # If the variable is blank or doesn't exist
-ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
-if not ON_TRAVIS:
+HOME_DIR = os.path.expanduser('~')
+ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
+if not ON_TRAVIS_OR_RTD:
     if not EXOCTK_DATA:
         raise ValueError(
             'The $EXOCTK_DATA environment variable is not set.  Please set the '

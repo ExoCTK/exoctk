@@ -4,10 +4,10 @@ exoctk.tests package
 Submodules
 ----------
 
-exoctk.tests.test\_atmopsheric\_retrievals module
+exoctk.tests.test\_atmospheric\_retrievals module
 -------------------------------------------------
 
-.. automodule:: exoctk.tests.test_atmopsheric_retrievals
+.. automodule:: exoctk.tests.test_atmospheric_retrievals
     :members:
     :undoc-members:
     :show-inheritance:

@@ -8,7 +8,7 @@ Authors:
 
 Usage:
   calculate_constraint <target_name> [--t_start=<t0>] [--period=<p>] [--obs_duration=<obs_dur>] [--transit_duration=<trans_dur>] [--window_size=<win_size>]
-  
+
 Arguments:
   <target_name>                     Name of target
 Options:
@@ -33,12 +33,12 @@ import urllib
 from exoctk.utils import get_target_data
 
 def calculate_phase(period, obsDur, winSize):
-    ''' Function to calculate the min and max phase. 
+    ''' Function to calculate the min and max phase.
 
         Parameters
         ----------
         period : float
-            The period of the transit in days. 
+            The period of the transit in days.
         obsdur : float
             The duration of the observation in hours.
         winSize : float
@@ -53,11 +53,11 @@ def calculate_phase(period, obsDur, winSize):
 
     minphase = 1.0 - ((obsDur + winSize)/2.0/24/period)
     maxphase = 1.0 - ((obsDur - winSize)/2.0/24/period)
-    
+
     return minphase, maxphase
 
 def calculate_obsDur(transitDur):
-    ''' Function to calculate the min and max phase. 
+    ''' Function to calculate the min and max phase.
 
         Parameters
         ----------
@@ -74,15 +74,15 @@ def calculate_obsDur(transitDur):
     return obsDur
 
 
-def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, window_size=None):
+def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, window_size=1.):
     ''' The main function to calculate the phase overlap constraints.
-        We will update to allow a user to just plug in the target_name 
+        We will update to allow a user to just plug in the target_name
         and get the other variables.
-        
+
         Parameters
         ----------
         period : float
-            The period of the transit in days. 
+            The period of the transit in days.
         t0 : float
             The start time in BJD or HJD.
         obs_duration : float
@@ -90,8 +90,8 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
         winSize : float
             The window size of transit in hours. Default is 1 hour.
         target_name : string
-            The name of the target transit. 
-        
+            The name of the target transit.
+
         Returns
         -------
         minphase : float
@@ -99,20 +99,19 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
         maxphase : float
             The maximum phase constraint. '''
 
-    if obs_duration == None:
-        if period == None:
-            data = get_target_data(target_name)
-            
-            period = data['orbital_period']
-            transit_dur = data['transit_duration']
-            t0 = data['transit_time']
+    if period == None:
+        data, _ = get_target_data(target_name)
+        period = data['orbital_period']
 
+    if obs_duration == None:
+        data, _  = get_target_data(target_name)
+        transit_dur = data['transit_duration'] *24.0
         obs_duration = calculate_obsDur(transit_dur)
 
     minphase, maxphase = calculate_phase(period, obs_duration, window_size)
-    
-    # Is this the return that we want? Do we need to use t0 for something? 
-    print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
+
+    return minphase, maxphase
+
 
 # Need to make entry point for this!
 if __name__ == '__main__':
@@ -126,7 +125,7 @@ if __name__ == '__main__':
         except (ValueError, TypeError):
             # Handles None and char strings.
             continue
-    
-    phase_overlap_constraint(args['<target_name>'], args['--period'], 
-                             args['--t_start'], args['--transit_duration'], 
+
+    phase_overlap_constraint(args['<target_name>'], args['--period'],
+                             args['--t_start'], args['--transit_duration'],
                              args['--window_size'])
