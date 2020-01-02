@@ -127,13 +127,7 @@ You must first have a working installation of ``anaconda`` or ``miniconda`` for 
 Obtain the ``exoctk`` Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To obtain the ``exoctk`` package with the necessary environment files, you can either install the package via ``pip``:
-
-::
-
-  pip install exoctk
-
-or, clone the repository directly from GitHub:
+To obtain the ``exoctk`` package with the necessary environment files, clone the repository directly from GitHub:
 
 ::
 
