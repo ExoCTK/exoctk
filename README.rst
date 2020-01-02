@@ -210,14 +210,8 @@ where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. `
 Package Installation
 ~~~~~~~~~~~~~~~~~~~~
 
-In order to install the ``exoctk`` package within the newly-created ``conda`` environment, one must re-install the package, either via ``pip``:
-
-::
-
-  pip install exoctk
-
-
-or by running the `exoctk` setup script:
+In order to install the ``exoctk`` package within the newly-created ``conda``
+environment, run the `exoctk` setup script:
 
 ::
 
