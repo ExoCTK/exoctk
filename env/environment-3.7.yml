@@ -14,6 +14,7 @@ dependencies:
   - gunicorn=19.9.0
   - h5py=2.8.0
   - ipython=7.2.0
+  - jupyter=1.0.0
   - matplotlib=3.0.2
   - numba=0.40.0
   - numpy=1.15.4
@@ -30,6 +31,7 @@ dependencies:
   - pip:
     - asteval==0.9.13
     - astroquery==0.3.8
+    - awscli
     - bandit==1.6.2
     - batman-package==2.4.6
     - bibtexparser==1.0.1
