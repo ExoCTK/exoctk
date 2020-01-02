@@ -133,7 +133,6 @@ To obtain the ``exoctk`` package with the necessary environment files, clone the
 
   git clone https://github.com/ExoCTK/exoctk.git
   cd exoctk
-  python setup.py [install|devlop]
 
 Obtain the ``exoctk`` Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
