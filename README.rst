@@ -137,9 +137,13 @@ To obtain the ``exoctk`` package with the necessary environment files, clone the
 Obtain the ``exoctk`` Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The ``exoctk`` data package will be available through the MAST portal soon!
+Until then...
+
 To obtain the ``exoctk`` data, visit the `ExoCTK website <https://exoctk.stsci.edu/>`_ and navigate to the "ExoCTK Data Download" tab.
 This will start a download of a zipped package of all the data you need to run
-``exoctk``.
+``exoctk``. (Due to the large size of the data, the download may fail without a
+hard line internet connection.)
 
 Because it is a fairly hefty data download, you'll need to be thoughtful about
 how you unzip it.
