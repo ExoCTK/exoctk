@@ -13079,7 +13079,7 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="k">import</span> <span class="n">Image</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">Image</span>
 </pre></div>
 
     </div>
@@ -13113,8 +13113,8 @@ div#notebook {
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">platon.constants</span> <span class="k">import</span> <span class="n">R_sun</span><span class="p">,</span> <span class="n">R_jup</span><span class="p">,</span> <span class="n">M_jup</span>
-<span class="kn">from</span> <span class="nn">exoctk.atmospheric_retrievals.platon_wrapper</span> <span class="k">import</span> <span class="n">PlatonWrapper</span>
+<span class="kn">from</span> <span class="nn">platon.constants</span> <span class="kn">import</span> <span class="n">R_sun</span><span class="p">,</span> <span class="n">R_jup</span><span class="p">,</span> <span class="n">M_jup</span>
+<span class="kn">from</span> <span class="nn">exoctk.atmospheric_retrievals.platon_wrapper</span> <span class="kn">import</span> <span class="n">PlatonWrapper</span>
 </pre></div>
 
     </div>
@@ -13293,7 +13293,7 @@ div#notebook {
 <h2 id="Using-Amazon-Web-Services-to-Perform-Atmospheric-Retrievals">Using Amazon Web Services to Perform Atmospheric Retrievals<a class="anchor-link" href="#Using-Amazon-Web-Services-to-Perform-Atmospheric-Retrievals">&#182;</a></h2><p>The following sections guide users on how to perform atmospheric retrievals using Amazon Web Services (AWS) Elastic Computing (EC2) instances.</p>
 <p><strong>Table of Contents:</strong></p>
 <ol>
-<li><a href="#what-is-amazon-web-services">What is Amazon Web Servies?</a></li>
+<li><a href="#what-is-amazon-web-services">What is Amazon Web Services?</a></li>
 <li><a href="#what-is-an-ec2-instance">What is an EC2 instance?</a></li>
 <li><a href="#why-use-aws">Why use AWS?</a></li>
 <li><a href="#aws-specific-software-in-the-atmospheric-retrievals-subpackage">AWS-specific software in the <code>atmospheric_retrievals</code> subpackage</a></li>
@@ -13323,7 +13323,7 @@ div#notebook {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='what-is-an-ec2-instance'></a></p>
-<h3 id="What-is-an-EC2-instance?">What is an EC2 instance?<a class="anchor-link" href="#What-is-an-EC2-instance?">&#182;</a></h3><p>The Elastic Compute Cloud (EC2) service enables users to spin up virtual servers, with a variety of operating systems, storage space, memory, and number of CPUs. Learn more at <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html</a></p>
+<h3 id="What-is-an-EC2-instance?">What is an EC2 instance?<a class="anchor-link" href="#What-is-an-EC2-instance?">&#182;</a></h3><p>The Elastic Compute Cloud (EC2) service enables users to spin up virtual servers, with a variety of operating systems, storage space, memory, processors. Learn more at <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html</a></p>
 
 </div>
 </div>
@@ -13333,7 +13333,7 @@ div#notebook {
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='why-use-aws'></a></p>
 <h3 id="Why-use-AWS?">Why use AWS?<a class="anchor-link" href="#Why-use-AWS?">&#182;</a></h3><p>Atmospheric retrievals are often computationally expensive, both in the amount of time it takes to complete a retrieval, but also in the cost of purchasing and/or maintaining a suitable machine.  Particularly, if users do not have access to a dedicated science machine or cluster, and instead must rely on personal laptops or desktops, atmospheric retrievals can become quite burdensome in day-to-day research work.</p>
-<p>AWS provides a means to outsource this computational effort to machines that live in the cloud, and for low costs.  With AWS, users can create a virtual machine (VM), perform a atmospheric retrievals, and have the machine automatically shutdown upon completion.  Depending on the type of VM, typical costs can range from anywhere between ~\$0.02/hour (i.e. a small, 1 CPU Linux machine) to ~\\$3.00/hour (i.e. a heftier, multiple CPU, GPU-enabled Linux machine).</p>
+<p>AWS provides a means to outsource this computational effort to machines that live in the cloud, and for low costs.  With AWS, users can create a virtual machine (VM), perform atmospheric retrievals, and have the machine automatically shutdown upon completion.  Depending on the type of VM, typical costs can range from anywhere between ~\$0.02/hour (i.e. a small, 1 CPU Linux machine) to ~\\$3.00/hour (i.e. a heftier, multiple CPU, GPU-enabled Linux machine).</p>
 <p>For example, a small trial run of an atmospheric retrieval for hd209458b using PLATON takes roughly 35 minutes at a total cost of \$0.01 using a small CPU EC2 instance, and took roughly 24 minutes at a total cost of \\$1.22 using a GPU-enabled EC2 instance.</p>
 
 </div>
@@ -13346,7 +13346,7 @@ div#notebook {
 <h3 id="AWS-specific-software-in-the-atmospheric_retrievals-subpackage">AWS-specific software in the <code>atmospheric_retrievals</code> subpackage<a class="anchor-link" href="#AWS-specific-software-in-the-atmospheric_retrievals-subpackage">&#182;</a></h3><p>The <code>atmospheric_retrievals</code> subpackage provides software that enables users to use AWS EC2 instances to perform atmospheric retrievals.  The relevant software modules/tools are:</p>
 <ul>
 <li><code>aws_config.json</code> - a configuration file that contains a path the a public ssh key and a pointer to a particular EC2 instance</li>
-<li><code>aws_tools.py</code> - Various functions to support AWS EC2 interactivity, such as starting/stoping an EC2 instance, transferring files to/from EC2 instances, and logging standard output from EC2 instances</li>
+<li><code>aws_tools.py</code> - Various functions to support AWS EC2 interactivity, such as starting/stopping an EC2 instance, transferring files to/from EC2 instances, and logging standard output from EC2 instances</li>
 <li><code>build-exoctk-env-cpu.sh</code> - A bash script for creating an <code>exoctk</code> software environment on an EC2 instance</li>
 <li><code>build-exoctk-env-gpu.sh</code> - A bash script for creating an <code>exoctk</code> software environment on a GPU-enabled EC2 instance</li>
 <li><code>exoctk-env-init.sh</code> - A bash script that initializes an existing <code>exoctk</code> software environment on an EC2 instance</li>
@@ -13359,7 +13359,20 @@ div#notebook {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='setting-up-an-aws-account'></a></p>
-<h3 id="Setting-up-an-AWS-account">Setting up an AWS account<a class="anchor-link" href="#Setting-up-an-AWS-account">&#182;</a></h3><p>Users must first set up an AWS account and configure a ssh key pair in order to connect to the services.  Users may visit <a href="https://aws.amazon.com">https://aws.amazon.com</a> to create an account.  Unfortunately, a credit card is required for sign up.  There is no immediate fee for signing up; users will only incur costs when a service is used.</p>
+<h3 id="Setting-up-an-AWS-account">Setting up an AWS account<a class="anchor-link" href="#Setting-up-an-AWS-account">&#182;</a></h3><p>Users must first set up an AWS account and configure a ssh key pair in order to connect to the services.</p>
+<ol>
+<li>Visit <a href="https://aws.amazon.com">https://aws.amazon.com</a> to create an account.  Unfortunately, a credit card is required for sign up.  There is no immediate fee for signing up; users will only incur costs when a service is used.</li>
+<li>Once an account has been created, sign into the AWS console.  Users should see a screen similar to this:
+<img src='figures/aws_console.png' width=800></li>
+<li>At the top of the page, under "Services", select "IAM" to access the Identity and Access Management console.</li>
+<li>On the left side of the page, select "Users"</li>
+<li>Click the "Add user" button to create a new user.  In the "User name" field, enter the username used for the AWS account.  Select "Programmatic access" for the "Access type" option. Click on "Next: Permissions".</li>
+<li>Select "Add user to group", and click "Create group".  A "Create group" pane will open.  In the "Group name" field, enter "admin".  Check the box next to the first option, "AdministratorAccess", and click "Create group".</li>
+<li>Click "Next: Tags".  This step is optional, so users may then click "Next: Review", then "Create user".</li>
+<li>When the user is created, users will be presented with a "Access Key ID" and "Secret Access Key".  Take note of these, or download them to a csv file, as they will be used in the next step.</li>
+<li>In a terminal, type <code>aws configure</code>.  Users will be prompted to enter their Access Key ID and the Secret Access Key from the previous step.  Also provide a Default region name (e.g. <code>us-east-1</code>, <code>us-west-1</code>, etc.) and for "output format" use <code>json</code>.  For a list of available region names, see <a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html">https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html</a></li>
+<li>Executing these commands should result in the creation of a <code>~/.aws/</code> directory, containing <code>config</code> and <code>credentials</code> files populated with the information that was provided.</li>
+</ol>
 
 </div>
 </div>
@@ -13368,13 +13381,13 @@ div#notebook {
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='create-a-ssh-key-pair'></a></p>
-<h3 id="Create-a-SSH-key-pair">Create a SSH key pair<a class="anchor-link" href="#Create-a-SSH-key-pair">&#182;</a></h3><p>In order to connect to an EC2 instance, users must first configure an SSH key pair:</p>
+<h3 id="Create-a-SSH-key-pair">Create a SSH key pair<a class="anchor-link" href="#Create-a-SSH-key-pair">&#182;</a></h3><p>In order to connect to an EC2 instance, users must next configure an SSH key pair:</p>
 <ol>
-<li>In a terminal, type <code>ssh-keygen -t rsa -f &lt;rsa_key_name&gt;</code>, where <code>&lt;rsa_key_name&gt;</code> is the name of the resulting ssh key files.  When prompted to enter a passphrase, leave it empty by hitting <code>enter</code>, and then <code>enter</code> again.  Running this command should result in the creation of two files: (1) <code>&lt;rsa_key_name&gt;</code>, which is the private SSH key, and <code>&lt;rsa_key_name&gt;</code>.pub, which is the public SSH key.</li>
-<li>In the AWS EC2 console (<a href="https://console.aws.amazon.com/ec2">https://console.aws.amazon.com/ec2</a>), navigate to <code>Key Pairs</code> under <code>Network &amp; Security</code> on the left hand side of the page.</li>
+<li>In a terminal, type <code>ssh-keygen -t rsa -f &lt;rsa_key_name&gt;</code>, where <code>&lt;rsa_key_name&gt;</code> is the name of the resulting ssh key files (users can name this whatever they would like).  When prompted to enter a passphrase, leave it empty by hitting <code>enter</code>, and then <code>enter</code> again.  Running this command should result in the creation of two files: (1) <code>&lt;rsa_key_name&gt;</code>, which is the private SSH key, and <code>&lt;rsa_key_name&gt;</code>.pub, which is the public SSH key.</li>
+<li>In the browser, navigate to the AWS EC2 console (<a href="https://console.aws.amazon.com/ec2">https://console.aws.amazon.com/ec2</a>), select <code>Key Pairs</code> under <code>Network &amp; Security</code> on the left hand side of the page.</li>
 <li>Select <code>Import key pair</code></li>
 <li>In the <code>Name</code> field, enter a name you wish to use.</li>
-<li>In the large field on the bottom, paste the contents of the <code>&lt;rsa_key_name&gt;</code> file.  </li>
+<li>In the large field on the bottom, paste the contents of the <code>&lt;rsa_key_name&gt;</code>.pub file.  </li>
 <li>Select <code>Import key pair</code> to complete the process.</li>
 </ol>
 
@@ -13390,7 +13403,7 @@ div#notebook {
 <li>Select "Instances" from the left-hand side of the AWS EC2 console</li>
 <li>Select the "Launch Instance" button</li>
 <li>Select an Amazon Machine Image (AMI) of your choosing.  Note that there is a box on the left that allows users to only show free tier only eligible AMIs.  For the purposes of the examples in this notebook, it is suggested to use <code>ami-0c322300a1dd5dc79</code> (Red Hat Enterprise Linux 8 (HVM), SSD Volume Type, 64-bit (x86)).</li>
-<li>Select the Instance Type with the configuration of your choosing.  For the purposes of the examples in this notebook, it is suggested to use <code>t2.micro</code>, which is free tier eligible.  When satisfied, choose "Review and Launch"</li>
+<li>Select the Instance Type with the configuration of your choosing.  For the purposes of the examples in this notebook, it is suggested to use <code>t2.small</code>, which is free tier eligible.  When satisfied, choose "Review and Launch"</li>
 <li>On the "Review Instance Launch" page, users may review and/or change any settings prior to launching the EC2 instance.  For the purposes of the examples in this notebook, it is suggested to "Edit storage" and increase the "Size" to 20 GiB to allow enough storage space to build the <code>exoctk</code> software environment.</li>
 <li>When satisfied, click "Launch".  The user will be prompted to select or create a key pair.  Select the existing key pair that was created in the <a href="#create-a-ssh-key-pair">Create a SSH key pair</a> section.  Check the acknowledgement box, and select "Launch Instances"</li>
 <li>If the EC2 instance was launched successfully, there will be a success message with a link to the newly-created EC2 instance.</li>
@@ -13409,7 +13422,8 @@ div#notebook {
 <div class="highlight"><pre><span></span>ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 </pre></div>
 <p>where <code>&lt;path_to_private_key&gt;</code> is the path to the private SSH key file (i.e. the <code>&lt;rsa_key_name&gt;</code> that was created in the <a href="#create-a-ssh-key-pair">Create a SSH key file</a> section), and <code>&lt;ec2_public_dns&gt;</code> is the Public DNS of the EC2 instance, which is provided in the "Description" of the EC2 instance under the "Instances" panel in the AWS EC2 console.  This public DNS should look something like <code>ec2-NN-NN-NNN-NN.compute-N.amazonaws.com</code>.</p>
-<p>Once logged in, users can build the <code>exoctk</code> software environment by either copy/pasting the commands from the <code>atmospheric_retrievals/build-exoctk-env-cpu.sh</code> file straight into the terminal, or by copying the <code>build-exoctk-env-cpu.sh</code> file directly to the EC2 instance and running it, as such:</p>
+<p>Users may be asked (yes/no) if they want to connect to the machine.  Enter "yes".</p>
+<p>Once logged in, users can build the <code>exoctk</code> software environment by either copy/pasting the commands from the <code>atmospheric_retrievals/build-exoctk-env-cpu.sh</code> file straight into the EC2 terminal, or by copying the <code>build-exoctk-env-cpu.sh</code> file directly to the EC2 instance and running it.  To do the later option, from your local machine, type:</p>
 <div class="highlight"><pre><span></span>scp -i &lt;path_to_private_key&gt; build-exoctk-env-cpu.sh ec2-user@&lt;ec2_public_dns&gt;:/home/ec2-user/build-exoctk-env-cpu.sh
 ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 ./build-exoctk-env-cpu.sh
@@ -13437,8 +13451,8 @@ ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='run-some-code'></a></p>
-<h3 id="Run-some-code!">Run some code!<a class="anchor-link" href="#Run-some-code!">&#182;</a></h3><p>Now that we have configured everything to run on AWS, the next step is to simply perform a retrieval!  To invoke the use of the AWS EC2 instance, simply use the <code>use_aws()</code> method before performing the retrieval.  A short example is provided below.</p>
-<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<h3 id="Run-some-code!">Run some code!<a class="anchor-link" href="#Run-some-code!">&#182;</a></h3><p>Now that we have configured everything to run on AWS, the next step is to simply perform a retrieval!  Open a Python session or Jupyter notebook.  To invoke the use of the AWS EC2 instance, simply use the <code>use_aws()</code> method before performing the retrieval.  A short example is provided below.</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">platon.constants</span> <span class="kn">import</span> <span class="n">R_sun</span><span class="p">,</span> <span class="n">R_jup</span><span class="p">,</span> <span class="n">M_jup</span>
 <span class="kn">from</span> <span class="nn">exoctk.atmospheric_retrievals.aws_tools</span> <span class="kn">import</span> <span class="n">get_config</span>
 <span class="kn">from</span> <span class="nn">exoctk.atmospheric_retrievals.platon_wrapper</span> <span class="kn">import</span> <span class="n">PlatonWrapper</span>
@@ -13502,7 +13516,7 @@ ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;corner_plot.png&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;figures/corner_plot.png&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13537,7 +13551,7 @@ ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 <div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;results.png&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;figures/results.png&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13572,7 +13586,7 @@ ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 <div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;log_file.png&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;figures/log_file.png&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -13601,6 +13615,14 @@ ssh -i &lt;path_to_private_key&gt; ec2-user@&lt;ec2_public_dns&gt;
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="A-final-note:--Make-sure-to-terminate-unused-EC2-instances,-or-else-Amazon-will-keep-charging-you!">A final note:  Make sure to terminate unused EC2 instances, or else Amazon will keep charging you!<a class="anchor-link" href="#A-final-note:--Make-sure-to-terminate-unused-EC2-instances,-or-else-Amazon-will-keep-charging-you!">&#182;</a></h3><p>To terminate an EC2 instance, go to the EC2 console, then the "Instances" page.  Select the instance of interest, click "Actions",  "Instance State", then "Terminate".</p>
+
+</div>
+</div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
