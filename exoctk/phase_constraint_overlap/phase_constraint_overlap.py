@@ -69,7 +69,7 @@ def calculate_obsDur(transitDur):
         obsdur : float
             The duration of the observation in hours. '''
 
-    obsDur = np.min((6, 3*transitDur+1))
+    obsDur = np.max((6, 3*transitDur+1))
 
     return obsDur
 
