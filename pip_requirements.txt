@@ -1,5 +1,5 @@
 asteval==0.9.13
-astropy==3.2.3
+astropy==4.0
 astroquery==0.3.10
 bandit==1.6.2
 batman-package==2.4.6
