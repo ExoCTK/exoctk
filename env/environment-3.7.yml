@@ -38,7 +38,7 @@ dependencies:
     - bibtexparser==1.0.1
     - corner==2.0.1
     - flask_wtf==0.14.2
-    - lmfit
+    - lmfit==0.9.13
     - platon==3.1
     - pysynphot==0.9.12
     - sphinx==2.1.2
