@@ -5,7 +5,7 @@ channels:
 dependencies:
   - astropy=3.2.2
   - bokeh=1.4.0
-  - boto3=1.10.39
+  - boto3
   - cython=0.29.14
   - docopt=0.6.2
   - docutils=0.15.2
@@ -38,7 +38,7 @@ dependencies:
     - bibtexparser==1.0.1
     - corner==2.0.1
     - flask_wtf==0.14.2
-    - lmfit==1.0.0
+    - lmfit
     - platon==3.1
     - pysynphot==0.9.12
     - sphinx==2.1.2
