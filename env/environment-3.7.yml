@@ -23,7 +23,6 @@ dependencies:
   - paramiko=2.6.0
   - pytest=5.3.5
   - python=3.7.1
-  - pyyaml=5.3
   - scipy=1.4.1
   - scp=0.13.2
   - sphinx=2.3.1
@@ -41,6 +40,7 @@ dependencies:
     - lmfit==0.9.13
     - platon==3.1
     - pysynphot==0.9.12
+    - pyyaml==5.3
     - sphinx==2.1.2
     - svo-filters==0.2.16
     - git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
