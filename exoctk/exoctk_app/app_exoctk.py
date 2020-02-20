@@ -442,7 +442,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
+        if (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
@@ -794,7 +794,7 @@ def phase_constraint():
 
                 # Update the form data
                 form.orbital_period.data = data.get('orbital_period')
-                
+
                 t_time = Time(data.get('transit_time'), format='mjd')
                 form.transit_time.data = t_time.jd
 
@@ -803,15 +803,15 @@ def phase_constraint():
                 form.target_url.data = str(target_url)
 
                 return render_template('phase_constraint.html', form=form)
-                    
+
             except:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     if form.validate_on_submit() and form.calculate_submit.data:
         minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
-                                                      period=form.orbital_period.data, 
-                                                      obs_duration=form.observation_duration.data, 
+                                                      period=form.orbital_period.data,
+                                                      obs_duration=form.observation_duration.data,
                                                       window_size=form.window_size.data)
         form.minimum_phase.data = minphase
         form.maximum_phase.data = maxphase
