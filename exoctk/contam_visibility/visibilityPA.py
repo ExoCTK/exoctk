@@ -28,28 +28,6 @@ from jwst_gtvt.find_tgt_info import get_table
 D2R = math.pi/180.  # degrees to radians
 R2D = 180./math.pi  # radians to degrees
 
-
-def convert_ddmmss_to_float(astring):
-    """Convert sexigesimal to decimal degrees
-
-    Parameters
-    ----------
-    astring: str
-        The sexigesimal coordinate.
-
-    Returns
-    -------
-    hour_or_deg : float
-        The converted coordinate.
-    """
-    aline = astring.split(':')
-    d = float(aline[0])
-    m = float(aline[1])
-    s = float(aline[2])
-    hour_or_deg = (s/60.+m)/60.+d
-    return hour_or_deg
-
-
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     """Check the visibility at a range of position angles.
 
