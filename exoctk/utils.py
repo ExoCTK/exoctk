@@ -97,8 +97,6 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz']
 
-    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz']
-
     # Build landing paths for downloads
     download_paths = [os.path.join(exoctk_data_dir, os.path.basename(url)) for url in urls]
 
@@ -123,22 +121,27 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
         os.remove(path)
 
     # Combine modelgrid directories
-    print('Organizing files into exoctk_data/ directory')
-    os.makedirs(os.path.join(exoctk_data_dir), 'modelgrid', 'ATLAS9')
-    os.makedirs(os.path.join(exoctk_data_dir), 'modelgrid', 'ACES')
+    print('\nOrganizing files into exoctk_data/ directory')
+    try:
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9'))
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ACES'))
+    except FileExistsError:
+        pass
     modelgrid_files = glob.glob(os.path.join(exoctk_data_dir, 'modelgrid.*', '*'))
     for src in modelgrid_files:
         if 'ATLAS9' in src:
             dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9')
         elif 'ACES_' in src:
             dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ACES')
-        shutil.move(src, dst)
+        try:
+            shutil.move(src, dst)
+        except shutil.Error:
+            print('Unable to organize modelgrid/ directory')
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ATLAS9'))
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_1'))
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_2'))
 
-    # Set the EXOCTK_DATA environment variable
-    print('Setting $EXOCTK_DATA environment variable')
-    os.environ['EXOCTK_DATA'] = exoctk_data_dir
-
-    print('\nComplete:\n')
+    print('Completed!')
 
 
 def color_gen(colormap='viridis', key=None, n=10):
