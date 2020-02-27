@@ -35,7 +35,7 @@ HOME_DIR = os.path.expanduser('~')
 ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
 if not ON_TRAVIS_OR_RTD:
     if not EXOCTK_DATA:
-        Print(
+        print(
             'WARNING: The $EXOCTK_DATA environment variable is not set.  Please set the '
             'value of this variable to point to the location of the exoctk_data '
             'download folder.  Users may retreive this folder by clicking the '
