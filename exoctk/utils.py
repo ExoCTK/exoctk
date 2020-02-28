@@ -50,7 +50,7 @@ if not ON_TRAVIS_OR_RTD:
             'cannot be accessed.')
 
     # If the variable exists, points to a real location, but is missing contents
-    for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic', 'groups_integrations']:
+    for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
         if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
             print(
                 'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
@@ -58,11 +58,12 @@ if not ON_TRAVIS_OR_RTD:
                 'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
                 'function'.format(item, EXOCTK_DATA))
 
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
 GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
 GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 
 
 def download_exoctk_data(download_location=os.path.expanduser('~')):
