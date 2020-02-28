@@ -9,6 +9,7 @@ import itertools
 import os
 import re
 import requests
+import shutil
 import urllib
 
 from astropy.io import fits
@@ -34,28 +35,114 @@ HOME_DIR = os.path.expanduser('~')
 ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
 if not ON_TRAVIS_OR_RTD:
     if not EXOCTK_DATA:
-        raise ValueError(
-            'The $EXOCTK_DATA environment variable is not set.  Please set the '
-            'value of this variable to point to the location of the ExoCTK data '
+        print(
+            'WARNING: The $EXOCTK_DATA environment variable is not set.  Please set the '
+            'value of this variable to point to the location of the exoctk_data '
             'download folder.  Users may retreive this folder by clicking the '
-            '"ExoCTK Data Download" button on the ExoCTK website.'
+            '"ExoCTK Data Download" button on the ExoCTK website, or by using '
+            'the exoctk.utils.download_exoctk_data() function.'
         )
 
     # If the variable exists but doesn't point to a real location
     if not os.path.exists(EXOCTK_DATA):
-        raise FileNotFoundError(
-            'The $EXOCTK_DATA environment variable is set to a location that '
+        print(
+            'WARNING: The $EXOCTK_DATA environment variable is set to a location that '
             'cannot be accessed.')
 
     # If the variable exists, points to a real location, but is missing contents
-    for item in ['modelgrid', 'fortney', 'exoctk_log', 'generic']:
+    for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
         if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
-            raise KeyError('Missing {}/ directory from {}'.format(item, EXOCTK_DATA))
+            print(
+                'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
+                'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Donwload" '
+                'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
+                'function'.format(item, EXOCTK_DATA))
 
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
 EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
 GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
+GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
+MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+
+
+def download_exoctk_data(download_location=os.path.expanduser('~')):
+    """Retrieves the ``exoctk_data`` materials from Box, downloads them
+    to the user's local machine, uncompresses the files, and arranges
+    them into an ``exoctk_data`` directory.
+
+    Parameters
+    ----------
+    download_location : string
+        The path to where the ExoCTK data package will be downloaded.
+        The default setting is the user's $HOME directory.
+    """
+
+    print('\nDownloading ExoCTK data package.  This may take a few minutes.')
+    print('Materials will be downloaded to {}/exoctk_data/\n'.format(download_location))
+
+    # Ensure the exoctk_data/ directory exists in user's home directory
+    exoctk_data_dir = os.path.join(download_location, 'exoctk_data')
+    try:
+        if not os.path.exists(exoctk_data_dir):
+            os.makedirs(exoctk_data_dir)
+    except PermissionError:
+        print('Data download failed.  Unable to create {}.  Please check permissions.')
+
+    # URLs to download contents
+    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz']
+
+    # Build landing paths for downloads
+    download_paths = [os.path.join(exoctk_data_dir, os.path.basename(url)) for url in urls]
+
+    # Perform the downloads
+    for i, url in enumerate(urls):
+        landing_path = os.path.join(exoctk_data_dir, os.path.basename(url))
+        print('({}/{}) Downloading data to {} from {}'.format(i+1, len(urls), landing_path, url))
+        with requests.get(url, stream=True) as response:
+            with open(landing_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=2048):
+                    if chunk:
+                        f.write(chunk)
+    print('\nDownload complete\n')
+
+    # Uncompress data
+    print('Uncompressing data:\n')
+    for path in download_paths:
+        # Uncompress data
+        print('\t{}'.format(path))
+        shutil.unpack_archive(path, exoctk_data_dir)
+        # Remove original .tar.gz files
+        os.remove(path)
+
+    # Combine modelgrid directories
+    print('\nOrganizing files into exoctk_data/ directory')
+    try:
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9'))
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ACES'))
+    except FileExistsError:
+        pass
+    modelgrid_files = glob.glob(os.path.join(exoctk_data_dir, 'modelgrid.*', '*'))
+    for src in modelgrid_files:
+        if 'ATLAS9' in src:
+            dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9')
+        elif 'ACES_' in src:
+            dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ACES')
+        try:
+            shutil.move(src, dst)
+        except shutil.Error:
+            print('Unable to organize modelgrid/ directory')
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ATLAS9'))
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_1'))
+    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_2'))
+
+    print('Completed!')
 
 
 def color_gen(colormap='viridis', key=None, n=10):
