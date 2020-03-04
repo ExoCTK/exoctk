@@ -37,7 +37,7 @@ import requests
 import urllib
 
 from scipy import optimize
-#from exoctk.utils import get_target_data
+from exoctk.utils import get_target_data
 
 def calculate_phase(period, obsDur, winSize, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False):
     ''' Function to calculate the min and max phase. 
