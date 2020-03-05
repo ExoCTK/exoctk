@@ -441,6 +441,7 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
     # Is this the return that we want? Do we need to use t0 for something? 
     # NE: Not needed, because by defaut APT assumes phase = 1 is where the transit happens.
     print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
+    return minphase, maxphase
 
 # Need to make entry point for this!
 if __name__ == '__main__':
