@@ -800,6 +800,12 @@ def phase_constraint():
 
                 form.observation_duration.data = calculate_obsDur(data.get('transit_duration')*24.0)
 
+                form.inclination.data = data.get('inclination')
+
+                form.omega.data = data.get('omega')
+
+                form.eccentricity.data = data.get('eccentricity')
+
                 form.target_url.data = str(target_url)
 
                 return render_template('phase_constraint.html', form=form)
@@ -809,10 +815,23 @@ def phase_constraint():
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     if form.validate_on_submit() and form.calculate_submit.data:
-        minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
-                                                      period=form.orbital_period.data, 
-                                                      obs_duration=form.observation_duration.data, 
-                                                      window_size=form.window_size.data)
+        if form.transit_type.data.lower().split()[0] == 'primary':
+            minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
+                                                          period=form.orbital_period.data, 
+                                                          obs_duration=form.observation_duration.data, 
+                                                          window_size=form.window_size.data)
+        elif form.transit_type.data.lower().split()[0] == 'secondary':
+            if (form.eccentricity.data is not None) and (form.omega.data is not None) and (form.inclination.data is not None):
+                minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
+                                                          period=form.orbital_period.data, t0 = form.transit_time.data, 
+                                                          obs_duration=form.observation_duration.data, 
+                                                          window_size=form.window_size.data, secondary = True,
+                                                          ecc = form.eccentricity.data, omega = form.omega.data,
+                                                          inc = form.inclination.data)
+            else:
+                minphase,maxphase = None, None
+        else:
+            minphase,maxphase = None, None
         form.minimum_phase.data = minphase
         form.maximum_phase.data = maxphase
 

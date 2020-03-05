@@ -58,6 +58,53 @@
 
             <br>
 
+            <label for='mag' class="col-sm-2 control-label">Eccentricity (optional)</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.eccentricity(value=form.eccentricity.data, size=10, rows=1, class='form-control') }}
+                </div>
+                <span id="helpBlock" class="help-block">(Only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Argument of periastron (optional)</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.omega(value=form.omega.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Degrees}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Argument of periastron passage (only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Inclination (optional)</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.inclination(value=form.inclination.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Degrees}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Inclination of the orbit (only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Transit type</label>
+            <div class="col-sm-10">
+   
+                <div class="input-group">
+                    {{ form.transit_type(value=form.transit_type.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{(primary/secondary)}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Phase-constraint for transits (primary) or eclipses (secondary)?</span>
+            </div>
+
+            <br>
+
             <hr class="col-md-12">
 
             <label for='mag' class="col-sm-2 control-label">Observation Duration</label>
@@ -94,7 +141,7 @@
                     </p>
                 </div>
             </div>
-            
+
             <label for='mag' class="col-sm-2 control-label">Minimum Phase</label>
             <div class="col-sm-10">
             
@@ -115,7 +162,6 @@
                 </div>
                 <span id="helpBlock" class="help-block">Maximum Phase of Observation</span>
             </div>
-            
 
         </div>
         
