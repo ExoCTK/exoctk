@@ -36,6 +36,8 @@ import numpy as np
 import requests
 import urllib
 
+from astropy.time import Time
+
 from scipy import optimize
 from exoctk.utils import get_target_data
 
@@ -383,7 +385,7 @@ def calculate_tsec(period, ecc, omega, inc, t0 = None, tperi = None, winn_approx
                 break
     return tsec
 
-def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, transit_dur=None, window_size=None, secondary = False, ecc = 0., omega = 90., inc = 90., winn_approx = False):
+def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=None, transit_dur=None, window_size=None, secondary = False, ecc = None, omega = None, inc = None, winn_approx = False):
     ''' The main function to calculate the phase overlap constraints.
         We will update to allow a user to just plug in the target_name 
         and get the other variables.
@@ -419,15 +421,42 @@ def phase_overlap_constraint(target_name, period=None, t0=None, obs_duration=Non
         maxphase : float
             The maximum phase constraint. '''
 
+    gotdata = False
+    # If secondary eclipse, check eccentricity, omega and inclination are given. If not, get data from exoMAST:
+    if secondary:
+        if ecc is None:
+            data = get_target_data(target_name)
+            gotdata = True
+            ecc = data[0]['eccentricity']
+            if ecc is None:
+                raise Exception('User needs to input eccentricity, as the value was not found at exoMAST {}.'.format(target_name))
+        if omega is None:
+            if not gotdata:
+                data = get_target_data(target_name)
+                gotdata = True
+            omega = data[0]['omega']
+            if omega is None:
+                raise Exception('User needs to input argument of periastron (omega), as the value was not found at exoMAST for {}.'.format(target_name))
+        if inc is None:
+            if not gotdata:
+                data = get_target_data(target_name)
+                gotdata = True
+            inc = data[0]['inclination']
+            if inc is None:
+                raise Exception('User needs to input inclination of the orbit, as the value was not found at exoMAST for {}.'.format(target_name))
+
+    # If observing duration is not given, extract it from transit duration:
     if obs_duration == None:
         if period == None:
-            data = get_target_data(target_name)
-            
-            period = data['orbital_period']
-            t0 = data['transit_time']
+            if not gotdata:
+                data = get_target_data(target_name)
+                gotdata = True
+            period = data[0]['orbital_period']
+            t0 = Time(data[0]['transit_time'], format='mjd')
             # If transit/eclipse duration not supplied by the user, extract it from the get_target_data function:
             if transit_dur is None:
-                transit_dur = data['transit_duration']
+                # Transit duration from get_target_data comes in days:
+                transit_dur = data[0]['transit_duration']*24.
                 if secondary:
                 # Factor from equation (16) in Winn (2010). This is, of course, an approximation.
                 # TODO: Implement equation (13) in the same paper. Needs optimization plus numerical integration.
@@ -458,10 +487,6 @@ if __name__ == '__main__':
         except (ValueError, TypeError):
             # Handles None and char strings.
             continue
-    # Check that if the user wants to get secondary eclipse constraints, eccentricity, omega and inclination has also been 
-    # supplied:
-    if secondary and ((args['--eccentricity'] is None) or (args['--inclination'] is None) or (args['--omega'] is None)):
-        raise Exception('If --secondary, eccentricity, omega and inclination have to be supplied (e.g., --eccentricity = 0.1 --omega = 30.1 --inclination=89.2)')
     
     phase_overlap_constraint(args['<target_name>'], period = args['--period'], 
                              t0 = args['--t_start'], obs_duration = args['--obs_duration'],
