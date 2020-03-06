@@ -33,7 +33,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         trace1 = cube[0, :, :] # target star order 1 trace
         cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
 
-    elif instrument=='NIRISS':
+    elif instrument=='NIRISS': # only NIRISS has both orders accounted for
         trace1 = cube[0, :, :]
         trace2 = cube[1, :, :]
         cube = cube[2:, :, :]
@@ -57,8 +57,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     for row in np.arange(rows):
         i = np.argmax(trace1[row, :])
-        #tr = trace1[row, i-20:i+41]
         tr = trace1[row, i-20:i+41]
+        #tr = trace1[row, i-100:i+100]
         w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
@@ -221,7 +221,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig
+    return fig#, contamO1
 
 
 if __name__ == "__main__":
