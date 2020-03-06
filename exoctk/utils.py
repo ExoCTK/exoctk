@@ -54,7 +54,7 @@ if not ON_TRAVIS_OR_RTD:
             if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
                 print(
                     'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
-                    'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Donwload" '
+                    'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Download" '
                     'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
                     'function'.format(item, EXOCTK_DATA))
 
