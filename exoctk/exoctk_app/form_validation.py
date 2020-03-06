@@ -1,3 +1,4 @@
+import numpy as np
 import os
 
 from flask_wtf import FlaskForm
@@ -141,10 +142,10 @@ class PhaseConstraint(BaseForm):
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
     orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')]) 
-    eccentricity = FloatField('eccentricity', default=None)
+    eccentricity = FloatField('eccentricity', default=np.nan)
     transit_type = StringField('transit_type', default='primary')
-    omega = FloatField('omega', default=None)
-    inclination = FloatField('inclination', default=None)
+    omega = FloatField('omega', default=np.nan)
+    inclination = FloatField('inclination', default=np.nan)
     transit_time = FloatField('transit_time') 
     window_size = FloatField('window_size', default=1.0)
     observation_duration = FloatField('observation_duration', default=2.0, validators=[InputRequired('Observation duration is a required field.')])

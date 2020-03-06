@@ -801,10 +801,16 @@ def phase_constraint():
                 form.observation_duration.data = calculate_obsDur(data.get('transit_duration')*24.0)
 
                 form.inclination.data = data.get('inclination')
+                if form.inclination.data is None:
+                    form.inclination.data = np.nan
 
                 form.omega.data = data.get('omega')
+                if form.omega.data is None:
+                    form.omega.data = np.nan
 
                 form.eccentricity.data = data.get('eccentricity')
+                if form.eccentricity.data is None:
+                    form.omega.data = np.nan
 
                 form.target_url.data = str(target_url)
 
@@ -814,14 +820,16 @@ def phase_constraint():
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
+    # Extract transit type:
+    transit_type = form.transit_type.data.lower().split()[0]
     if form.validate_on_submit() and form.calculate_submit.data:
-        if form.transit_type.data.lower().split()[0] == 'primary':
+        if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data, 
                                                           obs_duration=form.observation_duration.data, 
                                                           window_size=form.window_size.data)
-        elif form.transit_type.data.lower().split()[0] == 'secondary':
-            if (form.eccentricity.data is not None) and (form.omega.data is not None) and (form.inclination.data is not None):
+        elif transit_type == 'secondary':
+            if (0. <= form.eccentricity.data < 1) and (-360. <= form.omega.data <= 360.) and (0 <= form.inclination.data <= 90.):
                 minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data, t0 = form.transit_time.data, 
                                                           obs_duration=form.observation_duration.data, 
@@ -829,12 +837,19 @@ def phase_constraint():
                                                           ecc = form.eccentricity.data, omega = form.omega.data,
                                                           inc = form.inclination.data)
             else:
-                minphase,maxphase = None, None
+                minphase,maxphase = np.nan, np.nan
         else:
-            minphase,maxphase = None, None
+            minphase,maxphase = np.nan, np.nan
         form.minimum_phase.data = minphase
         form.maximum_phase.data = maxphase
-
+    """    
+    if (form.eccentricity.data > 1.) or (form.eccentricity.data < 0.):
+        form.eccentricity.data = None
+    if np.abs(form.omega.data)>360.:
+        form.omega.data = None
+    if (form.inclination.data < 0) or (form.inclination.data>90.):
+        form.inclination.data = None
+    """
     # Send it back to the main page
     return render_template('phase_constraint.html', form=form)
 
