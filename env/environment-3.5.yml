@@ -26,7 +26,7 @@ dependencies:
   - pyyaml=3.13
   - scipy=1.1.0
   - scp=0.13.2
-  - sphinx=2.3.1
+  - sphinx=2.4.0
   - sqlalchemy=1.2.11
   - wtforms=2.2.1
   - pip:
@@ -37,7 +37,7 @@ dependencies:
     - batman-package==2.4.6
     - bibtexparser==1.1.0
     - corner==2.0.1
-    - flask_wtf==0.14.2
+    - flask_wtf==0.14.3
     - lmfit==0.9.15
     - platon==4.0
     - pysynphot==0.9.14
