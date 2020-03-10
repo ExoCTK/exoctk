@@ -40,8 +40,7 @@ if not ON_TRAVIS_OR_RTD:
             'value of this variable to point to the location of the exoctk_data '
             'download folder.  Users may retreive this folder by clicking the '
             '"ExoCTK Data Download" button on the ExoCTK website, or by using '
-            'the exoctk.utils.download_exoctk_data() function.'
-        )
+            'the exoctk.utils.download_exoctk_data() function.')
     else:
         # If the variable exists but doesn't point to a real location
         if not os.path.exists(EXOCTK_DATA):
@@ -90,7 +89,8 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
         print('Data download failed.  Unable to create {}.  Please check permissions.')
 
     # URLs to download contents
-    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
+    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
