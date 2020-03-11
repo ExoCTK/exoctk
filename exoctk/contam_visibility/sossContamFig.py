@@ -12,7 +12,17 @@ import numpy as np
 
 from . import visibilityPA as vpa
 
-TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),  'exoctk_contam', 'traces')
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+if not EXOCTK_DATA:
+    print('WARNING: The $EXOCTK_DATA environment variable is not set. Contamination overlap will not work. Please set the '
+          'value of this variable to point to the location of the exoctk_data '
+            'download folder.  Users may retreive this folder by clicking the '
+            '"ExoCTK Data Download" button on the ExoCTK website, or by using '
+            'the exoctk.utils.download_exoctk_data() function.'
+          )
+    TRACES_PATH = None
+else:
+    TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
 
 disp_nircam = 0.001 # microns
 lam0_nircam322w2 = 2.369
@@ -41,6 +51,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     plotPAmin, plotPAmax = paRange
 
     # start calculations
+    if not TRACES_PATH:
+        return None
     lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
