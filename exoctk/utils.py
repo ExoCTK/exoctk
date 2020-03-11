@@ -40,30 +40,29 @@ if not ON_TRAVIS_OR_RTD:
             'value of this variable to point to the location of the exoctk_data '
             'download folder.  Users may retreive this folder by clicking the '
             '"ExoCTK Data Download" button on the ExoCTK website, or by using '
-            'the exoctk.utils.download_exoctk_data() function.'
-        )
-
-    # If the variable exists but doesn't point to a real location
-    if not os.path.exists(EXOCTK_DATA):
-        print(
-            'WARNING: The $EXOCTK_DATA environment variable is set to a location that '
-            'cannot be accessed.')
-
-    # If the variable exists, points to a real location, but is missing contents
-    for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
-        if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
+            'the exoctk.utils.download_exoctk_data() function.')
+    else:
+        # If the variable exists but doesn't point to a real location
+        if not os.path.exists(EXOCTK_DATA):
             print(
-                'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
-                'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Donwload" '
-                'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
-                'function'.format(item, EXOCTK_DATA))
+                'WARNING: The $EXOCTK_DATA environment variable is set to a location that '
+                'cannot be accessed.')
 
-EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
-EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
-FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
-GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
-GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
-MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+        # If the variable exists, points to a real location, but is missing contents
+        for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
+            if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
+                print(
+                    'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
+                    'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Download" '
+                    'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
+                    'function'.format(item, EXOCTK_DATA))
+
+        EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
+        EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
+        FORTGRID_DIR = os.path.join(EXOCTK_DATA, 'fortney/')
+        GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
+        GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
+        MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 
 
 def download_exoctk_data(download_location=os.path.expanduser('~')):
@@ -90,7 +89,8 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
         print('Data download failed.  Unable to create {}.  Please check permissions.')
 
     # URLs to download contents
-    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
+    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',

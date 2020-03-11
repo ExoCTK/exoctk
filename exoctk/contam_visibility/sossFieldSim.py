@@ -10,12 +10,17 @@ from scipy.io import readsav
 from astropy.io import fits
 from exoctk.utils import get_env_variables
 
-TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'),
-                           'exoctk_contam',
-                           'traces')
-if TRACES_PATH == '':
-    raise NameError("You need to have an exported 'EXOCTK_DATA' environment \
-                     variable and data set up before we can continue")
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+if not EXOCTK_DATA:
+    print('WARNING: The $EXOCTK_DATA environment variable is not set. Contamination overlap will not work. Please set the '
+          'value of this variable to point to the location of the exoctk_data '
+            'download folder.  Users may retreive this folder by clicking the '
+            '"ExoCTK Data Download" button on the ExoCTK website, or by using '
+            'the exoctk.utils.download_exoctk_data() function.'
+          )   
+    TRACES_PATH = None
+else:
+    TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -660,4 +665,5 @@ def fieldSim(ra, dec, instrument, binComp=''):
 if __name__ == '__main__':
     ra, dec = "04 25 29.0162", "-30 36 01.603"  # Wasp 79
     #sossFieldSim(ra, dec)
-    fieldSim(ra, dec, instrument='NIRISS')
+    if EXOCTK_DATA:
+        fieldSim(ra, dec, instrument='NIRISS')
