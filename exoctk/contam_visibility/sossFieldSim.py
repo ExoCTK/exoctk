@@ -542,7 +542,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         # Cube of trace simulation at every degree of field rotation,
         # +target at O1 and O2
         simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', '_*.fits'))
+        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'flipped*.fits'))
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
