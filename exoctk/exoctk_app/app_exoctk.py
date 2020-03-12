@@ -830,8 +830,9 @@ def phase_constraint(transit_type = 'primary'):
                                                           window_size=form.window_size.data)
         elif transit_type == 'secondary':
             if (0. <= form.eccentricity.data < 1) and (-360. <= form.omega.data <= 360.) and (0 <= form.inclination.data <= 90.):
+                # Use dummy time-of-transit as it doesn't matter for the phase-constraint calculation (phase = 1 is always transit)
                 minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
-                                                          period=form.orbital_period.data, t0 = form.transit_time.data, 
+                                                          period=form.orbital_period.data, t0 = 1., 
                                                           obs_duration=form.observation_duration.data, 
                                                           window_size=form.window_size.data, secondary = True,
                                                           ecc = form.eccentricity.data, omega = form.omega.data,
