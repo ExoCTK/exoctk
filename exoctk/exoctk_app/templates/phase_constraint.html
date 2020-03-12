@@ -44,18 +44,6 @@
             </div>
 
             <br>
-            
-            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
-            <div class="col-sm-10">
-            
-                <div class="input-group">
-                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
-                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
-                </div>
-                <span id="helpBlock" class="help-block">Transit time of Target</span>
-            </div>
-
-            <br>
 
             <label for='mag' class="col-sm-2 control-label">Eccentricity (optional)</label>
             <div class="col-sm-10">
@@ -92,7 +80,7 @@
 
             <br>
 
-            <label for='mag' class="col-sm-2 control-label">Transit type</label>
+            <label for='mag' class="col-sm-2 control-label">Target observation</label>
 
 
             <div class="col-sm-3">
@@ -142,6 +130,18 @@
                     </p>
                 </div>
             </div>
+
+            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Transit time of target (this goes under "Zero Phase" in APT). Automatically fills when hitting "Resolve Target".</span>
+            </div>
+
+            <br>
 
             <label for='mag' class="col-sm-2 control-label">Minimum Phase</label>
             <div class="col-sm-10">
