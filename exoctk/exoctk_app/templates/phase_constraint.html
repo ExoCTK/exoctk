@@ -94,13 +94,15 @@
             <br>
 
             <label for='mag' class="col-sm-2 control-label">Transit type</label>
-            <div class="col-sm-10">
-   
-                <div class="input-group">
-                    {{ form.transit_type(value=form.transit_type.data, size=10, rows=1, class='form-control') }}
-                    <div class="input-group-addon" style='width:60px'>\(\small \text{(primary/secondary)}\)</div>
-                </div>
-                <span id="helpBlock" class="help-block">Phase-constraint for transits (primary) or eclipses (secondary)?</span>
+
+
+            <div class="col-sm-3">
+
+                    <select id="transit_type" name="transit_type" class="form-control" data-placeholder="Select type">
+                        <option value="primary">Primary Transit</option>
+                        <option value="secondary">Secondary Eclipse</option>
+                    </select>
+                    <span id="helpBlock" class="help-block">Calculate constraint for primary transits or secondary eclipses?</span>
             </div>
 
             <br>

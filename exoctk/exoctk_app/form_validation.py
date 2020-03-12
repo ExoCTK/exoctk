@@ -143,7 +143,7 @@ class PhaseConstraint(BaseForm):
 
     orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')]) 
     eccentricity = FloatField('eccentricity', default=np.nan)
-    transit_type = StringField('transit_type', default='primary')
+    transit_type = SelectField('transit_type', choices=[('primary', 'primary'), ('secondary', 'secondary')])
     omega = FloatField('omega', default=np.nan)
     inclination = FloatField('inclination', default=np.nan)
     transit_time = FloatField('transit_time') 
