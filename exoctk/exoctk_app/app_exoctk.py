@@ -780,7 +780,7 @@ def atmospheric_retrievals():
 
 
 @app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
-def phase_constraint():
+def phase_constraint(transit_type = 'primary'):
     # Load default form
     form = fv.PhaseConstraint()
 
@@ -821,7 +821,7 @@ def phase_constraint():
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     # Extract transit type:
-    transit_type = form.transit_type.data.lower().split()[0]
+    transit_type = form.transit_type.data#.lower().split()[0]
     if form.validate_on_submit() and form.calculate_submit.data:
         if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
