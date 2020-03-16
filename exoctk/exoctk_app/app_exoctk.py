@@ -35,7 +35,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
-from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_obsDur
+from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_preDur
 
 import log_exoctk
 from svo_filters import svo
@@ -798,7 +798,7 @@ def phase_constraint(transit_type = 'primary'):
                 t_time = Time(data.get('transit_time'), format='mjd')
                 form.transit_time.data = t_time.jd
 
-                form.observation_duration.data = calculate_obsDur(data.get('transit_duration')*24.0)
+                form.observation_duration.data = calculate_preDur(data.get('transit_duration')*24.0)
 
                 form.inclination.data = data.get('inclination')
                 if form.inclination.data is None:
@@ -826,14 +826,14 @@ def phase_constraint(transit_type = 'primary'):
         if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data, 
-                                                          obs_duration=form.observation_duration.data, 
+                                                          pretransit_duration=form.observation_duration.data, 
                                                           window_size=form.window_size.data)
         elif transit_type == 'secondary':
             if (0. <= form.eccentricity.data < 1) and (-360. <= form.omega.data <= 360.) and (0 <= form.inclination.data <= 90.):
                 # Use dummy time-of-transit as it doesn't matter for the phase-constraint calculation (phase = 1 is always transit)
                 minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data, t0 = 1., 
-                                                          obs_duration=form.observation_duration.data, 
+                                                          pretransit_duration=form.observation_duration.data, 
                                                           window_size=form.window_size.data, secondary = True,
                                                           ecc = form.eccentricity.data, omega = form.omega.data,
                                                           inc = form.inclination.data)
