@@ -8,14 +8,14 @@ Authors:
     Nestor Espinoza, 2020
 
 Usage:
-  calculate_constraint <target_name> [--t_start=<t0>] [--period=<p>] [--obs_duration=<obs_dur>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx]
+  calculate_constraint <target_name> [--t0=<t0>] [--period=<p>] [--obs_duration=<obs_dur>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx]
   
 Arguments:
   <target_name>                     Name of target
 Options:
   -h --help                         Show this screen.
   --version                         Show version.
-  --t_start=<t0>                    The starting time of the transit in BJD or HJD.
+  --t0=<t0>                    The starting time of the transit in BJD or HJD.
   --period=<p>                      The period of the transit in days.
   --obs_duration=<obs_dur>          The duration of the observation in hours.
   --transit_duration=<trans_dur>    The duration of the transit in hours.
@@ -489,7 +489,7 @@ if __name__ == '__main__':
             continue
     
     phase_overlap_constraint(args['<target_name>'], period = args['--period'], 
-                             t0 = args['--t_start'], obs_duration = args['--obs_duration'],
+                             t0 = args['--t0'], obs_duration = args['--obs_duration'],
                              transit_dur = args['--transit_duration'],
                              window_size = args['--window_size'], secondary = secondary,
                              ecc = args['--eccentricity'], omega = args['--omega'],
