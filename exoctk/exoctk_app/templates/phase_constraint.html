@@ -96,14 +96,14 @@
 
             <hr class="col-md-12">
 
-            <label for='mag' class="col-sm-2 control-label">Observation Duration</label>
+            <label for='mag' class="col-sm-2 control-label">Pre mid-transit/eclipse time on target</label>
             <div class="col-sm-10">
             
                 <div class="input-group">
                     {{ form.observation_duration(value=form.observation_duration.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">Length of Your Observation (Default 3*(transit duration)+1 [Hours] when using Resolver)</span>
+                <span id="helpBlock" class="help-block">Time planned to be spent on target prior to mid-transit/eclipse (Default: 0.75 Hr + Max(1 Hr + T<sub>14</sub>/2, T<sub>14</sub>) when using Resolver)</span>
                 {% for error in form.observation_duration.errors %}
                     <p style="color: red;">{{ error }}</p>
                 {% endfor %}
@@ -138,7 +138,7 @@
                     {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">Transit time of target (this goes under "Zero Phase" in APT). Automatically fills when hitting "Resolve Target".</span>
+                <span id="helpBlock" class="help-block">Time of transit-center of target (this goes under "Zero Phase" in APT). Automatically fills when hitting "Resolve Target".</span>
             </div>
 
             <br>
