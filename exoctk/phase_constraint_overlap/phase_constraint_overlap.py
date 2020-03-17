@@ -83,8 +83,8 @@ def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None
             raise Exception("Error: can't return time of secondary eclipse without a time-of-transit center.")
 
     if not secondary:
-        minphase = 1.0 - ((preDur + 0.5*winSize)/24./period)
-        maxphase = 1.0 - ((preDur - 0.5*winSize)/24./period)
+        minphase = 1.0 - ((preDur + winSize)/24./period)
+        maxphase = 1.0 - ((preDur)/24./period)
     else:
         deg_to_rad = (np.pi/180.)
         # Calculate time of secondary eclipse:
@@ -95,8 +95,8 @@ def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None
         # Estimate minphase and maxphase centered around this phase (thinking here is that, e.g., if phase_diff is 0.3 
         # then eclipse happens at 0.3 after 1 (being the latter by definition the time of primary eclipse --- i.e., transit). 
         # Because phase runs from 0 to 1, this implies eclipse happens at phase 0.3):
-        minphase = phase_diff - ((preDur + 0.5*winSize)/24./period)
-        maxphase = phase_diff - ((preDur - 0.5*winSize)/24./period)
+        minphase = phase_diff - ((preDur + winSize)/24./period)
+        maxphase = phase_diff - ((preDur)/24./period)
         # Wrap the phases around 0 and 1 in case limits blow in the previous calculation (unlikely, but user might be doing 
         # something crazy or orbit could be extremely weird such that this can reasonably happen in the future). Note this 
         # assumes -1 < minphase,maxphase < 2:
