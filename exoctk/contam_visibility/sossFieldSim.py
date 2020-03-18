@@ -449,9 +449,10 @@ def lrsFieldSim(ra, dec, binComp=''):
         """
 
         # Calling the variables
+        PAD_WIDTH = 100
         dimX = 55
         dimY = 427
-        rad = 2.5
+        rad = 2.5 # arcmins
         pixel_scale = 0.11 # arsec
         xval, yval = 38.5, 829.0
         add_to_apa = 4.83425324
@@ -542,7 +543,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         # Cube of trace simulation at every degree of field rotation,
         # +target at O1 and O2
         simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'flipped*.fits'))
+        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
@@ -600,18 +601,22 @@ def lrsFieldSim(ra, dec, binComp=''):
                 my1 = dimY if my1 > dimY else my1
 
                 # Fleshing out index 0 of the simulation cube (trace of target)
+
                 if (intx == 0) & (inty == 0) & (kPA == 0):
                     fNameModO12 = fitsFiles[k]
                     modelO1 = fits.getdata(fNameModO12, 1)
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
                 # Fleshing out indexes 1-361 of the simulation cube
                 # (trace of neighboring stars at every position angle)
                 if (intx != 0) or (inty != 0):
                     fNameModO12 = fitsFiles[k]
-                    modelO12 = fits.getdata(fNameModO12)
-                    simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += modelO12[0, my0:my1, mx0:mx1]*fluxscale
+                    modelO1 = fits.getdata(fNameModO12, 1)
+                    ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+
+                    simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += ord1
 
         return simuCube
 
