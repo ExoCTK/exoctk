@@ -55,14 +55,16 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     if instrument=='NIRISS':
         contamO2 = np.zeros([rows, nPA])
 
+    low_lim_col = 1#20
+    high_lim_col = 1#41
     for row in np.arange(rows):
         i = np.argmax(trace1[row, :])
-        tr = trace1[row, i-20:i+41]
+        tr = trace1[row, i-low_lim_col:i+high_lim_col]
         #tr = trace1[row, i-100:i+100]
         w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
-        contamO1[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
+        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
 
         if instrument=='NIRISS':
             if lamO2[row] < 0.6:
