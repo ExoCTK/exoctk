@@ -460,7 +460,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
         targetRA = targetcrd.ra.value
         targetDEC = targetcrd.dec.value
-        info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
+        info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',\
                                  radius=rad*u.arcmin)
 
         # Coordinates of all the stars in FOV, including target
