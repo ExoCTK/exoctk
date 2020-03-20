@@ -36,7 +36,7 @@ REQUIRES = ['asteval',
             'sphinx_astropy',
             'sqlalchemy',
             'svo_filters',
-            'wtforms'
+            'wtforms',
             'werkzeug==0.16.1']
 
 DEPENDENCY_LINKS = ['git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
