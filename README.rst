@@ -161,7 +161,11 @@ how you unzip it.
 - If you try to use ``unzip``, ``7zip``, or ``gzip``, the files will likely be corrupted.
 
 The data will unzip in the appropriate structure, with the top layer
-``exoctk_data``. Export an environment variable for ``EXOCTK_DATA``.
+``exoctk_data``.
+
+An alternative way to obtain the data is to execute the ``exoctk.utils.download_exoctk_data()`` function.  This function will download a series of compressed files from Box, extract the files, and organize them into the ``exoctk_data/`` directory.  Note that this can only be done once the ``exoctk`` package has been fully installed (see instructions below).
+
+Lastly, export an environment variable for ``EXOCTK_DATA``.
 
 - For Mac OS/Linux, add the line
 
