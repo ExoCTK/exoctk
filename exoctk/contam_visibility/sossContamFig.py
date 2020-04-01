@@ -83,8 +83,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         print('w: ', w)
 
         if instrument=='NIRISS':
-            if lamO2[row] < 0.6:
-                continue
+            #if lamO2[row] < 0.6:
+            #    continue
             i = np.argmax(trace2[row, :])
             tr = trace2[row, i-20:i+41]
             w = tr/np.sum(tr**2)
