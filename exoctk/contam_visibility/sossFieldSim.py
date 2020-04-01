@@ -383,6 +383,9 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
             starsInFOV = stars[ind]
 
+            print('NIRCam')
+            print('stars in FOV: ', starsInFOV)
+
             for i in range(len(ind)):
                 intx = round(starsInFOV['dx'][i])
                 inty = round(starsInFOV['dy'][i])
@@ -559,7 +562,7 @@ def lrsFieldSim(ra, dec, binComp=''):
             stars['y'] = stars['dy']+sweetSpot['y']
 
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # Retain stars that are within the Direct Image NIRISS POM FOV
+            # Retain stars that are within the Direct Image POM FOV
             # This extends the subarray edges to the detector edges.
             # It keeps the stars that fall out of the subarray but still
             # fall into the detector.
@@ -569,6 +572,8 @@ def lrsFieldSim(ra, dec, binComp=''):
                             (stars['y'] >= -8000) & (stars['y'] <= dimY+8000))
 
             starsInFOV = stars[ind]
+            print('MIRI')
+            print('stars in FOV: ', starsInFOV)
 
             for i in range(len(ind)):
                 intx = round(starsInFOV['dx'][i])
