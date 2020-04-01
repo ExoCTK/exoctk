@@ -463,7 +463,7 @@ def contam_visibility():
 
 
             # Make plot
-            title = form.targname.data or ', '.join([(form.ra.data), form.dec.data])
+            title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
             pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data),
                                                                     str(form.dec.data),
                                                                     form.inst.data.split(' ')[0],
