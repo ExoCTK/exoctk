@@ -55,16 +55,32 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     if instrument=='NIRISS':
         contamO2 = np.zeros([rows, nPA])
 
-    low_lim_col = 1#20
-    high_lim_col = 1#41
+    low_lim_col = -20
+    high_lim_col = 41
     for row in np.arange(rows):
         i = np.argmax(trace1[row, :])
         tr = trace1[row, i-low_lim_col:i+high_lim_col]
-        #tr = trace1[row, i-100:i+100]
-        w = tr/np.sum(tr**2)
+
+        # a fix for MIRI's "pile up" issue~~~~~~~~~~~~~~~~~~~
+        if instrument=='MIRI':
+            tr_std = np.std(tr)
+            print(tr_std)
+            if tr_std < 10:
+                w = np.zeros(len(tr))
+            elif tr_std > 10:
+                w = tr/np.sum(tr**2)
+
+        else:
+            w = tr/np.sum(tr**2)
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
         contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+
+        print('row: ', row)
+        print('tr: ', tr)
+        #print('tr std: ', tr_std)
+        print('w: ', w)
 
         if instrument=='NIRISS':
             if lamO2[row] < 0.6:
@@ -223,7 +239,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig#, contamO1
+    return fig#, contamO1, ww
 
 
 if __name__ == "__main__":
