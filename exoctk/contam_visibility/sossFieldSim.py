@@ -17,7 +17,7 @@ if not EXOCTK_DATA:
             'download folder.  Users may retreive this folder by clicking the '
             '"ExoCTK Data Download" button on the ExoCTK website, or by using '
             'the exoctk.utils.download_exoctk_data() function.'
-          )   
+          )
     TRACES_PATH = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
@@ -615,6 +615,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 if (intx == 0) & (inty == 0) & (kPA == 0):
                     fNameModO12 = fitsFiles[k]
                     modelO1 = fits.getdata(fNameModO12, 1)
+                    
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
 
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
@@ -624,6 +625,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 if (intx != 0) or (inty != 0):
                     fNameModO12 = fitsFiles[k]
                     modelO1 = fits.getdata(fNameModO12, 1)
+
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
 
                     simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += ord1
