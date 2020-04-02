@@ -41,14 +41,14 @@ from astropy.time import Time
 
 from exoctk.utils import get_target_data
 
-def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False, get_tsec = False):
+def calculate_phase(period, pre_duration, winSize, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False, get_tsec = False):
     ''' Function to calculate the min and max phase. 
 
         Parameters
         ----------
         period : float
             The period of the transit in days. 
-        preDur : float
+        pre_duration : float
             The duration of observations *before* transit/eclipse mid-time in hours.
         winSize : float
             The window size of transit in hours. Default is 1 hour.
@@ -82,8 +82,8 @@ def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None
             raise Exception("Error: can't return time of secondary eclipse without a time-of-transit center.")
 
     if not secondary:
-        minphase = 1.0 - ((preDur + winSize)/24./period)
-        maxphase = 1.0 - ((preDur)/24./period)
+        minphase = 1.0 - ((pre_duration + winSize)/24./period)
+        maxphase = 1.0 - ((pre_duration)/24./period)
     else:
         deg_to_rad = (np.pi/180.)
         # Calculate time of secondary eclipse:
@@ -94,8 +94,8 @@ def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None
         # Estimate minphase and maxphase centered around this phase (thinking here is that, e.g., if phase_diff is 0.3 
         # then eclipse happens at 0.3 after 1 (being the latter by definition the time of primary eclipse --- i.e., transit). 
         # Because phase runs from 0 to 1, this implies eclipse happens at phase 0.3):
-        minphase = phase_diff - ((preDur + winSize)/24./period)
-        maxphase = phase_diff - ((preDur)/24./period)
+        minphase = phase_diff - ((pre_duration + winSize)/24./period)
+        maxphase = phase_diff - ((pre_duration)/24./period)
         # Wrap the phases around 0 and 1 in case limits blow in the previous calculation (unlikely, but user might be doing 
         # something crazy or orbit could be extremely weird such that this can reasonably happen in the future). Note this 
         # assumes -1 < minphase,maxphase < 2:
@@ -106,7 +106,7 @@ def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None
 
     return minphase, maxphase
 
-def calculate_preDur(transitDur):
+def calculate_pre_duration(transitDur):
     ''' Function to calculate the pre-transit hours to be spent on target as recommended by the
         Tdwell equation:
         
@@ -485,7 +485,7 @@ def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_durat
                 factor = np.sqrt(1. - ecc**2)/(1. - ecc*np.sin(omega*(np.pi/180.)))
                 transit_dur = transit_dur*factor
         if pretransit_duration is None:
-            pretransit_duration = calculate_preDur(transit_dur)
+            pretransit_duration = calculate_pre_duration(transit_dur)
             print('Retrieved transit/eclipse duration is: {} hrs; implied pre mid-transit/eclipse on-target time: {} hrs.'.format(transit_dur,pretransit_duration))
     if get_tsec:
         minphase, maxphase, tsec = calculate_phase(period, pretransit_duration, window_size, t0 = t0, ecc = ecc, omega = omega, inc = inc, secondary = secondary,
