@@ -140,7 +140,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
-    if (instrument=='MIRI' | instrument=='NIRCam F322W2'):
+    if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
         # need to flip the array 180deg for MIRI
         # so that it goes from top row --> bottom row (left --> right, respectively)
         # because
@@ -149,8 +149,11 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         # and the x-axis for the contam plot will go from low wvl --> high wvl
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
-        contamO1 = np.fliplr(contamO1)
-    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))
+        contamO1 = np.flipud(contamO1)
+    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))#[:, 300:] # might this
+                                                        #index have somethig to
+                                                        #do w the choppiness
+                                                        #of o1 in all instruments
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
