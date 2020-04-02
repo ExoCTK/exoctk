@@ -821,7 +821,7 @@ def phase_constraint(transit_type = 'primary'):
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
     # Extract transit type:
-    transit_type = form.transit_type.data#.lower().split()[0]
+    transit_type = form.transit_type.data
     if form.validate_on_submit() and form.calculate_submit.data:
         if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
@@ -832,15 +832,15 @@ def phase_constraint(transit_type = 'primary'):
             if (0. <= form.eccentricity.data < 1) and (-360. <= form.omega.data <= 360.) and (0 <= form.inclination.data <= 90.):
                 # Use dummy time-of-transit as it doesn't matter for the phase-constraint calculation (phase = 1 is always transit)
                 minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
-                                                          period=form.orbital_period.data, t0 = 1., 
-                                                          pretransit_duration=form.observation_duration.data, 
-                                                          window_size=form.window_size.data, secondary = True,
-                                                          ecc = form.eccentricity.data, omega = form.omega.data,
-                                                          inc = form.inclination.data)
+                                                              period=form.orbital_period.data, t0=1., 
+                                                              pretransit_duration=form.observation_duration.data, 
+                                                              window_size=form.window_size.data, secondary=True,
+                                                              ecc=form.eccentricity.data, omega=form.omega.data,
+                                                              inc=form.inclination.data)
             else:
-                minphase,maxphase = np.nan, np.nan
+                minphase, maxphase = np.nan, np.nan
         else:
-            minphase,maxphase = np.nan, np.nan
+            minphase, maxphase = np.nan, np.nan
         form.minimum_phase.data = minphase
         form.maximum_phase.data = maxphase
     """    
