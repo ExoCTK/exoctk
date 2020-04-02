@@ -8,7 +8,7 @@ Authors:
     Nestor Espinoza, 2020
 
 Usage:
-  calculate_constraint <target_name> [--t0=<t0>] [--period=<p>] [--pre_dur=<pre_dur>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx] [--get_tsec]
+  calculate_constraint <target_name> [--t0=<t0>] [--period=<p>] [--pre_duration=<pre_duration>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx] [--get_tsec]
   
 Arguments:
   <target_name>                     Name of target
@@ -17,7 +17,7 @@ Options:
   --version                         Show version.
   --t0=<t0>                         The starting time of the transit in BJD or HJD. Only useful if user wants to have the time-of-secondary eclipse returned.
   --period=<p>                      The period of the transit in days.
-  --pre_dur=<pre_dur>               The duration of observations *before* transit/eclipse mid-time in hours.
+  --pre_duration=<pre_duration>     The duration of observations *before* transit/eclipse mid-time in hours.
   --transit_duration=<trans_dur>    The duration of the transit in hours.
   --window_size=<win_size>          The window size of the transit in hours [default: 1.0]
   --secondary                       If active, calculate phases for secondary eclipses (user needs to supply eccentricity, omega and inclination).
@@ -36,10 +36,9 @@ from docopt import docopt
 import numpy as np
 import requests
 import urllib
-
+from scipy import optimize
 from astropy.time import Time
 
-from scipy import optimize
 from exoctk.utils import get_target_data
 
 def calculate_phase(period, preDur, winSize, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False, get_tsec = False):
@@ -466,26 +465,28 @@ def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_durat
             if inc is None:
                 raise Exception('User needs to input inclination of the orbit, as the value was not found at exoMAST for {}.'.format(target_name))
 
-    # If pre-transit duration is not given, extract it from transit duration using the Tdwell equation:
+    # If pre-transit duration or period is not given, extract it from transit duration using the Tdwell equation:
     if pretransit_duration is None or period is None:
+        if not gotdata:
+            data = get_target_data(target_name)
+            gotdata = True
+        # If period is not given, extract it:
         if period is None:
-            if not gotdata:
-                data = get_target_data(target_name)
-                gotdata = True
             period = data[0]['orbital_period']
             t0 = Time(data[0]['transit_time'], format='mjd')
-            # If transit/eclipse duration not supplied by the user, extract it from the get_target_data function:
-            if transit_dur is None and pretransit_duration is None:
-                # Transit duration from get_target_data comes in days:
-                transit_dur = data[0]['transit_duration']*24.
-                if secondary:
-                # Factor from equation (16) in Winn (2010). This is, of course, an approximation.
-                # TODO: Implement equation (13) in the same paper. Needs optimization plus numerical integration.
-                    factor = np.sqrt(1. - ecc**2)/(1. - ecc*np.sin(omega*(np.pi/180.)))
-                    transit_dur = transit_dur*factor
+            print('Retrieved period is {}. Retrieved t0 is {}.'.format(period,t0))
+        # If transit/eclipse duration not supplied by the user, extract it from the get_target_data function:
+        if transit_dur is None and pretransit_duration is None:
+            # Transit duration from get_target_data comes in days:
+            transit_dur = data[0]['transit_duration']*24.
+            if secondary:
+            # Factor from equation (16) in Winn (2010). This is, of course, an approximation.
+            # TODO: Implement equation (13) in the same paper. Needs optimization plus numerical integration.
+                factor = np.sqrt(1. - ecc**2)/(1. - ecc*np.sin(omega*(np.pi/180.)))
+                transit_dur = transit_dur*factor
         if pretransit_duration is None:
             pretransit_duration = calculate_preDur(transit_dur)
-
+            print('Retrieved transit/eclipse duration is: {} hrs; implied pre mid-transit/eclipse on-target time: {} hrs.'.format(transit_dur,pretransit_duration))
     if get_tsec:
         minphase, maxphase, tsec = calculate_phase(period, pretransit_duration, window_size, t0 = t0, ecc = ecc, omega = omega, inc = inc, secondary = secondary,
                                          winn_approx = winn_approx, get_tsec = get_tsec)
@@ -516,7 +517,7 @@ if __name__ == '__main__':
             continue
     
     phase_overlap_constraint(args['<target_name>'], period = args['--period'], 
-                             t0 = args['--t0'], pretransit_duration = args['--pre_dur'],
+                             t0 = args['--t0'], pretransit_duration = args['--pre_duration'],
                              transit_dur = args['--transit_duration'],
                              window_size = args['--window_size'], secondary = secondary,
                              ecc = args['--eccentricity'], omega = args['--omega'],
