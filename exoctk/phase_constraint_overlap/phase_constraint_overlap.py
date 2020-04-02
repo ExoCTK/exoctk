@@ -8,7 +8,7 @@ Authors:
     Nestor Espinoza, 2020
 
 Usage:
-  calculate_constraint <target_name> [--t0=<t0>] [--period=<p>] [--pre_duration=<pre_duration>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx] [--get_tsec]
+  calculate_constraint <target_name> [--t0=<t0>] [--period=<p>] [--pre_duration=<pre_duration>] [--transit_duration=<trans_dur>] [--window_size=<win_size>] [--secondary] [--eccentricity=<ecc>] [--omega=<omega>] [--inclination=<inc>] [--winn_approx] [--get_secondary_time]
   
 Arguments:
   <target_name>                     Name of target
@@ -25,7 +25,7 @@ Options:
   --omega=<omega>                   The argument of periastron passage (needed for secondary eclipse constraints).
   --inclination=<inc>               The inclination of the orbit (needed for secondary eclipse constraints).
   --winn_approx                     If active, instead of running the whole Kepler equation calculation, time of secondary eclipse is calculated using eq. (6) in Winn (2010; https://arxiv.org/abs/1001.2010v5)
-  --get_tsec                        If active, calculation also returns time-of-secondary eclipse. Needs t0 as input.
+  --get_secondary_time                        If active, calculation also returns time-of-secondary eclipse. Needs t0 as input.
 """
 
 import math
@@ -41,7 +41,7 @@ from astropy.time import Time
 
 from exoctk.utils import get_target_data
 
-def calculate_phase(period, pre_duration, window_size, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False, get_tsec = False):
+def calculate_phase(period, pre_duration, window_size, t0 = None, ecc = None, omega = None, inc = None, secondary = False, winn_approx = False, get_secondary_time = False):
     ''' Function to calculate the min and max phase. 
 
         Parameters
@@ -53,7 +53,7 @@ def calculate_phase(period, pre_duration, window_size, t0 = None, ecc = None, om
         window_size : float
             The window size of transit in hours. Default is 1 hour.
         t0 : float
-            The time of (primary) transit center (only needed if get_tsec is True).
+            The time of (primary) transit center (only needed if get_secondary_time is True).
         ecc : float
             The eccentricity of the orbit (only needed for secondary eclipses).
         omega : float
@@ -65,7 +65,7 @@ def calculate_phase(period, pre_duration, window_size, t0 = None, ecc = None, om
         winn_approx : boolean
             If True, secondary eclipse calculation will use the Winn (2010) approximation to estimate time 
             of secondary eclipse --- (only valid for not very eccentric and inclined orbits).
-        get_tsec : boolean
+        get_secondary_time : boolean
             If True, return time of secondary eclipse along with the phase constraints.
 
         Returns
@@ -78,7 +78,7 @@ def calculate_phase(period, pre_duration, window_size, t0 = None, ecc = None, om
     if t0 is None:
         t0 = 1.
     else:
-        if get_tsec:
+        if get_secondary_time:
             raise Exception("Error: can't return time of secondary eclipse without a time-of-transit center.")
 
     if not secondary:
@@ -399,7 +399,7 @@ def calculate_tsec(period, ecc, omega, inc, t0 = None, tperi = None, winn_approx
                 break
     return tsec
 
-def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_duration=None, transit_dur=None, window_size=None, secondary = False, ecc = None, omega = None, inc = None, winn_approx = False, get_tsec = False):
+def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_duration=None, transit_dur=None, window_size=None, secondary = False, ecc = None, omega = None, inc = None, winn_approx = False, get_secondary_time = False):
     ''' The main function to calculate the phase overlap constraints.
         We will update to allow a user to just plug in the target_name 
         and get the other variables.
@@ -428,7 +428,7 @@ def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_durat
             Inclination of the orbit in degrees. Needed only if secondary is true.
         winn_approx : boolean
             If True, instead of running the whole Kepler equation calculation, time of secondary eclipse is calculated using eq. (6) in Winn (2010; https://arxiv.org/abs/1001.2010v5)
-        get_tsec : boolean
+        get_secondary_time : boolean
             If True, this function also returns the time-of-mid secondary eclipse.
 
         Returns
@@ -438,7 +438,7 @@ def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_durat
         maxphase : float
             The maximum phase constraint. 
         tsec : float
-            (optional) If get_tsec is True, the time of secondary eclipse in the same units as input t0.
+            (optional) If get_secondary_time is True, the time of secondary eclipse in the same units as input t0.
             '''
 
     gotdata = False
@@ -487,14 +487,14 @@ def phase_overlap_constraint(target_name, period=None, t0=None, pretransit_durat
         if pretransit_duration is None:
             pretransit_duration = calculate_pre_duration(transit_dur)
             print('Retrieved transit/eclipse duration is: {} hrs; implied pre mid-transit/eclipse on-target time: {} hrs.'.format(transit_dur,pretransit_duration))
-    if get_tsec:
+    if get_secondary_time:
         minphase, maxphase, tsec = calculate_phase(period, pretransit_duration, window_size, t0 = t0, ecc = ecc, omega = omega, inc = inc, secondary = secondary,
-                                         winn_approx = winn_approx, get_tsec = get_tsec)
+                                         winn_approx = winn_approx, get_secondary_time = get_secondary_time)
         print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}, TSEC: {}'.format(minphase, maxphase,tsec))
         return minphase, maxphase, tsec
     else:
         minphase, maxphase = calculate_phase(period, pretransit_duration, window_size, t0 = t0, ecc = ecc, omega = omega, inc = inc, secondary = secondary, 
-                                             winn_approx = winn_approx, get_tsec = get_tsec)
+                                             winn_approx = winn_approx, get_secondary_time = get_secondary_time)
         print('MINIMUM PHASE: {}, MAXIMUM PHASE: {}'.format(minphase, maxphase))
         return minphase, maxphase
 
@@ -506,8 +506,8 @@ if __name__ == '__main__':
     secondary = args['--secondary']
     # Save the winn_approx flag as well:
     winn_approx = args['--winn_approx']
-    # And the get_tsec flag:
-    get_tsec = args['--get_tsec']
+    # And the get_secondary_time flag:
+    get_secondary_time = args['--get_secondary_time']
     # Convert all entries from strs to floats (this will convert the --secondary arg above, but that's OK):
     for k,v in args.items():
         try:
@@ -521,4 +521,4 @@ if __name__ == '__main__':
                              transit_dur = args['--transit_duration'],
                              window_size = args['--window_size'], secondary = secondary,
                              ecc = args['--eccentricity'], omega = args['--omega'],
-                             inc = args['--inclination'], winn_approx = winn_approx, get_tsec = get_tsec)
+                             inc = args['--inclination'], winn_approx = winn_approx, get_secondary_time = get_secondary_time)
