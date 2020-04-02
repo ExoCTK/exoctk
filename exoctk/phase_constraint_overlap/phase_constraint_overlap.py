@@ -129,13 +129,10 @@ def calculate_pre_duration(transitDur):
     return pretransit_duration
 
 def drsky_2prime(x, ecc, omega, inc):
-    ''' Second derivative of function drsky
-
-    This is the second derivative with respect to f of the drsky function. 
+    ''' Second derivative of function drsky. This is the second derivative with respect to f of the drsky function. 
 
     Parameters
     ----------
-
     x : float
       True anomaly
     ecc : float
@@ -162,13 +159,10 @@ def drsky_2prime(x, ecc, omega, inc):
     return f1+f2
 
 def drsky_prime(x, ecc, omega, inc):
-    ''' Derivative of function drsky
-
-    This is the first derivative with respect to f of the drsky function. 
+    ''' Derivative of function drsky. This is the first derivative with respect to f of the drsky function. 
 
     Parameters
     ----------
-
     x : float
       True anomaly
     ecc : float
@@ -204,7 +198,6 @@ def drsky(x, ecc, omega, inc):
 
     Parameters
     ----------
-
     x : float
       True anomaly
     ecc : float
@@ -236,7 +229,6 @@ def getE(f,ecc):
 
     Parameters
     ----------
-
     f : float
       True anomaly
 
@@ -255,7 +247,6 @@ def getM(E, ecc):
 
     Parameters
     ----------
-
     E : float
       Eccentric anomaly
 
