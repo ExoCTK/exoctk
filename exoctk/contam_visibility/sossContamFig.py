@@ -188,78 +188,7 @@ def miriContam(cube, paRange=[0, 360]):
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
            badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
 
-    """
-    # Get data from FITS file
-    if isinstance(cube, str):
-        hdu = fits.open(cubeName)
-        cube = hdu[0].data
-        hdu.close()
-
-    if instrument != 'NIRISS':
-        trace1 = cube[0, :, :] # target star order 1 trace
-        cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
-
-    elif instrument=='NIRISS': # only NIRISS has both orders accounted for
-        trace1 = cube[0, :, :]
-        trace2 = cube[1, :, :]
-        cube = cube[2:, :, :]
-
-    plotPAmin, plotPAmax = paRange
-
-    # start calculations
-    if not TRACES_PATH:
-        return None
-    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
-    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
-
-    nPA = cube.shape[0]
-    rows = cube.shape[1]
-    cols = cube.shape[2]
-    print('cols ', cols)
-    dPA = 360//nPA
-    PA = np.arange(nPA)*dPA
-
-    contamO1 = np.zeros([rows, nPA])
-    if instrument=='NIRISS':
-        contamO2 = np.zeros([rows, nPA])
-
-    low_lim_col = 20
-    high_lim_col = 41
-
-    #targ_trace_start, targ_trace_stop = 31, 417
-    targ_trace_start, targ_trace_stop = 25, 1319
-
-    for row in np.arange(rows):
-        # Contamination for order 1 of target trace
-        if (row < targ_trace_start) or (row > targ_trace_stop):
-            continue
-        i = np.argmax(trace1[row, :])
-        tr = trace1[row, i-low_lim_col:i+high_lim_col]
-        w = tr/np.sum(tr**2)
-        ww = np.tile(w, nPA).reshape([nPA, tr.size])
-
-        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
-
-
-
-
-
-        print('row: ', row)
-        print('tr: ', tr)
-        #print('tr std: ', tr_std)
-        print('w: ', w)
-
-        if instrument=='NIRISS':
-            if lamO2[row] < 0.6:
-                continue
-            i = np.argmax(trace2[row, :])
-            tr = trace2[row, i-20:i+41]
-            w = tr/np.sum(tr**2)
-            ww = np.tile(w, nPA).reshape([nPA, tr.size])
-            contamO2[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
-
-
-    """
+    
     nPA = 360
     rows = cube.shape[1]
     cols = cube.shape[2]
