@@ -30,9 +30,165 @@ lam1_nircam322w2 = 4.417
 lam0_nircam444w = 3.063
 lam1_nircam444w = 5.111
 
+def nirissContam(cube, paRange=[0, 360]):
+    """ Generates the contamination figure that will be plotted on the website
+    for NIRISS SOSS.
+    """
+    # Get data from FITS file
+    if isinstance(cube, str):
+        hdu = fits.open(cubeName)
+        cube = hdu[0].data
+        hdu.close()
+
+    # Pull out the target trace and cube of neighbor traces
+    trace1 = cube[0, :, :]
+    trace2 = cube[1, :, :]
+    cube = cube[2:, :, :]
+
+    plotPAmin, plotPAmax = paRange
+
+    # Start calculations
+    if not TRACES_PATH:
+        return None
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+
+    nPA = cube.shape[0]
+    rows = cube.shape[1]
+    cols = cube.shape[2]
+    print('cols ', cols)
+    dPA = 360//nPA
+    PA = np.arange(nPA)*dPA
+
+    contamO1 = np.zeros([rows, nPA])
+    contamO2 = np.zeros([rows, nPA])
+
+    low_lim_col = 20
+    high_lim_col = 41
+
+    for row in np.arange(rows):
+        # Contamination for order 1 of target trace
+        i = np.argmax(trace1[row, :])
+        tr = trace1[row, i-low_lim_col:i+high_lim_col]
+        ww = np.tile(w, nPA).reshape([nPA, tr.size])
+        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+
+        # Contamination for order 2 of target trace
+        if lamO2[row] < 0.6:
+            continue
+        i = np.argmax(trace2[row, :])
+        tr = trace2[row, i-20:i+41]
+        w = tr/np.sum(tr**2)
+        ww = np.tile(w, nPA).reshape([nPA, tr.size])
+        contamO2[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
+
+    return contamO1, contamO2
+
+def nircamContam(cube, instrument, paRange=[0, 360]):
+    """ Generates the contamination figure that will be plotted on the website
+    for MIRI LRS.
+    """
+    # Get data from FITS file
+    if isinstance(cube, str):
+        hdu = fits.open(cubeName)
+        cube = hdu[0].data
+        hdu.close()
+
+    # Pull out the target trace and cube of neighbor traces
+    trace1 = cube[0, :, :] # target star order 1 trace
+    cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
+
+    plotPAmin, plotPAmax = paRange
+
+    # Start calculations
+    if not TRACES_PATH:
+        return None
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+
+    nPA = cube.shape[0]
+    rows = cube.shape[1]
+    cols = cube.shape[2]
+    print('cols ', cols)
+    dPA = 360//nPA
+    PA = np.arange(nPA)*dPA
+
+    contamO1 = np.zeros([rows, nPA])
+
+    low_lim_col = 20
+    high_lim_col = 41
+    # eventually replace these hardcoded #s with
+    # wvl cutoff like NIRISS code.
+    # perhaps using PYSIAF.
+    if instrument == 'NIRCam F322W2':
+        targ_trace_start, targ_trace_stop = 25, 1667
+    elif instrument == 'NIRCam F444W':
+        targ_trace_start, targ_trace_stop = 25, 1319
+
+    for row in np.arange(rows):
+        # Contamination for order 1 of target trace
+        if (row < targ_trace_start) or (row > targ_trace_stop):
+            continue
+        i = np.argmax(trace1[row, :])
+        tr = trace1[row, i-low_lim_col:i+high_lim_col]
+        w = tr/np.sum(tr**2)
+        ww = np.tile(w, nPA).reshape([nPA, tr.size])
+        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+
+    contamO1 = contamO1[targ_trace_start:targ_trace_stop, :]
+    return contamO1
+
+def miriContam(cube, paRange=[0, 360]):
+    """ Generates the contamination figure that will be plotted on the website
+    for MIRI LRS.
+    """
+    # Get data from FITS file
+    if isinstance(cube, str):
+        hdu = fits.open(cubeName)
+        cube = hdu[0].data
+        hdu.close()
+
+    # Pull out the target trace and cube of neighbor traces
+    trace1 = cube[0, :, :] # target star order 1 trace
+    cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
+
+    plotPAmin, plotPAmax = paRange
+
+    # Start calculations
+    if not TRACES_PATH:
+        return None
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+
+    nPA = cube.shape[0]
+    rows = cube.shape[1]
+    cols = cube.shape[2]
+    print('cols ', cols)
+    dPA = 360//nPA
+    PA = np.arange(nPA)*dPA
+
+    contamO1 = np.zeros([rows, nPA])
+
+    low_lim_col = 20
+    high_lim_col = 41
+    targ_trace_start, targ_trace_stop = 31, 417
+
+    for row in np.arange(rows):
+        # Contamination for order 1 of target trace
+        if (row < targ_trace_start) or (row > targ_trace_stop):
+            continue
+        i = np.argmax(trace1[row, :])
+        tr = trace1[row, i-low_lim_col:i+high_lim_col]
+        w = tr/np.sum(tr**2)
+        ww = np.tile(w, nPA).reshape([nPA, tr.size])
+        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+
+    return contamO1
+
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
            badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
 
+    """
     # Get data from FITS file
     if isinstance(cube, str):
         hdu = fits.open(cubeName)
@@ -69,25 +225,24 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     low_lim_col = 20
     high_lim_col = 41
+
+    #targ_trace_start, targ_trace_stop = 31, 417
+    targ_trace_start, targ_trace_stop = 25, 1319
+
     for row in np.arange(rows):
+        # Contamination for order 1 of target trace
+        if (row < targ_trace_start) or (row > targ_trace_stop):
+            continue
         i = np.argmax(trace1[row, :])
         tr = trace1[row, i-low_lim_col:i+high_lim_col]
-
-        # a fix for MIRI's "pile up" issue~~~~~~~~~~~~~~~~~~~
-        if instrument=='MIRI':
-            tr_std = np.std(tr)
-            print(tr_std)
-            if tr_std < 10:
-                w = np.zeros(len(tr))
-            elif tr_std > 10:
-                w = tr/np.sum(tr**2)
-
-        else:
-            w = tr/np.sum(tr**2)
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
 
         contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+
+
+
+
 
         print('row: ', row)
         print('tr: ', tr)
@@ -103,6 +258,22 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
             ww = np.tile(w, nPA).reshape([nPA, tr.size])
             contamO2[row, :] = np.sum(cube[:, row, i-20:i+41]*ww, axis=1)
 
+
+    """
+    nPA = 360
+    rows = cube.shape[1]
+    cols = cube.shape[2]
+    print('cols ', cols)
+    dPA = 360//nPA
+    PA = np.arange(nPA)*dPA
+
+    # Generate the contam figure
+    if instrument == 'NIRISS':
+        contamO1, contamO2 = nirissContam(cube)
+    elif (instrument == 'NIRCam F322W2') or (instrument == 'NIRCam F444W'):
+        contamO1 = nircamContam(cube, instrument)
+    elif instrument == 'MIRI':
+        contamO1 = miriContam(cube)
 
     TOOLS = 'pan, box_zoom, crosshair, reset, hover'
 
@@ -150,7 +321,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
         contamO1 = np.flipud(contamO1)
-    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))#[:, 300:] # might this
+    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))[:, 300:] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
                                                         #of o1 in all instruments
