@@ -7,7 +7,7 @@ from bokeh.layouts import gridplot
 from bokeh.plotting import figure
 from bokeh.models import Range1d, LinearColorMapper, Label
 from bokeh.models.widgets import Panel, Tabs
-from bokeh.palettes import inferno
+from bokeh.palettes import viridis
 import numpy as np
 
 from . import visibilityPA as vpa
@@ -188,7 +188,7 @@ def miriContam(cube, paRange=[0, 360]):
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
            badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
 
-    
+
     nPA = 360
     rows = cube.shape[1]
     cols = cube.shape[2]
@@ -232,7 +232,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     ylim0 = PA.min()-0.5*dPA
     ylim1 = PA.max()+0.5*dPA
-    color_mapper = LinearColorMapper(palette=inferno(8)[::-1],
+    color_mapper = LinearColorMapper(palette=viridis(8)[::-1],
                                      low=-4, high=1)
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
