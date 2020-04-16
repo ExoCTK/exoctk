@@ -16,8 +16,10 @@
     <br>
 
     <p>
-        Due to uncertainties on the exact scheduling time of JWST observations, users are strongly encouraged to input minimum and maximum phases on the APT "Timing" requirements under the "Special Requirements" 
-        section when planning their observations. This gives the observatory a range of time (the "Window Size") on which observations might start. This is illustrated in the following diagram:
+        Due to uncertainties on the exact scheduling time of JWST observations, users are strongly encouraged to input minimum and maximum phases on the APT "Timing" requirements under the 
+        "Special Requirements" section when planning their observations. This gives the observatory a range of time (the "Window Size"; which should be of one hour or larger in order to not 
+        incur into <a href="https://jwst-docs.stsci.edu/jppom/visit-overheads-timing-model/overhead-duration-components">direct scheduling overheads</a>) on which observations might start. 
+        This is illustrated in the following diagram:
     </p>
     <br>
     <p>
@@ -25,7 +27,9 @@
     </p>
     <br>
     <p>
-    The <b>Phase Constraint Calculator provides a simple interface for calculating this JWST observation window for direct input on APT.</b> This tool always assumes the zero-phase is at mid-transit, and thus that value is the one that should be inputted under "Zero phase (HJD)" in APT. Users can either resolve target properties from exo.MAST using the "Resolve Target" button below or input their own. If using the former, <b>users are strongly encouraged to check that the retrieved properties are up-to-date</b>.
+    The <b>Phase Constraint Calculator provides a simple interface for calculating this JWST observation window for direct input on APT.</b> This tool always assumes the zero-phase is at 
+    mid-transit, and thus that value is the one that should be input under "Zero phase (HJD)" in APT. Users can either resolve target properties from exo.MAST using the "Resolve Target" button 
+    below or input their own. If using the former, <b>users are strongly encouraged to check that the retrieved properties are up-to-date</b>. 
     </p>
 
     <form class='form-horizontal' action="/phase_constraint" method="POST">
