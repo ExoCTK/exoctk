@@ -146,7 +146,7 @@ class PhaseConstraint(BaseForm):
     transit_type = SelectField('transit_type', choices=[('primary', 'primary'), ('secondary', 'secondary')])
     omega = FloatField('omega', default=np.nan)
     inclination = FloatField('inclination', default=np.nan)
-    transit_time = FloatField('transit_time', default = np.nan) 
+    transit_time = FloatField('transit_time', default=np.nan)
     window_size = FloatField('window_size', default=1.0)
     observation_duration = FloatField('observation_duration', default=2.0, validators=[InputRequired('Observation duration is a required field.')])
     minimum_phase = DecimalField('minimum_phase', default=0.0)
