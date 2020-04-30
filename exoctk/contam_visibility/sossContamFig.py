@@ -70,6 +70,7 @@ def nirissContam(cube, paRange=[0, 360]):
         # Contamination for order 1 of target trace
         i = np.argmax(trace1[row, :])
         tr = trace1[row, i-low_lim_col:i+high_lim_col]
+        w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
 
@@ -183,12 +184,15 @@ def miriContam(cube, paRange=[0, 360]):
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
 
+    contamO1 = contamO1[targ_trace_start:targ_trace_stop, :]
     return contamO1
 
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
            badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
 
-
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+    
     nPA = 360
     rows = cube.shape[1]
     cols = cube.shape[2]
@@ -364,7 +368,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig#, contamO1, ww
+    return fig#, contamO1
 
 
 if __name__ == "__main__":

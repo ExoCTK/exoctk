@@ -146,6 +146,42 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         stars['x'] = stars['dx']+sweetSpot['x']
         stars['y'] = stars['dy']+sweetSpot['y']
 
+        # ~~~~ JENNY TESTING
+        #print(kPA)
+
+        # Retain stars that are within the Direct Image NIRISS POM FOV
+        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) &
+                        (stars['y'] >= -154) & (stars['y'] <= 2047+174))
+        starsInFOV = stars[ind]
+
+        if (kPA == 345) or (kPA==160) or (kPA==152) or (kPA==162) or (kPA==200):
+            print(kPA)
+            #stars['x'])
+            #plt.ion()
+            print(stars['y'])
+            print(sweetSpot['x'])
+            print(sweetSpot['y'])
+            plt.figure(1)
+            fullX, fullY = 55, 427
+            subX, subY = 55, 427
+            plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
+            plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
+
+            # the order 1 & 2 traces
+            #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
+            #t1 = np.loadtxt(path+'trace_order1.txt', unpack=True)
+            #plt.plot(t1[0], t1[1], 'r')
+            #t2 = np.loadtxt(path+'trace_order2.txt', unpack=True)
+            #plt.plot(t2[0], t2[1], 'r')
+
+            # the stars
+            plt.plot(stars['x'], stars['y'], 'b*')
+            plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
+            plt.title("APA= {} (V3PA={})".format(APA, V3PA))
+            ax = plt.gca()
+            ax.set_aspect('equal')
+            plt.show(block=False)
+        """
         # Display the star field (blue), target (red), subarray (green),
         # full array (blue), and axes
         if (kPA == 0 and nStars > 1) and False:
@@ -188,11 +224,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             ax.set_ylim(-400, 2047+400)
             ax.set_aspect('equal')
             plt.show()
-
-        # Retain stars that are within the Direct Image NIRISS POM FOV
-        ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) &
-                        (stars['y'] >= -154) & (stars['y'] <= 2047+174))
-        starsInFOV = stars[ind]
+        """
 
         for i in range(len(ind)):
             intx = round(starsInFOV['dx'][i])
@@ -310,6 +342,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
         # Number of stars
         nStars = allRA.size
+        print(nStars)
 
         # Restoring model parameters
         modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
@@ -366,8 +399,10 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
         # Big loop to generate a simulation at each instrument PA
         for kPA in range(PAtab.size):
-            APA = PAtab[kPA] # Aperture Position Angle (PA of instrument)
-            V3PA = APA+add_to_apa  # from APT
+            #APA = PAtab[kPA] # Aperture Position Angle (PA of instrument)
+            #V3PA = APA+add_to_apa  # from APT
+            V3PA = PAtab[kPA]
+            APA = V3PA+add_to_apa
             sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
             cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
             ps = pixel_scale
@@ -388,8 +423,37 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
             starsInFOV = stars[ind]
 
-            print('NIRCam')
-            print('stars in FOV: ', starsInFOV)
+            # ~~~~ JENNY TESTING
+            #print(kPA)
+
+            if (kPA == 345) or (kPA==160) or (kPA==152) or (kPA==162) or (kPA==200):
+                print(kPA)
+                #stars['x'])
+                #plt.ion()
+                #print(stars['y'])
+                print(sweetSpot['x'])
+                print(sweetSpot['y'])
+                plt.figure(1)
+                fullX, fullY = 55, 427
+                subX, subY = 55, 427
+                plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
+                plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
+
+                # the order 1 & 2 traces
+                #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
+                #t1 = np.loadtxt(path+'trace_order1.txt', unpack=True)
+                #plt.plot(t1[0], t1[1], 'r')
+                #t2 = np.loadtxt(path+'trace_order2.txt', unpack=True)
+                #plt.plot(t2[0], t2[1], 'r')
+
+                # the stars
+                plt.plot(stars['x'], stars['y'], 'b*')
+                plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
+                plt.title("APA= {} (V3PA={})".format(APA, V3PA))
+                ax = plt.gca()
+                plt.show(block=False)
+            #print('NIRCam')
+            #print('stars in FOV: ', starsInFOV)
 
             for i in range(len(ind)):
                 intx = round(starsInFOV['dx'][i])
@@ -500,6 +564,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         # Number of stars
         nStars = allRA.size
+        print(nStars)
 
         # Restoring model parameters
         modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
@@ -555,8 +620,11 @@ def lrsFieldSim(ra, dec, binComp=''):
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
+        dtheta = 95 # this adjusts the MIRI trace orientation
+                    # to match NIRISS and NIRCam's for the purpose
+                    # of calculating the contamination at the right angles
         for kPA in range(PAtab.size):
-            APA = PAtab[kPA] # Aperture Position Angle (PA of instrument)
+            APA = PAtab[kPA]+dtheta # Aperture Position Angle (PA of instrument)
             V3PA = APA+add_to_apa  # from APT
             sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
             cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
@@ -577,9 +645,42 @@ def lrsFieldSim(ra, dec, binComp=''):
                             (stars['y'] >= -8000) & (stars['y'] <= dimY+8000))
 
             starsInFOV = stars[ind]
-            print('MIRI')
-            print('stars in FOV: ', starsInFOV)
 
+            # ~~~~ JENNY TESTING
+            #print(kPA)
+
+            if (kPA == 248) or (kPA== 68) or (kPA==187) or (kPA==312) or (kPA==328):
+                print(kPA)
+                #stars['x'])
+                #plt.ion()
+                #print(stars['y'])
+                print(sweetSpot['x'])
+                print(sweetSpot['y'])
+                plt.figure(1)
+                fullX, fullY = 55, 427
+                subX, subY = 55, 427
+                plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
+                plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
+
+                # the order 1 & 2 traces
+                #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
+                #t1 = np.loadtxt(path+'trace_order1.txt', unpack=True)
+                #plt.plot(t1[0], t1[1], 'r')
+                #t2 = np.loadtxt(path+'trace_order2.txt', unpack=True)
+                #plt.plot(t2[0], t2[1], 'r')
+
+                # the stars
+                plt.plot(stars['x'], stars['y'], 'b*')
+                plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
+                plt.title("APA= {} (V3PA={})".format(APA, V3PA))
+                ax = plt.gca()
+                ax.set_aspect('equal')
+                plt.show(block=False)
+
+            # ~~~
+            #print('MIRI')
+            #print('stars in FOV: ', starsInFOV)
+            #print(range(len(ind)))
             for i in range(len(ind)):
                 intx = round(starsInFOV['dx'][i])
                 inty = round(starsInFOV['dy'][i])
@@ -614,10 +715,13 @@ def lrsFieldSim(ra, dec, binComp=''):
 
                 if (intx == 0) & (inty == 0) & (kPA == 0):
                     fNameModO12 = fitsFiles[k]
+                    print('FNAMEMOD')
+                    print(fNameModO12)
                     modelO1 = fits.getdata(fNameModO12, 1)
-                    
+                    #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-
+                    #ord1 = np.flipud(ord1)
+                    #endflipping
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
                 # Fleshing out indexes 1-361 of the simulation cube
@@ -625,9 +729,10 @@ def lrsFieldSim(ra, dec, binComp=''):
                 if (intx != 0) or (inty != 0):
                     fNameModO12 = fitsFiles[k]
                     modelO1 = fits.getdata(fNameModO12, 1)
-
+                    #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-
+                    #ord1 = np.flipud(ord1)
+                    #endflipping
                     simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += ord1
 
         return simuCube
