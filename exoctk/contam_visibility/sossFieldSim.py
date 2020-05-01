@@ -625,6 +625,8 @@ def lrsFieldSim(ra, dec, binComp=''):
                     # of calculating the contamination at the right angles
         for kPA in range(PAtab.size):
             APA = PAtab[kPA]+dtheta # Aperture Position Angle (PA of instrument)
+            if APA > 360:
+                APA = APA - 360 # angle can go beyond 360, so we reset to 1
             V3PA = APA+add_to_apa  # from APT
             sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
             cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
@@ -649,8 +651,9 @@ def lrsFieldSim(ra, dec, binComp=''):
             # ~~~~ JENNY TESTING
             #print(kPA)
 
-            if (kPA == 248) or (kPA== 68) or (kPA==187) or (kPA==312) or (kPA==328):
-                print(kPA)
+            if (kPA == (0)) or (kPA== (130-dtheta)) or (kPA==(114-dtheta)) or (kPA==130) or (kPA==114):
+                print('KPA and APA')
+                print(kPA, APA)
                 #stars['x'])
                 #plt.ion()
                 #print(stars['y'])
@@ -659,8 +662,8 @@ def lrsFieldSim(ra, dec, binComp=''):
                 plt.figure(1)
                 fullX, fullY = 55, 427
                 subX, subY = 55, 427
-                plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
-                plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
+                #plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
+                #plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
 
                 # the order 1 & 2 traces
                 #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
@@ -672,7 +675,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 # the stars
                 plt.plot(stars['x'], stars['y'], 'b*')
                 plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
-                plt.title("APA= {} (V3PA={})".format(APA, V3PA))
+                plt.title("APA= {} (kPA={})".format(APA, kPA))
                 ax = plt.gca()
                 ax.set_aspect('equal')
                 plt.show(block=False)
@@ -720,7 +723,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                     modelO1 = fits.getdata(fNameModO12, 1)
                     #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-                    #ord1 = np.flipud(ord1)
+                    ord1 = np.flipud(ord1)
                     #endflipping
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
@@ -731,7 +734,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                     modelO1 = fits.getdata(fNameModO12, 1)
                     #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-                    #ord1 = np.flipud(ord1)
+                    ord1 = np.flipud(ord1)
                     #endflipping
                     simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += ord1
 
