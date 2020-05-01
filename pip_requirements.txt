@@ -5,7 +5,7 @@ bandit==1.6.2
 batman-package==2.4.6
 bibtexparser==1.1.0
 bokeh==2.0.2
-boto3==1.12.33
+boto3==1.13.0
 corner==2.0.1
 cython==0.29.16
 docopt==0.6.2
