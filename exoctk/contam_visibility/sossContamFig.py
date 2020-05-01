@@ -192,7 +192,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
-    
+
     nPA = 360
     rows = cube.shape[1]
     cols = cube.shape[2]
@@ -244,7 +244,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
-    if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
+    #if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
         # need to flip the array 180deg for MIRI
         # so that it goes from top row --> bottom row (left --> right, respectively)
         # because
@@ -253,8 +253,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         # and the x-axis for the contam plot will go from low wvl --> high wvl
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
-        contamO1 = np.flipud(contamO1)
-    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))[:, 300:] # might this
+        #contamO1 = np.flipud(contamO1)
+    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
                                                         #of o1 in all instruments
