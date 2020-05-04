@@ -1,5 +1,6 @@
 import glob
 import os
+from matplotlib import cm
 
 from astroquery.irsa import Irsa
 import astropy.coordinates as crd
@@ -21,6 +22,7 @@ if not EXOCTK_DATA:
     TRACES_PATH = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
+
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -124,7 +126,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     PAtab = np.arange(PAmin, PAmax, dPA)    # degrees
     nPA = len(PAtab)
 
-    # dimX=256 #2048 #########now as argument, with default to 256
+
     dimY = 2048
     # cube of trace simulation at every degree of field rotation,
     # +target at O1 and O2
@@ -673,11 +675,35 @@ def lrsFieldSim(ra, dec, binComp=''):
                 #plt.plot(t2[0], t2[1], 'r')
 
                 # the stars
-                plt.plot(stars['x'], stars['y'], 'b*')
+                mags = stars['jmag']
+                print(mags)
+
+                colors = cm.get_cmap('viridis', len(mags))
+                colors_0 = np.asarray(colors.colors)
+
+                i = mags.argsort()
+                ii = mags.argsort().argsort()
+
+                colors = colors_0 # matching the colors
+                                     # to the corresponding magnitude
+                starsx, starsy = stars['x'][i], stars['y'][i]
+
+                for x, y, c in zip(starsx, starsy, colors):
+                    plt.plot(x,y,'*',color=c, picker=True)
+
                 plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
                 plt.title("APA= {} (kPA={})".format(APA, kPA))
+
                 ax = plt.gca()
+                img = plt.gcf()
                 ax.set_aspect('equal')
+
+                sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, \
+                                           norm=plt.Normalize(vmin=mags.min(),\
+                                                              vmax=mags.max()))
+                sm._A = []
+                plt.colorbar(sm)
+
                 plt.show(block=False)
 
             # ~~~
@@ -740,7 +766,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         return simuCube
 
-def fieldSim(ra, dec, instrument, binComp=''):
+def fieldSim(ra, dec, instrument, binComp='', testing=False):
     """ Wraps ``sossFieldSim``, ``gtsFieldSim``, and ``lrsFieldSim`` together.
     Produces a field simulation for a target using any instrument (NIRISS,
     NIRCam, or MIRI).
@@ -757,6 +783,11 @@ def fieldSim(ra, dec, instrument, binComp=''):
         'NIRISS', 'NIRCam F322W2', 'NIRCam F444W', 'MIRI'
     binComp : sequence
         The parameters of a binary companion.
+    testing : bool
+        Shoud be ``True`` if running fieldSim for testing / troubleshooting
+        purposes. This will generate a matplotlib figure showing the target
+        FOV. The neighboring stars in this FOV will be included in the
+        contamination calculation (contamFig.py).
 
     Returns
     -------
@@ -764,6 +795,8 @@ def fieldSim(ra, dec, instrument, binComp=''):
         The simulated data cube. Index 0 and 1 (axis=0) show the trace of
         the target for orders 1 and 2 (respectively). Index 2-362 show the trace
         of the target at every position angle (PA) of the instrument.
+    plt.plot() : matplotlib object
+        A plot. Only if `testing` parameter is set to True.
     """
 
     # Calling the variables which depend on what instrument you use
