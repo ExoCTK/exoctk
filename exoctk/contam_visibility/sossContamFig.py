@@ -368,7 +368,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig#, contamO1
+    return fig, contamO1
 
 
 if __name__ == "__main__":
