@@ -144,7 +144,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
         nps = niriss_pixel_scale
         stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/nps
-        stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/nps
+        stars['dy'] = (-np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/nps
         stars['x'] = stars['dx']+sweetSpot['x']
         stars['y'] = stars['dy']+sweetSpot['y']
 
@@ -156,18 +156,19 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
                         (stars['y'] >= -154) & (stars['y'] <= 2047+174))
         starsInFOV = stars[ind]
 
-        if (kPA == 345) or (kPA==160) or (kPA==152) or (kPA==162) or (kPA==200):
-            print(kPA)
+        if (kPA == (0)) or (kPA== (130-dtheta)) or (kPA==(114-dtheta)) or (kPA==130) or (kPA==114):
+            print('KPA and APA')
+            print(kPA, APA)
             #stars['x'])
             #plt.ion()
-            print(stars['y'])
+            #print(stars['y'])
             print(sweetSpot['x'])
             print(sweetSpot['y'])
             plt.figure(1)
             fullX, fullY = 55, 427
             subX, subY = 55, 427
-            plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
-            plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
+            #plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
+            #plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
 
             # the order 1 & 2 traces
             #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
@@ -177,11 +178,35 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             #plt.plot(t2[0], t2[1], 'r')
 
             # the stars
-            plt.plot(stars['x'], stars['y'], 'b*')
+            mags = stars['jmag']
+            print(mags)
+
+            colors = cm.get_cmap('viridis', len(mags))
+            colors_0 = np.asarray(colors.colors)
+
+            i = mags.argsort()
+            ii = mags.argsort().argsort()
+
+            colors = colors_0 # matching the colors
+                                 # to the corresponding magnitude
+            starsx, starsy = stars['x'][i], stars['y'][i]
+
+            for x, y, c in zip(starsx, starsy, colors):
+                plt.plot(x,y,'*',color=c, picker=True)
+
             plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
-            plt.title("APA= {} (V3PA={})".format(APA, V3PA))
+            plt.title("APA= {} (kPA={})".format(APA, kPA))
+
             ax = plt.gca()
+            img = plt.gcf()
             ax.set_aspect('equal')
+
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, \
+                                       norm=plt.Normalize(vmin=mags.min(),\
+                                                          vmax=mags.max()))
+            sm._A = []
+            plt.colorbar(sm)
+
             plt.show(block=False)
         """
         # Display the star field (blue), target (red), subarray (green),
@@ -622,7 +647,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
-        dtheta = 95 # this adjusts the MIRI trace orientation
+        dtheta = 95+180 # this adjusts the MIRI trace orientation
                     # to match NIRISS and NIRCam's for the purpose
                     # of calculating the contamination at the right angles
         for kPA in range(PAtab.size):
@@ -634,7 +659,7 @@ def lrsFieldSim(ra, dec, binComp=''):
             cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
             ps = pixel_scale
             stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
-            stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
+            stars['dy'] = (-np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
             stars['x'] = stars['dx']+sweetSpot['x']
             stars['y'] = stars['dy']+sweetSpot['y']
 
