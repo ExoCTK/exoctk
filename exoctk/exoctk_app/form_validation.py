@@ -94,9 +94,9 @@ class GroupsIntsForm(BaseForm):
 
     # Filter selects
     miri_filt = SelectField('miri_filt', choices=[('lrs', 'LRS')])
-    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M')])
+    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M'), ('clear_prism', 'CLEAR/PRISM')])
     niriss_filt = SelectField('niriss_filt', choices=[('soss', 'SOSS')])
-    nircam_filt = SelectField('nircam_filt', choices=[('f322w2', 'F322W2'), ('f444w', 'F444W'), ('f277w', 'F277W')])
+    nircam_filt = SelectField('nircam_filt', choices=[('f322w2', 'F322W2'), ('f444w', 'F444W'), ('f277w', 'F277W'), ('f356w', 'F356W')])
 
     # TA filter selects
     miri_filt_ta = SelectField('miri_filt_ta', choices=[('f560w', 'F560W'), ('f100w', 'F100W'), ('f1500w', 'F1500W')])
@@ -141,7 +141,7 @@ class PhaseConstraint(BaseForm):
 
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
-    orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')]) 
+    orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')])
     eccentricity = FloatField('eccentricity', default=np.nan)
     transit_type = SelectField('transit_type', choices=[('primary', 'primary'), ('secondary', 'secondary')])
     omega = FloatField('omega', default=np.nan)
