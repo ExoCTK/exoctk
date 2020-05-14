@@ -67,7 +67,7 @@ class LimbDarkeningForm(BaseForm):
     # Bandpass
     default_filter = 'Kepler.K'
     defilt = svo.Filter(default_filter)
-    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
+    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
     wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
     wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
     n_bins = IntegerField('n_bins', default=1)
