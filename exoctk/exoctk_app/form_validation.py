@@ -113,7 +113,7 @@ class GroupsIntsForm(BaseForm):
     # TA subarray selects
     miri_subarray_ta = SelectField('miri_subarray_ta', choices=[('slitlessprism', 'SLITLESSPRISM')])
     nirspec_subarray_ta = SelectField('nirspec_subarray_ta', choices=[('full', 'FULL'), ('sub32', 'SUB32'), ('sub2048', 'SUB2048')])
-    niriss_subarray_ta = SelectField('niriss_subarray_ta', choices=[('nrm', 'SUBTASOSS -- BRIGHT'), ('im', 'SUBTASOSS -- FAINT')])
+    niriss_subarray_ta = SelectField('niriss_subarray_ta', choices=[('subtasoss', 'SUBTASOSS -- FAINT')])
     nircam_subarray_ta = SelectField('nircam_subarray_ta', choices=[('sub32tats', 'SUB32TATS')])
 
     # Saturation
