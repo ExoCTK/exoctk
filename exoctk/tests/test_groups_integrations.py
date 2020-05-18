@@ -14,16 +14,20 @@ Use
     The tests can be executed from the command line as such:
     ::
 
-        pytest -s test_groups_integrations.py
+        pytest test_groups_integrations.py
 """
 
 from decimal import Decimal
 import json
+import os
 import pytest
 
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 
-GROUPS_INTEGRATIONS_FILE = '/user/bourque/repositories/observation_planning_data/groups_integrations_1.4.json'
+# Get the location of EXOCTK_DATA environvment variable
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+
+GROUPS_INTEGRATIONS_FILE = os.path.join(EXOCTK_DATA, 'groups_integrations', 'groups_integrations.json')
 INSTRUMENTS = ['miri', 'nircam', 'niriss', 'nirspec']
 MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 12.5]
 PHOENIX_MODEL_KEYS = [
