@@ -229,11 +229,6 @@ def test_perform_calculation():
         # Ensure the key names in each dictionary match
         assert item in expected_results
 
-        # Ensure the key values in each dictionary match
-        # print(results[item])
-        # print(expected_results[item])
-        # print(results[item] == expected_results[item])
-
 
 @pytest.mark.parametrize('key, instrument, filt, subarray, model', EXPECTED_VALUES)
 def test_sat_keys(key, instrument, filt, subarray, model):
