@@ -7,7 +7,7 @@ import pytest
 
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 
-GROUPS_INTEGRATIONS_FILE = 'groups_integrations_1.4.json'
+GROUPS_INTEGRATIONS_FILE = '/user/bourque/repositories/observation_planning_data/groups_integrations_1.4.json'
 INSTRUMENTS =  ['miri', 'nircam', 'niriss', 'nirspec']
 MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 12.5]
 PHOENIX_MODEL_KEYS = [
@@ -38,7 +38,7 @@ TA_MODES_DICT = {'miri': {'filter': ['f560w', 'f100w', 'f1500w'],
                              'subarray': ['full', 'sub32', 'sub2048']}
 }
 
-# Generate data of expected values
+# Generate data of expected values for sat keys
 EXPECTED_VALUES = []
 for mode in ['sci_sat', 'ta_sat', 'ta_snr']:
 
@@ -59,91 +59,157 @@ for mode in ['sci_sat', 'ta_sat', 'ta_snr']:
                 for model in PHOENIX_MODEL_KEYS:
                     EXPECTED_VALUES.append((mode, instrument, filter_key, subarray, model))
 
+# Generate data of expected values for frame_time key
+FRAME_TIME_EXPECTED_VALUES = []
+for instrument in INSTRUMENTS:
+    for subarray in SCI_MODES_DICT[instrument]['subarray']:
+        FRAME_TIME_EXPECTED_VALUES.append(('sci', instrument, subarray))
+    for subarray in TA_MODES_DICT[instrument]['subarray']:
+        FRAME_TIME_EXPECTED_VALUES.append(('ta', instrument, subarray))
+
 # Read in data that will be tested
 with open(GROUPS_INTEGRATIONS_FILE, 'r') as f:
     DATA = json.load(f)
 
 
-def test_perform_calculation():
+# def test_perform_calculation():
+#     """
+#     """
+
+#     params = {
+#         'ins': 'miri',
+#         'mag': Decimal('8.131'),
+#         'obs_time': Decimal('7.431039999999999'),
+#         'sat_max': Decimal('0.95'),
+#         'sat_mode': 'well',
+#         'time_unit': 'hour',
+#         'band': 'K',
+#         'mod': 'f5v',
+#         'filt': 'lrs',
+#         'subarray': 'slitlessprism',
+#         'filt_ta': 'f560w',
+#         'subarray_ta': 'slitlessprism',
+#         'n_group': 'optimize',
+#         'infile': GROUPS_INTEGRATIONS_FILE
+#     }
+
+#     expected_results = {
+#         'ins': 'miri',
+#         'mag': Decimal('8.131'),
+#         'obs_time': Decimal('7.431039999999999'),
+#         'sat_max': 183972.25,
+#         'sat_mode': 'well',
+#         'time_unit': 'hour',
+#         'band': 'K',
+#         'mod': 'f5v',
+#         'filt': 'lrs',
+#         'subarray': 'slitlessprism',
+#         'filt_ta': 'f560w',
+#         'subarray_ta': 'slitlessprism',
+#         'n_group': 36,
+#         'infile': GROUPS_INTEGRATIONS_FILE,
+#         'n_col': 72,
+#         'n_row': 416,
+#         'n_amp': 4,
+#         'n_reset': 0,
+#         'n_frame': 1,
+#         'n_skip': 0,
+#         't_frame': 0.159,
+#         't_int': 5.725,
+#         't_ramp': 5.566,
+#         'n_int': 4673,
+#         't_exp': 7.225,
+#         't_duration': 7.432,
+#         'obs_eff': 0.972,
+#         'ta_t_frame': 0.15904,
+#         'min_ta_groups': 5,
+#         'max_ta_groups': 3,
+#         't_duration_ta_min': 0.95424,
+#         't_duration_ta_max': 0.63616,
+#         'max_sat_prediction': 182048.689,
+#         'max_sat_ta': 93529.062,
+#         'min_sat_ta': 155881.77
+#     }
+
+#     results = perform_calculation(params)
+
+#     # Ensure the number of keys in each dictionary are the same
+#     assert len(results) == len(expected_results)
+
+#     for item in results:
+
+#         print('Testing {}'.format(item))
+
+#         # Ensure the key names in each dictionary match
+#         assert item in expected_results
+
+#         # Ensure the key values in each dictionary match
+#         # print(results[item])
+#         # print(expected_results[item])
+#         # print(results[item] == expected_results[item])
+
+
+# @pytest.mark.parametrize('key, instrument, filt, subarray, model', EXPECTED_VALUES)
+# def test_sat_keys(key, instrument, filt, subarray, model):
+#     """Ensures the ``sci_sat``, ``ta_sat``, and ``ta_snr`` keys data are
+#     present and properly formatted in the ``groups_integrations.json`` file.
+
+#     Parameters
+#     ----------
+#     key : str
+#         The key of interest.  Can be either ``sci_sat``, ``ta_sat``,
+#         or ``ta_snr``
+#     instrument : str
+#         The instrument of interest
+#     filt : str
+#         The filter of interest
+#     subarray : str
+#         The subarray of interest
+#     model : str
+#         The phoenix model of interest
+#     """
+
+#     assert instrument in DATA[key]
+#     assert filt in DATA[key][instrument]
+#     assert subarray in DATA[key][instrument][filt]
+#     assert model in DATA[key][instrument][filt][subarray]
+#     assert len(DATA[key][instrument][filt][subarray][model]) == len(MAGNITUDES)
+
+
+@pytest.mark.parametrize('key', ['sci_sat', 'mags', 'fullwell', 'frame_time', 'ta_sat', 'ta_snr'])
+def test_groups_integrations_keys(key):
+    """Ensures that the necessary first-order keys are in the
+    ``groups_integrations.json`` file
+
+    Parameters
+    ----------
+    key : str
+        The key of interest (e.g. ``mags``, ``fullwell``, etc.)
     """
+
+    assert key in DATA
+
+
+@pytest.mark.parametrize('magnitude', MAGNITUDES)
+def test_mags_key(magnitude):
+    """Ensures the contents of the ``mags`` key is present in the
+    ``groups_integrations.json`` file are present and match expected
+    values.
+
+    Parameters
+    ----------
+    magnitude : float
+        The magnitude of interest
     """
 
-    params = {
-        'ins': 'miri',
-        'mag': Decimal('8.131'),
-        'obs_time': Decimal('7.431039999999999'),
-        'sat_max': Decimal('0.95'),
-        'sat_mode': 'well',
-        'time_unit': 'hour',
-        'band': 'K',
-        'mod': 'f5v',
-        'filt': 'lrs',
-        'subarray': 'slitlessprism',
-        'filt_ta': 'f560w',
-        'subarray_ta': 'slitlessprism',
-        'n_group': 'optimize',
-        'infile': GROUPS_INTEGRATIONS_FILE
-    }
+    assert magnitude in DATA['mags']
 
-    expected_results = {
-        'ins': 'miri',
-        'mag': Decimal('8.131'),
-        'obs_time': Decimal('7.431039999999999'),
-        'sat_max': 183972.25,
-        'sat_mode': 'well',
-        'time_unit': 'hour',
-        'band': 'K',
-        'mod': 'f5v',
-        'filt': 'lrs',
-        'subarray': 'slitlessprism',
-        'filt_ta': 'f560w',
-        'subarray_ta': 'slitlessprism',
-        'n_group': 36,
-        'infile': GROUPS_INTEGRATIONS_FILE,
-        'n_col': 72,
-        'n_row': 416,
-        'n_amp': 4,
-        'n_reset': 0,
-        'n_frame': 1,
-        'n_skip': 0,
-        't_frame': 0.159,
-        't_int': 5.725,
-        't_ramp': 5.566,
-        'n_int': 4673,
-        't_exp': 7.225,
-        't_duration': 7.432,
-        'obs_eff': 0.972,
-        'ta_t_frame': 0.15904,
-        'min_ta_groups': 5,
-        'max_ta_groups': 3,
-        't_duration_ta_min': 0.95424,
-        't_duration_ta_max': 0.63616,
-        'max_sat_prediction': 182048.689,
-        'max_sat_ta': 93529.062,
-        'min_sat_ta': 155881.77
-    }
 
-    results = perform_calculation(params)
-
-    # Ensure the number of keys in each dictionary are the same
-    assert len(results) == len(expected_results)
-
-    for item in results:
-
-        print('Testing {}'.format(item))
-
-        # Ensure the key names in each dictionary match
-        assert item in expected_results
-
-        # Ensure the key values in each dictionary match
-        # print(results[item])
-        # print(expected_results[item])
-        # print(results[item] == expected_results[item])
-
-@pytest.mark.parametrize('mode, instrument, filt, subarray, model', EXPECTED_VALUES)
-def test_sat_modes(mode, instrument, filt, subarray, model):
-    """Ensures the ``sci_sat`` key data is present and properly
-    formatted in the ``groups_integrations.json`` file.
+@pytest.mark.parametrize('instrument', INSTRUMENTS)
+def test_fullwell_key(instrument):
+    """Ensures the contents of the ``fullwell`` key in the
+    ``groups_integrations.json`` file are present and match expected
+    values.
 
     Parameters
     ----------
@@ -151,44 +217,31 @@ def test_sat_modes(mode, instrument, filt, subarray, model):
         The instrument of interest
     """
 
-    assert instrument in DATA[mode]
-    assert filt in DATA[mode][instrument]
-    assert subarray in DATA[mode][instrument][filt]
-    assert model in DATA[mode][instrument][filt][subarray]
-    assert len(DATA[mode][instrument][filt][subarray][model]) == len(MAGNITUDES)
+    assert instrument in DATA['fullwell']
+    assert isinstance(DATA['fullwell'][instrument], int) or isinstance(DATA['fullwell'][instrument], float)
 
-def test_groups_integrations_file():
-    """Ensures that the necessary keys are in the
-    ``groups_integrations.json`` file"""
 
-    # Ensure first-order keys are present
-    expected_keys = ['sci_sat', 'mags', 'fullwell', 'frame_time', 'ta_sat', 'ta_snr']
-    for key in expected_keys:
-        assert key in DATA
+@pytest.mark.parametrize('mode, instrument, subarray', FRAME_TIME_EXPECTED_VALUES)
+def test_frame_time_key(mode, instrument, subarray):
+    """Ensures the contents of the ``frame_time`` key in the
+    ``groups_integrations.json`` file are present and match the
+    expected values.
 
-    # For mags key
-    for magnitude in MAGNITUDES:
-        assert magnitude in DATA['mags']
+    Parameters
+    ----------
+    mode : str
+        Either ``sci`` or ``ta``
+    instrument : str
+        The instrument of interest
+    subarray : str
+        The subarray of interest
+    """
 
-    # For fullwell key
-    for instrument in INSTRUMENTS:
-        assert instrument in DATA['fullwell']
+    assert instrument in DATA['frame_time']
 
-    # For frame_time key
-    for instrument in INSTRUMENTS:
-        assert instrument in DATA['frame_time']
-        for subarray in SCI_MODES_DICT[instrument]['subarray']:
-            assert subarray in DATA['frame_time'][instrument]
-        for subarray in TA_MODES_DICT[instrument]['subarray']:
-            assert subarray in DATA['frame_time'][instrument]['ta']
-
-    # For ta_snr key
-    for instrument in INSTRUMENTS:
-        assert instrument in DATA['ta_snr']
-        for filt in TA_MODES_DICT[instrument]['filter']:
-            assert filt in DATA['ta_snr'][instrument]
-            for subarray in TA_MODES_DICT[instrument]['subarray']:
-                assert subarray in DATA['ta_snr'][instrument][filt]
-                for phoenix_model_key in PHOENIX_MODEL_KEYS:
-                    assert phoenix_model_key in DATA['ta_snr'][instrument][filt][subarray]
-                    assert len(DATA['ta_snr'][instrument][filt][subarray][phoenix_model_key]) == len(MAGNITUDES)
+    if mode == 'sci':
+        assert subarray in DATA['frame_time'][instrument]
+        assert isinstance(DATA['frame_time'][instrument][subarray], float)
+    elif mode == 'ta':
+        assert subarray in DATA['frame_time'][instrument]['ta']
+        assert isinstance(DATA['frame_time'][instrument]['ta'][subarray], float)
