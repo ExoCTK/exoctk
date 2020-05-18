@@ -20,14 +20,13 @@ Use
 from decimal import Decimal
 import json
 import os
+from pkg_resources import resource_filename
 import pytest
 
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 
-# Get the location of EXOCTK_DATA environvment variable
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 
-GROUPS_INTEGRATIONS_FILE = os.path.join(EXOCTK_DATA, 'groups_integrations', 'groups_integrations.json')
+GROUPS_INTEGRATIONS_FILE = resource_filename('exoctk', 'data/groups_integrations/groups_integrations.json')
 INSTRUMENTS = ['miri', 'nircam', 'niriss', 'nirspec']
 MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 12.5]
 PHOENIX_MODEL_KEYS = [
