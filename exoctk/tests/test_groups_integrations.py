@@ -24,7 +24,7 @@ import pytest
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 
 GROUPS_INTEGRATIONS_FILE = '/user/bourque/repositories/observation_planning_data/groups_integrations_1.4.json'
-INSTRUMENTS =  ['miri', 'nircam', 'niriss', 'nirspec']
+INSTRUMENTS = ['miri', 'nircam', 'niriss', 'nirspec']
 MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 12.5]
 PHOENIX_MODEL_KEYS = [
     'f0i', 'f0v', 'f5i', 'f2v', 'f5v', 'f8v',
@@ -60,7 +60,7 @@ for mode in ['sci_sat', 'ta_sat', 'ta_snr']:
 
     if mode == 'sci_sat':
         params_dict = SCI_MODES_DICT
-    elif mode in ['ta_sat', 'ta_snr'] :
+    elif mode in ['ta_sat', 'ta_snr']:
         params_dict = TA_MODES_DICT
 
     for instrument in INSTRUMENTS:
