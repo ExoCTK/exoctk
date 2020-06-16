@@ -640,3 +640,25 @@ class ModelGrid(object):
 
         # Update the wavelength
         self.const = (old_unit/self.wave_units).decompose()._scale
+
+
+class ACES(ModelGrid):
+    """A convenience function to load the ACES model grid from the EXOCTK_DATA directory"""
+    def __init__(self, **kwargs):
+        """Initialize the ModelGrid object with the ACES models"""
+        # Get the ACES model directory from the EXOCTK_DATA directory
+        moddir = os.path.join(os.environ.get('EXOCTK_DATA'), 'modelgrid/ACES')
+
+        # Initialize base class
+        super().__init__(model_directory=moddir, **kwargs)
+
+
+class ATLAS9(ModelGrid):
+    """A convenience function to load the ATLAS9 model grid from the EXOCTK_DATA directory"""
+    def __init__(self, **kwargs):
+        """Initialize the ModelGrid object with the ACES models"""
+        # Get the ACES model directory from the EXOCTK_DATA directory
+        moddir = os.path.join(os.environ.get('EXOCTK_DATA'), 'modelgrid/ATLAS9')
+
+        # Initialize base class
+        super().__init__(model_directory=moddir, **kwargs)
