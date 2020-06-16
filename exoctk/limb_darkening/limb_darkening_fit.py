@@ -121,18 +121,15 @@ class LDC:
     Example
     -------
     from exoctk.limb_darkening import limb_darkening_fit as lf
-    from exoctk import modelgrid
     from svo_filters import Filter
     from pkg_resources import resource_filename
-    fits_files = resource_filename('exoctk', 'data/core/modelgrid/')
-    model_grid = modelgrid.ModelGrid(fits_files, resolution=700)
-    ld = lf.LDC(model_grid)
+    ld = lf.LDC(model_grid='ACES;)
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
     ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
     ld.plot(show=True)
     """
-    def __init__(self, model_grid):
+    def __init__(self, model_grid='ACES'):
         """Initialize an LDC object
 
         Parameters
@@ -141,10 +138,17 @@ class LDC:
             The grid of synthetic spectra from which the coefficients will
             be calculated
         """
-        # Set the model grid
-        # if not isinstance(model_grid, modelgrid.ModelGrid):
-        #     raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
+        # Try ACES or ATLAS
+        if model_grid == 'ACES':
+            model_grid = modelgrid.ACES(resolution=700)
+        if model_grid == 'ATLAS9':
+            model_grid = modelgrid.ATLAS9(resolution=700)
 
+        # Make sure it's a ModelGrid object
+        if not isinstance(model_grid, modelgrid.ModelGrid):
+            raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
+
+        # Load the model grid
         self.model_grid = model_grid
 
         # Table for results
