@@ -186,8 +186,8 @@ def limb_darkening():
         script, div = components(final)
 
         # Store the tables as a string
-        file_as_string = str(ld.results[[c for c in ld.results.dtype.names if
-                                        ld.results.dtype[c] != object]])
+        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
+        file_as_string = str(ld.results[keep_cols])
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
@@ -561,7 +561,7 @@ def exoctk_savefile():
 
     response = make_response(file_as_string)
     response.headers["Content-type"] = 'text; charset=utf-8'
-    response.headers["Content-Disposition"] = "attachment; filename=ExoXTK_results.txt"
+    response.headers["Content-Disposition"] = "attachment; filename=ExoCTK_results.txt"
     return response
 
 
