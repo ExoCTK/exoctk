@@ -3,9 +3,12 @@
 """
 A module to calculate limb darkening coefficients from a grid of model spectra
 """
+import copy
 import inspect
+import os
 import warnings
 
+from astropy.io import ascii as ii
 import astropy.table as at
 import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
@@ -504,3 +507,27 @@ class LDC:
 
         else:
             return fig
+
+    def save(self, filepath):
+        """
+        Save the LDC results to file
+
+        Parameters
+        ----------
+        filepath: str
+            The complete filepath to save the results to
+        """
+        # Make sure it is a string
+        if not isinstance(filepath, str):
+            raise TypeError("{}: Expecting a string for 'filepath' argument".format(type(filepath)))
+
+        # Make sure it's a valid path
+        if not os.path.exists(os.path.dirname(filepath)):
+            raise ValueError("{}: Not a valid path")
+
+        # Copy the results table
+        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
+        results = self.results[keep_cols]
+
+        # Save to file
+        ii.write(results, filepath, format='fixed_width_two_line')
