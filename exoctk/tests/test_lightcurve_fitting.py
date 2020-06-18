@@ -143,18 +143,18 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(self.params.param2.values, ('param2', 234.567, 'free', 200, 300))
 
 
-class TestSimulations(unittest.TestCase):
-    """Test the simulations.py module"""
-    def setUp(self):
-        """Setup for the tests"""
-        pass
-
-    def test_simulation(self):
-        """Test the simulations can be made properly"""
-        # Test to pass
-        npts = 1234
-        time, flux, unc, params = simulations.simulate_lightcurve('WASP-19b', 0.1, npts=npts, plot=True)
-        self.assertEqual(len(time), npts)
-
-        # Test to fail
-        self.assertRaises(ValueError, simulations.simulate_lightcurve, 'foobar', 0.1)
+# class TestSimulations(unittest.TestCase):
+#     """Test the simulations.py module"""
+#     def setUp(self):
+#         """Setup for the tests"""
+#         pass
+#
+#     def test_simulation(self):
+#         """Test the simulations can be made properly"""
+#         # Test to pass
+#         npts = 1234
+#         time, flux, unc, params = simulations.simulate_lightcurve('WASP-19b', 0.1, npts=npts, plot=True)
+#         self.assertEqual(len(time), npts)
+#
+#         # Test to fail
+#         self.assertRaises(ValueError, simulations.simulate_lightcurve, 'foobar', 0.1)
