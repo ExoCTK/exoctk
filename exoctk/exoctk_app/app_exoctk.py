@@ -1,10 +1,8 @@
-import datetime
 from functools import wraps
 import os
 import json
 from pkg_resources import resource_filename
 
-import astropy.constants as constants
 from astropy.coordinates import SkyCoord
 from astropy.extern.six.moves import StringIO
 import astropy.table as at
@@ -13,27 +11,19 @@ import astropy.units as u
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.embed import components
-from bokeh.plotting import figure
 import flask
 from flask import Flask, Response
 from flask import request, send_file, make_response, render_template
 import form_validation as fv
-import h5py
 import numpy as np
-import pandas as pd
-from sqlalchemy import create_engine
-import urllib
-from wtforms.validators import InputRequired, NumberRange
-from wtforms import DecimalField
 
-from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
-from exoctk.utils import find_closest, filter_table, get_env_variables, get_target_data, get_canonical_name
+from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 
@@ -68,6 +58,7 @@ def index():
     """The Index page"""
     return render_template('index.html')
 
+
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
     """The limb darkening form page. """
@@ -91,7 +82,7 @@ def limb_darkening():
                 form.logg.data = data.get('stellar_gravity')
                 form.target_url.data = str(target_url)
 
-            except:
+            except Exception:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
@@ -105,8 +96,8 @@ def limb_darkening():
         if form.bandpass.data == 'tophat':
             kwargs['n_bins'] = 1
             kwargs['pixels_per_bin'] = 100
-            kwargs['wave_min'] = 1*u.um
-            kwargs['wave_max'] = 2*u.um
+            kwargs['wave_min'] = 1 * u.um
+            kwargs['wave_max'] = 2 * u.um
 
         # Get the filter
         bandpass = svo.Filter(form.bandpass.data, **kwargs)
@@ -150,7 +141,7 @@ def limb_darkening():
         # Log the form inputs
         try:
             log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-        except:
+        except Exception:
             pass
 
         # Load the model grid
@@ -158,11 +149,11 @@ def limb_darkening():
         form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
 
         # Grism details
-        kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data*u.um, 'wave_max': form.wave_max.data*u.um}
+        kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
 
         # Make filter object and plot
         bandpass = svo.Filter(form.bandpass.data, **kwargs)
-        bp_name = bandpass.name
+        # bp_name = bandpass.name
         bk_plot = bandpass.plot(draw=False)
         bk_plot.plot_width = 580
         bk_plot.plot_height = 280
@@ -171,8 +162,8 @@ def limb_darkening():
         filt_script, filt_plot = components(bk_plot)
 
         # Trim the grid to nearby grid points to speed up calculation
-        full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
-        trim_rng = find_closest(full_rng, star_params, n=1, values=True)
+        # full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
+        # trim_rng = find_closest(full_rng, star_params, n=1, values=True)
 
         # Calculate the coefficients for each profile
         ld = lf.LDC(model_grid)
@@ -199,17 +190,14 @@ def limb_darkening():
 
             # Make the table into LaTeX
             table = filter_table(ld.results, profile=profile)
-            co_cols = [c for c in ld.results.colnames if (c.startswith('c') or
-                    c.startswith('e')) and len(c) == 2 and not
-                    np.all([np.isnan(i) for i in table[c]])]
+            co_cols = [c for c in ld.results.colnames if (c.startswith('c') or c.startswith('e')) and len(c) == 2 and not np.all([np.isnan(i) for i in table[c]])]
             table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
             table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
 
             # Add the results to the lists
-            html_table = '\n'.join(table.pformat(max_width=500, html=True))\
-                        .replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+            html_table = '\n'.join(table.pformat(max_width=500, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
 
             # Add the table title
             header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
@@ -225,6 +213,7 @@ def limb_darkening():
 
     return render_template('limb_darkening.html', form=form)
 
+
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
 def limb_darkening_error():
     """The limb darkening error page"""
@@ -239,6 +228,7 @@ def groups_integrations():
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
         sat_data = json.load(f)['fullwell']
+
     # Load default form
     form = fv.GroupsIntsForm()
 
@@ -256,11 +246,11 @@ def groups_integrations():
         try:
             trans_dur = float(request.args.get('transit_duration'))
             trans_dur *= u.day.to(u.hour)
-            obs_dur = 3*trans_dur + 1
+            obs_dur = 3 * trans_dur + 1
             form.obs_duration.data = obs_dur
         except TypeError:
             trans_dur = request.args.get('transit_duration')
-            if trans_dur == None:
+            if trans_dur is None:
                 pass
             else:
                 err = 'The Transit Duration from ExoMAST experienced some issues. Try a different spelling or source.'
@@ -283,12 +273,11 @@ def groups_integrations():
                 # Transit duration in exomast is in days, need it in hours
                 if form.time_unit.data == 'day':
                     trans_dur = data.get('transit_duration')
-                    obs_dur = 3*trans_dur + (1/24.)
+                    obs_dur = 3 * trans_dur + (1 / 24.)
                 else:
                     trans_dur = data.get('transit_duration')
                     trans_dur *= u.Unit('day').to('hour')
-                    obs_dur = 3*trans_dur + 1
-
+                    obs_dur = 3 * trans_dur + 1
 
                 # Model guess
                 logg_targ = data.get('stellar_gravity') or 4.5
@@ -299,7 +288,7 @@ def groups_integrations():
                 # If high logg, remove giants from guess list
                 if logg_targ < 4:
                     mod_table = filter_table(mod_table, logg=">=4")
-                teff = min(arr['teff'], key=lambda x:abs(x-teff_targ))
+                teff = min(arr['teff'], key=lambda x: abs(x - teff_targ))
                 mod_table.add_column(at.Column(np.array([i[0] for i in form.mod.choices]), name='value'))
                 mod_table = filter_table(mod_table, teff="<={}".format(teff))
                 mod_table.sort(['teff', 'logg'])
@@ -310,7 +299,7 @@ def groups_integrations():
                 form.obs_duration.data = obs_dur
                 form.target_url.data = url
 
-            except:
+            except Exception:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
@@ -342,7 +331,7 @@ def groups_integrations():
 
         # Convert the obs_time to hours
         if params['time_unit'] == 'day':
-            params['obs_time'] = params['obs_time']*24
+            params['obs_time'] = params['obs_time'] * 24
             params['time_unit'] = 'hours'
 
         # Run the calculation
@@ -431,7 +420,7 @@ def contam_visibility():
                 form.dec.data = dec_deg
                 form.target_url.data = url
 
-            except:
+            except Exception:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
@@ -457,10 +446,8 @@ def contam_visibility():
             # Log the form inputs
             try:
                 log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
-            except:
+            except Exception:
                 pass
-
-
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
@@ -470,31 +457,9 @@ def contam_visibility():
                                                                     targetName=str(title))
 
             # Make output table
-            vers = '1.0'
-            today = datetime.datetime.now()
             fh = StringIO()
             table.write(fh, format='csv', delimiter=',')
             visib_table = fh.getvalue()
-
-            # Format x axis
-            day0 = datetime.date(2019, 6, 1)
-            dtm = datetime.timedelta(days=367)
-            #vis_plot.x_range = Range1d(day0, day0 + dtm)
-
-
-            # TODO: Fix this so bad PAs are included
-            pB = []
-
-            # Make plot
-            TOOLS = 'crosshair, reset, hover, save'
-            fig = figure(tools=TOOLS, plot_width=800, plot_height=400, x_axis_type='datetime', title=title)
-            #fh = StringIO()
-            #table.write(fh, format='ascii')
-            #visib_table = fh.getvalue()
-
-            # Format x axis
-            day0 = datetime.date(2019, 6, 1)
-            dtm = datetime.timedelta(days=367)
 
             # Get scripts
             vis_js = INLINE.render_js()
@@ -511,9 +476,7 @@ def contam_visibility():
                 ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
                 # Make field simulation
-
                 contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
-
                 contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
 
                 # Get scripts
@@ -534,7 +497,7 @@ def contam_visibility():
                                    contam_js=contam_js,
                                    contam_css=contam_css)
 
-        except IOError:#Exception as e:
+        except Exception as e:
             err = 'The following error occurred: ' + str(e)
             return render_template('groups_integrations_error.html', err=err)
 
@@ -635,8 +598,8 @@ def generic():
     script, div = components(fig)
 
     html = flask.render_template('generic.html',
-                                 inputs= args,
-                                 closest_match = closest_match,
+                                 inputs=args,
+                                 closest_match=closest_match,
                                  error_message=error_message,
                                  table_string=table_string,
                                  plot_script=script,
@@ -652,8 +615,7 @@ def save_fortney_result():
     """SAve the results of the Fortney grid"""
 
     table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=fortney.dat"})
+    return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
 
 
 @app_exoctk.route('/generic_result', methods=['POST'])
@@ -661,17 +623,14 @@ def save_generic_result():
     """Save the results of the generic grid"""
 
     table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename=generic.dat"})
+    return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=generic.dat"})
 
 
 @app_exoctk.route('/groups_integrations_download')
 def groups_integrations_download():
     """Download the groups and integrations calculator data"""
 
-    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json",
-                     attachment_filename='groups_integrations_input_data.json',
-                     as_attachment=True)
+    return send_file(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json'), mimetype="text/json", attachment_filename='groups_integrations_input_data.json', as_attachment=True)
 
 
 @app_exoctk.route('/fortney_download')
@@ -679,8 +638,7 @@ def fortney_download():
     """Download the fortney grid data"""
 
     fortney_data = os.path.join(get_env_variables()['fortgrid_dir'], 'fortney_grid.db')
-    return send_file(fortney_data, attachment_filename='fortney_grid.db',
-                     as_attachment=True)
+    return send_file(fortney_data, attachment_filename='fortney_grid.db', as_attachment=True)
 
 
 def check_auth(username, password):
@@ -745,7 +703,7 @@ def secret_page():
             # Add the results to the lists
             html_table = '\n'.join(data.pformat(max_width=500, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
 
-        except:
+        except Exception:
             html_table = '<p>No data to display</p>'
 
         # Add the table title
@@ -755,6 +713,7 @@ def secret_page():
         log_tables.append(html_table)
 
     return render_template('admin_page.html', tables=log_tables)
+
 
 @app_exoctk.route('/lightcurve_fitting')
 def lightcurve_fitting():
@@ -789,7 +748,7 @@ def phase_constraint(transit_type='primary'):
                 t_time = Time(data.get('transit_time'), format='mjd')
                 form.transit_time.data = t_time.jd
 
-                form.observation_duration.data = calculate_pre_duration(data.get('transit_duration')*24.0)
+                form.observation_duration.data = calculate_pre_duration(data.get('transit_duration') * 24.0)
 
                 form.inclination.data = data.get('inclination')
                 if form.inclination.data is None:
@@ -807,7 +766,7 @@ def phase_constraint(transit_type='primary'):
 
                 return render_template('phase_constraint.html', form=form)
 
-            except:
+            except Exception:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
@@ -821,7 +780,8 @@ def phase_constraint(transit_type='primary'):
                                                           window_size=form.window_size.data)
         elif transit_type == 'secondary':
             if (0. <= form.eccentricity.data < 1) and (-360. <= form.omega.data <= 360.) and (0 <= form.inclination.data <= 90.):
-                # Use dummy time-of-transit as it doesn't matter for the phase-constraint calculation (phase = 1 is always transit)
+                # Use dummy time-of-transit as it doesn't matter for the phase-constraint calculation
+                # (phase = 1 is always transit)
                 minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                               period=form.orbital_period.data, t0=1.,
                                                               pretransit_duration=form.observation_duration.data,
@@ -844,6 +804,7 @@ def phase_constraint(transit_type='primary'):
     """
     # Send it back to the main page
     return render_template('phase_constraint.html', form=form)
+
 
 if __name__ == '__main__':
     # os.chmod('/internal/data1/app_data/.astropy/cache/', 777)
