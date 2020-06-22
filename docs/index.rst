@@ -26,10 +26,9 @@ Limb-­Darkening Calculator
 
 Phase Constraint Calculator
 .. toctree::
-   :maxdepth: 1
-   :caption: Tutorials
+  :maxdepth: 1
 
-   tutorials/PhaseConstraintCalculator
+  tutorials/PhaseConstraintCalculator
 
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
