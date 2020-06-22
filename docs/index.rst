@@ -25,6 +25,7 @@ Transit Light-­Curve Fitting Tools
 Limb-­Darkening Calculator
 
 Phase Constraint Calculator
+
 .. toctree::
   :maxdepth: 1
 
