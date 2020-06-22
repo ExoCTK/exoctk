@@ -1,5 +1,5 @@
 .. _PhaseConstraintCalculator:
 
-Testing Tutourial with Phase Constraint Calculator
-==================================================
+Phase Constraint Calculator Tutorial
+====================================
 
