@@ -26,11 +26,6 @@ Limb-­Darkening Calculator
 
 Phase Constraint Calculator
 
-.. toctree::
-  :maxdepth: 1
-
-  tutorials/PhaseConstraintCalculator
-
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
 All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
@@ -101,6 +96,11 @@ minimum and maximum phase values that serve as inputs for the APT special requir
   :maxdepth: 1
 
   source/exoctk.phase_constraint_overlap
+
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.PhaseConstraintCalculator
 
 ****************************************************
 Installation Instructions and Notebook Availability
