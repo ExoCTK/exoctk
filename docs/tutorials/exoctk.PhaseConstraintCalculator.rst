@@ -26,23 +26,24 @@ Which would produce an output such as this:
 	Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
 	MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457
 
-Understanding the phase-constraint calculator for primary eclipses
-------------------------------------------------------------------
+Using the Phase-Constraint Calculator: Primary Eclipses
+-------------------------------------------------------
 
- How did it do that?
+ How Did It Do That?
  ~~~~~~~~~~~~~~~~~~~
 
- Modifying phase-constraint parameters
+ Modifying Phase-Constraint Parameters
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- Phase-constraints & times of secondary eclipses
- -----------------------------------------------
+Using the Phase-Constraint Calculator: Secondary Eclipses
+------------------------------------------------
 
- Phase-constraints for secondary eclipses
+ Phase-Constraints for Secondary Eclipses
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- Finding secondary eclipse times
+ Finding Secondary Eclipse Times
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- Better challenges for secondary-eclipse times: HD 80606b, GJ 436b and HAT-P-2b
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Exploring Challenges for Secondary-Eclipse Times: HD 80606b, GJ 436b and HAT-P-2b
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
