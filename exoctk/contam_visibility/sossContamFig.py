@@ -254,7 +254,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
         #contamO1 = np.flipud(contamO1)
-    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))[:, :361] # might this
+    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
                                                         #of o1 in all instruments
@@ -368,7 +368,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig, contamO1
+    return fig#, contamO1
 
 
 if __name__ == "__main__":
