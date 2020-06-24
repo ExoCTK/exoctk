@@ -5,7 +5,7 @@ Phase Constraint Calculator Tutorial
 
 Due to uncertainties on the exact scheduling time of JWST observations (due, e.g., to previous observations, unforeseen scenarios, etc.), it is recommended that users of the observatory consider some flexibility in the start of their observations to give leeway of an hour to the observatory scheduling system (although observers can choose to narrow this window, there is a penalty in the charged time to the program). 
 
-The time window can be defined in the time-domain in Astronomer's Proposal Tool (APT) under the [APT Special Requirements](https://jwst-docs.stsci.edu/jwst-astronomers-proposal-tool-overview/apt-workflow-articles/apt-special-requirements), for periodic phenomena like transiting exoplanets this would be cumbersome to include as one would have to define a time-window for every possible transit/eclipse event on the current observing Cycle. Fortunately, APT [also allows users to define this window in phase-space](https://jwst-docs.stsci.edu/jppom/special-requirements/timing-special-requirements) (i.e., in units of fractions of the orbital period), where the zero-phase can be arbitrarily defined. 
+The time window can be defined in the time-domain in Astronomer's Proposal Tool (APT) under the `APT Special Requirements <https://jwst-docs.stsci.edu/jwst-astronomers-proposal-tool-overview/apt-workflow-articles/apt-special-requirements>`_, for periodic phenomena like transiting exoplanets this would be cumbersome to include as one would have to define a time-window for every possible transit/eclipse event on the current observing Cycle. Fortunately, APT also allows users to define this `window in phase-space <https://jwst-docs.stsci.edu/jppom/special-requirements/timing-special-requirements>`_ (i.e., in units of fractions of the orbital period), where the zero-phase can be arbitrarily defined. 
 
 The **ExoCTK's phase-constraint package** was developed in order to perform the calculations of these windows in phase-space for any transiting exoplanet out there in a quick-and-easy way. Therefore this package greatly simplifies the work of observation planning when it comes to transiting exoplanet observations.
 
@@ -20,7 +20,7 @@ Let's suppose we want to obtain the 1-hour-window in phase space to schedule an 
 
 Which would produce an output such as this: 
 
-:: 
+.. code-block:: 
 	Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
 	Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
 	Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
