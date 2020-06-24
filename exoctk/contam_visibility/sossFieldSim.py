@@ -48,7 +48,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=2.5*u.arcmin)
+                             radius=0.7*u.arcmin)#0.25 for 1 neighbor #2.5*u.arcmin)
 
     # coordinates of all stars in FOV, including target
     allRA = info['ra'].data.data
@@ -100,8 +100,17 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     radeg = 180/np.pi
     niriss_pixel_scale = 0.065  # arcsec
+    # what was the point of recalculating the RA,DEC of
+    # the target when those coords are the input parameters
+    # -_____-
     sweetSpot = dict(x=856, y=107, RA=allRA[targetIndex],
                      DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
+
+    # testing to see if recalculation is even correct
+    print('input ra,dec')
+    print(ra, dec)
+    print('recalc of ra,dec')
+    print(sweetSpot['RA'], sweetSpot['DEC'])
 
     # offset between all stars and target
     dRA = (allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
@@ -133,30 +142,39 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
     # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
-    saveFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRISS', '*.sav'))[:-1]
+    saveFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRISS', '*modelOrder12*.sav'))
+    #print(saveFiles)
     # pdb.set_trace()
 
     # Big loop to generate a simulation at each instrument PA
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
         V3PA = APA+0.57  # from APT
-        sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
-        cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
+
+        sindx = np.sin((np.pi/2)+APA/radeg)*stars['dDEC']
+        cosdx = np.cos((np.pi/2)+APA/radeg)*stars['dDEC']
         nps = niriss_pixel_scale
-        stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/nps
-        stars['dy'] = (-np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/nps
+        stars['dx'] = (np.cos((np.pi/2)+APA/radeg)*stars['dRA']-sindx)/nps
+        stars['dy'] = (np.sin((np.pi/2)+APA/radeg)*stars['dRA']+cosdx)/nps
         stars['x'] = stars['dx']+sweetSpot['x']
         stars['y'] = stars['dy']+sweetSpot['y']
 
-        # ~~~~ JENNY TESTING
-        #print(kPA)
+        sweetSpot['x'] = sweetSpot['x']*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
+        sweetSpot['y'] = -(sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
+        xcomponent1 = (stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
+        xcomponent2 = (stars['dy'] - sweetSpot['y'])*np.sin((np.pi/2)+APA/radeg)
+        ycomponent1 = -(stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
+        ycomponent2 = (stars['dy'] - sweetSpot['y'])*np.sin((np.pi/2)+APA/radeg)
+        xsci = xcomponent1+xcomponent2
+        ysci = ycomponent1+ycomponent2
 
         # Retain stars that are within the Direct Image NIRISS POM FOV
         ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) &
                         (stars['y'] >= -154) & (stars['y'] <= 2047+174))
         starsInFOV = stars[ind]
 
-        if (kPA == (0)) or (kPA== (130-dtheta)) or (kPA==(114-dtheta)) or (kPA==130) or (kPA==114):
+        # ~~~~ JENNY TESTING PLOTS
+        if (kPA == (20)) or (kPA== (80)) or (kPA==(210)) or (kPA==340) or (kPA==80):
             print('KPA and APA')
             print(kPA, APA)
             #stars['x'])
@@ -190,6 +208,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             colors = colors_0 # matching the colors
                                  # to the corresponding magnitude
             starsx, starsy = stars['x'][i], stars['y'][i]
+            #starsx, starsy = xsci[i], ysci[i]
 
             for x, y, c in zip(starsx, starsy, colors):
                 plt.plot(x,y,'*',color=c, picker=True)
@@ -200,6 +219,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             ax = plt.gca()
             img = plt.gcf()
             ax.set_aspect('equal')
+            ax.set_ylim(-2000, 3000)
+            ax.set_xlim(-2000, 3000)
 
             sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, \
                                        norm=plt.Normalize(vmin=mags.min(),\
@@ -261,7 +282,10 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
             fluxscale = 10.0**(-0.4*(starsInFOV['jmag'][i]-sweetSpot['jmag']))
 
-            # deal with subection sizes
+            # deal with subection sizes.
+            # these variables will determine where the
+            # trace will land on the array based on the
+            # neighbor's position relative to the target's position
             mx0 = int(modelPadX-intx)
             mx1 = int(modelPadX-intx+dimX)
             my0 = int(modelPadY-inty)
@@ -283,6 +307,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             # in output cube
             if (intx == 0) & (inty == 0) & (kPA == 0):
                 fNameModO12 = saveFiles[k]
+                print(fNameModO12)
                 modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
                 ord1 = modelO12[0, my0:my1, mx0:mx1]*fluxscale
                 ord2 = modelO12[1, my0:my1, mx0:mx1]*fluxscale
@@ -551,7 +576,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         PAD_WIDTH = 100
         dimX = 55
         dimY = 427
-        rad = 2.5 # arcmins
+        rad = 0.5 # arcmins
         pixel_scale = 0.11 # arsec
         xval, yval = 38.5, 829.0
         add_to_apa = 4.83425324
@@ -651,15 +676,15 @@ def lrsFieldSim(ra, dec, binComp=''):
                     # to match NIRISS and NIRCam's for the purpose
                     # of calculating the contamination at the right angles
         for kPA in range(PAtab.size):
-            APA = PAtab[kPA]+dtheta # Aperture Position Angle (PA of instrument)
+            APA = PAtab[kPA]#+dtheta # Aperture Position Angle (PA of instrument)
             if APA > 360:
                 APA = APA - 360 # angle can go beyond 360, so we reset to 1
             V3PA = APA+add_to_apa  # from APT
-            sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
-            cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
+            sindx = np.sin(-np.pi-APA/radeg)*stars['dDEC']
+            cosdx = np.cos(-np.pi-APA/radeg)*stars['dDEC']
             ps = pixel_scale
-            stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
-            stars['dy'] = (-np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
+            stars['dx'] = (np.cos(-np.pi-APA/radeg)*stars['dRA']+sindx)/ps
+            stars['dy'] = (np.sin(-np.pi-APA/radeg)*stars['dRA']-cosdx)/ps
             stars['x'] = stars['dx']+sweetSpot['x']
             stars['y'] = stars['dy']+sweetSpot['y']
 
@@ -678,7 +703,7 @@ def lrsFieldSim(ra, dec, binComp=''):
             # ~~~~ JENNY TESTING
             #print(kPA)
 
-            if (kPA == (0)) or (kPA== (130-dtheta)) or (kPA==(114-dtheta)) or (kPA==130) or (kPA==114):
+            if (kPA == (0)) or (kPA== (20)) or (kPA==(40)) or (kPA==60) or (kPA==355):
                 print('KPA and APA')
                 print(kPA, APA)
                 #stars['x'])
@@ -722,6 +747,8 @@ def lrsFieldSim(ra, dec, binComp=''):
                 ax = plt.gca()
                 img = plt.gcf()
                 ax.set_aspect('equal')
+                ax.set_ylim(-2000, 3000)
+                ax.set_xlim(-2000, 3000)
 
                 sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, \
                                            norm=plt.Normalize(vmin=mags.min(),\
