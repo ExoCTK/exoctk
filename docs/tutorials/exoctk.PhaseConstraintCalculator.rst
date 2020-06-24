@@ -25,3 +25,24 @@ Which would produce an output such as this:
 	Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
 	Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
 	MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457
+
+Understanding the phase-constraint calculator for primary eclipses
+------------------------------------------------------------------
+
+ How did it do that?
+ ~~~~~~~~~~~~~~~~~~~
+
+ Modifying phase-constraint parameters
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ Phase-constraints & times of secondary eclipses
+ -----------------------------------------------
+
+ Phase-constraints for secondary eclipses
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ Finding secondary eclipse times
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ Better challenges for secondary-eclipse times: HD 80606b, GJ 436b and HAT-P-2b
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
