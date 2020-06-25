@@ -130,6 +130,7 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
         # Contamination for order 1 of target trace
         if (row < targ_trace_start) or (row > targ_trace_stop):
             continue
+        print(row)
         i = np.argmax(trace1[row, :])
         tr = trace1[row, i-low_lim_col:i+high_lim_col]
         w = tr/np.sum(tr**2)
@@ -143,6 +144,7 @@ def miriContam(cube, paRange=[0, 360]):
     """ Generates the contamination figure that will be plotted on the website
     for MIRI LRS.
     """
+    print('are u even running')
     # Get data from FITS file
     if isinstance(cube, str):
         hdu = fits.open(cubeName)
@@ -177,7 +179,9 @@ def miriContam(cube, paRange=[0, 360]):
     for row in np.arange(rows):
         # Contamination for order 1 of target trace
         if (row < targ_trace_start) or (row > targ_trace_stop):
+            #print(row)
             continue
+        print(row)
         i = np.argmax(trace1[row, :])
         tr = trace1[row, i-low_lim_col:i+high_lim_col]
         w = tr/np.sum(tr**2)
@@ -244,7 +248,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
-    #if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
+    if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
         # need to flip the array 180deg for MIRI
         # so that it goes from top row --> bottom row (left --> right, respectively)
         # because
@@ -253,7 +257,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         # and the x-axis for the contam plot will go from low wvl --> high wvl
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
-        #contamO1 = np.flipud(contamO1)
+        contamO1 = np.flipud(contamO1)
     fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness

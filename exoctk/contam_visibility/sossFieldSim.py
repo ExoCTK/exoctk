@@ -576,7 +576,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         PAD_WIDTH = 100
         dimX = 55
         dimY = 427
-        rad = 0.5 # arcmins
+        rad = 2.5 # arcmins
         pixel_scale = 0.11 # arsec
         xval, yval = 38.5, 829.0
         add_to_apa = 4.83425324
@@ -703,7 +703,7 @@ def lrsFieldSim(ra, dec, binComp=''):
             # ~~~~ JENNY TESTING
             #print(kPA)
 
-            if (kPA == (0)) or (kPA== (20)) or (kPA==(40)) or (kPA==60) or (kPA==355):
+            if (kPA == (0)) or (kPA== (20)) or (kPA==(40)) or (kPA==194) or (kPA==355):
                 print('KPA and APA')
                 print(kPA, APA)
                 #stars['x'])
@@ -801,7 +801,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                     modelO1 = fits.getdata(fNameModO12, 1)
                     #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-                    ord1 = np.flipud(ord1)
+                    #ord1 = np.flipud(ord1)
                     #endflipping
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
@@ -810,9 +810,9 @@ def lrsFieldSim(ra, dec, binComp=''):
                 if (intx != 0) or (inty != 0):
                     fNameModO12 = fitsFiles[k]
                     modelO1 = fits.getdata(fNameModO12, 1)
-                    #flipping
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
-                    ord1 = np.flipud(ord1)
+                    #flipping
+                    #ord1 = np.flipud(ord1)
                     #endflipping
                     simuCube[kPA+1, y0:y0+my1-my0, x0:x0+mx1-mx0] += ord1
 
