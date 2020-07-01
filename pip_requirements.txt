@@ -26,7 +26,7 @@ platon==5.1.1
 pysynphot==0.9.14
 pytest==5.4.3
 pyyaml==5.3.1
-scipy==1.4.1
+scipy==1.5.0
 scp==0.13.2
 sphinx==3.0.3
 sphinx_astropy==1.3
