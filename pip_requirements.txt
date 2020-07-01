@@ -24,7 +24,7 @@ pandas==1.0.5
 paramiko==2.7.1
 platon==5.1.1
 pysynphot==0.9.14
-pytest==5.4.1
+pytest==5.4.3
 pyyaml==5.3.1
 scipy==1.4.1
 scp==0.13.2
