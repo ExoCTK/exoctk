@@ -60,7 +60,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, nbins=10, radius=None, ldc
         params.u = ldcs[1]
 
         # Generate a time axis
-        time = np.linspace(t0-dt, t0+dt, npts)
+        time = np.linspace(t0 - dt, t0 + dt, npts)
 
         # Make the transit model
         transit = batman.TransitModel(params, time, transittype='primary')
@@ -69,7 +69,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, nbins=10, radius=None, ldc
         flux = []
         if radius is None:
             radius = params.rp
-        radii = [radius]*nbins if isinstance(radius, (int, float)) else radius
+        radii = [radius] * nbins if isinstance(radius, (int, float)) else radius
         for r in radii:
             params.rp = r
             flux.append(transit.light_curve(params))
@@ -89,5 +89,5 @@ def simulate_lightcurve(target, snr=1000., npts=1000, nbins=10, radius=None, ldc
 
         return time, flux, unc, targ
 
-    except IOError:
+    except Exception:
         raise ValueError('{}: Could not simulate light curve for this target'.format(target))
