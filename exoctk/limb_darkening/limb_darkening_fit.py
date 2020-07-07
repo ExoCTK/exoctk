@@ -3,9 +3,12 @@
 """
 A module to calculate limb darkening coefficients from a grid of model spectra
 """
+import copy
 import inspect
+import os
 import warnings
 
+from astropy.io import ascii as ii
 import astropy.table as at
 import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
@@ -53,8 +56,7 @@ def ld_profile(name='quadratic', latex=False):
 
     """
     # Supported profiles a la BATMAN
-    names = ['uniform', 'linear', 'quadratic', 'square-root',
-             'logarithmic', 'exponential', '3-parameter', '4-parameter']
+    names = ['uniform', 'linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
     # Check that the profile is supported
     if name in names:
@@ -67,45 +69,43 @@ def ld_profile(name='quadratic', latex=False):
         # Linear
         if name == 'linear':
             def profile(m, c1):
-                return 1. - c1*(1.-m)
+                return 1. - c1 * (1. - m)
 
         # Quadratic
         if name == 'quadratic':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*(1.-m)**2
+                return 1. - c1 * (1. - m) - c2 * (1. - m)**2
 
         # Square-root
         if name == 'square-root':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*(1.-np.sqrt(m))
+                return 1. - c1 * (1. - m) - c2 * (1. - np.sqrt(m))
 
         # Logarithmic
         if name == 'logarithmic':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2*m*np.log(m)
+                return 1. - c1 * (1. - m) - c2 * m * np.log(m)
 
         # Exponential
         if name == 'exponential':
             def profile(m, c1, c2):
-                return 1. - c1*(1.-m) - c2/(1.-np.e**m)
+                return 1. - c1 * (1. - m) - c2 / (1. - np.e**m)
 
         # 3-parameter
         if name == '3-parameter':
             def profile(m, c1, c2, c3):
-                return 1. - c1*(1.-m) - c2*(1.-m**1.5) - c3*(1.-m**2)
+                return 1. - c1 * (1. - m) - c2 * (1. - m**1.5) - c3 * (1. - m**2)
 
         # 4-parameter
         if name == '4-parameter':
             def profile(m, c1, c2, c3, c4):
-                return 1. - c1*(1.-m**0.5) - c2*(1.-m) \
-                          - c3*(1.-m**1.5) - c4*(1.-m**2)
+                return 1. - c1 * (1. - m**0.5) - c2 * (1. - m) - c3 * (1. - m**1.5) - c4 * (1. - m**2)
 
         if latex:
             profile = inspect.getsource(profile).replace('\n', '')
             profile = profile.replace('\\', '').split('return ')[1]
 
-            for i, j in [('**', '^'), ('m', '\mu'), (' ', ''), ('np.', '\\'),
-                         ('0.5', '{0.5}'), ('1.5', '{1.5}')]:
+            for i, j in [('**', '^'), ('m', '\mu'), (' ', ''), ('np.', '\\'), ('0.5', '{0.5}'), ('1.5', '{1.5}')]:
                 profile = profile.replace(i, j)
 
         return profile
@@ -121,18 +121,15 @@ class LDC:
     Example
     -------
     from exoctk.limb_darkening import limb_darkening_fit as lf
-    from exoctk import modelgrid
     from svo_filters import Filter
     from pkg_resources import resource_filename
-    fits_files = resource_filename('exoctk', 'data/core/modelgrid/')
-    model_grid = modelgrid.ModelGrid(fits_files, resolution=700)
-    ld = lf.LDC(model_grid)
+    ld = lf.LDC(model_grid='ACES')
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
     ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
     ld.plot(show=True)
     """
-    def __init__(self, model_grid):
+    def __init__(self, model_grid='ACES'):
         """Initialize an LDC object
 
         Parameters
@@ -141,27 +138,25 @@ class LDC:
             The grid of synthetic spectra from which the coefficients will
             be calculated
         """
-        # Set the model grid
-        # if not isinstance(model_grid, modelgrid.ModelGrid):
-        #     raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
+        # Try ACES or ATLAS
+        if model_grid == 'ACES':
+            model_grid = modelgrid.ACES(resolution=700)
+        if model_grid == 'ATLAS9':
+            model_grid = modelgrid.ATLAS9(resolution=700)
 
+        # Make sure it's a ModelGrid object
+        if not isinstance(model_grid, modelgrid.ModelGrid):
+            raise TypeError("'model_grid' must be a exoctk.modelgrid.ModelGrid object.")
+
+        # Load the model grid
         self.model_grid = model_grid
 
         # Table for results
-        columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'coeffs',
-                   'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max',
-                   'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld',
-                   'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
-        dtypes = ['|S20', float, float, float, '|S20', '|S20', object, object, object,
-                  np.float16, np.float16, np.float16, object, object,
-                  np.float16, object, object, np.float16, object, object,
-                  object, '|S20']
+        columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
+        dtypes = ['|S20', float, float, float, '|S20', '|S20', object, object, object, np.float16, np.float16, np.float16, object, object, np.float16, object, object, np.float16, object, object, object, '|S20']
         self.results = at.Table(names=columns, dtype=dtypes)
 
-        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red',
-                         'exponential': 'green', 'linear': 'orange',
-                         'square-root': 'cyan', '3-parameter': 'magenta',
-                         'logarithmic': 'pink', 'uniform': 'purple'}
+        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink', 'uniform': 'purple'}
 
         self.count = 1
 
@@ -251,8 +246,7 @@ class LDC:
         # Use tophat oif no bandpass
         if bandpass is None:
             units = self.model_grid.wave_units
-            bandpass = svo.Filter('tophat', wave_min=np.min(wave)*units,
-                                  wave_max=np.max(wave)*units)
+            bandpass = svo.Filter('tophat', wave_min=np.min(wave) * units, wave_max=np.max(wave) * units)
 
         # Check if a bandpass is provided
         if not isinstance(bandpass, svo.Filter):
@@ -289,7 +283,7 @@ class LDC:
         mean_i[mean_i == 0] = np.nan
 
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i/mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
+        ld = mean_i / mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
 
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
@@ -355,12 +349,11 @@ class LDC:
 
                 # Add the coefficient column to the table if not present
                 if cname not in self.results.colnames:
-                    self.results[cname] = [np.nan]*len(self.results)
-                    self.results[ename] = [np.nan]*len(self.results)
+                    self.results[cname] = [np.nan] * len(self.results)
+                    self.results[ename] = [np.nan] * len(self.results)
 
             # Add the new row to the table
-            result = {i: j for i, j in result.items() if i in
-                      self.results.colnames}
+            result = {i: j for i, j in result.items() if i in self.results.colnames}
             self.results.add_row(result)
 
     def plot_tabs(self, show=False, **kwargs):
@@ -384,8 +377,7 @@ class LDC:
 
             # Plot it
             TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1),
-                        plot_width=800, plot_height=400)
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
             self.plot(wave_eff=wav, fig=fig)
 
             # Plot formatting
@@ -435,9 +427,7 @@ class LDC:
             ld_vals = ldfunc(mu_vals, *row['coeffs'])
 
             # Generate smooth errors
-            dn_err, up_err = self.bootstrap_errors(mu_vals, ldfunc,
-                                                   row['coeffs'],
-                                                   row['errors'])
+            dn_err, up_err = self.bootstrap_errors(mu_vals, ldfunc, row['coeffs'], row['errors'])
 
             # Matplotlib fig by default
             if fig is None:
@@ -450,17 +440,14 @@ class LDC:
                 ax = fig.add_subplot(111)
 
                 # Plot the fitted points
-                ax.errorbar(row['raw_mu'], row['raw_ld'], c='k',
-                            ls='None', marker='o', markeredgecolor='k',
-                            markerfacecolor='None')
+                ax.errorbar(row['raw_mu'], row['raw_ld'], c='k', ls='None', marker='o', markeredgecolor='k', markerfacecolor='None')
 
                 # Plot the mu cutoff
                 ax.axvline(row['mu_min'], color='0.5', ls=':')
 
                 # Draw the curve and error
                 ax.plot(mu_vals, ld_vals, color=color, label=label, **kwargs)
-                ax.fill_between(mu_vals, dn_err, up_err, color=color,
-                                alpha=0.1)
+                ax.fill_between(mu_vals, dn_err, up_err, color=color, alpha=0.1)
                 ax.set_ylim(0, 1)
                 ax.set_xlim(0, 1)
 
@@ -478,16 +465,13 @@ class LDC:
                 fig.circle(row['raw_mu'], row['raw_ld'], fill_color='black')
 
                 # Plot the mu cutoff
-                fig.line([row['mu_min']]*2, [0, 1], legend='cutoff',
-                         line_color='#6b6ecf', line_dash='dotted')
+                fig.line([row['mu_min']] * 2, [0, 1], legend='cutoff', line_color='#6b6ecf', line_dash='dotted')
 
                 # Draw the curve and error
-                fig.line(mu_vals, ld_vals, line_color=color, legend=label,
-                         **kwargs)
+                fig.line(mu_vals, ld_vals, line_color=color, legend=label, **kwargs)
                 vals = np.append(mu_vals, mu_vals[::-1])
                 evals = np.append(dn_err, up_err[::-1])
-                fig.patch(vals, evals, color=color, fill_alpha=0.2,
-                          line_alpha=0)
+                fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
 
         if show:
             if isinstance(fig, matplotlib.figure.Figure):
@@ -500,3 +484,27 @@ class LDC:
 
         else:
             return fig
+
+    def save(self, filepath):
+        """
+        Save the LDC results to file
+
+        Parameters
+        ----------
+        filepath: str
+            The complete filepath to save the results to
+        """
+        # Make sure it is a string
+        if not isinstance(filepath, str):
+            raise TypeError("{}: Expecting a string for 'filepath' argument".format(type(filepath)))
+
+        # Make sure it's a valid path
+        if not os.path.exists(os.path.dirname(filepath)):
+            raise ValueError("{}: Not a valid path")
+
+        # Copy the results table
+        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
+        results = self.results[keep_cols]
+
+        # Save to file
+        ii.write(results, filepath, format='fixed_width_two_line')

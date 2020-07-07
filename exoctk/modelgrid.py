@@ -113,9 +113,9 @@ class ModelGrid(object):
                 print("Indexing models...")
 
             # Create some attributes
-            self.path = os.path.dirname(model_directory)+'/'
+            self.path = os.path.dirname(model_directory) + '/'
             self.refs = None
-            self.wave_rng = (0*q.um, 40*q.um)
+            self.wave_rng = (0 * q.um, 40 * q.um)
             self.flux_file = os.path.join(self.path, 'model_grid_flux.hdf5')
             self.flux = None
             self.wavelength = None
@@ -150,7 +150,7 @@ class ModelGrid(object):
                         dtypes = [type(i[1]) for i in header.cards]
                         vals.append([header.get(k) for k in keys])
                         filenames.append(f.split('/')[-1])
-                    except:
+                    except Exception:
                         print(f, 'could not be read into the model grid.')
 
             # Fix data types, trim extraneous values, and make the table
@@ -165,7 +165,7 @@ class ModelGrid(object):
             for new, old in names.items():
                 try:
                     table.rename_column(old, new)
-                except:
+                except Exception:
                     print('No column named', old)
 
             # Remove columns where the values are all the same
@@ -287,8 +287,7 @@ class ModelGrid(object):
             # See if the model with the desired parameters is a true grid point
             on_grid = self.data[[(self.data['Teff'] == Teff) &
                                  (self.data['logg'] == logg) &
-                                 (self.data['FeH'] == FeH)]]\
-                                 in self.data
+                                 (self.data['FeH'] == FeH)]] in self.data
 
             # Grab the data if the point is on the grid
             if on_grid:
@@ -298,7 +297,7 @@ class ModelGrid(object):
                                 (self.data['logg'] == logg) &
                                 (self.data['FeH'] == FeH))[0]
 
-                filepath = self.path+str(self.data[row]['filename'])
+                filepath = self.path + str(self.data[row]['filename'])
 
                 # Get the flux, mu, and abundance arrays
                 raw_flux = fits.getdata(filepath, 0)
@@ -312,15 +311,15 @@ class ModelGrid(object):
                     raw_wave = np.array(dat).squeeze()
                 else:
                     # ...or try to generate it
-                    b = self.CDELT1*np.arange(len(raw_flux[0]))
-                    raw_wave = np.array(self.CRVAL1+b).squeeze()
+                    b = self.CDELT1 * np.arange(len(raw_flux[0]))
+                    raw_wave = np.array(self.CRVAL1 + b).squeeze()
 
                 # Convert from A to desired units
                 raw_wave *= self.const
 
                 # Trim the wavelength and flux arrays
-                idx, = np.where(np.logical_and(raw_wave*self.wave_units >= self.wave_rng[0],
-                                               raw_wave*self.wave_units <= self.wave_rng[1]))
+                idx, = np.where(np.logical_and(raw_wave * self.wave_units >= self.wave_rng[0],
+                                               raw_wave * self.wave_units <= self.wave_rng[1]))
                 flux = raw_flux[:, idx]
                 wave = raw_wave[idx]
 
@@ -412,7 +411,7 @@ class ModelGrid(object):
             # Clean up and time of execution
             new_flux = np.asarray(new_flux)
             generators = np.asarray(generators)
-            print('Run time in seconds: ', time.time()-start)
+            print('Run time in seconds: ', time.time() - start)
 
             # Interpolate mu value
             interp_mu = RegularGridInterpolator(params, self.mu)
@@ -420,7 +419,7 @@ class ModelGrid(object):
 
             # Make a dictionary to return
             grid_point = {'Teff': Teff, 'logg': logg, 'FeH': FeH,
-                          'mu': mu,  'flux': new_flux, 'wave': self.wavelength,
+                          'mu': mu, 'flux': new_flux, 'wave': self.wavelength,
                           'generators': generators}
 
             return grid_point
@@ -476,10 +475,10 @@ class ModelGrid(object):
 
                                     # Make sure arrays exist
                                     if self.flux is None:
-                                        new_shp = shp+list(d['flux'].shape)
+                                        new_shp = shp + list(d['flux'].shape)
                                         self.flux = np.zeros(new_shp)
                                     if self.mu is None:
-                                        new_shp = shp+list(d['mu'].shape)
+                                        new_shp = shp + list(d['mu'].shape)
                                         self.mu = np.zeros(new_shp)
 
                                     # Add data to respective arrays
@@ -495,7 +494,7 @@ class ModelGrid(object):
 
                                     # Print update
                                     n += 1
-                                    msg = "{: .2f}% complete.".format(n*100./N)
+                                    msg = "{: .2f}% complete.".format(n * 100. / N)
                                     print(msg, end='\r')
 
                             except IOError:
@@ -515,7 +514,7 @@ class ModelGrid(object):
             print('Data already loaded.')
 
     def customize(self, Teff_rng=(2300, 8000), logg_rng=(0, 6),
-                  FeH_rng=(-2, 1), wave_rng=(0*q.um, 40*q.um), n_bins=''):
+                  FeH_rng=(-2, 1), wave_rng=(0 * q.um, 40 * q.um), n_bins=''):
         """
         Trims the model grid by the given ranges in effective temperature,
         surface gravity, and metallicity. Also sets the wavelength range
@@ -544,12 +543,12 @@ class ModelGrid(object):
         self.n_bins = n_bins or self.n_bins
 
         # Filter grid by given parameters
-        self.data = grid[[(grid['Teff'] >= Teff_rng[0])
-                         & (grid['Teff'] <= Teff_rng[1])
-                         & (grid['logg'] >= logg_rng[0])
-                         & (grid['logg'] <= logg_rng[1])
-                         & (grid['FeH'] >= FeH_rng[0])
-                         & (grid['FeH'] <= FeH_rng[1])]]
+        self.data = grid[[(grid['Teff'] >= Teff_rng[0]) &
+                          (grid['Teff'] <= Teff_rng[1]) &
+                          (grid['logg'] >= logg_rng[0]) &
+                          (grid['logg'] <= logg_rng[1]) &
+                          (grid['FeH'] >= FeH_rng[0]) &
+                          (grid['FeH'] <= FeH_rng[1])]]
 
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data), len(grid)),
@@ -577,14 +576,13 @@ class ModelGrid(object):
 
             # Trim arrays
             self.wavelength = w[W_idx]
-            self.flux = self.flux[T_idx[0]: T_idx[-1]+1,
-                                  G_idx[0]: G_idx[-1]+1,
-                                  M_idx[0]: M_idx[-1]+1,
-                                  :,
-                                  W_idx[0]: W_idx[-1]+1]
-            self.mu = self.mu[T_idx[0]: T_idx[-1]+1,
-                              G_idx[0]: G_idx[-1]+1,
-                              M_idx[0]: M_idx[-1]+1]
+            self.flux = self.flux[T_idx[0]: T_idx[-1] + 1,
+                                  G_idx[0]: G_idx[-1] + 1,
+                                  M_idx[0]: M_idx[-1] + 1,
+                                  :, W_idx[0]: W_idx[-1] + 1]
+            self.mu = self.mu[T_idx[0]: T_idx[-1] + 1,
+                              G_idx[0]: G_idx[-1] + 1,
+                              M_idx[0]: M_idx[-1] + 1]
 
         # Update the parameter attributes
         self.Teff_vals = np.unique(self.data['Teff'])
@@ -618,7 +616,7 @@ class ModelGrid(object):
         """
         Reset the current grid to the original state
         """
-        file = os.path.join(self.path+'model_grid_flux.hdf5')
+        file = os.path.join(self.path + 'model_grid_flux.hdf5')
 
         if os.path.isfile(file):
             os.remove(file)
@@ -639,4 +637,26 @@ class ModelGrid(object):
         self.wave_units = q.Unit(wave_units)
 
         # Update the wavelength
-        self.const = (old_unit/self.wave_units).decompose()._scale
+        self.const = (old_unit / self.wave_units).decompose()._scale
+
+
+class ACES(ModelGrid):
+    """A convenience function to load the ACES model grid from the EXOCTK_DATA directory"""
+    def __init__(self, **kwargs):
+        """Initialize the ModelGrid object with the ACES models"""
+        # Get the ACES model directory from the EXOCTK_DATA directory
+        moddir = os.path.join(os.environ.get('EXOCTK_DATA'), 'modelgrid/ACES')
+
+        # Initialize base class
+        super().__init__(model_directory=moddir, **kwargs)
+
+
+class ATLAS9(ModelGrid):
+    """A convenience function to load the ATLAS9 model grid from the EXOCTK_DATA directory"""
+    def __init__(self, **kwargs):
+        """Initialize the ModelGrid object with the ACES models"""
+        # Get the ACES model directory from the EXOCTK_DATA directory
+        moddir = os.path.join(os.environ.get('EXOCTK_DATA'), 'modelgrid/ATLAS9')
+
+        # Initialize base class
+        super().__init__(model_directory=moddir, **kwargs)
