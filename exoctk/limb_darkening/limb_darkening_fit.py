@@ -159,12 +159,6 @@ class LDC:
 
         self.count = 1
 
-    def __str__(self):
-        """Pretty printed coefficient table without bells, whistles, whatnot, and whathaveyou"""
-        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
-
-        return str(self.results[keep_cols])
-
     @staticmethod
     def bootstrap_errors(mu_vals, func, coeffs, errors, n_samples=1000):
         """
