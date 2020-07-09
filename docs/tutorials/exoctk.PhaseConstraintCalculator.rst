@@ -20,10 +20,12 @@ Let's suppose we want to obtain the 1-hour-window in phase space to schedule an 
 
 Which would produce an output such as this: 
 
-	Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
-	Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
-	Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
-	MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457
+``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.``
+``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.``
+``Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.``
+``MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457``
+
+Two lines. That's all it took! In addition to the phase-constraints (the minimum and maximum phases), the phase_overlap_constraint call also returns the parameters it used to calculate the phase-constraint, along with some ephemerides of the planet, e.g., the period $P = 0.94124$ days and time-of-transit center $t_0=58374.6699$ in Modified Julian Date (MJD, i.e., $JD - 2400000.5$). But how did this magic happen? What do these numbers actually mean? Keep reading to understand how the phase-constraint calculator actually works.
 
 Primary Eclipses: Using the Phase-Constraint Calculator
 -------------------------------------------------------
