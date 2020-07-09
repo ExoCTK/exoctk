@@ -20,7 +20,7 @@ Let's suppose we want to obtain the 1-hour-window in phase space to schedule an 
 
 Which would produce an output such as this: 
 
-.. code-block:: 
+.. code-block:: python
 	Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
 	Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
 	Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
