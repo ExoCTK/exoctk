@@ -21,19 +21,38 @@ Let's suppose we want to obtain the 1-hour-window in phase space to schedule an 
 Which would produce an output such as this: 
 
 ``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.``
+
 ``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.``
+
 ``Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.``
+
 ``MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457``
 
-Two lines. That's all it took! In addition to the phase-constraints (the minimum and maximum phases), the phase_overlap_constraint call also returns the parameters it used to calculate the phase-constraint, along with some ephemerides of the planet, e.g., the period $P = 0.94124$ days and time-of-transit center $t_0=58374.6699$ in Modified Julian Date (MJD, i.e., $JD - 2400000.5$). But how did this magic happen? What do these numbers actually mean? Keep reading to understand how the phase-constraint calculator actually works.
+Two lines. That's all it took! In addition to the phase-constraints (the minimum and maximum phases), the phase_overlap_constraint call also returns the parameters it used to calculate the phase-constraint, along with some ephemerides of the planet, e.g., the period \\P = 0.94124\\ days and time-of-transit center \\t_0=58374.6699\\ in Modified Julian Date (MJD, i.e., \\JD - 2400000.5\\). But how did this magic happen? What do these numbers actually mean? Keep reading to understand how the phase-constraint calculator actually works.
 
 Primary Eclipses: Using the Phase-Constraint Calculator
 -------------------------------------------------------
-words
+In the example above, the phase-constraint calculator returned the minimum and maximum phases for the exoplanet under study given only the planet name and the size of the window we were aiming to.
 
 How Did It Do That?
 ~~~~~~~~~~~~~~~~~~~
-words
+In the background, the phase-constraint package automatically queries the exoplanet properties from exo.MAST given only the planet's name. Using this, it retrieves the properties of interest (period, \\P\\, and total transit duration, \\T_{14}\\, in this case) and, by default, assumes the observer wants to start the observations at the very least a time:
+
+\\T_{pre} = 0.75 + \textrm{MAX}(1, T_{14}/2) + T_{14}/2\\ hours
+
+prior to mid-transit in this case. This time, by the way, is not arbitrary. Overall, the recommended (e.g., see this JWST observation planning step-by-step tutorial) time to spend on a target for a transit/eclipse observation is the above time \\T_{pre}\\ prior to the mid-transit time, and \\T_{post} = T_{14}/2 + MAX(1, T_{14}/2) + T_W\\ hours post mid-transit where $T_W$ is the phase-constraint window (one hour in our example above). Using the retrieved properties for WASP-18b shown above, we can understand how the calculation was done in the background. The transit duration is \\T_{14} = 2.14368\\ hours; the period is \\P = 0.94124 = 22.58976\\ hours. The time \\T_{pre}\\ is, thus, \\T_{pre}\approx 2.89368\\, which in phase-space units is
+
+\\T_{pre}/P \approx 0.128097\\.
+
+APT assumes the transit event is always located at phase 1 (or zero, whichever is more comfortable). Thus:
+
+Maximum phase = \\1 - T_{pre}/P\approx 0.871903\\,
+
+which is exactly the maximum phase retrieved by the calculation. The minimum phase is simply one hour earlier in phase space. This gives:
+
+Minimum phase = \\1 - (T_{pre}+1)/P\approx 0.827635\\,
+
+again, exactly the minimum phase quoted above.
 
 Modifying Phase-Constraint Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
