@@ -28,22 +28,29 @@ Which would produce an output such as this:
 
 Using the Phase-Constraint Calculator: Primary Eclipses
 -------------------------------------------------------
+words
 
- How Did It Do That?
- ~~~~~~~~~~~~~~~~~~~
+How Did It Do That?
+~~~~~~~~~~~~~~~~~~~
+words
 
- Modifying Phase-Constraint Parameters
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Modifying Phase-Constraint Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+words
 
 Using the Phase-Constraint Calculator: Secondary Eclipses
-------------------------------------------------
+---------------------------------------------------------
+words
 
- Phase-Constraints for Secondary Eclipses
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Phase-Constraints for Secondary Eclipses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+words
 
- Finding Secondary Eclipse Times
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Finding Secondary Eclipse Times
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+words
 
- Exploring Challenges for Secondary-Eclipse Times: HD 80606b, GJ 436b and HAT-P-2b
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exploring Challenges for Secondary-Eclipse Times: HD 80606b, GJ 436b and HAT-P-2b
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+words
 
