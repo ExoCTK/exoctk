@@ -178,7 +178,7 @@ def limb_darkening():
 
         # Store the tables as a string
         keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
-        file_as_string = str(ld.results[keep_cols])
+        file_as_string = str(ld.results[[col for col in keep_cols if col in ld.results.colnames]])
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
@@ -197,7 +197,7 @@ def limb_darkening():
             table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
 
             # Add the results to the lists
-            html_table = '\n'.join(table.pformat(max_width=500, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+            html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
 
             # Add the table title
             header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
