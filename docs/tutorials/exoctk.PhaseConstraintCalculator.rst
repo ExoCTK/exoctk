@@ -21,11 +21,8 @@ Let's suppose we want to obtain the 1-hour-window in phase space to schedule an 
 Which would produce an output such as this: 
 
 ``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
-
 Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
-
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
-
 MINIMUM PHASE: 0.8276351762922669, MAXIMUM PHASE: 0.8719030215460457``
 
 Two lines. That's all it took! In addition to the phase-constraints (the minimum and maximum phases), the phase_overlap_constraint call also returns the parameters it used to calculate the phase-constraint, along with some ephemerides of the planet, e.g., the period :math:`\mathcal P = 0.94124` days and time-of-transit center :math:`\mathcal {t}_{0} = 58374.6699` in Modified Julian Date (MJD, i.e., :math:`\mathcal JD - 2400000.5`). But how did this magic happen? What do these numbers actually mean? Keep reading to understand how the phase-constraint calculator actually works.
@@ -64,9 +61,7 @@ The phase-constraint calculator allows to ingest a number of variables into the 
 
 
 ``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
-
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
-
 MINIMUM PHASE: 0.7786607737311064, MAXIMUM PHASE: 0.8229286189848852``
 
 Of course, that is not the only parameter we can change. In fact, every transit parameter of interest can be ingested to the phase_overlap_constraint function, in whose case the user-defined properties will override the exo.MAST ones. Let's use, for instance, the ephemerides found for WASP-18b by Shporer et al. (2019) --- :math:`\mathcal P = 0.941452419`, :math:`\mathcal t_0 = 2458002.354726`:
@@ -75,11 +70,8 @@ Of course, that is not the only parameter we can change. In fact, every transit 
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, t0 = 2458002.354726)
 
 ``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
-
 Performing calculations with Period: 0.941452419, t0: 2458002.354726, ecc: None, omega: None degs, inc: None degs.
-
 MINIMUM PHASE: 0.8276740668009621, MAXIMUM PHASE: 0.8719319239435721``
-
 
 Note how they are only slightly differnt than the ones retrieved from exo.MAST! One important detail in the above calculation, is that the time-of-transit center is of no use in phase-space because, by definition, for APT this is at phase equals 1. This means one could put any place-holder value for :math: `\mathcal t0`, and the calculation would result in the exact same values:
 
@@ -87,9 +79,7 @@ Note how they are only slightly differnt than the ones retrieved from exo.MAST! 
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, t0 = -1)
 
 ``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
-
 Performing calculations with Period: 0.941452419, t0: -1, ecc: None, omega: None degs, inc: None degs.
-
 MINIMUM PHASE: 0.8276740668009621, MAXIMUM PHASE: 0.8719319239435721``
 
 Why does the phase-constraint overlap receives the time-of-transit center at all in the calculation? This will become clearer in the next section.
