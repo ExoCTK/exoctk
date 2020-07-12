@@ -64,9 +64,10 @@ The phase-constraint calculator allows to ingest a number of variables into the 
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
 MINIMUM PHASE: 0.7786607737311064, MAXIMUM PHASE: 0.8229286189848852``
 
-Of course, that is not the only parameter we can change. In fact, every transit parameter of interest can be ingested to the phase_overlap_constraint function, in whose case the user-defined properties will override the exo.MAST ones. Let's use, for instance, the ephemerides found for WASP-18b by Shporer et al. (2019) --- :math:`\mathcal P = 0.941452419`, :math:`\mathcal t_0 = 2458002.354726`:
+Of course, that is not the only parameter we can change. In fact, every transit parameter of interest can be ingested to the phase_overlap_constraint function, in whose case the user-defined properties will override the exo.MAST ones. Let's use, for instance, the ephemerides found for WASP-18b by Shporer et al. (2019) --- :math:`\mathcal P = 0.941452419`, :math:`\mathcal {t}_{0} = 2458002.354726`
 
 .. code-block:: python
+
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, t0 = 2458002.354726)
 
 ``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
@@ -76,6 +77,7 @@ MINIMUM PHASE: 0.8276740668009621, MAXIMUM PHASE: 0.8719319239435721``
 Note how they are only slightly differnt than the ones retrieved from exo.MAST! One important detail in the above calculation, is that the time-of-transit center is of no use in phase-space because, by definition, for APT this is at phase equals 1. This means one could put any place-holder value for :math: `\mathcal t0`, and the calculation would result in the exact same values:
 
 .. code-block:: python 
+
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, t0 = -1)
 
 ``Retrieved transit/eclipse duration is: 2.14368 hrs; implied pre mid-transit/eclipse on-target time: 2.89368 hrs.
