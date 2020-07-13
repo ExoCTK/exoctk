@@ -122,7 +122,6 @@ class LDC:
     -------
     from exoctk.limb_darkening import limb_darkening_fit as lf
     from svo_filters import Filter
-    from pkg_resources import resource_filename
     ld = lf.LDC(model_grid='ACES')
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
@@ -298,63 +297,70 @@ class LDC:
         # Fit limb darkening coefficients for each wavelength bin
         for n, ldarr in enumerate(scaled_ld):
 
-            # Fit polynomial to data
-            coeffs, cov = curve_fit(ldfunc, scaled_mu, ldarr, method='lm')
-
-            # Calculate errors from covariance matrix diagonal
-            errs = np.sqrt(np.diag(cov))
+            # Get effective wavelength of bin
             wave_eff = bandpass.centers[0, n].round(5)
 
-            # Make a dictionary or the results
-            result = {}
+            try:
 
-            # Check the count
-            result['name'] = name or 'Calculation {}'.format(self.count)
-            self.count += 1
-            if len(bandpass.centers[0]) == len(scaled_ld) and name is None:
-                result['name'] = '{} {}'.format(str(round(bandpass.centers[0][n], 2)), self.model_grid.wave_units)
+                # Fit polynomial to data
+                coeffs, cov = curve_fit(ldfunc, scaled_mu, ldarr, method='lm')
 
-            # Set a color if possible
-            result['color'] = color or self.ld_color[profile]
+                # Calculate errors from covariance matrix diagonal
+                errs = np.sqrt(np.diag(cov))
 
-            # Add the results
-            result['Teff'] = Teff
-            result['logg'] = logg
-            result['FeH'] = FeH
-            result['filter'] = bandpass.filterID
-            result['raw_mu'] = mu
-            result['raw_ld'] = ld[n]
-            result['scaled_mu'] = scaled_mu
-            result['scaled_ld'] = ldarr
-            result['flux'] = flux[n]
-            result['wave'] = wave[n]
-            result['mu_min'] = mu_min
-            result['bandpass'] = bandpass
-            result['ldfunc'] = ldfunc
-            result['coeffs'] = coeffs
-            result['errors'] = errs
-            result['profile'] = profile
-            result['n_bins'] = bandpass.n_bins
-            result['pixels_per_bin'] = bandpass.pixels_per_bin
-            result['wave_min'] = wave[n, 0].round(5)
-            result['wave_eff'] = wave_eff
-            result['wave_max'] = wave[n, -1].round(5)
+                # Make a dictionary or the results
+                result = {}
 
-            # Add the coeffs
-            for n, (coeff, err) in enumerate(zip(coeffs, errs)):
-                cname = 'c{}'.format(n + 1)
-                ename = 'e{}'.format(n + 1)
-                result[cname] = coeff.round(3)
-                result[ename] = err.round(3)
+                # Check the count
+                result['name'] = name or 'Calculation {}'.format(self.count)
+                self.count += 1
+                if len(bandpass.centers[0]) == len(scaled_ld) and name is None:
+                    result['name'] = '{} {}'.format(str(round(bandpass.centers[0][n], 2)), self.model_grid.wave_units)
 
-                # Add the coefficient column to the table if not present
-                if cname not in self.results.colnames:
-                    self.results[cname] = [np.nan] * len(self.results)
-                    self.results[ename] = [np.nan] * len(self.results)
+                # Set a color if possible
+                result['color'] = color or self.ld_color[profile]
 
-            # Add the new row to the table
-            result = {i: j for i, j in result.items() if i in self.results.colnames}
-            self.results.add_row(result)
+                # Add the results
+                result['Teff'] = Teff
+                result['logg'] = logg
+                result['FeH'] = FeH
+                result['filter'] = bandpass.filterID
+                result['raw_mu'] = mu
+                result['raw_ld'] = ld[n]
+                result['scaled_mu'] = scaled_mu
+                result['scaled_ld'] = ldarr
+                result['flux'] = flux[n]
+                result['wave'] = wave[n]
+                result['mu_min'] = mu_min
+                result['bandpass'] = bandpass
+                result['ldfunc'] = ldfunc
+                result['coeffs'] = coeffs
+                result['errors'] = errs
+                result['profile'] = profile
+                result['n_bins'] = bandpass.n_bins
+                result['pixels_per_bin'] = bandpass.pixels_per_bin
+                result['wave_min'] = wave[n, 0].round(5)
+                result['wave_eff'] = wave_eff
+                result['wave_max'] = wave[n, -1].round(5)
+
+                # Add the coeffs
+                for n, (coeff, err) in enumerate(zip(coeffs, errs)):
+                    cname = 'c{}'.format(n + 1)
+                    ename = 'e{}'.format(n + 1)
+                    result[cname] = coeff.round(3)
+                    result[ename] = err.round(3)
+
+                    # Add the coefficient column to the table if not present
+                    if cname not in self.results.colnames:
+                        self.results[cname] = [np.nan] * len(self.results)
+                        self.results[ename] = [np.nan] * len(self.results)
+
+                # Add the new row to the table
+                result = {i: j for i, j in result.items() if i in self.results.colnames}
+                self.results.add_row(result)
+
+            except ValueError:
+                print("Could not calculate coefficients at {}".format(wave_eff))
 
     def plot_tabs(self, show=False, **kwargs):
         """Plot the LDCs in a tabbed figure
@@ -465,10 +471,10 @@ class LDC:
                 fig.circle(row['raw_mu'], row['raw_ld'], fill_color='black')
 
                 # Plot the mu cutoff
-                fig.line([row['mu_min']] * 2, [0, 1], legend='cutoff', line_color='#6b6ecf', line_dash='dotted')
+                fig.line([row['mu_min']] * 2, [0, 1], legend_label='cutoff', line_color='#6b6ecf', line_dash='dotted')
 
                 # Draw the curve and error
-                fig.line(mu_vals, ld_vals, line_color=color, legend=label, **kwargs)
+                fig.line(mu_vals, ld_vals, line_color=color, legend_label=label, **kwargs)
                 vals = np.append(mu_vals, mu_vals[::-1])
                 evals = np.append(dn_err, up_err[::-1])
                 fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
