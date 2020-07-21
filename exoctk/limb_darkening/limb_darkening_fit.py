@@ -151,8 +151,8 @@ class LDC:
         self.model_grid = model_grid
 
         # Table for results
-        columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
-        dtypes = ['|S20', float, float, float, '|S20', '|S20', object, object, object, np.float16, np.float16, np.float16, object, object, np.float16, object, object, np.float16, object, object, object, '|S20']
+        columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'models', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
+        dtypes = ['|S20', float, float, float, '|S20', '|S20', '|S20', object, object, object, np.float16, np.float16, np.float16, object, object, np.float16, object, object, np.float16, object, object, object, '|S20']
         self.results = at.Table(names=columns, dtype=dtypes)
 
         self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink', 'uniform': 'purple'}
@@ -325,6 +325,7 @@ class LDC:
                 result['logg'] = logg
                 result['FeH'] = FeH
                 result['filter'] = bandpass.filterID
+                result['models'] = self.model_grid.path
                 result['raw_mu'] = mu
                 result['raw_ld'] = ld[n]
                 result['scaled_mu'] = scaled_mu
@@ -509,7 +510,7 @@ class LDC:
             raise ValueError("{}: Not a valid path")
 
         # Copy the results table
-        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
+        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'models', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
         results = self.results[keep_cols]
 
         # Save to file
