@@ -91,6 +91,18 @@ class ModelGrid(object):
             if os.path.isfile(file):
                 model_grid = pickle.load(open(file, 'rb'))
 
+                # Make sure the model_grid.path matches the given model_directory
+                if os.path.dirname(file) != os.path.realpath(model_grid['path']):
+                    _ = os.system('rm {}'.format(file))
+                    flx_file = file.replace('model_grid.p', 'model_grid_flux.hdf5')
+
+                    # Delete flux file if it exists
+                    if os.path.isfile(flx_file):
+                        _ = os.system('rm {}'.format(flx_file))
+
+                    # Set model_grid to None so it regenerates it with the correct path
+                    model_grid = None
+
         # Instantiate the precomputed model grid
         if model_grid is not None:
 
