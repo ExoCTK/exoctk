@@ -89,10 +89,9 @@ Why does the phase-constraint overlap receives the time-of-transit center at all
 Secondary Eclipses: Using the Phase-Constraint Calculator
 ---------------------------------------------------------
 
-
 Phase-Constraints for Secondary Eclipses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The ExoCTK phase-constraint calculator can also obtain phase-constraints for secondary eclipses. This is indicated by the secondary flag in the phase_overlap_constraint function, which by default is False. Setting it to True in the WASP-18b case gives:
+The ExoCTK phase-constraint calculator can also obtain phase-constraints for secondary eclipses. This is indicated by the secondary flag in the ``phase_overlap_constraint`` function, which by default is False. Setting it to ``True`` in the WASP-18b case gives:
 
 .. code-block:: python 
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, secondary = True)
@@ -102,7 +101,7 @@ Performing calculations with Period: 0.941452419, t0: None, ecc: 0.01, omega: 25
 MINIMUM PHASE: 0.3271883452721046, MAXIMUM PHASE: 0.3714462024147147``
 
 
-Note that, given the small eccentricity and inclination of WASP-18b's orbit, in this case the maximum phase is almost equal to the value one would obtain assuming a circular orbit for this exoplanet, which would locate the maximum phase at :math: `\mathcal 0.5 - {T}_{pre}/P \approx 0.3719` (i.e., with the secondary eclipse centered at phase :math: `\mathcal 0.5`). The difference is of seconds --- likely not critical for most JWST observations.
+Note that, given the small eccentricity and inclination of WASP-18b's orbit, in this case the maximum phase is almost equal to the value one would obtain assuming a circular orbit for this exoplanet, which would locate the maximum phase at :math: `\mathcal 0.5 - {T}_{pre}/P \approx 0.3719` (i.e., with the secondary eclipse centered at phase :math: `\mathcal 0.5`). The difference is of seconds - likely not critical for most JWST observations.
 
 One important detail to remember before moving on: when ingesting the phase-constraints given above on APT, remember that we are still defining the zero-phase to be at the time of primary transit. This means that the phases given above only make sense to target eclipses in your observations if your "Zero Phase" in APT is set to the time of primary transit. This just makes it easier for the user: no need to compute times of secondary eclipses! (this is done in the background by the package). If you still want to know the time of secondary eclipse for some reason, keep reading. We got you covered!
 
