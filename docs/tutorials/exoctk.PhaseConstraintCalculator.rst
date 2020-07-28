@@ -91,7 +91,7 @@ Secondary Eclipses: Using the Phase-Constraint Calculator
 
 Phase-Constraints for Secondary Eclipses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The ExoCTK phase-constraint calculator can also obtain phase-constraints for secondary eclipses. This is indicated by the secondary flag in the ``phase_overlap_constraint`` function, which by default is False. Setting it to ``True`` in the WASP-18b case gives:
+The ExoCTK phase-constraint calculator can also obtain phase-constraints for secondary eclipses. This is indicated by the secondary flag in the ``phase_overlap_constraint`` function, which by default is ``False``. Setting it to ``True`` in the WASP-18b case gives:
 
 .. code-block:: python 
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, secondary = True)
@@ -101,13 +101,13 @@ Performing calculations with Period: 0.941452419, t0: None, ecc: 0.01, omega: 25
 MINIMUM PHASE: 0.3271883452721046, MAXIMUM PHASE: 0.3714462024147147``
 
 
-Note that, given the small eccentricity and inclination of WASP-18b's orbit, in this case the maximum phase is almost equal to the value one would obtain assuming a circular orbit for this exoplanet, which would locate the maximum phase at :math: `\mathcal 0.5 - {T}_{pre}/P \approx 0.3719` (i.e., with the secondary eclipse centered at phase :math: `\mathcal 0.5`). The difference is of seconds - likely not critical for most JWST observations.
+Note that, given the small eccentricity and inclination of WASP-18b's orbit, in this case the maximum phase is almost equal to the value one would obtain assuming a circular orbit for this exoplanet, which would locate the maximum phase at :math:`\mathcal 0.5 - ({T}_{pre})/P \approx 0.3719` (i.e., with the secondary eclipse centered at phase :math:`\mathcal 0.5`). The difference is of seconds --- likely not critical for most JWST observations.
 
 One important detail to remember before moving on: when ingesting the phase-constraints given above on APT, remember that we are still defining the zero-phase to be at the time of primary transit. This means that the phases given above only make sense to target eclipses in your observations if your "Zero Phase" in APT is set to the time of primary transit. This just makes it easier for the user: no need to compute times of secondary eclipses! (this is done in the background by the package). If you still want to know the time of secondary eclipse for some reason, keep reading. We got you covered!
 
 Finding Secondary Eclipse Times
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To find the phase-constraints for secondary eclipses, in the background the ExoCTK phase-constraint package solves the proper minimization of the conjunction problem numerically (equation (5) in Winn (2010) <https://arxiv.org/pdf/1001.2010v5.pdf> ), and thus finds the time of secondary eclipse (in phase-space) to perform the calculation using the orbital elements retrieved from exo.MAST (for secondary eclipses, in addition to the period :math: `\mathcal P`, you need the inclination, :math: `\mathcal i`, the eccentricity, :math: `\mathcal e`, and the argument of periastron passage, :math: `\mathcal \omega` --- all of which can also be user-defined). This gives another functionality to the package: a secondary eclipse time calculator.
+To find the phase-constraints for secondary eclipses, in the background the ExoCTK phase-constraint package solves the proper minimization of the conjunction problem numerically (equation (5) in Winn (2010) <https://arxiv.org/pdf/1001.2010v5.pdf> ), and thus finds the time of secondary eclipse (in phase-space) to perform the calculation using the orbital elements retrieved from exo.MAST (for secondary eclipses, in addition to the period :math:`\mathcal P`, you need the inclination, :math:`\mathcal i`, the eccentricity, :math:`\mathcal e`, and the argument of periastron passage, :math:`\mathcal \omega` --- all of which can also be user-defined). This gives another functionality to the package: a secondary eclipse time calculator.
 
 To retrieve the time of secondary eclipse, you can use the ``get_secondary_time`` flag in the ``phase_overlap_constraint`` function which, in addition to the minimum and maximum phases, returns the time of secondary eclipse just after the time of primary transit. Let's try this out for WASP-18b again:
 
@@ -122,14 +122,14 @@ MINIMUM PHASE: 0.32714966265626544, MAXIMUM PHASE: 0.37141750791004413, TSEC: 58
 
 ``Secondary eclipse time: 58375.13919576395``
 
-As can be seen, the secondary eclipse time matches beautifully with our expectations for a non-eccentric orbit, which would give a secondary eclipse time of :math: `\mathcal {t}_{0} + P/2 \approx 58375.14052` MJD --- only a 5-second difference between the two results.
+As can be seen, the secondary eclipse time matches beautifully with our expectations for a non-eccentric orbit, which would give a secondary eclipse time of :math:`\mathcal {t}_{0} + P/2 \approx 58375.14052` MJD --- only a 5-second difference between the two results.
 
 Exploring Challenges for Secondary-Eclipse Times: HD 80606b, GJ 436b and HAT-P-2b
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to showcase the power of the ExoCTK phase-constraint tool for secondary eclipse times and phase-constraints, we present here the results using our tool for more challenging systems in terms of predicting the location of their secondary eclipses. In order to compare with the literature values, however, we will be computing the phases at which secondary eclipses occur and not the times. This makes it easier to compare across datasets obtained at different epochs.
 
-We start with HD 80606b, which is know to be very eccentric (:math: `\mathcal e=0.93`). A quick hack, if one is aiming at calculating the phase at which secondary eclipses occur is to let `window_size = 0`. and `pretransit_duration = 0`. (of course, never input this in APT!). This will force the minimum and maximum phases to return the phase at which secondary eclipse occur (because one is forcing the window to be of zero width, and for the observations to start exactly at the time of secodary eclipse). Let's see how well our phase-constraint tool does in this challenguing system:
+We start with HD 80606b, which is know to be very eccentric (:math:`\mathcal e=0.93`). A quick hack, if one is aiming at calculating the phase at which secondary eclipses occur is to let `window_size = 0`. and `pretransit_duration = 0`. (of course, never input this in APT!). This will force the minimum and maximum phases to return the phase at which secondary eclipse occur (because one is forcing the window to be of zero width, and for the observations to start exactly at the time of secodary eclipse). Let's see how well our phase-constraint tool does in this challenguing system:
 
 .. code-block:: python
 	minp, maxp = pc.phase_overlap_constraint('HD80606 b', window_size = 0., pretransit_duration = 0., secondary = True)
@@ -140,7 +140,7 @@ MINIMUM PHASE: 0.9455607255787186, MAXIMUM PHASE: 0.9455607255787186``
 
 This matches pretty well with the phase at which secondary eclipse happens in the literature (0.947; `Laughlin et al., 2009 <https://www.nature.com/articles/nature07649>`_)! Note we are using more updated planetary parameters than the ones from Laughlin et al., 2009, which explains the slight discrepancy in phase-space.
 
-Next, let's try we try GJ 436b --- a mildly eccentic system (:math: `\mathcal e=0.138`):
+Next, let's try we try GJ 436b --- a mildly eccentic system (:math:`\mathcal e=0.138`):
 
 ..code-block:: python 
 	minp, maxp = pc.phase_overlap_constraint('GJ 436b', window_size = 0., pretransit_duration = 0., secondary = True)
