@@ -114,13 +114,14 @@ To retrieve the time of secondary eclipse, you can use the ``get_secondary_time`
 .. code-block:: python 
 	minp, maxp, tsec = pc.phase_overlap_constraint('WASP-18b', window_size = 1., secondary = True, get_secondary_time = True)
 
-.. code-block:: python 
-	print('\nSecondary eclipse time:',tsec)
 
 ``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
 Retrieved transit/eclipse duration is: 2.122865968966563 hrs; implied pre mid-transit/eclipse on-target time: 2.872865968966563 hrs.
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: 0.01, omega: 257.27 degs, inc: 85.68 degs.
 MINIMUM PHASE: 0.32714966265626544, MAXIMUM PHASE: 0.37141750791004413, TSEC: 58375.13919576395``
+
+.. code-block:: python 
+	print('Secondary eclipse time:',tsec)
 
 ``Secondary eclipse time: 58375.13919576395``
 
