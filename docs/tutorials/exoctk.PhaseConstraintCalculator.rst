@@ -93,7 +93,8 @@ Phase-Constraints for Secondary Eclipses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The ExoCTK phase-constraint calculator can also obtain phase-constraints for secondary eclipses. This is indicated by the secondary flag in the ``phase_overlap_constraint`` function, which by default is ``False``. Setting it to ``True`` in the WASP-18b case gives:
 
-.. code-block:: python 
+.. code-block:: python
+
 	minp, maxp = pc.phase_overlap_constraint('WASP-18b', window_size = 1., period = 0.941452419, secondary = True)
 
 ``Retrieved transit/eclipse duration is: 2.122865968966563 hrs; implied pre mid-transit/eclipse on-target time: 2.872865968966563 hrs.
@@ -111,7 +112,8 @@ To find the phase-constraints for secondary eclipses, in the background the ExoC
 
 To retrieve the time of secondary eclipse, you can use the ``get_secondary_time`` flag in the ``phase_overlap_constraint`` function which, in addition to the minimum and maximum phases, returns the time of secondary eclipse just after the time of primary transit. Let's try this out for WASP-18b again:
 
-.. code-block:: python 
+.. code-block:: python
+
 	minp, maxp, tsec = pc.phase_overlap_constraint('WASP-18b', window_size = 1., secondary = True, get_secondary_time = True)
 
 
@@ -120,7 +122,8 @@ Retrieved transit/eclipse duration is: 2.122865968966563 hrs; implied pre mid-tr
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: 0.01, omega: 257.27 degs, inc: 85.68 degs.
 MINIMUM PHASE: 0.32714966265626544, MAXIMUM PHASE: 0.37141750791004413, TSEC: 58375.13919576395``
 
-.. code-block:: python 
+.. code-block:: python
+
 	print('Secondary eclipse time:',tsec)
 
 ``Secondary eclipse time: 58375.13919576395``
@@ -134,7 +137,8 @@ In order to showcase the power of the ExoCTK phase-constraint tool for secondary
 
 We start with HD 80606b, which is know to be very eccentric (:math:`\mathcal e=0.93`). A quick hack, if one is aiming at calculating the phase at which secondary eclipses occur is to let ``window_size = 0``. and ``pretransit_duration = 0`` (Of course, never input this in APT!). This will force the minimum and maximum phases to return the phase at which secondary eclipse occur (because one is forcing the window to be of zero width, and for the observations to start exactly at the time of secodary eclipse). Let's see how well our phase-constraint tool does in this challenguing system:
 
-.. code-block:: python 
+.. code-block:: python
+
 	minp, maxp = pc.phase_overlap_constraint('HD80606 b', window_size = 0., pretransit_duration = 0., secondary = True)
 
 ``Retrieved period is 111.4367. Retrieved t0 is 55210.14280000003.
@@ -145,7 +149,8 @@ This matches pretty well with the phase at which secondary eclipse happens in th
 
 Next, let's try GJ 436b --- a mildly eccentic system (:math:`\mathcal e = 0.138`):
 
-.. code-block:: python  
+.. code-block:: python
+
 	minp, maxp = pc.phase_overlap_constraint('GJ 436b', window_size = 0., pretransit_duration = 0., secondary = True)
 
 ``Retrieved period is 2.64388312. Retrieved t0 is 54864.5839999998.
@@ -154,7 +159,8 @@ MINIMUM PHASE: 0.5868253469349103, MAXIMUM PHASE: 0.5868253469349103``
 
 Woah! Excellent agreement with `Stevenson et al. (2010) <https://ui.adsabs.harvard.edu/abs/2010Natur.464.1161S/abstract>`_, where the secondary eclipse phase is at :math:`\mathcal 0.5868 +/- 0.0003`. Finally, let's give the tool a shot with HAT-P-2b (:math:`\mathcal e=0.517`):
 
-.. code-block:: python 
+.. code-block:: python
+
 	minp, maxp = pc.phase_overlap_constraint('HAT-P-2b', window_size = 0., pretransit_duration = 0., secondary = True)
 
 ``Retrieved period is 5.6335158. Retrieved t0 is 55288.349100000225.
