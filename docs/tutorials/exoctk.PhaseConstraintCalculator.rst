@@ -64,7 +64,7 @@ The phase-constraint calculator allows to ingest a number of variables into the 
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: None, omega: None degs, inc: None degs.
 MINIMUM PHASE: 0.7786607737311064, MAXIMUM PHASE: 0.8229286189848852``
 
-Of course, that is not the only parameter we can change. In fact, every transit parameter of interest can be ingested to the phase_overlap_constraint function, in whose case the user-defined properties will override the exo.MAST ones. Let's use, for instance, the ephemerides found for WASP-18b by Shporer et al. (2019) --- :math:`\mathcal P = 0.941452419`, :math:`\mathcal {t}_{0} = 2458002.354726`
+Of course, that is not the only parameter we can change. In fact, every transit parameter of interest can be ingested to the phase_overlap_constraint function, in whose case the user-defined properties will override the exo.MAST ones. Let's use, for instance, the ephemerides found for WASP-18b by Shporer et al. (2019) - :math:`\mathcal P = 0.941452419`, :math:`\mathcal {t}_{0} = 2458002.354726`
 
 .. code-block:: python
 
@@ -74,7 +74,7 @@ Of course, that is not the only parameter we can change. In fact, every transit 
 Performing calculations with Period: 0.941452419, t0: 2458002.354726, ecc: None, omega: None degs, inc: None degs.
 MINIMUM PHASE: 0.8276740668009621, MAXIMUM PHASE: 0.8719319239435721``
 
-Note how they are only slightly differnt than the ones retrieved from exo.MAST! One important detail in the above calculation, is that the time-of-transit center is of no use in phase-space because, by definition, for APT this is at phase equals 1. This means one could put any place-holder value for :math: `\mathcal t0`, and the calculation would result in the exact same values:
+Note how they are only slightly differnt than the ones retrieved from exo.MAST! One important detail in the above calculation, is that the time-of-transit center is of no use in phase-space because, by definition, for APT this is at phase equals 1. This means one could put any place holder value for :math:`\mathcal t0`, and the calculation would result in the exact same values:
 
 .. code-block:: python 
 
@@ -108,23 +108,20 @@ One important detail to remember before moving on: when ingesting the phase-cons
 
 Finding Secondary Eclipse Times
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To find the phase-constraints for secondary eclipses, in the background the ExoCTK phase-constraint package solves the proper minimization of the conjunction problem numerically (equation (5) in ` Winn (2010) <https://arxiv.org/pdf/1001.2010v5.pdf>`_ ), and thus finds the time of secondary eclipse (in phase-space) to perform the calculation using the orbital elements retrieved from exo.MAST (for secondary eclipses, in addition to the period :math: `\mathcal P`, you need the inclination, :math: `\mathcal i`, the eccentricity, :math: `\mathcal e`, and the argument of periastron passage, :math: `\mathcal \omega` --- all of which can also be user-defined). This gives another functionality to the package: a secondary eclipse time calculator.
+To find the phase-constraints for secondary eclipses, in the background the ExoCTK phase-constraint package solves the proper minimization of the conjunction problem numerically (equation (5) in Winn (2010) <https://arxiv.org/pdf/1001.2010v5.pdf> ), and thus finds the time of secondary eclipse (in phase-space) to perform the calculation using the orbital elements retrieved from exo.MAST (for secondary eclipses, in addition to the period :math: `\mathcal P`, you need the inclination, :math: `\mathcal i`, the eccentricity, :math: `\mathcal e`, and the argument of periastron passage, :math: `\mathcal \omega` --- all of which can also be user-defined). This gives another functionality to the package: a secondary eclipse time calculator.
 
-To retrieve the time of secondary eclipse, you can use the `get_secondary_time` flag in the `phase_overlap_constraint` function which, in addition to the minimum and maximum phases, returns the time of secondary eclipse just after the time of primary transit. Let's try this out for WASP-18b again:
+To retrieve the time of secondary eclipse, you can use the ``get_secondary_time`` flag in the ``phase_overlap_constraint`` function which, in addition to the minimum and maximum phases, returns the time of secondary eclipse just after the time of primary transit. Let's try this out for WASP-18b again:
 
 .. code-block :: python 
-	minp, maxp, tsec = pc.phase_overlap_constraint('WASP-18b', window_size = 1., secondary = True, \
-                                               get_secondary_time = True)
+	minp, maxp, tsec = pc.phase_overlap_constraint('WASP-18b', window_size = 1., secondary = True, get_secondary_time = True)
 	print('\nSecondary eclipse time:',tsec)
 
-``
-Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
+``Retrieved period is 0.94124. Retrieved t0 is 58374.669900000095.
 Retrieved transit/eclipse duration is: 2.122865968966563 hrs; implied pre mid-transit/eclipse on-target time: 2.872865968966563 hrs.
 Performing calculations with Period: 0.94124, t0: 58374.669900000095, ecc: 0.01, omega: 257.27 degs, inc: 85.68 degs.
 MINIMUM PHASE: 0.32714966265626544, MAXIMUM PHASE: 0.37141750791004413, TSEC: 58375.13919576395``
 
 ``Secondary eclipse time: 58375.13919576395``
-
 
 As can be seen, the secondary eclipse time matches beautifully with our expectations for a non-eccentric orbit, which would give a secondary eclipse time of :math: `\mathcal {t}_{0} + P/2 \approx 58375.14052` MJD --- only a 5-second difference between the two results.
 
@@ -161,7 +158,6 @@ Woah! Excellent agreement with `Stevenson et al. (2010) <https://ui.adsabs.harva
 ``Retrieved period is 5.6335158. Retrieved t0 is 55288.349100000225.
 Performing calculations with Period: 5.6335158, t0: 55288.349100000225, ecc: 0.5172, omega: 188.01 degs, inc: 86.16 degs.
 MINIMUM PHASE: 0.1876234349401976, MAXIMUM PHASE: 0.1876234349401976``
-
 
 Once again: beautiful agreement with de `Wit et al. (2017)<https://iopscience.iop.org/article/10.3847/2041-8213/836/2/L17/pdf>`_, where the secondary eclipse phase happens at 0.187.
 
