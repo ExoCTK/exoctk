@@ -142,7 +142,7 @@ MINIMUM PHASE: 0.9455607255787186, MAXIMUM PHASE: 0.9455607255787186``
 
 This matches pretty well with the phase at which secondary eclipse happens in the literature (0.947; `Laughlin, et al 2009 <https://www.nature.com/articles/nature07649>`_)! Note we are using more updated planetary parameters than the ones from Laughlin et al., 2009, which explains the slight discrepancy in phase-space.
 
-Next, let's try we try GJ 436b --- a mildly eccentic system (:math:`\mathcal e = 0.138`):
+Next, let's try GJ 436b --- a mildly eccentic system (:math:`\mathcal e = 0.138`):
 
 .. code-block:: python  
 	minp, maxp = pc.phase_overlap_constraint('GJ 436b', window_size = 0., pretransit_duration = 0., secondary = True)
