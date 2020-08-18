@@ -367,24 +367,3 @@ Checking one transit in *many* instruments/modes/filters
 
     The best mode is nircam, f444w, subgrism64 at 0.996 efficiency.
     (This means 234 groups and 135 integrations.)
-
-
-API Documentation
-=================
-
-exoctk.groups\_integrations.groups\_integrations module
--------------------------------------------------------
-
-.. automodule:: exoctk.groups_integrations.groups_integrations
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: exoctk.groups_integrations
-    :members:
-    :undoc-members:
-    :show-inheritance:
