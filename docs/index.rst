@@ -17,15 +17,10 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 The subpackages currently included are:
 
 Contamination and Visibility Calculators
-
 Groups and Intrgrations Calculator
-
 Transit Light-­Curve Fitting Tools
-
 Limb-­Darkening Calculator
-
 Phase Constraint Calculator
-
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
 All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
@@ -89,13 +84,17 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
 
 **Phase Constraint Calculator**
 
-The Phase Constraint Calculator provides a simple interface for calculating JWST observation start windows in phase-space for both, transits and eclipse observations. This allows the user to quickly calculate 
-minimum and maximum phase values that serve as inputs for the APT special requirements section when planning your observations.
+The Phase Constraint Calculator provides a simple interface for calculating JWST observation start windows in phase-space for both, transits and eclipse observations. This allows the user to quickly calculate minimum and maximum phase values that serve as inputs for the APT special requirements section when planning your observations.
 
 .. toctree::
   :maxdepth: 1
 
   source/exoctk.phase_constraint_overlap
+
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.PhaseConstraintCalculator
 
 ****************************************************
 Installation Instructions and Notebook Availability
