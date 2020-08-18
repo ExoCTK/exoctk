@@ -345,15 +345,15 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
         # Calling the variables which depend on what NIRCam filter you use
         if filter=='F444W':
-            dimX = 51
-            dimY = 1343
+            dimX = 1343
+            dimY = 51
             rad = 2.5
             pixel_scale = 0.063 # arsec
             xval, yval = 1096.9968649303112, 34.99693173255946 # got from PYSIAF
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif filter=='F322W2':
-            dimX = 51
-            dimY = 1823
+            dimX = 1823
+            dimY = 51
             rad = 2.5
             pixel_scale = 0.063 # arsec
             xval, yval = 468.0140991987737, 35.007956285677665
@@ -446,7 +446,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         # Cube of trace simulation at every degree of field rotation,
         # +target at O1 and O2
         simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRCam_{}'.format(filter), 'o1*.0.fits'))
+        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRCam_{}'.format(filter), 'rot*o1*.0.fits'))
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
@@ -540,8 +540,10 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 # Fleshing out index 0 of the simulation cube (trace of target)
                 if (intx == 0) & (inty == 0) & (kPA == 0):
                     fNameModO12 = fitsFiles[k]
-                    modelO1 = fits.getdata(fNameModO12, 1)
+                    modelO1 = fits.getdata(fNameModO12, 1)[0]
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
+                    print(np.shape(ord1))
+                    print(np.shape(modelO1))
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
                 # Fleshing out indexes 1-361 of the simulation cube
@@ -576,7 +578,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         PAD_WIDTH = 100
         dimX = 55
         dimY = 427
-        rad = 2.5 # arcmins
+        rad = 0.5 # arcmins
         pixel_scale = 0.11 # arsec
         xval, yval = 38.5, 829.0
         add_to_apa = 4.83425324
@@ -675,16 +677,20 @@ def lrsFieldSim(ra, dec, binComp=''):
         dtheta = 95+180 # this adjusts the MIRI trace orientation
                     # to match NIRISS and NIRCam's for the purpose
                     # of calculating the contamination at the right angles
+        rot=0
         for kPA in range(PAtab.size):
             APA = PAtab[kPA]#+dtheta # Aperture Position Angle (PA of instrument)
             if APA > 360:
                 APA = APA - 360 # angle can go beyond 360, so we reset to 1
             V3PA = APA+add_to_apa  # from APT
-            sindx = np.sin(-np.pi-APA/radeg)*stars['dDEC']
-            cosdx = np.cos(-np.pi-APA/radeg)*stars['dDEC']
+
             ps = pixel_scale
-            stars['dx'] = (np.cos(-np.pi-APA/radeg)*stars['dRA']+sindx)/ps
-            stars['dy'] = (np.sin(-np.pi-APA/radeg)*stars['dRA']-cosdx)/ps
+            angle = (rot+APA/radeg)
+            dx1, dx2 = stars['dRA']*np.cos(angle)/ps, stars['dDEC']*np.sin(angle)/ps
+            dy1, dy2 = stars['dRA']*np.sin(angle)/ps, stars['dDEC']*np.cos(angle)/ps
+            stars['dx'] = -(dx1-dx2)
+            stars['dy'] = dy1+dy2
+
             stars['x'] = stars['dx']+sweetSpot['x']
             stars['y'] = stars['dy']+sweetSpot['y']
 
