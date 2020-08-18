@@ -114,10 +114,10 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
     dPA = 360//nPA
     PA = np.arange(nPA)*dPA
 
-    contamO1 = np.zeros([rows, nPA])
+    contamO1 = np.zeros([cols, nPA])
 
-    low_lim_col = 20
-    high_lim_col = 41
+    low_lim_row = 20
+    high_lim_row = 41
     # eventually replace these hardcoded #s with
     # wvl cutoff like NIRISS code.
     # perhaps using PYSIAF.
@@ -126,18 +126,18 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
     elif instrument == 'NIRCam F444W':
         targ_trace_start, targ_trace_stop = 25, 1319
 
-    for row in np.arange(rows):
+    for col in np.arange(cols):
         # Contamination for order 1 of target trace
-        if (row < targ_trace_start) or (row > targ_trace_stop):
+        if (col < targ_trace_start) or (col > targ_trace_stop):
             continue
-        print(row)
-        i = np.argmax(trace1[row, :])
-        tr = trace1[row, i-low_lim_col:i+high_lim_col]
+
+        i = np.argmax(trace1[:, col])
+        tr = trace1[i-low_lim_row:i+high_lim_row, col]
         w = tr/np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
-        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+        contamO1[:, col] = np.sum(cube[:, i-low_lim_row:i+high_lim_row, col]*ww, axis=1)
 
-    contamO1 = contamO1[targ_trace_start:targ_trace_stop, :]
+    contamO1 = contamO1[:, targ_trace_start:targ_trace_stop]
     return contamO1
 
 def miriContam(cube, paRange=[0, 360]):
