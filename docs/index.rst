@@ -53,6 +53,11 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 
   source/exoctk.groups_integrations
 
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.GroupsandIntegrationsCalculator
+
 **Lightcurve Fitting Tool**
 
 The light-curve fitting tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
