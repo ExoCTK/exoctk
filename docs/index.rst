@@ -87,6 +87,11 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
 
   source/exoctk.atmospheric_retrievals
 
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.AtmosphericRetrivals
+
 **Phase Constraint Calculator**
 
 The Phase Constraint Calculator provides a simple interface for calculating JWST observation start windows in phase-space for both, transits and eclipse observations. This allows the user to quickly calculate minimum and maximum phase values that serve as inputs for the APT special requirements section when planning your observations.
