@@ -159,8 +159,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         stars['x'] = stars['dx']+sweetSpot['x']
         stars['y'] = stars['dy']+sweetSpot['y']
 
-        sweetSpot['x'] = sweetSpot['x']*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
-        sweetSpot['y'] = -(sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
+        #sweetSpot['x'] = sweetSpot['x']*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
+        #sweetSpot['y'] = -(sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
         xcomponent1 = (stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
         xcomponent2 = (stars['dy'] - sweetSpot['y'])*np.sin((np.pi/2)+APA/radeg)
         ycomponent1 = -(stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
@@ -455,8 +455,8 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
             #V3PA = APA+add_to_apa  # from APT
             V3PA = PAtab[kPA]
             APA = V3PA+add_to_apa
-            sindx = np.sin(np.pi/2+APA/radeg)*stars['dDEC']
-            cosdx = np.cos(np.pi/2+APA/radeg)*stars['dDEC']
+            sindx = np.sin(APA/radeg)*stars['dDEC']
+            cosdx = np.cos(APA/radeg)*stars['dDEC']
             ps = pixel_scale
             stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
             stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
