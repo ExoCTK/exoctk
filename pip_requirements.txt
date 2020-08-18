@@ -1,4 +1,4 @@
-asteval==0.9.13
+asteval==0.9.16
 astropy==4.0.1.post1
 astroquery==0.4
 bandit==1.6.2
