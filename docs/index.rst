@@ -51,12 +51,12 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.groups_integrations
+  tutorials/exoctk.GroupsandIntegrationsCalculator
 
 .. toctree::
   :maxdepth: 1
 
-  tutorials/exoctk.GroupsandIntegrationsCalculator
+  source/exoctk.groups_integrations
 
 **Lightcurve Fitting Tool**
 
@@ -85,12 +85,12 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.atmospheric_retrievals
+  tutorials/exoctk.AtmosphericRetrivals
 
 .. toctree::
   :maxdepth: 1
 
-  tutorials/exoctk.AtmosphericRetrivals
+  source/exoctk.atmospheric_retrievals
 
 **Phase Constraint Calculator**
 
@@ -99,12 +99,12 @@ The Phase Constraint Calculator provides a simple interface for calculating JWST
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.phase_constraint_overlap
+  tutorials/exoctk.PhaseConstraintCalculator
 
 .. toctree::
   :maxdepth: 1
 
-  tutorials/exoctk.PhaseConstraintCalculator
+  source/exoctk.phase_constraint_overlap
 
 ****************************************************
 Installation Instructions and Notebook Availability

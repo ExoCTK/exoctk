@@ -1,3 +1,5 @@
+.. _AtmosphericRetrivals:
+
 Atmospheric Retrievals
 ======================
 
