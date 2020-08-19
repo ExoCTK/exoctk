@@ -1,28 +1,85 @@
 import glob
 import os
-from matplotlib import cm
 
-from astroquery.irsa import Irsa
 import astropy.coordinates as crd
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
+from astroquery.irsa import Irsa
+from matplotlib import cm
 from scipy.io import readsav
 from astropy.io import fits
 from exoctk.utils import get_env_variables
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if not EXOCTK_DATA:
-    print('WARNING: The $EXOCTK_DATA environment variable is not set. Contamination overlap will not work. Please set the '
+    print('WARNING: The $EXOCTK_DATA environment variable is not set. '
+          'Contamination overlap will not work. Please set the '
           'value of this variable to point to the location of the exoctk_data '
-            'download folder.  Users may retreive this folder by clicking the '
-            '"ExoCTK Data Download" button on the ExoCTK website, or by using '
-            'the exoctk.utils.download_exoctk_data() function.'
+          'download folder.  Users may retreive this folder by clicking the '
+          '"ExoCTK Data Download" button on the ExoCTK website, or by using '
+          'the exoctk.utils.download_exoctk_data() function.'
           )
     TRACES_PATH = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
 
+def getStarParams(ra, dec, binComp=''):
+    """ STEP 1 of the algorithm. This function will:
+
+    1. Initialize a catalog of stars with a 2.5 arcmin radius from the target
+       (including the target itself) from 2MASS's IRSA point-source catalog.
+    2. Calculate the J-H and H-K band for each star. This will be used to
+       calculate the stellar temperature of each source.
+    3. Determine ``targetIndex`` which will be used for indexing lists later.
+    4. Determine number of stars ``nStars``.
+    5. Calculate the effective temperature of each star.
+    """
+    # Pulling stars from IRSA point-source catalog
+    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
+    targetRA = targetcrd.ra.value
+    targetDEC = targetcrd.dec.value
+    info = Irsa.query_region(targetcrd,
+                             catalog='fp_psc',
+                             spatial='Cone',
+                             radius=2.5*u.arcmin)
+
+    # Coordinates of all stars in FOV, including target
+    allRA = info['ra'].data.data
+    allDEC = info['dec'].data.data
+    Jmag = info['j_m'].data.data
+    Hmag = info['h_m'].data.data
+    Kmag = info['k_m'].data.data
+
+    # J-H band, H-K band. This will be used to derive the stellar Temps later
+    J_Hobs = Jmag-Hmag
+    H_Kobs = Hmag-Kmag
+
+    # Determining target index by calculating the relative distance between
+    # each source and the target. The target will have the smallest distance
+    # from itself (oof) so whatever that index is will be the targetIndex
+    aa = ((targetRA-allRA)*np.cos(targetDEC))
+    distance = np.sqrt(aa**2 + (targetDEC-allDEC)**2)
+    targetIndex = np.argmin(distance)
+
+    # Add any missing companion
+    if binComp != '':
+        deg2rad = np.pi/180
+        bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
+        allRA = np.append(allRA, (allRA[targetIndex] + bb))
+        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
+        Jmag = np.append(Jmag, binComp[2])
+        Hmag = np.append(Kmag, binComp[3])
+        Kmag = np.append(Kmag, binComp[4])
+        J_Hobs = Jmag-Hmag
+        H_Kobs = Hmag-Kmag
+
+    # Number of stars
+    nStars = allRA.size
+
+
+
+    return allRA, allDEC, J_Hobs, H_Kobs, targetIndex, nStars,
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -43,28 +100,36 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     simuCub : np.ndarray
         The simulated data cube.
     """
-    # stars in large field around target
+
+    # STEP 1
+    # Pulling stars from IRSA point-source catalog
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=0.7*u.arcmin)#0.25 for 1 neighbor #2.5*u.arcmin)
+    info = Irsa.query_region(targetcrd,
+                             catalog='fp_psc',
+                             spatial='Cone',
+                             radius=0.7*u.arcmin)
 
-    # coordinates of all stars in FOV, including target
+    # Coordinates of all stars in FOV, including target
     allRA = info['ra'].data.data
     allDEC = info['dec'].data.data
     Jmag = info['j_m'].data.data
     Hmag = info['h_m'].data.data
     Kmag = info['k_m'].data.data
+
+    # J-H band, H-K band. This will be used to derive the stellar Temps later
     J_Hobs = Jmag-Hmag
     H_Kobs = Hmag-Kmag
 
-    # target coords
+    # Determining target index by calculating the relative distance between
+    # each source and the target. The target will have the smallest distance
+    # from itself (oof) so whatever that index is will be the targetIndex
     aa = ((targetRA-allRA)*np.cos(targetDEC))
     distance = np.sqrt(aa**2 + (targetDEC-allDEC)**2)
-    targetIndex = np.argmin(distance)  # the target
+    targetIndex = np.argmin(distance)
 
-    # add any missing companion
+    # Add any missing companion
     if binComp != '':
         deg2rad = np.pi/180
         bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
@@ -76,7 +141,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         J_Hobs = Jmag-Hmag
         H_Kobs = Hmag-Kmag
 
-    # number of stars
+    # Number of stars
     nStars = allRA.size
 
     # Restoring model parameters
@@ -91,27 +156,19 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     hkMod = modelParam['hkmod']
     teffMod = modelParam['teffmod']
 
-    # find/assign Teff of each star
+    # Find/assign Teff of each star
     starsT = np.empty(nStars)
     for j in range(nStars):
         color_separation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
         min_separation_ind = np.argmin(color_separation)
         starsT[j] = teffMod[min_separation_ind]
 
-    radeg = 180/np.pi
-    niriss_pixel_scale = 0.065  # arcsec
-    # what was the point of recalculating the RA,DEC of
-    # the target when those coords are the input parameters
-    # -_____-
+
     sweetSpot = dict(x=856, y=107, RA=allRA[targetIndex],
                      DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
 
-    # testing to see if recalculation is even correct
-    print('input ra,dec')
-    print(ra, dec)
-    print('recalc of ra,dec')
-    print(sweetSpot['RA'], sweetSpot['DEC'])
-
+    radeg = 180/np.pi
+    niriss_pixel_scale = 0.065  # arcsec
     # offset between all stars and target
     dRA = (allRA - sweetSpot['RA'])*np.cos(sweetSpot['DEC']/radeg)*3600
     dDEC = (allDEC - sweetSpot['DEC'])*3600
@@ -141,12 +198,12 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     # +target at O1 and O2
     simuCube = np.zeros([nPA+2, dimY, dimX])
 
-    # saveFiles = glob.glob('idlSaveFiles/*.sav')[:-1]
+
     saveFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRISS', '*modelOrder12*.sav'))
-    #print(saveFiles)
-    # pdb.set_trace()
+
 
     # Big loop to generate a simulation at each instrument PA
+
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
         V3PA = APA+0.57  # from APT
@@ -159,14 +216,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
         stars['x'] = stars['dx']+sweetSpot['x']
         stars['y'] = stars['dy']+sweetSpot['y']
 
-        #sweetSpot['x'] = sweetSpot['x']*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
-        #sweetSpot['y'] = -(sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)+sweetSpot['y']*np.sin((np.pi/2)+APA/radeg)
-        xcomponent1 = (stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
-        xcomponent2 = (stars['dy'] - sweetSpot['y'])*np.sin((np.pi/2)+APA/radeg)
-        ycomponent1 = -(stars['dx'] - sweetSpot['x'])*np.cos((np.pi/2)+APA/radeg)
-        ycomponent2 = (stars['dy'] - sweetSpot['y'])*np.sin((np.pi/2)+APA/radeg)
-        xsci = xcomponent1+xcomponent2
-        ysci = ycomponent1+ycomponent2
+
 
         # Retain stars that are within the Direct Image NIRISS POM FOV
         ind, = np.where((stars['x'] >= -162) & (stars['x'] <= 2047+185) &
@@ -229,50 +279,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             plt.colorbar(sm)
 
             plt.show(block=False)
-        """
-        # Display the star field (blue), target (red), subarray (green),
-        # full array (blue), and axes
-        if (kPA == 0 and nStars > 1) and False:
-            plt.plot([0, 2047, 2047, 0, 0], [0, 0, 2047, 2047, 0], 'b')
-            plt.plot([0, 255, 255, 0, 0], [0, 0, 2047, 2047, 0], 'g')
-            # the order 1 & 2 traces
-            path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
-            t1 = np.loadtxt(path+'trace_order1.txt', unpack=True)
-            plt.plot(t1[0], t1[1], 'r')
-            t2 = np.loadtxt(path+'trace_order2.txt', unpack=True)
-            plt.plot(t2[0], t2[1], 'r')
-            plt.plot(stars['x'], stars['y'], 'b*')
-            plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
-            plt.title("APA= {} (V3PA={})".format(APA, V3PA))
-            ax = plt.gca()
 
-            # add V2 & V3 axes
-            l, hw, hl = 250, 50, 50
-            adx, ady = -l*np.cos(-0.57 / radeg), -l*np.sin(-0.57 / radeg)
-            ax.arrow(2500, 1800, adx, ady, head_width=hw, head_length=hl,
-                     length_includes_head=True, fc='k')  # V3
-            plt.text(2500+1.4*adx, 1800+1.4*ady, "V3", va='center',
-                     ha='center')
-            adx, ady = -l*np.cos((-0.57-90)/radeg), -l*np.sin((-0.57-90)/radeg)
-            ax.arrow(2500, 1800, adx, ady, head_width=hw, head_length=hl,
-                     length_includes_head=True, fc='k')  # V2
-            plt.text(2500+1.4*adx, 1800+1.4*ady, "V2", va='center',
-                     ha='center')
-            # add North and East
-            adx, ady = -l*np.cos(APA/radeg), -l*np.sin(APA/radeg)
-            ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl,
-                     length_includes_head=True, fc='k')  # N
-            plt.text(2500+1.4*adx, 1300+1.4*ady, "N", va='center', ha='center')
-            adx, ady = -l*np.cos((APA-90)/radeg), -l*np.sin((APA-90)/radeg)
-            ax.arrow(2500, 1300, adx, ady, head_width=hw, head_length=hl,
-                     length_includes_head=True, fc='k')  # E
-            plt.text(2500+1.4*adx, 1300+1.4*ady, "E", va='center', ha='center')
-
-            ax.set_xlim(-400, 2047+800)
-            ax.set_ylim(-400, 2047+400)
-            ax.set_aspect('equal')
-            plt.show()
-        """
 
         for i in range(len(ind)):
             intx = round(starsInFOV['dx'][i])
@@ -317,8 +324,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             if (intx != 0) or (inty != 0):
                 mod = models[k, my0:my1, mx0:mx1]
                 simuCube[kPA+2, y0:y0+my1-my0, x0:x0+mx1-mx0] += mod*fluxscale
-                #mod = models[k, 1500:1500+2048, 100:100+256]
-                #simuCube[kPA+2, 0:dimY, 0:dimX] += mod*fluxscale
     return simuCube
 
 def gtsFieldSim(ra, dec, filter, binComp=''):
@@ -342,21 +347,27 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
             the target for orders 1 and 2 (respectively). Index 2-362 show the trace
             of the target at every position angle (PA) of the instrument.
         """
+        # Instantiate a pySIAF object
+        siaf = pysiaf.Siaf('NIRCam')
 
         # Calling the variables which depend on what NIRCam filter you use
         if filter=='F444W':
-            dimX = 1343
-            dimY = 51
+            aper = siaf.apertures['NRCA5_GRISM256_F444W']
+            dimY = 1343
+            dimX = 51
             rad = 2.5
             pixel_scale = 0.063 # arsec
-            xval, yval = 1096.9968649303112, 34.99693173255946 # got from PYSIAF
+            #xval, yval = 1096.9968649303112, 34.99693173255946 # got from PYSIAF
+            xval, yval = aper.reference_point('det')
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
         elif filter=='F322W2':
-            dimX = 1823
-            dimY = 51
+            aper = siaf.apertures['NRCA5_GRISM256_F322W2']
+            dimY = 1823
+            dimX = 51
             rad = 2.5
             pixel_scale = 0.063 # arsec
-            xval, yval = 468.0140991987737, 35.007956285677665
+            #xval, yval = 468.0140991987737, 35.007956285677665
+            xval, yval = aper.reference_point('det')
             add_to_apa = 0.0265 # got from jwst_gtvt/find_tgt_info.py
 
         # stars in large field around target
@@ -446,10 +457,11 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         # Cube of trace simulation at every degree of field rotation,
         # +target at O1 and O2
         simuCube = np.zeros([nPA+1, dimY+1, dimX+1])
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRCam_{}'.format(filter), 'rot*o1*.0.fits'))
+        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'NIRCam_{}'.format(filter), 'o1*.0.fits'))
         fitsFiles = np.sort(fitsFiles)
 
         # Big loop to generate a simulation at each instrument PA
+        rot=0
         for kPA in range(PAtab.size):
             #APA = PAtab[kPA] # Aperture Position Angle (PA of instrument)
             #V3PA = APA+add_to_apa  # from APT
@@ -458,8 +470,13 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
             sindx = np.sin(APA/radeg)*stars['dDEC']
             cosdx = np.cos(APA/radeg)*stars['dDEC']
             ps = pixel_scale
-            stars['dx'] = (np.cos(np.pi/2+APA/radeg)*stars['dRA']-sindx)/ps
-            stars['dy'] = (np.sin(np.pi/2+APA/radeg)*stars['dRA']+cosdx)/ps
+
+            angle = (rot+APA/radeg)
+            dx1, dx2 = stars['dRA']*np.cos(angle)/ps, stars['dDEC']*np.sin(angle)/ps
+            dy1, dy2 = stars['dRA']*np.sin(angle)/ps, stars['dDEC']*np.cos(angle)/ps
+            stars['dx'] = dx1-dx2
+            stars['dy'] = dy1+dy2
+
             stars['x'] = stars['dx']+sweetSpot['x']
             stars['y'] = stars['dy']+sweetSpot['y']
 
@@ -540,10 +557,16 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 # Fleshing out index 0 of the simulation cube (trace of target)
                 if (intx == 0) & (inty == 0) & (kPA == 0):
                     fNameModO12 = fitsFiles[k]
-                    modelO1 = fits.getdata(fNameModO12, 1)[0]
+                    print('fname')
+                    print(fNameModO12)
+                    print(fluxscale)
+                    print(np.shape(fluxscale))
+                    modelO1 = fits.getdata(fNameModO12)
                     ord1 = modelO1[0, my0:my1, mx0:mx1]*fluxscale
                     print(np.shape(ord1))
                     print(np.shape(modelO1))
+                    print(y0+my1-my0, x0+mx1-mx0)
+                    print('blah')
                     simuCube[0, y0:y0+my1-my0, x0:x0+mx1-mx0] = ord1
 
                 # Fleshing out indexes 1-361 of the simulation cube
@@ -573,6 +596,9 @@ def lrsFieldSim(ra, dec, binComp=''):
             the target for orders 1 and 2 (respectively). Index 2-362 show the trace
             of the target at every position angle (PA) of the instrument.
         """
+        # Instantiate a pySIAF object
+        siaf = pysiaf.Siaf('MIRI')
+        aper = siaf.apertures['MIRIM_SLITLESSPRISM']
 
         # Calling the variables
         PAD_WIDTH = 100
@@ -580,7 +606,8 @@ def lrsFieldSim(ra, dec, binComp=''):
         dimY = 427
         rad = 0.5 # arcmins
         pixel_scale = 0.11 # arsec
-        xval, yval = 38.5, 829.0
+        #xval, yval = 38.5, 829.0
+        xval, yval = aper.reference_point('det')
         add_to_apa = 4.83425324
 
         # stars in large field around target
