@@ -39,6 +39,7 @@ dependencies:
     - flask_wtf==0.14.3
     - lmfit==0.9.13
     - platon==4.0
+    - pysiaf==0.6.2
     - pysynphot==0.9.14
     - pyyaml==5.3
     - sphinx_astropy==1.1.1
