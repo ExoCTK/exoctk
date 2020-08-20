@@ -51,6 +51,11 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 .. toctree::
   :maxdepth: 1
 
+  tutorials/exoctk.GroupsandIntegrationsCalculator
+
+.. toctree::
+  :maxdepth: 1
+
   source/exoctk.groups_integrations
 
 **Lightcurve Fitting Tool**
