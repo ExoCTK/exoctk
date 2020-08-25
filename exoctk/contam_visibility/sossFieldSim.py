@@ -732,8 +732,9 @@ def lrsFieldSim(ra, dec, binComp=''):
                 if (dimX1 < 0) or (dimY1 < 0):
                     continue
 
-                mx0, mx1 = int(dimX0), int(dimX1)
-                my0, my1 = int(dimY0), int(dimY1)
+                # -1 because pySIAF is 1-indexed
+                mx0, mx1 = int(dimX0)-1, int(dimX1)-1
+                my0, my1 = int(dimY0)-1, int(dimY1)-1
 
                 # Fleshing out index 0 of the simulation cube (trace of target)
                 if (sci_dx == 0) & (sci_dy == 0):# this is the target
