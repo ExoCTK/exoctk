@@ -638,10 +638,10 @@ def lrsFieldSim(ra, dec, binComp=''):
         print('v2, v3 (should be -378.832074, -344.944543)')
         print(v2targ, v3targ)
 
-        for V3PAplus1 in range(0, nPA+1, 1):
-            print('Workin on {}'.format(str(V3PAplus1-1)))
+        for V3PA in range(0, nPA, 1):
+            print('Workin on {}'.format(str(V3PA)))
             # Get APA from V3PAplus1
-            APA = V3PAplus1-1 + add_to_v3pa
+            APA = V3PA + add_to_v3pa
             # Get target's attitude matrix for each Position Angle
             attitude = rotations.attitude_matrix(v2targ, v3targ,
                                                  targetRA, targetDEC,
@@ -750,7 +750,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
                     tr = pad_trace[my0:my1, mx0:mx1]*fluxscale
                     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-                    simuCube[V3PAplus1, 0:trY, 0:trX] += tr
+                    simuCube[V3PA+1, 0:trY, 0:trX] += tr
 
         return simuCube
 
