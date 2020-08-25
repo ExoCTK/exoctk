@@ -1,5 +1,6 @@
 import glob
 import os
+import pysiaf
 
 import astropy.coordinates as crd
 import astropy.units as u
@@ -23,63 +24,6 @@ if not EXOCTK_DATA:
     TRACES_PATH = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
-
-def getStarParams(ra, dec, binComp=''):
-    """ STEP 1 of the algorithm. This function will:
-
-    1. Initialize a catalog of stars with a 2.5 arcmin radius from the target
-       (including the target itself) from 2MASS's IRSA point-source catalog.
-    2. Calculate the J-H and H-K band for each star. This will be used to
-       calculate the stellar temperature of each source.
-    3. Determine ``targetIndex`` which will be used for indexing lists later.
-    4. Determine number of stars ``nStars``.
-    5. Calculate the effective temperature of each star.
-    """
-    # Pulling stars from IRSA point-source catalog
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
-    targetRA = targetcrd.ra.value
-    targetDEC = targetcrd.dec.value
-    info = Irsa.query_region(targetcrd,
-                             catalog='fp_psc',
-                             spatial='Cone',
-                             radius=2.5*u.arcmin)
-
-    # Coordinates of all stars in FOV, including target
-    allRA = info['ra'].data.data
-    allDEC = info['dec'].data.data
-    Jmag = info['j_m'].data.data
-    Hmag = info['h_m'].data.data
-    Kmag = info['k_m'].data.data
-
-    # J-H band, H-K band. This will be used to derive the stellar Temps later
-    J_Hobs = Jmag-Hmag
-    H_Kobs = Hmag-Kmag
-
-    # Determining target index by calculating the relative distance between
-    # each source and the target. The target will have the smallest distance
-    # from itself (oof) so whatever that index is will be the targetIndex
-    aa = ((targetRA-allRA)*np.cos(targetDEC))
-    distance = np.sqrt(aa**2 + (targetDEC-allDEC)**2)
-    targetIndex = np.argmin(distance)
-
-    # Add any missing companion
-    if binComp != '':
-        deg2rad = np.pi/180
-        bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
-        J_Hobs = Jmag-Hmag
-        H_Kobs = Hmag-Kmag
-
-    # Number of stars
-    nStars = allRA.size
-
-
-
-    return allRA, allDEC, J_Hobs, H_Kobs, targetIndex, nStars,
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -235,15 +179,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             plt.figure(1)
             fullX, fullY = 55, 427
             subX, subY = 55, 427
-            #plt.plot([0, fullX, fullX, 0, 0], [0, 0, fullY, fullY, 0], 'b')
-            #plt.plot([0, subX, subX, 0, 0], [0, 0, subY, subY, 0], 'g')
 
-            # the order 1 & 2 traces
-            #path = '/Users/david/Documents/work/jwst/niriss/soss/data/'
-            #t1 = np.loadtxt(path+'trace_order1.txt', unpack=True)
-            #plt.plot(t1[0], t1[1], 'r')
-            #t2 = np.loadtxt(path+'trace_order2.txt', unpack=True)
-            #plt.plot(t2[0], t2[1], 'r')
 
             # the stars
             mags = stars['jmag']
@@ -596,6 +532,256 @@ def lrsFieldSim(ra, dec, binComp=''):
             the target for orders 1 and 2 (respectively). Index 2-362 show the trace
             of the target at every position angle (PA) of the instrument.
         """
+        #############################INSTRUMENT PARAMETERS######################
+        ########################################################################
+        # Instantiate a pySIAF object
+        siaf = pysiaf.Siaf('MIRI')
+        aper = siaf.apertures['MIRIM_SLITLESSPRISM']
+        full = siaf.apertures['MIRIM_FULL']
+
+        # Calling the variables
+        deg2rad = np.pi/180
+        PAD_WIDTH = 100
+        dimX, dimY = 55, 427
+        subX, subY = aper.XSciSize, aper.YSciSize
+        rad = 2.5 # arcmins
+        pixel_scale = 0.11 # arsec
+        xSweet, ySweet = aper.reference_point('det')
+        add_to_v3pa = aper.V3IdlYAngle
+        # MIRI Full Frame dimensions
+        rows, cols = full.corners('det')
+        minrow, maxrow = rows.min(), rows.max()
+        mincol, maxcol = cols.min(), cols.max()
+
+        #############################STEP 1#####################################
+        ########################################################################
+        # Converting to degrees
+        targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
+        targetRA = targetcrd.ra.value
+        targetDEC = targetcrd.dec.value
+
+        # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
+        info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',\
+                                 radius=rad*u.arcmin)
+
+        # Coordinates of all the stars in FOV, including target
+        allRA = info['ra'].data.data
+        allDEC = info['dec'].data.data
+
+        # Initiating a dictionary to hold all relevant star information
+        stars = {}
+        stars['RA'], stars['DEC'] = allRA, allDEC
+
+        #############################STEP 2#####################################
+        ########################################################################
+        sindRA = (targetRA-stars['RA'])*np.cos(targetDEC)
+        cosdRA = targetDEC-stars['DEC']
+        distance = np.sqrt(sindRA**2 + cosdRA**2)
+        targetIndex = np.argmin(distance)
+
+        # Add any missing companion
+        if binComp != '':
+            bb = binComp[0]/3600/np.cos(allDEC[targetIndex]*deg2rad)
+            allRA = np.append(allRA, (allRA[targetIndex] + bb))
+            allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1]/3600))
+            Jmag = np.append(Jmag, binComp[2])
+            Hmag = np.append(Kmag, binComp[3])
+            Kmag = np.append(Kmag, binComp[4])
+            J_Hobs = Jmag-Hmag
+            H_Kobs = Hmag-Kmag
+
+        # Restoring model parameters
+        modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
+                     verbose=False)
+        models = modelParam['models']
+        modelPadX = modelParam['modelpadx']
+        modelPadY = modelParam['modelpady']
+        dimXmod = modelParam['dimxmod']
+        dimYmod = modelParam['dimymod']
+        jhMod = modelParam['jhmod']
+        hkMod = modelParam['hkmod']
+        teffMod = modelParam['teffmod']
+
+        #############################STEP 3#####################################
+        ########################################################################
+        # JHK bands of all stars in FOV, including target
+        Jmag = info['j_m'].data.data
+        Hmag = info['h_m'].data.data
+        Kmag = info['k_m'].data.data
+        # J-H band, H-K band. This will be used to derive the Teff
+        J_Hobs = Jmag-Hmag
+        H_Kobs = Hmag-Kmag
+
+        # Number of stars
+        nStars = stars['RA'].size
+
+        # Find/assign Teff of each star
+        starsT = np.empty(nStars)
+        for j in range(nStars):
+            color_separation = (J_Hobs[j]-jhMod)**2+(H_Kobs[j]-hkMod)**2
+            min_separation_ind = np.argmin(color_separation)
+            starsT[j] = teffMod[min_separation_ind]
+
+        # Record keeping
+        stars['Temp'] = starsT
+        stars['Jmag'] = Jmag
+
+        #############################STEP 4#####################################
+        ########################################################################
+        # Calculate relative coordinates
+        dRA = (allRA - allRA[targetIndex])*np.cos(allDEC[targetIndex]*deg2rad)*3600
+        dDEC = (allDEC - allDEC[targetIndex])*3600
+
+        V3PAs = np.arange(0, 360, 1)
+        nPA = len(V3PAs)
+
+        # Prepping for Step 7
+        # Generate cube of field simulation at every degree of APA rotation
+        simuCube = np.zeros([nPA+1, subY, subX])
+
+        for V3PAplus1 in range(0, nPA+1, 1):
+
+            APA = (V3PAplus1-1 + add_to_v3pa)*deg2rad
+            sindx = np.sin(APA)*dDEC
+            cosdx = np.cos(APA)*dDEC
+
+            dx = (np.cos(APA)*dRA-sindx)/0.11
+            dy = (np.sin(APA)*dRA+cosdx)/0.11
+
+            det_x = dx + xSweet
+            det_y = dy + ySweet
+
+            # Record keeping
+            stars['dRA'], stars['dDEC'] = dRA, dDEC
+            stars['det_dx'], stars['det_dy'] = dx, dy
+            stars['det_x'], stars['det_y'] = det_x, det_y
+
+        #############################STEP 5#####################################
+        ########################################################################
+            inFOV = []
+            for star in range(0, nStars):
+
+                x, y = stars['det_x'][star], stars['det_y'][star]
+                if (mincol<x) & (x<maxcol) & (minrow<y) & (y<maxrow):
+                    inFOV.append(star)
+
+        #############################STEP 6#####################################
+        ########################################################################
+            sci_targx, sci_targy = aper.det_to_sci(stars['det_x'][targetIndex],
+                                                   stars['det_y'][targetIndex])
+            sci_x, sci_y = aper.det_to_sci(stars['det_x'],
+                                           stars['det_y'])
+
+        #############################STEP 7#####################################
+        ########################################################################
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
+            fitsFiles = np.sort(fitsFiles)
+
+            print(inFOV)
+            for idx in inFOV:
+
+                print(sci_targx)
+                print(sci_x)
+                print(sci_x[idx])
+                sci_dx = round(sci_targx-sci_x[idx])
+                sci_dy = round(sci_targy-sci_y[idx])
+                temp = stars['Temp'][idx]
+
+                for file in fitsFiles:
+                    if str(temp) in file:
+                        trace = fits.getdata(file)[0]
+
+                fluxscale = 10.0**(-0.4*(stars['Jmag'][idx]-stars['Jmag'][targetIndex]))
+
+                # Padding array
+                pad_trace = np.pad(trace, pad_width=400, mode='constant',
+                                   constant_values=0)
+
+                # Determine the highest pixel value of trace
+                maxY, maxX = np.where(pad_trace == pad_trace.max())
+                peakY, peakX = maxY[0], maxX[0]
+
+                # Use relative distances (sci_dx, sci_dy) to find target
+                xTarg = peakX + sci_dx
+                yTarg = peakY + sci_dy
+
+                print('x,yTarg in padded aray')
+                print(xTarg, yTarg)
+                print('x,y targ from transform')
+                print(sci_targy)
+                print('dimY0')
+                print(yTarg-sci_targy)
+                print('dimY1')
+                print(yTarg+subY-sci_targy)
+                # Use the (xTarg, yTarg) coordinates to slice out subarray
+                # remember X is columns, Y is rows
+                dimX0, dimX1 = xTarg-sci_targx, xTarg+subX-sci_targx
+                dimY0, dimY1 = yTarg-sci_targy, yTarg+subY-sci_targy
+
+                if dimX0 < 0:
+                    dimX0 = 0
+                    dimX1 = subX
+                if dimY0 < 0:
+                    dimY0 = 0
+                    dimY1 = subY
+
+                traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+                if dimX1 > traceX:
+                    dimX1 = traceX
+                    dimX0 = traceX-subX
+                if dimY1 > traceY:
+                    dimY1 = traceY
+                    dimY0 = traceY-subY
+
+                if (dimX1 < 0) or (dimY1 < 0):
+                    continue
+
+                mx0, mx1 = int(dimX0), int(dimX1)
+                my0, my1 = int(dimY0), int(dimY1)
+
+                print('DIMENSIONS')
+                print(mx0, mx1, my0, my1)
+                # Fleshing out index 0 of the simulation cube (trace of target)
+                if (sci_dx == 0) & (sci_dy == 0):# & (targetIndex == idx):
+
+                    tr = pad_trace[my0:my1, mx0:mx1]*fluxscale
+                    print(np.shape(tr))
+                    trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+                    print('trY, trX')
+                    print(trY, trX)
+                    print(np.shape(simuCube))
+                    simuCube[0, 0:trY, 0:trX] = tr
+
+                # Fleshing out indexes 1-361 of the simulation cube
+                # (trace of neighboring stars at every position angle)
+                else:
+
+                    tr = pad_trace[my0:my1, mx0:mx1]*fluxscale
+                    trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+                    simuCube[V3PAplus1, 0:trY, 0:trX] += tr
+
+        return simuCube
+
+def _lrsFieldSim(ra, dec, binComp=''):
+        """ Produce a Grism Time Series field simulation for a target.
+        Parameters
+        ----------
+        ra : float
+            The RA of the target.
+        dec : float
+            The Dec of the target.
+        binComp : sequence
+            The parameters of a binary companion.
+
+        Returns
+        -------
+        simuCube : np.ndarray
+            The simulated data cube. Index 0 and 1 (axis=0) show the trace of
+            the target for orders 1 and 2 (respectively). Index 2-362 show the trace
+            of the target at every position angle (PA) of the instrument.
+        """
+        #############################N################################
+        ########################################################################
         # Instantiate a pySIAF object
         siaf = pysiaf.Siaf('MIRI')
         aper = siaf.apertures['MIRIM_SLITLESSPRISM']
@@ -609,6 +795,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         #xval, yval = 38.5, 829.0
         xval, yval = aper.reference_point('det')
         add_to_apa = 4.83425324
+
 
         # stars in large field around target
         targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
