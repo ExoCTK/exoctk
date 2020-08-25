@@ -533,7 +533,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         # Calling the variables
         deg2rad = np.pi/180
         subX, subY = aper.XSciSize, aper.YSciSize
-        rad = 2.5 # arcmins
+        rad = 1.5 # arcmins
         pixel_scale = 0.11 # arsec/pixel
         V3PAs = np.arange(0, 360, 1)
         nPA = len(V3PAs)
