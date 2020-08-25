@@ -11,6 +11,7 @@ from matplotlib import cm
 from scipy.io import readsav
 from astropy.io import fits
 from exoctk.utils import get_env_variables
+from pysiaf.utils import rotations
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if not EXOCTK_DATA:
@@ -544,8 +545,12 @@ def lrsFieldSim(ra, dec, binComp=''):
         PAD_WIDTH = 100
         dimX, dimY = 55, 427
         subX, subY = aper.XSciSize, aper.YSciSize
-        rad = 2.5 # arcmins
-        pixel_scale = 0.11 # arsec
+        rad = 0.5 # arcmins
+        pixel_scale = 0.11 # arsec/pixel
+        V3PAs = np.arange(0, 360, 1)
+        nPA = len(V3PAs)
+        # Generate cube of field simulation at every degree of APA rotation
+        simuCube = np.zeros([nPA+1, subY, subX])
         xSweet, ySweet = aper.reference_point('det')
         add_to_v3pa = aper.V3IdlYAngle
         # MIRI Full Frame dimensions
@@ -628,63 +633,62 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         #############################STEP 4#####################################
         ########################################################################
-        # Calculate relative coordinates
-        dRA = (allRA - allRA[targetIndex])*np.cos(allDEC[targetIndex]*deg2rad)*3600
-        dDEC = (allDEC - allDEC[targetIndex])*3600
-
-        V3PAs = np.arange(0, 360, 1)
-        nPA = len(V3PAs)
-
-        # Prepping for Step 7
-        # Generate cube of field simulation at every degree of APA rotation
-        simuCube = np.zeros([nPA+1, subY, subX])
+        # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
+        v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
+        print('v2, v3 (should be -378.832074, -344.944543)')
+        print(v2targ, v3targ)
 
         for V3PAplus1 in range(0, nPA+1, 1):
+            print('Workin on {}'.format(str(V3PAplus1-1)))
+            # Get APA from V3PAplus1
+            APA = V3PAplus1-1 + add_to_v3pa
+            # Get target's attitude matrix for each Position Angle
+            attitude = rotations.attitude_matrix(v2targ, v3targ,
+                                                 targetRA, targetDEC,
+                                                 APA)
 
-            APA = (V3PAplus1-1 + add_to_v3pa)*deg2rad
-            sindx = np.sin(APA)*dDEC
-            cosdx = np.cos(APA)*dDEC
+            xdet, ydet = [], []
+            xsci, ysci = [], []
+            for starRA, starDEC in zip(stars['RA'], stars['DEC']):
+                    # Get the TEL coordinates of each star w attitude matrix
+                    V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
+                    # Convert to arcsec and turn to a float
+                    V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
 
-            dx = (np.cos(APA)*dRA-sindx)/0.11
-            dy = (np.sin(APA)*dRA+cosdx)/0.11
+                    XDET, YDET = aper.tel_to_det(V2, V3)
+                    XSCI, YSCI = aper.det_to_sci(XDET, YDET)
 
-            det_x = dx + xSweet
-            det_y = dy + ySweet
+                    xdet.append(XDET)
+                    ydet.append(YDET)
+                    xsci.append(XSCI)
+                    ysci.append(YSCI)
 
             # Record keeping
-            stars['dRA'], stars['dDEC'] = dRA, dDEC
-            stars['det_dx'], stars['det_dy'] = dx, dy
-            stars['det_x'], stars['det_y'] = det_x, det_y
+            stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
+            stars['xsci'], stars['ysci'] = np.array(xsci), np.array(ysci)
 
+            sci_targx, sci_targy = stars['xsci'][targetIndex],\
+                                   stars['ysci'][targetIndex]
         #############################STEP 5#####################################
         ########################################################################
             inFOV = []
             for star in range(0, nStars):
 
-                x, y = stars['det_x'][star], stars['det_y'][star]
+                x, y = stars['xdet'][star], stars['ydet'][star]
                 if (mincol<x) & (x<maxcol) & (minrow<y) & (y<maxrow):
                     inFOV.append(star)
 
-        #############################STEP 6#####################################
-        ########################################################################
-            sci_targx, sci_targy = aper.det_to_sci(stars['det_x'][targetIndex],
-                                                   stars['det_y'][targetIndex])
-            sci_x, sci_y = aper.det_to_sci(stars['det_x'],
-                                           stars['det_y'])
+            inFOV = np.array(inFOV)
 
-        #############################STEP 7#####################################
+        #############################STEP 6#####################################
         ########################################################################
             fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
             fitsFiles = np.sort(fitsFiles)
 
-            print(inFOV)
             for idx in inFOV:
 
-                print(sci_targx)
-                print(sci_x)
-                print(sci_x[idx])
-                sci_dx = round(sci_targx-sci_x[idx])
-                sci_dy = round(sci_targy-sci_y[idx])
+                sci_dx = round(sci_targx-stars['xsci'][idx])
+                sci_dy = round(sci_targy-stars['ysci'][idx])
                 temp = stars['Temp'][idx]
 
                 for file in fitsFiles:
@@ -705,14 +709,6 @@ def lrsFieldSim(ra, dec, binComp=''):
                 xTarg = peakX + sci_dx
                 yTarg = peakY + sci_dy
 
-                print('x,yTarg in padded aray')
-                print(xTarg, yTarg)
-                print('x,y targ from transform')
-                print(sci_targy)
-                print('dimY0')
-                print(yTarg-sci_targy)
-                print('dimY1')
-                print(yTarg+subY-sci_targy)
                 # Use the (xTarg, yTarg) coordinates to slice out subarray
                 # remember X is columns, Y is rows
                 dimX0, dimX1 = xTarg-sci_targx, xTarg+subX-sci_targx
@@ -739,17 +735,12 @@ def lrsFieldSim(ra, dec, binComp=''):
                 mx0, mx1 = int(dimX0), int(dimX1)
                 my0, my1 = int(dimY0), int(dimY1)
 
-                print('DIMENSIONS')
-                print(mx0, mx1, my0, my1)
                 # Fleshing out index 0 of the simulation cube (trace of target)
-                if (sci_dx == 0) & (sci_dy == 0):# & (targetIndex == idx):
+                if (sci_dx == 0) & (sci_dy == 0):# this is the target
 
                     tr = pad_trace[my0:my1, mx0:mx1]*fluxscale
-                    print(np.shape(tr))
                     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-                    print('trY, trX')
-                    print(trY, trX)
-                    print(np.shape(simuCube))
+
                     simuCube[0, 0:trY, 0:trX] = tr
 
                 # Fleshing out indexes 1-361 of the simulation cube
