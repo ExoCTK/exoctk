@@ -386,8 +386,6 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         ########################################################################
         # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
         v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
-        print('v2, v3 (should be -378.832074, -344.944543)')
-        print(v2targ, v3targ)
 
         for V3PA in range(0, nPA, 1):
             print('Workin on {}'.format(str(V3PA)))
@@ -420,6 +418,10 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
             sci_targx, sci_targy = stars['xsci'][targetIndex],\
                                    stars['ysci'][targetIndex]
+
+            print('this should be sweetspot')
+            print(stars['xdet'][targetIndex], stars['ydet'][targetIndex])
+            print(' ')
         #############################STEP 5#####################################
         ########################################################################
             inFOV = []
@@ -430,10 +432,13 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                     inFOV.append(star)
 
             inFOV = np.array(inFOV)
-
+            print('in my FOV')
+            print(inFOV)
+            print(' ')
         #############################STEP 6#####################################
         ########################################################################
-            fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
+            nircam_path = 'NIRCam_F444W' if filter=='F444W' else 'NIRCam_F322W2'
+            fitsFiles = glob.glob(os.path.join(TRACES_PATH, nircam_path, 'rot*.fits'))
             fitsFiles = np.sort(fitsFiles)
 
             for idx in inFOV:
@@ -444,26 +449,39 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
                 for file in fitsFiles:
                     if str(temp) in file:
-                        trace = fits.getdata(file)[0]
-
+                        trace = fits.getdata(file, 1)[0]
+                print('trace shape')
+                print(np.shape(trace))
+                print(' ')
                 fluxscale = 10.0**(-0.4*(stars['Jmag'][idx]-stars['Jmag'][targetIndex]))
 
                 # Padding array
-                pad_trace = np.pad(trace, pad_width=400, mode='constant',
+                pad_trace = np.pad(trace, pad_width=5000, mode='constant',
                                    constant_values=0)
 
                 # Determine the highest pixel value of trace
                 maxY, maxX = np.where(pad_trace == pad_trace.max())
                 peakY, peakX = maxY[0], maxX[0]
 
+                print('peakx, peaky')
+                print(peakX, peakY)
+                print(' ')
                 # Use relative distances (sci_dx, sci_dy) to find target
                 xTarg = peakX + sci_dx
                 yTarg = peakY + sci_dy
 
                 # Use the (xTarg, yTarg) coordinates to slice out subarray
                 # remember X is columns, Y is rows
+                print('this is the problem i think')
+                print('sci targ x, sub X')
+                print(sci_targx, subX)
+                print('sci targ y, sub Y')
+                print(sci_targy, subY)
+                print(' ')
                 dimX0, dimX1 = xTarg-sci_targx, xTarg+subX-sci_targx
                 dimY0, dimY1 = yTarg-sci_targy, yTarg+subY-sci_targy
+
+                print('xtarg-scitargx')
 
                 if dimX0 < 0:
                     dimX0 = 0
@@ -487,6 +505,9 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 mx0, mx1 = int(dimX0)-1, int(dimX1)-1
                 my0, my1 = int(dimY0)-1, int(dimY1)-1
 
+                print('mx0, mx1, my0, my1')
+                print(mx0, mx1, my0, my1)
+                print(' ')
                 # Fleshing out index 0 of the simulation cube (trace of target)
                 if (sci_dx == 0) & (sci_dy == 0):# this is the target
 
@@ -686,7 +707,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 fluxscale = 10.0**(-0.4*(stars['Jmag'][idx]-stars['Jmag'][targetIndex]))
 
                 # Padding array
-                pad_trace = np.pad(trace, pad_width=400, mode='constant',
+                pad_trace = np.pad(trace, pad_width=5000, mode='constant',
                                    constant_values=0)
 
                 # Determine the highest pixel value of trace
@@ -694,6 +715,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 peakY, peakX = maxY[0], maxX[0]
 
                 # Use relative distances (sci_dx, sci_dy) to find target
+                # xTarg,yTarg are essentially the "sweetspot" in the PADDED arr
                 xTarg = peakX + sci_dx
                 yTarg = peakY + sci_dy
 
