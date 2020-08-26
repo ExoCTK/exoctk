@@ -296,7 +296,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         # Calling the variables
         deg2rad = np.pi/180
         subX, subY = aper.XSciSize, aper.YSciSize
-        rad = 0.5 # arcmins
+        rad = 2.5 # arcmins
         pixel_scale = 0.063 # arsec/pixel
         V3PAs = np.arange(0, 360, 1)
         nPA = len(V3PAs)
