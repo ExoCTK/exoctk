@@ -87,7 +87,23 @@ def nirissContam(cube, paRange=[0, 360]):
 
 def nircamContam(cube, instrument, paRange=[0, 360]):
     """ Generates the contamination figure that will be plotted on the website
-    for MIRI LRS.
+    for NIRCam Grism Time Series mode.
+
+    PARAMETERS
+    ----------
+    cube : arr or str
+        A 3D array of the simulated field at every Aperture Position Angle (APA).
+        The shape of the cube is (361, subY, subX).
+        or
+        The name of an HDU .fits file sthat has the cube.
+
+    instrument : str
+        The name of the instrument + what filter is being used. For NIRCam the
+        options are: 'NIRCam F322W2', 'NIRCam F444W'
+
+    RETURNS
+    -------
+    bokeh plot
     """
     # Get data from FITS file
     if isinstance(cube, str):
@@ -96,55 +112,44 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
         hdu.close()
 
     # Pull out the target trace and cube of neighbor traces
-    trace1 = cube[0, :, :] # target star order 1 trace
+    targ = cube[0, :, :] # target star order 1 trace
     cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
 
-    plotPAmin, plotPAmax = paRange
+    # Remove background values < 1 as it can blow up contamination
+    targ = np.where(targ<1, 0, targ)
 
-    # Start calculations
-    if not TRACES_PATH:
-        return None
-    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
-    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+    PAmin, PAmax = paRange[0], paRange[1]
+    PArange = np.arange(PAmin, PAmax, 1)
 
-    nPA = cube.shape[0]
-    rows = cube.shape[1]
-    cols = cube.shape[2]
-    print('cols ', cols)
-    dPA = 360//nPA
-    PA = np.arange(nPA)*dPA
+    nPA, rows, cols = cube.shape[0], cube.shape[1], cube.shape[2]
 
-    contamO1 = np.zeros([cols, nPA])
+    contamO1 = np.zeros([nPA, cols])
 
-    low_lim_row = 20
-    high_lim_row = 41
-    # eventually replace these hardcoded #s with
-    # wvl cutoff like NIRISS code.
-    # perhaps using PYSIAF.
-    if instrument == 'NIRCam F322W2':
-        targ_trace_start, targ_trace_stop = 25, 1667
-    elif instrument == 'NIRCam F444W':
-        targ_trace_start, targ_trace_stop = 25, 1319
+    # the width of the trace (in Y-direction for NIRCam GTS)
+    peak = targ.max()
+    low_lim_row = np.where(targ>0.001*peak)[0].min()
+    high_lim_row = np.where(targ>0.001*peak)[0].max()
 
-    for col in np.arange(cols):
-        # Contamination for order 1 of target trace
-        if (col < targ_trace_start) or (col > targ_trace_stop):
-            continue
+    # Begin contam calculation at each channel (column) X
+    for X in np.arange(cols):
 
-        i = np.argmax(trace1[:, col])
-        tr = trace1[i-low_lim_row:i+high_lim_row, col]
-        w = tr/np.sum(tr**2)
-        ww = np.tile(w, nPA).reshape([nPA, tr.size])
-        contamO1[:, col] = np.sum(cube[:, i-low_lim_row:i+high_lim_row, col]*ww, axis=1)
+        peakY = np.argmax(targ[:, X])
+        TOP, BOT = peakY + high_lim_row, peakY - low_lim_row
 
-    contamO1 = contamO1[:, targ_trace_start:targ_trace_stop]
+        tr = targ[BOT:TOP, X]
+
+        # calculate weights
+        wt = tr/np.sum(tr**2)
+        ww = np.tile(wt, nPA).reshape([nPA, tr.size])
+
+        contamO1[:, X] = np.sum(cube[:, BOT:TOP, X]*ww, axis=1)
+
     return contamO1
 
 def miriContam(cube, paRange=[0, 360]):
     """ Generates the contamination figure that will be plotted on the website
     for MIRI LRS.
     """
-    print('are u even running')
     # Get data from FITS file
     if isinstance(cube, str):
         hdu = fits.open(cubeName)
@@ -152,43 +157,38 @@ def miriContam(cube, paRange=[0, 360]):
         hdu.close()
 
     # Pull out the target trace and cube of neighbor traces
-    trace1 = cube[0, :, :] # target star order 1 trace
+    targ = cube[0, :, :] # target star order 1 trace
     cube = cube[1:, :, :] # neighbor star order 1 and 2 traces in all the angles
 
-    plotPAmin, plotPAmax = paRange
+    # Remove background values < 1 as it can blow up contamination
+    targ = np.where(targ<1, 0, targ)
 
-    # Start calculations
-    if not TRACES_PATH:
-        return None
-    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
-    ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
+    PAmin, PAmax = paRange[0], paRange[1]
+    PArange = np.arange(PAmin, PAmax, 1)
 
-    nPA = cube.shape[0]
-    rows = cube.shape[1]
-    cols = cube.shape[2]
-    print('cols ', cols)
-    dPA = 360//nPA
-    PA = np.arange(nPA)*dPA
+    nPA, rows, cols = cube.shape[0], cube.shape[1], cube.shape[2]
 
     contamO1 = np.zeros([rows, nPA])
 
-    low_lim_col = 20
-    high_lim_col = 41
-    targ_trace_start, targ_trace_stop = 31, 417
+    # the width of the trace (in Y-direction for NIRCam GTS)
+    peak = targ.max()
+    low_lim_col = np.where(targ>0.001*peak)[1].min()
+    high_lim_col = np.where(targ>0.001*peak)[1].max()
 
-    for row in np.arange(rows):
-        # Contamination for order 1 of target trace
-        if (row < targ_trace_start) or (row > targ_trace_stop):
-            #print(row)
-            continue
-        print(row)
-        i = np.argmax(trace1[row, :])
-        tr = trace1[row, i-low_lim_col:i+high_lim_col]
-        w = tr/np.sum(tr**2)
-        ww = np.tile(w, nPA).reshape([nPA, tr.size])
-        contamO1[row, :] = np.sum(cube[:, row, i-low_lim_col:i+high_lim_col]*ww, axis=1)
+    # Begin contam calculation at each channel (column) X
+    for Y in np.arange(rows):
 
-    contamO1 = contamO1[targ_trace_start:targ_trace_stop, :]
+        peakX = np.argmax(targ[Y, :])
+        LEFT, RIGHT = peakX - low_lim_col, peakX + high_lim_col
+
+        tr = targ[Y, LEFT:RIGHT]
+
+        # calculate weights
+        wt = tr/np.sum(tr**2)
+        ww = np.tile(wt, nPA).reshape([nPA, tr.size])
+
+        contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT]*ww, axis=1)
+
     return contamO1
 
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
@@ -197,12 +197,10 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
-    nPA = 360
-    rows = cube.shape[1]
-    cols = cube.shape[2]
-    print('cols ', cols)
-    dPA = 360//nPA
-    PA = np.arange(nPA)*dPA
+    nPA, rows, cols = cube.shape[0], cube.shape[1], cube.shape[2]
+
+    PAmin, PAmax = paRange[0], paRange[1]
+    PA = np.arange(PAmin, PAmax, 1)
 
     # Generate the contam figure
     if instrument == 'NIRISS':
@@ -221,6 +219,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     y4 = 0.23
     bad_PA_color = '#dddddd'
     bad_PA_alpha = 0.7
+    dPA = 1
 
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -238,8 +237,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         xlim0 = 5
         xlim1 = 12
 
-    ylim0 = PA.min()-0.5*dPA
-    ylim1 = PA.max()+0.5*dPA
+    ylim0 = PAmin-0.5
+    ylim1 = PAmax+0.5
     color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:],
                                      low=-4, high=1)
     color_mapper.low_color = 'white'
@@ -248,7 +247,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
-    if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
+    #if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
         # need to flip the array 180deg for MIRI
         # so that it goes from top row --> bottom row (left --> right, respectively)
         # because
@@ -257,11 +256,16 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         # and the x-axis for the contam plot will go from low wvl --> high wvl
         #
         # P.S: same situation with NIRCam F322W2 thats why thats in here too
-        contamO1 = np.flipud(contamO1)
-    fig_data = np.log10(np.clip(contamO1.T, 1.e-10, 1.))#[:, :361] # might this
+        #contamO1 = np.flipud(contamO1)
+
+    contamO1 = contamO1 if 'NIRCam' in instrument else contamO1.T
+    fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
                                                         #of o1 in all instruments
+
+    X = xlim1 if (instrument=='MIRI') or (instrument=='NIRCam F322W2') else xlim0
+    DW = xlim0-xlim1 if (instrument=='MIRI') or (instrument=='NIRCam F322W2') else xlim1-xlim0
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
@@ -290,11 +294,13 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                  color=bad_PA_color, alpha=bad_PA_alpha)
 
     # Line plot
+    ax = 1 if 'NIRCam' in instrument else 0
+    channels = cols if 'NIRCam' in instrument else rows
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
-    s3.line(100*np.sum(contamO1 >= 0.001, axis=0)/rows, PA-dPA/2,
+    s3.line(100*np.sum(contamO1 >= 0.001, axis=ax)/channels, PA-dPA/2,
             line_color='blue', legend='> 0.001')
-    s3.line(100*np.sum(contamO1 >= 0.01, axis=0)/rows, PA-dPA/2,
+    s3.line(100*np.sum(contamO1 >= 0.01, axis=ax)/channels, PA-dPA/2,
             line_color='green', legend='> 0.01')
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
@@ -372,7 +378,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     else:
         fig = gridplot(children=[[s6, s5, s2, s3]])
 
-    return fig#, contamO1
+    return fig, contamO1
 
 
 if __name__ == "__main__":

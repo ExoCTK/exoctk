@@ -296,7 +296,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         # Calling the variables
         deg2rad = np.pi/180
         subX, subY = aper.XSciSize, aper.YSciSize
-        rad = 2.5 # arcmins
+        rad = 0.5 # arcmins
         pixel_scale = 0.063 # arsec/pixel
         V3PAs = np.arange(0, 360, 1)
         nPA = len(V3PAs)
@@ -388,7 +388,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
         v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
         for V3PA in range(0, nPA, 1):
-            print('Workin on {}'.format(str(V3PA)))
+            print('Working on {}'.format(str(V3PA)))
             # Get APA from V3PA
             APA = V3PA + add_to_v3pa
             # Get target's attitude matrix for each Position Angle
@@ -419,9 +419,6 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
             sci_targx, sci_targy = stars['xsci'][targetIndex],\
                                    stars['ysci'][targetIndex]
 
-            print('this should be sweetspot')
-            print(stars['xdet'][targetIndex], stars['ydet'][targetIndex])
-            print(' ')
         #############################STEP 5#####################################
         ########################################################################
             inFOV = []
@@ -432,9 +429,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                     inFOV.append(star)
 
             inFOV = np.array(inFOV)
-            print('in my FOV')
-            print(inFOV)
-            print(' ')
+
         #############################STEP 6#####################################
         ########################################################################
             nircam_path = 'NIRCam_F444W' if filter=='F444W' else 'NIRCam_F322W2'
@@ -450,9 +445,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 for file in fitsFiles:
                     if str(temp) in file:
                         trace = fits.getdata(file, 1)[0]
-                print('trace shape')
-                print(np.shape(trace))
-                print(' ')
+
                 fluxscale = 10.0**(-0.4*(stars['Jmag'][idx]-stars['Jmag'][targetIndex]))
 
                 # Padding array
@@ -463,25 +456,14 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 maxY, maxX = np.where(pad_trace == pad_trace.max())
                 peakY, peakX = maxY[0], maxX[0]
 
-                print('peakx, peaky')
-                print(peakX, peakY)
-                print(' ')
                 # Use relative distances (sci_dx, sci_dy) to find target
                 xTarg = peakX + sci_dx
                 yTarg = peakY + sci_dy
 
                 # Use the (xTarg, yTarg) coordinates to slice out subarray
                 # remember X is columns, Y is rows
-                print('this is the problem i think')
-                print('sci targ x, sub X')
-                print(sci_targx, subX)
-                print('sci targ y, sub Y')
-                print(sci_targy, subY)
-                print(' ')
                 dimX0, dimX1 = xTarg-sci_targx, xTarg+subX-sci_targx
                 dimY0, dimY1 = yTarg-sci_targy, yTarg+subY-sci_targy
-
-                print('xtarg-scitargx')
 
                 if dimX0 < 0:
                     dimX0 = 0
@@ -505,9 +487,6 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 mx0, mx1 = int(dimX0)-1, int(dimX1)-1
                 my0, my1 = int(dimY0)-1, int(dimY1)-1
 
-                print('mx0, mx1, my0, my1')
-                print(mx0, mx1, my0, my1)
-                print(' ')
                 # Fleshing out index 0 of the simulation cube (trace of target)
                 if (sci_dx == 0) & (sci_dy == 0):# this is the target
 
@@ -554,7 +533,7 @@ def lrsFieldSim(ra, dec, binComp=''):
         # Calling the variables
         deg2rad = np.pi/180
         subX, subY = aper.XSciSize, aper.YSciSize
-        rad = 1.5 # arcmins
+        rad = 0.5 # arcmins
         pixel_scale = 0.11 # arsec/pixel
         V3PAs = np.arange(0, 360, 1)
         nPA = len(V3PAs)
@@ -649,7 +628,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         for V3PA in range(0, nPA, 1):
             print('Workin on {}'.format(str(V3PA)))
-            # Get APA from V3PAplus1
+            # Get APA from V3PA
             APA = V3PA + add_to_v3pa
             # Get target's attitude matrix for each Position Angle
             attitude = rotations.attitude_matrix(v2targ, v3targ,
