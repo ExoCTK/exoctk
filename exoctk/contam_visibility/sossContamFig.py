@@ -247,18 +247,9 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 title='Order 1 {} Contamination with {}'.format(targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
-    #if (instrument=='MIRI') or (instrument=='NIRCam F322W2'):
-        # need to flip the array 180deg for MIRI
-        # so that it goes from top row --> bottom row (left --> right, respectively)
-        # because
-        # MIRI dispersion is: low wvl at top row --> high wvl bottom row
-        # NIRISS dispersion is: high wvl at top row --> low wvl at bottom row
-        # and the x-axis for the contam plot will go from low wvl --> high wvl
-        #
-        # P.S: same situation with NIRCam F322W2 thats why thats in here too
-        #contamO1 = np.flipud(contamO1)
 
     contamO1 = contamO1 if 'NIRCam' in instrument else contamO1.T
+    contamO1 = np.fliplr(contamO1) if (instrument=='MIRI') or ('F322W2' in instrument) else contamO1
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
