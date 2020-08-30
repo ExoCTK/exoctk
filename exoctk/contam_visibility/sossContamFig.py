@@ -310,13 +310,13 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                  color=bad_PA_color, alpha=bad_PA_alpha)
 
     # Line plot
-    ax = 1 if 'NIRCam' in instrument else 0
+    #ax = 1 if 'NIRCam' in instrument else 0
     channels = cols if 'NIRCam' in instrument else rows
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
-    s3.line(100*np.sum(contamO1 >= 0.001, axis=ax)/channels, PA-dPA/2,
+    s3.line(100*np.sum(contamO1 >= 0.001, axis=1)/channels, PA-dPA/2,
             line_color='blue', legend='> 0.001')
-    s3.line(100*np.sum(contamO1 >= 0.01, axis=ax)/channels, PA-dPA/2,
+    s3.line(100*np.sum(contamO1 >= 0.01, axis=1)/channels, PA-dPA/2,
             line_color='green', legend='> 0.01')
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
