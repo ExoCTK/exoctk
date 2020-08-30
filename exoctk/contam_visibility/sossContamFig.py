@@ -127,11 +127,17 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
 
     # the width of the trace (in Y-direction for NIRCam GTS)
     peak = targ.max()
-    low_lim_row = np.where(targ>0.001*peak)[0].min()
-    high_lim_row = np.where(targ>0.001*peak)[0].max()
+    low_lim_row = np.where(targ>0.0001*peak)[0].min()
+    high_lim_row = np.where(targ>0.0001*peak)[0].max()
+
+    # the length of the trace (in X-direction for NIRCam GTS)
+    targ_trace_start = np.where(targ > 0.0001*peak)[1].min()
+    targ_trace_stop = np.where(targ > 0.0001*peak)[1].max()
 
     # Begin contam calculation at each channel (column) X
     for X in np.arange(cols):
+        if (X<targ_trace_start) or (X>targ_trace_stop):
+            continue
 
         peakY = np.argmax(targ[:, X])
         TOP, BOT = peakY + high_lim_row, peakY - low_lim_row
@@ -144,6 +150,7 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
 
         contamO1[:, X] = np.sum(cube[:, BOT:TOP, X]*ww, axis=1)
 
+    contamO1 = contamO1[:, targ_trace_start:targ_trace_stop]
     return contamO1
 
 def miriContam(cube, paRange=[0, 360]):
@@ -172,11 +179,16 @@ def miriContam(cube, paRange=[0, 360]):
 
     # the width of the trace (in Y-direction for NIRCam GTS)
     peak = targ.max()
-    low_lim_col = np.where(targ>0.001*peak)[1].min()
-    high_lim_col = np.where(targ>0.001*peak)[1].max()
+    low_lim_col = np.where(targ>0.0001*peak)[1].min()
+    high_lim_col = np.where(targ>0.0001*peak)[1].max()
 
-    # Begin contam calculation at each channel (column) X
+    # the length of the trace (in X-direction for NIRCam GTS)
+    targ_trace_start = np.where(targ > 0.0001*peak)[0].min()
+    targ_trace_stop = np.where(targ > 0.0001*peak)[0].max()
+    # Begin contam calculation at each channel (row) Y
     for Y in np.arange(rows):
+        if (Y<targ_trace_start) or (Y>targ_trace_stop):
+            continue
 
         peakX = np.argmax(targ[Y, :])
         LEFT, RIGHT = peakX - low_lim_col, peakX + high_lim_col
@@ -187,8 +199,16 @@ def miriContam(cube, paRange=[0, 360]):
         wt = tr/np.sum(tr**2)
         ww = np.tile(wt, nPA).reshape([nPA, tr.size])
 
-        contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT]*ww, axis=1)
+        contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT]*wt,
+                                where=~np.isnan(cube[:, Y, LEFT:RIGHT]*wt),
+                                axis=1)
 
+        #target = np.sum(cube[0, Y, LEFT:RIGHT], axis=0)
+
+        #contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT]*ww,
+        #                        where=~np.isnan(cube[:, Y, LEFT:RIGHT]),
+        #                        axis=1)#/target
+    contamO1 = contamO1[targ_trace_start:targ_trace_stop, :]
     return contamO1
 
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
@@ -243,13 +263,15 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                                      low=-4, high=1)
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
+
+    orders = 'Orders 1 & 2' if instrument=='NIRISS' else 'Order 1'
     s2 = figure(tools=TOOLS, width=500, height=500,
-                title='Order 1 {} Contamination with {}'.format(targetName, instrument),
+                title='{} {} Contamination with {}'.format(orders, targetName, instrument),
                 x_range=Range1d(xlim0, xlim1),
                 y_range=Range1d(ylim0, ylim1))
 
     contamO1 = contamO1 if 'NIRCam' in instrument else contamO1.T
-    contamO1 = np.fliplr(contamO1) if (instrument=='MIRI') or ('F322W2' in instrument) else contamO1
+    contamO1 = np.fliplr(contamO1) if (instrument=='MIRI') else contamO1
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
@@ -257,6 +279,9 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     X = xlim1 if (instrument=='MIRI') or (instrument=='NIRCam F322W2') else xlim0
     DW = xlim0-xlim1 if (instrument=='MIRI') or (instrument=='NIRCam F322W2') else xlim1-xlim0
+
+    # Begin plotting ~~~~~~~~~~~~~~~~~~~~~~~~
+
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1-xlim0, dh=ylim1-ylim0,
              color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
