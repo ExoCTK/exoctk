@@ -271,7 +271,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 y_range=Range1d(ylim0, ylim1))
 
     contamO1 = contamO1 if 'NIRCam' in instrument else contamO1.T
-    contamO1 = np.fliplr(contamO1) if (instrument=='MIRI') else contamO1
+    contamO1 = np.fliplr(contamO1) if (instrument=='MIRI') or (instrument=='NIRCam F322W2') else contamO1
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))#[:, :361] # might this
                                                         #index have somethig to
                                                         #do w the choppiness
