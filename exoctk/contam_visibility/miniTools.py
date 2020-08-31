@@ -286,7 +286,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
 
             # Labeling
             aperstr = str(aper.AperName.replace('_', ' '))
-            tx, ty = (str(round(xsci[targetIndex]))), str(round(ysci[targetIndex]))
+            tx, ty = str(round(XSCI[targetIndex])), str(round(YSCI[targetIndex]))
             plt.title('The FOV in SCIENCE coordinates at APA {}$^o$'.format(str(APA))+'\n'+'{}'.format(aperstr)+'\n'+'Target (X,Y): {}, {}'.format(tx, ty), fontsize=20)
 
             # Adding to PDF
