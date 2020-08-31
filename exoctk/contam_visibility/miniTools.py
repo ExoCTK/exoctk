@@ -1,9 +1,10 @@
-""" A couple functions we will use to generate example plots
+""" A couple functions used to generate example plots
 in the Jupyter notebooks. Makes them look a little cleaner.
 """
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import pysiaf
 
 from astropy.io import fits
 from astroquery.irsa import Irsa
@@ -47,7 +48,8 @@ def plotTemps(TEMPS, allRA, allDEC):
                                norm=plt.Normalize(vmin=TEMPS.min(),
                                                   vmax=TEMPS.max()))
     sm._A = []
-    plt.colorbar(sm)
+
+    plt.colorbar(sm, fraction=0.046, pad=0.04)
 
 def traceLength(inst):
     # Getting example trace to calculate rough estimate of trace lengths
@@ -115,7 +117,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
     4. The blue square represents the readout region, or the "origin"
 
     """
-    print('Computing contamination...')
+    print('Generating FOV...')
     # Converting to decimal degrees
     targetcrd = crd.SkyCoord(ra=RA, dec=DEC, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
@@ -208,16 +210,20 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
 
     contam = {}
 
+    filename = 'contam_{}_{}_{}.pdf'.format(RA,DEC,INSTRUMENT)
+    defaultPDF = os.path.join(os.getcwd(), filename).replace(' ', '_')
+    PDF = defaultPDF if PDF=='' else PDF
+
+    print('Saving figures to: {}'.format(PDF))
+    print('This will take a second...')
     with PdfPages(PDF) as pdf:
         for APA in APAlist:
-
-            contam[str(APA)] = {}
 
             attitude = pysiaf.utils.rotations.attitude_matrix(v2targ, v3targ, \
                                                               targetRA, targetDEC, \
                                                               APA)
 
-            v2, v3 = [], []
+
             xdet, ydet = [], []
             xsci, ysci = [], []
 
@@ -226,9 +232,6 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
                 V2, V3 = pysiaf.utils.rotations.sky_to_tel(attitude, starRA, starDEC)
                 # Convert to arcsec and turn to a float
                 V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
-
-                v2.append(V2)
-                v3.append(V3)
 
                 XDET, YDET = aper.tel_to_det(V2, V3)
                 XSCI, YSCI = aper.det_to_sci(XDET, YDET)
@@ -241,7 +244,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
             XDET, YDET = np.array(xdet), np.array(ydet)
             XSCI, YSCI = np.array(xsci), np.array(ysci)
 
-            contam[str(APA)] = {'xdet':XDET, 'ydet':YDET, 'xsci':XSCI, 'ysci':YSCI}
+            starsAPA = {'xdet':XDET, 'ydet':YDET, 'xsci':XSCI, 'ysci':YSCI}
 
             # Finding indexes of neighbor sources that land on detector
             rows, cols = full.corners('det')
@@ -252,7 +255,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
             inFOV = []
             for star in range(0, nStars):
 
-                x, y = stars['xdet'][star], stars['ydet'][star]
+                x, y = starsAPA['xdet'][star], starsAPA['ydet'][star]
                 if (mincol<x) & (x<maxcol) & (minrow<y) & (y<maxrow):
                     inFOV.append(star)
 
@@ -269,11 +272,14 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
             start, stop = traceLength(INSTRUMENT)
 
             # Plotting the trace footprints
-            for x, y in zip(xsci, ysci):
+            for x, y in zip(XSCI[inFOV], YSCI[inFOV]):
 
-                if 'NIRCam' in INSTRUMENT:
+                if 'F322W2' in INSTRUMENT:
                     plt.plot([x-stop, x+start], [y, y], lw=40, color='white', alpha=0.2)
                     plt.plot([x-stop, x+start], [y, y], lw=2., color='white')
+                elif 'F444W' in INSTRUMENT:
+                    plt.plot([x-start, x+stop], [y, y], lw=40, color='white', alpha=0.2)
+                    plt.plot([x-start, x+stop], [y, y], lw=2., color='white')
                 else:
                     plt.plot([x, x], [y-stop, y+start], lw=40, color='white', alpha=0.2)
                     plt.plot([x, x], [y-stop, y+start], lw=2., color='white')
@@ -281,9 +287,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
             # Labeling
             aperstr = str(aper.AperName.replace('_', ' '))
             tx, ty = (str(round(xsci[targetIndex]))), str(round(ysci[targetIndex]))
-            plt.title('The FOV in SCIENCE coordinates at APA {}$^o$'.format(str(APA))+'\n'+'{}'.formsat(aperstr)+'\n'+'Target (X,Y): {}, {}'.format(tx, ty), fontsize=20)
+            plt.title('The FOV in SCIENCE coordinates at APA {}$^o$'.format(str(APA))+'\n'+'{}'.format(aperstr)+'\n'+'Target (X,Y): {}, {}'.format(tx, ty), fontsize=20)
 
             # Adding to PDF
-            pdf.savefig(fig)
-
-    pdf.close()
+            pdf.savefig(fig, bbox_inches='tight')
