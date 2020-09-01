@@ -21,7 +21,7 @@ matplotlib==3.3.1
 numpy==1.19.1
 numpydoc==1.1.0
 pandas==1.1.1
-paramiko==2.7.1
+paramiko==2.7.2
 platon==5.1.1
 pysynphot==1.0.0
 pytest==6.0.1
