@@ -85,6 +85,11 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
 .. toctree::
   :maxdepth: 1
 
+  tutorials/exoctk.AtmosphericRetrivals
+
+.. toctree::
+  :maxdepth: 1
+
   source/exoctk.atmospheric_retrievals
 
 **Phase Constraint Calculator**
