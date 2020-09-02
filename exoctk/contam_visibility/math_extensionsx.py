@@ -8,8 +8,8 @@ Version 0 August 6, 2010 RLH  - Created
 from copy import deepcopy
 from math import radians, acos, asin, cos, sin, sqrt, pi, ceil, exp, atan2
 
-R2D = 180.0/pi
-D2R = 1/R2D
+R2D = 180.0 / pi
+D2R = 1 / R2D
 EPSILON = 1.0e-10   # Use for safe comparisons of floating-point numbers
 OBLIQUITY = 23.43929 * D2R  # Obliquity of Earth's orbit, in radians
 
@@ -167,7 +167,7 @@ def avg2(num1, num2):
     float
         The average.
     """
-    return((num1 + num2)/2.0)
+    return((num1 + num2) / 2.0)
 
 
 def output_as_percentage(num, fractional_digits=1):
@@ -291,6 +291,7 @@ def conditional_probability(p_joint, p_B):
 
 class Polynomial(object):
     """Class to represent a polynomial."""
+
     def __init__(self, coefficients):
         """Constructor for a polynomial.
         Coefficients = a list of coefficients, starting with order 0 and
@@ -341,6 +342,7 @@ class LinearEquation(Polynomial):
     """Subclass of Polynomial for linear equations.
     This implementation is three times faster, so Polynomial should be reserved
     for higher orders."""
+
     def __init__(self, coeff0, coeff1):
         """Constructor for a linear equation to provide a more 'natural'
         interface without using a list.
@@ -375,6 +377,7 @@ class LinearEquation(Polynomial):
 
 class HistogramBin(object):
     """Class to represent a bin within a histogram."""
+
     def store_items(self, num_items=1):
         """Stores a given number of items in the bin.
 
@@ -388,6 +391,7 @@ class HistogramBin(object):
 
 class DiscreteBin(HistogramBin):
     """Class to represent a bin with a fixed value."""
+
     def __init__(self, bin_value):
         """Constructor for a fixed-value bin
 
@@ -424,6 +428,7 @@ class DiscreteBin(HistogramBin):
 
 class RangeBin(HistogramBin):
     """Class to represent a bin with a range."""
+
     def __init__(self, min_value=None, max_value=None, lower_inclusive=False,
                  upper_inclusive=True):
         """Constructor for a range bin.
@@ -640,7 +645,7 @@ class DiscreteHistogram(Histogram):
             The value to store.
         count: int
             Number of items with that value to store (default 1).
-        
+
         Returns
         -------
         found : bool
@@ -974,7 +979,7 @@ class StatisticalList(list):
         self.min = self[0]
         self.max = self[-1]
         self.mean = avg(self)
-        self.median = self[(num_elements/2)]
+        self.median = self[(num_elements / 2)]
         self.variance = self.compute_variance()
         self.stdev = sqrt(self.variance)
         self.rms_value = self.compute_rms()
@@ -985,13 +990,13 @@ class StatisticalList(list):
         self.percentiles = []
 
         for i in range(51):
-            index = int(round((num_elements - 1) * (i/50.0)))
+            index = int(round((num_elements - 1) * (i / 50.0)))
             self.percentiles.append((i * 2, self[index]))
 
         # Define histogram parameters.
         # Number of bins defaults to one-fourth the number of elements.
         # If max_bins is specified, limit number of bins accordingly.
-        num_bins = max(3, int(ceil(num_elements/4.0)))   # minimum of 3 bins
+        num_bins = max(3, int(ceil(num_elements / 4.0)))   # minimum of 3 bins
 
         if (max_bins is not None):
             num_bins = min(num_bins, max_bins)
@@ -1116,6 +1121,7 @@ class Rectangle(object):
 
 class Square(Rectangle):
     """Class to represent a square."""
+
     def __init__(self, side):
         """Initialize a square with a specified side length.
 
