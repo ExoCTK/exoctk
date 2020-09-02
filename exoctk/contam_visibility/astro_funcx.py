@@ -8,8 +8,8 @@ from math import cos, sin, atan2, acos, pi
 
 from .math_extensionsx import sind, cosd
 
-D2R = pi/180.
-R2D = 180./pi
+D2R = pi / 180.
+R2D = 180. / pi
 PI2 = 2. * pi
 epsilon = 23.43929 * D2R  # obliquity of the ecliptic J2000
 
@@ -33,8 +33,8 @@ def pa(tgt_c1, tgt_c2, obj_c1, obj_c2):
     float
         The position angle.
     """
-    y = cos(obj_c2) * sin(obj_c1-tgt_c1)
-    c = cos(obj_c2) * sin(tgt_c2) * cos(obj_c1-tgt_c1)
+    y = cos(obj_c2) * sin(obj_c1 - tgt_c1)
+    c = cos(obj_c2) * sin(tgt_c2) * cos(obj_c1 - tgt_c1)
     x = sin(obj_c2) * cos(tgt_c2) - c
     p = atan2(y, x)
     if p < 0.:
@@ -91,7 +91,7 @@ def dist(obj1_c1, obj1_c2, obj2_c1, obj2_c2):
         The distance between the objects.
     """
     b = sin(obj2_c2) * sin(obj1_c2)
-    x = cos(obj2_c2) * cos(obj1_c2) * cos(obj2_c1-obj1_c1) + b
+    x = cos(obj2_c2) * cos(obj1_c2) * cos(obj2_c1 - obj1_c1) + b
     return acos(unit_limit(x))
 
 
@@ -118,7 +118,7 @@ def JWST_same_ori(tgt0_c1, tgt0_c2, p0, tgt_c1, tgt_c2):
         The normal orientation.
     """
     long_sun = atan2(-sind(p0) * sin(tgt0_c2), cosd(p0)) + tgt0_c1
-    pp = atan2(-sin(long_sun-tgt_c1), cos(long_sun-tgt_c1) * sin(tgt_c2))
+    pp = atan2(-sin(long_sun - tgt_c1), cos(long_sun - tgt_c1) * sin(tgt_c2))
     if pp < 0.:
         pp += PI2
     return pp
