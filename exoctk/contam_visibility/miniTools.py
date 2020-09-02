@@ -41,7 +41,7 @@ def plotTemps(TEMPS, allRA, allDEC):
     starsx, starsy = allRA[i], allDEC[i]
 
     for x, y, c in zip(starsx, starsy, colors):
-        plt.scatter(x, y, marker='*', s=100, color=c, picker=True, lw=0.5, edgecolor='white')
+        plt.scatter(x, y, marker='*', s=150, color=c, picker=True, lw=0.5, edgecolor='white')
 
     # Colorbar
     sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis,
@@ -122,10 +122,11 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
     targetcrd = crd.SkyCoord(ra=RA, dec=DEC, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
+    rad = 0.5
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    print('Querying for point-sources within 2.5 arcminutes...')
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=2.5*u.arcmin)
+    print('Querying for point-sources within {} arcminutes...'.format(str(rad)))
+    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=rad*u.arcmin)
 
     # Coordinates of all stars in FOV, including target
     allRA = info['ra'].data.data
@@ -264,7 +265,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
             # Making final plot
             fig = plt.figure(figsize=(15,15))
             aper.plot(frame='sci', fill_color='gray', color='blue')
-            plt.scatter(XSCI[targetIndex], YSCI[targetIndex], s=250, lw=1.5, facecolor='gray', edgecolor='red')
+            plt.scatter(XSCI[targetIndex], YSCI[targetIndex], s=400, lw=1.5, facecolor='gray', edgecolor='red')
             plotTemps(starsT[inFOV], XSCI[inFOV], YSCI[inFOV])
             aper.plot_frame_origin(frame='sci', which='sci')
 
