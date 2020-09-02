@@ -32,9 +32,9 @@ from math import radians, asin, cos, sin, sqrt, pi, degrees, atan2
 from . import math_extensionsx as math2
 from .astro_funcx import unit_limit
 
-D2R = pi/180.
-R2D = 180./pi
-PI2 = 2.*pi
+D2R = pi / 180.
+R2D = 180. / pi
+PI2 = 2. * pi
 
 
 class GalacticPole:
@@ -84,7 +84,7 @@ def QX(angle):
     Quarternion
         The rotated quaternion.
     """
-    return Quaternion(Vector(sin(angle/2.), 0., 0.), cos(angle/2.))
+    return Quaternion(Vector(sin(angle / 2.), 0., 0.), cos(angle / 2.))
 
 
 def QY(angle):
@@ -101,7 +101,7 @@ def QY(angle):
     Quarternion
         The rotated quaternion.
     """
-    return Quaternion(Vector(0., sin(angle/2.), 0.), cos(angle/2.))
+    return Quaternion(Vector(0., sin(angle / 2.), 0.), cos(angle / 2.))
 
 
 def QZ(angle):
@@ -118,7 +118,7 @@ def QZ(angle):
     Quarternion
         The rotated quaternion.
     """
-    return Quaternion(Vector(0., 0., sin(angle/2.)), cos(angle/2.))
+    return Quaternion(Vector(0., 0., sin(angle / 2.)), cos(angle / 2.))
 
 
 def Qmake_a_point(V):
@@ -172,7 +172,7 @@ def Qmake_body2inertial(coord1, coord2, V3pa):
     Quaternion
         The rotation quaternion
     """
-    return QZ(coord1)*QY(-coord2)*QX(-V3pa)
+    return QZ(coord1) * QY(-coord2) * QX(-V3pa)
 
 
 def Qmake_v2v3_2body(v2, v3):
@@ -191,7 +191,7 @@ def Qmake_v2v3_2body(v2, v3):
     Quaternion
         The rotation quaternion.
     """
-    return QY(v3)*QZ(-v2)
+    return QY(v3) * QZ(-v2)
 
 
 def Qmake_v2v3_2inertial(coord1, coord2, V3pa, v2, v3):
@@ -216,7 +216,7 @@ def Qmake_v2v3_2inertial(coord1, coord2, V3pa, v2, v3):
     Quaternion
         The rotation quaternion.
     """
-    return QZ(coord1)*QY(-coord2)*QX(-V3pa)*QY(v3)*QZ(-v2)
+    return QZ(coord1) * QY(-coord2) * QX(-V3pa) * QY(v3) * QZ(-v2)
 
 
 def Qmake_aperture2inertial(coord1, coord2, APA, xoff, yoff, s, YapPA,
@@ -247,9 +247,9 @@ def Qmake_aperture2inertial(coord1, coord2, APA, xoff, yoff, s, YapPA,
     Quaternion
         The rotation quaternion.
     """
-    term1 = QZ(coord1)*QY(-coord2)*QX(-APA)*QY(-yoff)
-    term2 = QZ(s*xoff)*QX(YapPA)*QY(V3ref)*QZ(-V2ref)
-    return term1*term2
+    term1 = QZ(coord1) * QY(-coord2) * QX(-APA) * QY(-yoff)
+    term2 = QZ(s * xoff) * QX(YapPA) * QY(V3ref) * QZ(-V2ref)
+    return term1 * term2
 
 
 def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
@@ -272,11 +272,11 @@ def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
     """
     # Conversion from Euler symmetric parameters to matrix elements and
     # matrix elements to rotation angles is given in Isaac's papers
-    r11 = Q.q1*Q.q1 - Q.q2*Q.q2 - Q.q3*Q.q3 + Q.q4*Q.q4
-    r21 = 2.*(Q.q1*Q.q2 + Q.q3*Q.q4)
-    r31 = 2.*(Q.q1*Q.q3 - Q.q2*Q.q4)
-    r32 = 2.*(Q.q2*Q.q3 + Q.q1*Q.q4)
-    r33 = -Q.q1*Q.q1 - Q.q2*Q.q2 + Q.q3*Q.q3 + Q.q4*Q.q4
+    r11 = Q.q1 * Q.q1 - Q.q2 * Q.q2 - Q.q3 * Q.q3 + Q.q4 * Q.q4
+    r21 = 2. * (Q.q1 * Q.q2 + Q.q3 * Q.q4)
+    r31 = 2. * (Q.q1 * Q.q3 - Q.q2 * Q.q4)
+    r32 = 2. * (Q.q2 * Q.q3 + Q.q1 * Q.q4)
+    r33 = -Q.q1 * Q.q1 - Q.q2 * Q.q2 + Q.q3 * Q.q3 + Q.q4 * Q.q4
     coord1 = atan2(r21, r11)
     if coord1 < 0.:
         coord1 += PI2
@@ -317,7 +317,7 @@ def cvt_v2v3_using_body2inertial_Q_to_c1c2pa_tuple(Q, v2, v3):
     NP_eci = Vector(0., 0., 1.)
     V_left = cross(NP_eci, Vp_eci_pt)
     if V_left.length() > 0.:
-        V_left = V_left/V_left.length()
+        V_left = V_left / V_left.length()
     NP_in_plane = cross(Vp_eci_pt, V_left)
     x = dot(V3_eci_pt, NP_in_plane)
     y = dot(V3_eci_pt, V_left)
@@ -371,6 +371,7 @@ def cvt_c1c2_using_body2inertial_Q_to_v2v3pa_tuple(Q, coord1, coord2):
 
 class Quaternion:
     """This representation is used by Wertz and Markley"""
+
     def __init__(self, V, q4):
         """Quaternion constructor.
 
@@ -393,17 +394,21 @@ class Quaternion:
 
     def length(self):
         """Returns length of the Q """
-        a = self.q1*self.q1
-        b = self.q2*self.q2
-        c = self.q3*self.q3
-        d = self.q4*self.q4
+        a = self.q1 * self.q1
+        b = self.q2 * self.q2
+        c = self.q3 * self.q3
+        d = self.q4 * self.q4
         return sqrt(a + b + c + d)
 
     def normalize(self):
         """Returns a copy of the Q normalized """
         scale = self.length()
-        return Quaternion(Vector(self.q1/scale, self.q2/scale, self.q3/scale),
-                          self.q4/scale)
+        return Quaternion(
+            Vector(
+                self.q1 / scale,
+                self.q2 / scale,
+                self.q3 / scale),
+            self.q4 / scale)
 
     def conjugate(self):
         """Returns a copy of the conjugated Q """
@@ -424,10 +429,14 @@ class Quaternion:
         """
         Q = Quaternion(Vector(0., 0., 0.), 0.)
         # Q.V = rs.V*self.q4 + self.V*rs.q4 + cross(self.V, rs.V)
-        Q.q1 = rs.q1*self.q4 + self.q1*rs.q4 + (self.q2*rs.q3 - self.q3*rs.q2)
-        Q.q2 = rs.q2*self.q4 + self.q2*rs.q4 + (self.q3*rs.q1 - self.q1*rs.q3)
-        Q.q3 = rs.q3*self.q4 + self.q3*rs.q4 + (self.q1*rs.q2 - self.q2*rs.q1)
-        Q.q4 = self.q4*rs.q4 - (self.q1*rs.q1 + self.q2*rs.q2 + self.q3*rs.q3)
+        Q.q1 = rs.q1 * self.q4 + self.q1 * rs.q4 + \
+            (self.q2 * rs.q3 - self.q3 * rs.q2)
+        Q.q2 = rs.q2 * self.q4 + self.q2 * rs.q4 + \
+            (self.q3 * rs.q1 - self.q1 * rs.q3)
+        Q.q3 = rs.q3 * self.q4 + self.q3 * rs.q4 + \
+            (self.q1 * rs.q2 - self.q2 * rs.q1)
+        Q.q4 = self.q4 * rs.q4 - \
+            (self.q1 * rs.q1 + self.q2 * rs.q2 + self.q3 * rs.q3)
         return Q
 
     def cnvrt(self, V):
@@ -477,11 +486,11 @@ class Quaternion:
         angle: float
             The angle of rotation.
         """
-        S = sin(-angle/2.)
+        S = sin(-angle / 2.)
         self.q1 = V.x * S
         self.q2 = V.y * S
         self.q3 = V.z * S
-        self.q4 = cos(angle/2.)
+        self.q4 = cos(angle / 2.)
 
     def set_as_QX(self, angle):
         """Sets quaterion in place like QX function.
@@ -491,10 +500,10 @@ class Quaternion:
         angle: float
             The angle of rotation
         """
-        self.q1 = sin(-angle/2.)
+        self.q1 = sin(-angle / 2.)
         self.q2 = 0.
         self.q3 = 0.
-        self.q4 = cos(angle/2.)
+        self.q4 = cos(angle / 2.)
 
     def set_as_QY(self, angle):
         """Sets quaterion in place like QY function
@@ -505,9 +514,9 @@ class Quaternion:
             The angle of rotation
         """
         self.q1 = 0.
-        self.q2 = sin(-angle/2.)
+        self.q2 = sin(-angle / 2.)
         self.q3 = 0.
-        self.q4 = cos(angle/2.)
+        self.q4 = cos(angle / 2.)
 
     def set_as_QZ(self, angle):
         """Sets quaterion in place like QZ function.
@@ -519,8 +528,8 @@ class Quaternion:
         """
         self.q1 = 0.
         self.q2 = 0.
-        self.q3 = sin(-angle/2.)
-        self.q4 = cos(angle/2.)
+        self.q3 = sin(-angle / 2.)
+        self.q4 = cos(angle / 2.)
 
     def set_as_mult(self, QQ1, QQ2):
         """Sets self as QQ1*QQ2 in place for quaternion multiplication.
@@ -532,14 +541,14 @@ class Quaternion:
         QQ2: Quaternion
             The second quaternion.
         """
-        a = QQ1.q2*QQ2.q3 - QQ1.q3*QQ2.q2
-        b = QQ1.q3*QQ2.q1 - QQ1.q1*QQ2.q3
-        c = QQ1.q1*QQ2.q2 - QQ1.q2*QQ2.q1
-        d = QQ1.q1*QQ2.q1 + QQ1.q2*QQ2.q2 + QQ1.q3*QQ2.q3
-        self.q1 = QQ2.q1*QQ1.q4 + QQ1.q1*QQ2.q4 + a
-        self.q2 = QQ2.q2*QQ1.q4 + QQ1.q2*QQ2.q4 + b
-        self.q3 = QQ2.q3*QQ1.q4 + QQ1.q3*QQ2.q4 + c
-        self.q4 = QQ1.q4*QQ2.q4 - d
+        a = QQ1.q2 * QQ2.q3 - QQ1.q3 * QQ2.q2
+        b = QQ1.q3 * QQ2.q1 - QQ1.q1 * QQ2.q3
+        c = QQ1.q1 * QQ2.q2 - QQ1.q2 * QQ2.q1
+        d = QQ1.q1 * QQ2.q1 + QQ1.q2 * QQ2.q2 + QQ1.q3 * QQ2.q3
+        self.q1 = QQ2.q1 * QQ1.q4 + QQ1.q1 * QQ2.q4 + a
+        self.q2 = QQ2.q2 * QQ1.q4 + QQ1.q2 * QQ2.q4 + b
+        self.q3 = QQ2.q3 * QQ1.q4 + QQ1.q3 * QQ2.q4 + c
+        self.q4 = QQ1.q4 * QQ2.q4 - d
 
     def set_as_point(self, V):
         """Set V as a point.
@@ -594,7 +603,7 @@ class NumericList(list):
         float
             The sum of the lists.
         """
-        return(sum(map(lambda x, y: x*y, L1, L2)))
+        return(sum(map(lambda x, y: x * y, L1, L2)))
 
 
 class Matrix(list):
@@ -788,7 +797,7 @@ class Vector:
     def normalize(self):
         """Returns copy of the normalized vector """
         mag = self.length()
-        return (Vector(self.x/mag, self.y/mag, self.z/mag))
+        return (Vector(self.x / mag, self.y / mag, self.z / mag))
 
     def __mul__(self, rs):
         """Implements Vector * scalar.  Can then use '*' syntax in multiplying
@@ -992,9 +1001,9 @@ class Vector:
         Vector
             The resultant vector.
         """
-        x = self.y*V2.z - V1.z*V2.y
-        y = self.z*V2.x - V1.x*V2.z
-        z = self.x*V2.y - V1.y*V2.x
+        x = self.y * V2.z - V1.z * V2.y
+        y = self.z * V2.x - V1.x * V2.z
+        z = self.x * V2.y - V1.y * V2.x
         return Vector(x, y, z)
 
     # Replace by separation - RLH
@@ -1108,8 +1117,8 @@ class CelestialVector (Vector):
         self.frame = frame
 
         # Initialize standard vector with translated Cartesian coordinates
-        x = cos(ra)*cos(dec)
-        y = sin(ra)*cos(dec)
+        x = cos(ra) * cos(dec)
+        y = sin(ra) * cos(dec)
         z = sin(dec)
         Vector.__init__(self, x=x, y=y, z=z)
 
@@ -1122,7 +1131,7 @@ class CelestialVector (Vector):
         verbose: bool
             Print some information.
         """
-        a = (math2.R2D*self.ra, math2.R2D*self.dec, self.frame)
+        a = (math2.R2D * self.ra, math2.R2D * self.dec, self.frame)
         celest_info = 'CelestialVector: RA: %.3fD, DEC: %.3fD, frame: %s' % a
 
         if (verbose):
@@ -1152,8 +1161,8 @@ class CelestialVector (Vector):
             self.dec = dec
 
         # Update Cartesian coordinates as well.
-        x = cos(ra)*cos(dec)
-        y = sin(ra)*cos(dec)
+        x = cos(ra) * cos(dec)
+        y = sin(ra) * cos(dec)
         z = sin(dec)
         super(CelestialVector, self).set_eq(x, y, z)
 
@@ -1181,7 +1190,7 @@ class CelestialVector (Vector):
 
         self.ra = atan2(self.y, self.x)  # RA is arctan of y/x
         if (self.ra < 0):                 # Make sure RA is positive
-            self.ra += 2*pi
+            self.ra += 2 * pi
 
             self.dec = math2.asin2(self.z)  # DEC is arcsin of z
 
@@ -1333,10 +1342,12 @@ class CelestialVector (Vector):
         elif ((new_frame == 'gal') and (self.frame == 'eq')):
             # Use formula from Wayne Kinzel's book, adjusted for
             # J2000 coordinates.
-            a = cos(self.dec)*cos(NGP.longitude)*cos(self.ra - NGP.latitude)
+            a = cos(self.dec) * cos(NGP.longitude) * \
+                cos(self.ra - NGP.latitude)
             b = math2.asin2(a + sin(self.dec) * sin(NGP.longitude))
-            arg1 = sin(self.dec) - sin(b)*sin(NGP.longitude)
-            arg2 = cos(self.dec)*sin(self.ra - NGP.latitude)*cos(NGP.longitude)
+            arg1 = sin(self.dec) - sin(b) * sin(NGP.longitude)
+            arg2 = cos(self.dec) * sin(self.ra - NGP.latitude) * \
+                cos(NGP.longitude)
 
             lng = atan2(arg1, arg2) + NGP.anode
 
@@ -1387,9 +1398,11 @@ class CelestialVector (Vector):
         result : Vector
             The rotated vector.
         """
-        x_coord = -cos(self.ra)*sin(self.dec)*cos(pa) - sin(self.ra)*sin(pa)
-        y_coord = -sin(self.ra)*sin(self.dec)*cos(pa) + cos(self.ra)*sin(pa)
-        z_coord = cos(self.dec)*cos(pa)
+        x_coord = -cos(self.ra) * sin(self.dec) * \
+            cos(pa) - sin(self.ra) * sin(pa)
+        y_coord = -sin(self.ra) * sin(self.dec) * \
+            cos(pa) + cos(self.ra) * sin(pa)
+        z_coord = cos(self.dec) * cos(pa)
         result = CelestialVector()
         result.update_cartesian(x_coord, y_coord, z_coord)
         return(result)
@@ -1465,11 +1478,11 @@ class Attitude(CelestialVector):
         ----------
         verbose: bool
             Print information.
-        
+
         Returns
         -------
         att_info : str
-            A string representation of the attitute. 
+            A string representation of the attitute.
         """
         att_info = 'Attitude: PA: %.3fD' % (math2.R2D * self.pa)
         att_info = att_info + '\n' + super(Attitude, self).__str__(verbose)
@@ -1510,9 +1523,9 @@ def cross(v1, v2):
     float
         The cross product of the vectors.
     """
-    x = v1.y*v2.z - v1.z*v2.y
-    y = v1.z*v2.x - v1.x*v2.z
-    z = v1.x*v2.y - v1.y*v2.x
+    x = v1.y * v2.z - v1.z * v2.y
+    y = v1.z * v2.x - v1.x * v2.z
+    z = v1.x * v2.y - v1.y * v2.x
     return Vector(x, y, z)
 
 
@@ -1574,9 +1587,9 @@ def ra_delta(v1, v2):
     # adjust by 360 in opposite direction.
 
     if (delta_ra < -pi):
-        delta_ra = delta_ra + 2*pi
+        delta_ra = delta_ra + 2 * pi
     elif (delta_ra > pi):
-        delta_ra = delta_ra - 2*pi
+        delta_ra = delta_ra - 2 * pi
 
     return(delta_ra)
 
@@ -1731,8 +1744,8 @@ def vel_ab(U, Vel):
         The modified vector.
     """
     c = 2.9979e5  # speed of light in km/s
-    Beta = Vel * (1./c)
-    rgamma = sqrt(1.-dot(Beta, Beta))  # This is 1/gamma
+    Beta = Vel * (1. / c)
+    rgamma = sqrt(1. - dot(Beta, Beta))  # This is 1/gamma
     ubeta = dot(U, Beta)
-    b = (1./(1. + ubeta))
-    return (U*rgamma + Beta * (1. + (1.-rgamma)*ubeta/dot(Beta, Beta))) * b
+    b = (1. / (1. + ubeta))
+    return (U * rgamma + Beta * (1. + (1. - rgamma) * ubeta / dot(Beta, Beta))) * b
