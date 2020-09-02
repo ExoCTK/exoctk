@@ -1,5 +1,16 @@
-""" A couple functions used to generate example plots
-in the Jupyter notebooks. Makes them look a little cleaner.
+""" The contamVerify mini tool will be a companion to ExoCTK's Contamination
+Overlap tool, as it will visualize the Contaminaton Bokeh plots on the website.
+
+Functions are:
+plotTemps    - Plots the temperatures of stars according to color.
+traceLengths - Fine-tunes the trace lengths in the plot.
+contamVerify - The main mini tool. Outputs a .pdf file with one or more figures
+               showing the FOV in the science frame according to the input
+               Aperture Position Angle(s) it is fed.
+
+Author(s)
+---------
+Jennifer V. Medina, 2020
 """
 import os
 import matplotlib.pyplot as plt
@@ -28,6 +39,9 @@ if not EXOCTK_DATA:
 TRACES_PATH = os.path.join(EXOCTK_DATA,  'exoctk_contam', 'traces')
 
 def plotTemps(TEMPS, allRA, allDEC):
+    """ The stars' colors in the plot will be a function of effective stellar
+    temperatures when plotting with this function. """
+
     # Getting the color palette
     colors = cm.get_cmap('viridis', len(TEMPS))
     colors_0 = np.asarray(colors.colors)
@@ -52,6 +66,8 @@ def plotTemps(TEMPS, allRA, allDEC):
     plt.colorbar(sm, fraction=0.046, pad=0.04)
 
 def traceLength(inst):
+    """ For fine-tuning the trace lengths in the contamVerify output figures """
+
     # Getting example trace to calculate rough estimate of trace lengths
     if 'NIRCam' in inst:
         FILE = 'rot_o1_6000.0.fits'
