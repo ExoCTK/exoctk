@@ -33,10 +33,10 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     Parameters
     ----------
-    ra: float
-        The RA of the target
-    dec: float
-        The Dec of the target
+    ra: str
+        The RA of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
+    dec: str
+        The Dec of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
     targetName: str
         The target name
     ephFileName: str
@@ -216,10 +216,10 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     Parameters
     ----------
-    ra : float
-        The RA of the target (in degrees).
-    dec : float
-        The Dec of the target (in degrees).
+    ra : str
+        The RA of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
+    dec : str
+        The Dec of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
         'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'

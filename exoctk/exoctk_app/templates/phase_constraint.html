@@ -16,10 +16,20 @@
     <br>
 
     <p>
-        The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window.  
-        The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute 
-        the eclipse observation start window for planets on circular orbits.  Enter the minimum and maximum phase values 
-        into the APT special requirements section when planning your observations. 
+        Due to uncertainties on the exact scheduling time of JWST observations, users are strongly encouraged to input minimum and maximum phases on the APT "Timing" requirements under the 
+        "Special Requirements" section when planning their observations. This gives the observatory a range of time (the "Window Size"; which should be of one hour or larger in order to not 
+        incur into <a href="https://jwst-docs.stsci.edu/jppom/visit-overheads-timing-model/overhead-duration-components">direct scheduling overheads</a>) on which observations might start. 
+        This is illustrated in the following diagram:
+    </p>
+    <br>
+    <p>
+    <img src="/static/images/phase_constraint.png" alt="Phase-constraint diagram." width="1000px">
+    </p>
+    <br>
+    <p>
+    The <b>Phase Constraint Calculator provides a simple interface for calculating this JWST observation window for direct input on APT.</b> This tool always assumes the zero-phase is at 
+    mid-transit, and thus that value is the one that should be input under "Zero phase (HJD)" in APT. Users can either resolve target properties from exo.MAST using the "Resolve Target" button 
+    below or input their own. If using the former, <b>users are strongly encouraged to check that the retrieved properties are up-to-date</b>. 
     </p>
 
     <form class='form-horizontal' action="/phase_constraint" method="POST">
@@ -45,29 +55,66 @@
             </div>
 
             <br>
-            
-            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
+
+            <label for='mag' class="col-sm-2 control-label">Eccentricity (optional)</label>
             <div class="col-sm-10">
-            
+    
                 <div class="input-group">
-                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
-                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                    {{ form.eccentricity(value=form.eccentricity.data, size=10, rows=1, class='form-control') }}
                 </div>
-                <span id="helpBlock" class="help-block">Transit time of Target</span>
+                <span id="helpBlock" class="help-block">(Only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Argument of periastron (optional)</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.omega(value=form.omega.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Degrees}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Argument of periastron passage (only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Inclination (optional)</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.inclination(value=form.inclination.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{Degrees}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Inclination of the orbit (only used to compute secondary eclipse time/phase constraints)</span>
+            </div>
+
+            <br>
+
+            <label for='mag' class="col-sm-2 control-label">Target observation</label>
+
+
+            <div class="col-sm-3">
+
+                    <select id="transit_type" name="transit_type" class="form-control" data-placeholder="Select type">
+                        <option value="primary">Primary Transit</option>
+                        <option value="secondary">Secondary Eclipse</option>
+                    </select>
+                    <span id="helpBlock" class="help-block">Calculate constraint for primary transits or secondary eclipses?</span>
             </div>
 
             <br>
 
             <hr class="col-md-12">
 
-            <label for='mag' class="col-sm-2 control-label">Observation Duration</label>
+            <label for='mag' class="col-sm-2 control-label">Pre mid-transit/eclipse time on target</label>
             <div class="col-sm-10">
             
                 <div class="input-group">
                     {{ form.observation_duration(value=form.observation_duration.data, size=10, rows=1, class='form-control') }}
                     <div class="input-group-addon" style='width:60px'>\(\small \text{Hours}\)</div>
                 </div>
-                <span id="helpBlock" class="help-block">Length of Your Observation (Default 3*(transit duration)+1 [Hours] when using Resolver)</span>
+                <span id="helpBlock" class="help-block">Time planned to be spent on target prior to mid-transit/eclipse (Default: 0.75 Hr + Max(1 Hr + T<sub>14</sub>/2, T<sub>14</sub>) when using Resolver)</span>
                 {% for error in form.observation_duration.errors %}
                     <p style="color: red;">{{ error }}</p>
                 {% endfor %}
@@ -94,7 +141,19 @@
                     </p>
                 </div>
             </div>
-            
+
+            <label for='mag' class="col-sm-2 control-label">Transit Mid-Point</label>
+            <div class="col-sm-10">
+    
+                <div class="input-group">
+                    {{ form.transit_time(value=form.transit_time.data, size=10, rows=1, class='form-control') }}
+                    <div class="input-group-addon" style='width:60px'>\(\small \text{BJD or HJD}\)</div>
+                </div>
+                <span id="helpBlock" class="help-block">Time of transit-center of target (this goes under "Zero Phase" in APT). Automatically fills when hitting "Resolve Target".</span>
+            </div>
+
+            <br>
+
             <label for='mag' class="col-sm-2 control-label">Minimum Phase</label>
             <div class="col-sm-10">
             
@@ -115,7 +174,6 @@
                 </div>
                 <span id="helpBlock" class="help-block">Maximum Phase of Observation</span>
             </div>
-            
 
         </div>
         
