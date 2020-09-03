@@ -65,13 +65,6 @@
                         <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity ({{ form.feh.validators[1].min }} - {{ form.feh.validators[1].max }})</span>
                         <br>
 
-                        <div class="input-group">
-                          <div class="input-group-addon" style='width:120px'>Minimum \(\mu\)</div>
-                              {{ form.mu_min(size=10, placeholder="0 - 1", rows=1, class='form-control') }}
-                          <div class="input-group-addon" style='width:60px'></div>
-                        </div>
-                        <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
-                        <br>
                         {% for error in form.teff.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
@@ -181,6 +174,15 @@
                             {% endfor %}
                         </div>
                         <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Minimum \(\mu\)</div>
+                              {{ form.mu_min(size=10, placeholder="0 - 1", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'></div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
+                        <br>
+
                         {% for error in form.profiles.errors %}
                         <span style="color: red;">{{ error }}</span>
                         {% endfor %}
