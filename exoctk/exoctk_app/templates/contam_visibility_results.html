@@ -25,7 +25,7 @@
       <p>Potential caveats:</p>
       <ul>
         <li>The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</li>
-        <li>Distortion has been observed to create an offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots. A future update is coming soon to address this issue.</li>
+        <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots. A future update is coming soon to address this issue.</li>
         <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>
       </ul>
       <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
@@ -47,8 +47,14 @@
           </li>
     		</ul>
 
-
-
+        <form action="/visib_result" method="post">
+            <input type="hidden" name="data_file" value="{{ vis_table }}" />
+            <input class="btn btn-success" type='submit' value='Download CSV'>
+        <form action="/visib_result" method="post">
+            <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
+            <input type="hidden" name="instrumentname" value="{{ form.inst.data }}" />
+        </form>
+        
     	{% if contam_plot %}
             <hr>
     		<h3>Target Contamination</h3>
@@ -82,22 +88,19 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
     			<li>The smaller panel shows, for each order, the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
     			<li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
     		</ul>
+        <br>
+        <p><b>Verify your results!</b> You can create a visual representation of the contamination plot above using our contamVerify mini tool. This tool will allow you to generate the science field of view at any Aperture Position Angle (APA).
+          Instructions for this can be found in the <a href="https://exoctk.readthedocs.io/en/latest/source/exoctk.contam_visibility.html">Contamination Overlap documentation page</a>.
+          </p>
 
+        {% endif %}
 
-    	{% endif %}
+            	<br>
 
-    	<br>
+           	<form action="/contam_visibility">
+            		<p><input class="btn btn-success" type = "submit" value = "Try Another Target"></p>
+            	</form>
 
-   	<form action="/contam_visibility">
-    		<p><input class="btn btn-success" type = "submit" value = "Try Another Target"></p>
-    	</form>
-      <form action="/visib_result" method="post">
-          <input type="hidden" name="data_file" value="{{ vis_table }}" />
-          <input class="btn btn-success" type='submit' value='Download CSV File'></p>
-      <form action="/visib_result" method="post">
-          <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
-          <input type="hidden" name="instrumentname" value="{{ form.inst.data }}" />
-      </form>
-    </body>
+            </body>
 
 {% endblock %}

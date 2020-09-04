@@ -271,7 +271,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
 
-    orders = 'Orders 1 & 2' if instrument == 'NIRISS' else 'Order 1'
+    orders = 'Orders 1 & 2' if instrument == 'NIRCam' else 'Order 1'
     s2 = figure(
         tools=TOOLS, width=500, height=500, title='{} {} Contamination with {}'.format(
             orders, targetName, instrument), x_range=Range1d(
