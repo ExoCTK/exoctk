@@ -101,7 +101,7 @@ def traceLength(inst):
     return targ_trace_start, targ_trace_stop
 
 
-def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
+def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     """ Generates a PDF file of figures displaying a simulation
     of the science image for any given observation using the parameters provided.
 
@@ -131,6 +131,9 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
         file will be saved in your current working directory.
         Example:
         'path/to/my/file.pdf'
+    web : boolean
+        Makes it easier to integrate it onto the website. Leave this as false,
+        unless you're running this in app_exoctk.py
 
     Returns
     -------
@@ -222,7 +225,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
 
     # Initiating a dictionary for customizability
     apertures = {}
-    apertures['NIRISS'] = ['NIS_SOSSFULL', 'NIS_FULL']
+    apertures['NIRISS'] = ['NIS_SOSSFULL', 'NIS_SOSSFULL']
     apertures['NIRCam F444W'] = ['NRCA5_GRISM256_F444W', 'NRCA5_FULL']
     apertures['NIRCam F322W2'] = ['NRCA5_GRISM256_F322W2', 'NRCA5_FULL']
     apertures['MIRI'] = ['MIRIM_SLITLESSPRISM', 'MIRIM_FULL']
@@ -242,109 +245,118 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF=''):
 
     contam = {}
 
-    filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
-    defaultPDF = os.path.join(os.getcwd(), filename).replace(' ', '_')
-    PDF = defaultPDF if PDF == '' else PDF
+    if web==False:
+        filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
+        defaultPDF = os.path.join(os.getcwd(), filename).replace(' ', '_')
+        PDF = defaultPDF if PDF == '' else PDF
+    elif web==True:
+        filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
+        PDF = os.path.join(TRACES_PATH, filename)
 
     print('Saving figures to: {}'.format(PDF))
     print('This will take a second...')
-    with PdfPages(PDF) as pdf:
-        for APA in APAlist:
+    pdfobj = PdfPages(PDF)
+    for APA in APAlist:
 
-            attitude = pysiaf.utils.rotations.attitude_matrix(
-                v2targ, v3targ, targetRA, targetDEC, APA)
+        attitude = pysiaf.utils.rotations.attitude_matrix(
+            v2targ, v3targ, targetRA, targetDEC, APA)
 
-            xdet, ydet = [], []
-            xsci, ysci = [], []
+        xdet, ydet = [], []
+        xsci, ysci = [], []
 
-            for starRA, starDEC in zip(stars['RA'], stars['DEC']):
-                # Get the TEL coordinates of each star using the attitude
-                # matrix of the target
-                V2, V3 = pysiaf.utils.rotations.sky_to_tel(
-                    attitude, starRA, starDEC)
-                # Convert to arcsec and turn to a float
-                V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
+        for starRA, starDEC in zip(stars['RA'], stars['DEC']):
+            # Get the TEL coordinates of each star using the attitude
+            # matrix of the target
+            V2, V3 = pysiaf.utils.rotations.sky_to_tel(
+                attitude, starRA, starDEC)
+            # Convert to arcsec and turn to a float
+            V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
 
-                XDET, YDET = aper.tel_to_det(V2, V3)
-                XSCI, YSCI = aper.det_to_sci(XDET, YDET)
+            XDET, YDET = aper.tel_to_det(V2, V3)
+            XSCI, YSCI = aper.det_to_sci(XDET, YDET)
 
-                xdet.append(XDET)
-                ydet.append(YDET)
-                xsci.append(XSCI)
-                ysci.append(YSCI)
+            xdet.append(XDET)
+            ydet.append(YDET)
+            xsci.append(XSCI)
+            ysci.append(YSCI)
 
-            XDET, YDET = np.array(xdet), np.array(ydet)
-            XSCI, YSCI = np.array(xsci), np.array(ysci)
+        XDET, YDET = np.array(xdet), np.array(ydet)
+        XSCI, YSCI = np.array(xsci), np.array(ysci)
 
-            starsAPA = {'xdet': XDET, 'ydet': YDET, 'xsci': XSCI, 'ysci': YSCI}
+        starsAPA = {'xdet': XDET, 'ydet': YDET, 'xsci': XSCI, 'ysci': YSCI}
 
-            # Finding indexes of neighbor sources that land on detector
-            rows, cols = full.corners('det')
+        # Finding indexes of neighbor sources that land on detector
+        rows, cols = full.corners('det')
 
-            minrow, maxrow = rows.min(), rows.max()
-            mincol, maxcol = cols.min(), cols.max()
+        minrow, maxrow = rows.min(), rows.max()
+        mincol, maxcol = cols.min(), cols.max()
 
-            inFOV = []
-            for star in range(0, nStars):
+        inFOV = []
+        for star in range(0, nStars):
 
-                x, y = starsAPA['xdet'][star], starsAPA['ydet'][star]
-                if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
-                    inFOV.append(star)
+            x, y = starsAPA['xdet'][star], starsAPA['ydet'][star]
+            if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
+                inFOV.append(star)
 
-            inFOV = np.array(inFOV)
+        inFOV = np.array(inFOV)
 
-            # Making final plot
-            fig = plt.figure(figsize=(15, 15))
-            aper.plot(frame='sci', fill_color='gray', color='blue')
-            plt.scatter(
-                XSCI[targetIndex],
-                YSCI[targetIndex],
-                s=400,
-                lw=1.5,
-                facecolor='gray',
-                edgecolor='red')
-            plotTemps(starsT[inFOV], XSCI[inFOV], YSCI[inFOV])
-            aper.plot_frame_origin(frame='sci', which='sci')
+        # Making final plot
+        fig = plt.figure(figsize=(15, 15))
+        aper.plot(frame='sci', fill_color='gray', color='blue')
+        plt.scatter(
+            XSCI[targetIndex],
+            YSCI[targetIndex],
+            s=400,
+            lw=1.5,
+            facecolor='gray',
+            edgecolor='red')
+        plotTemps(starsT[inFOV], XSCI[inFOV], YSCI[inFOV])
+        aper.plot_frame_origin(frame='sci', which='sci')
 
-            # Fine-tune trace lengths
-            start, stop = traceLength(INSTRUMENT)
+        # Fine-tune trace lengths
+        start, stop = traceLength(INSTRUMENT)
 
-            # Plotting the trace footprints
-            for x, y in zip(XSCI[inFOV], YSCI[inFOV]):
+        # Plotting the trace footprints
+        for x, y in zip(XSCI[inFOV], YSCI[inFOV]):
 
-                if 'F322W2' in INSTRUMENT:
-                    plt.plot([x - stop, x + start], [y, y],
-                             lw=40, color='white', alpha=0.2)
-                    plt.plot([x - stop, x + start],
-                             [y, y], lw=2., color='white')
-                elif 'F444W' in INSTRUMENT:
-                    plt.plot([x - start, x + stop], [y, y],
-                             lw=40, color='white', alpha=0.2)
-                    plt.plot([x - start, x + stop],
-                             [y, y], lw=2., color='white')
-                else:
-                    plt.plot([x, x], [y - stop, y + start],
-                             lw=40, color='white', alpha=0.2)
-                    plt.plot([x, x], [y - stop, y + start],
-                             lw=2., color='white')
+            if 'F322W2' in INSTRUMENT:
+                plt.plot([x - stop, x + start], [y, y],
+                         lw=40, color='white', alpha=0.2)
+                plt.plot([x - stop, x + start],
+                         [y, y], lw=2., color='white')
+            elif 'F444W' in INSTRUMENT:
+                plt.plot([x - start, x + stop], [y, y],
+                         lw=40, color='white', alpha=0.2)
+                plt.plot([x - start, x + stop],
+                         [y, y], lw=2., color='white')
+            else:
+                plt.plot([x, x], [y - stop, y + start],
+                         lw=40, color='white', alpha=0.2)
+                plt.plot([x, x], [y - stop, y + start],
+                         lw=2., color='white')
 
-            # Labeling
-            aperstr = str(aper.AperName.replace('_', ' '))
-            tx, ty = str(
-                round(
-                    XSCI[targetIndex])), str(
-                round(
-                    YSCI[targetIndex]))
-            plt.title(
-                'The FOV in SCIENCE coordinates at APA {}$^o$'.format(
-                    str(APA)) +
-                '\n' +
-                '{}'.format(aperstr) +
-                '\n' +
-                'Target (X,Y): {}, {}'.format(
-                    tx,
-                    ty),
-                fontsize=20)
+        # Labeling
+        aperstr = str(aper.AperName.replace('_', ' '))
+        tx, ty = str(
+            round(
+                XSCI[targetIndex])), str(
+            round(
+                YSCI[targetIndex]))
+        plt.title(
+            'The FOV in SCIENCE coordinates at APA {}$^o$'.format(
+                str(APA)) +
+            '\n' +
+            '{}'.format(aperstr) +
+            '\n' +
+            'Target (X,Y): {}, {}'.format(
+                tx,
+                ty),
+            fontsize=20)
 
-            # Adding to PDF
-            pdf.savefig(fig, bbox_inches='tight')
+        # Adding to PDF
+        pdfobj.savefig(fig, bbox_inches='tight')
+        
+    pdfobj.close()
+
+    if web==True:
+        return PDF
