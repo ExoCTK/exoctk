@@ -12,7 +12,7 @@ from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.embed import components
 import flask
-from flask import Flask, Response
+from flask import Flask, Response, send_from_directory
 from flask import request, send_file, make_response, render_template
 import form_validation as fv
 import numpy as np
@@ -20,12 +20,15 @@ import numpy as np
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import sossFieldSim as fs
 from exoctk.contam_visibility import sossContamFig as cf
+from exoctk.contam_visibility.miniTools import contamVerify
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
+
+from matplotlib.backends.backend_pdf import PdfPages
 
 import log_exoctk
 from svo_filters import svo
@@ -510,10 +513,23 @@ def save_visib_result():
 
     visib_table = flask.request.form['data_file']
     targname = flask.request.form['targetname']
+    targname = targname.replace(' ', '_') # no spaces
     instname = flask.request.form['instrumentname']
 
     return flask.Response(visib_table, mimetype="text/dat",
                           headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+
+@app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
+def save_contam_pdf():
+    """Save the results of the Contamination Science FOV """
+    RA, DEC = '19:50:50.2400', '+48:04:51.00'
+    contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1,2], binComp=[], PDF='', web=True)
+    filename = contam_pdf.split('/')[-1]
+    pdf_obj = PdfPages(contam_pdf)
+
+    return send_from_directory(contam_pdf, filename, as_attachment=True)#, mimetype="application/pdf", as_attachment=True)
+    #return flask.Response(pdf_obj, mimetype="application/pdf",
+    #                      headers={"Content-disposition": "attachment; filename={}_{}_contam.pdf".format(targname, instname)})
 
 
 @app_exoctk.route('/download', methods=['POST'])

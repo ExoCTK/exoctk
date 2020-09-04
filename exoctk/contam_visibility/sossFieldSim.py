@@ -169,55 +169,6 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
                         (stars['y'] >= -154) & (stars['y'] <= 2047 + 174))
         starsInFOV = stars[ind]
 
-        # ~~~~ JENNY TESTING PLOTS
-        if (kPA == (20)) or (kPA == (80)) or (
-                kPA == (210)) or (kPA == 340) or (kPA == 80):
-            print('KPA and APA')
-            print(kPA, APA)
-            # stars['x'])
-            # plt.ion()
-            # print(stars['y'])
-            print(sweetSpot['x'])
-            print(sweetSpot['y'])
-            plt.figure(1)
-            fullX, fullY = 55, 427
-            subX, subY = 55, 427
-
-            # the stars
-            mags = stars['jmag']
-            print(mags)
-
-            colors = cm.get_cmap('viridis', len(mags))
-            colors_0 = np.asarray(colors.colors)
-
-            i = mags.argsort()
-            ii = mags.argsort().argsort()
-
-            colors = colors_0  # matching the colors
-            # to the corresponding magnitude
-            starsx, starsy = stars['x'][i], stars['y'][i]
-            #starsx, starsy = xsci[i], ysci[i]
-
-            for x, y, c in zip(starsx, starsy, colors):
-                plt.plot(x, y, '*', color=c, picker=True)
-
-            plt.plot(sweetSpot['x'], sweetSpot['y'], 'r*')
-            plt.title("APA= {} (kPA={})".format(APA, kPA))
-
-            ax = plt.gca()
-            img = plt.gcf()
-            ax.set_aspect('equal')
-            ax.set_ylim(-2000, 3000)
-            ax.set_xlim(-2000, 3000)
-
-            sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis,
-                                       norm=plt.Normalize(vmin=mags.min(),
-                                                          vmax=mags.max()))
-            sm._A = []
-            plt.colorbar(sm)
-
-            plt.show(block=False)
-
         for i in range(len(ind)):
             intx = round(starsInFOV['dx'][i])
             inty = round(starsInFOV['dy'][i])
