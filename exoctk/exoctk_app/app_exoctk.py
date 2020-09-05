@@ -522,12 +522,14 @@ def save_visib_result():
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
     """Save the results of the Contamination Science FOV """
+
     RA, DEC = '19:50:50.2400', '+48:04:51.00'
     contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1,2], binComp=[], PDF='', web=True)
+
     filename = contam_pdf.split('/')[-1]
     pdf_obj = PdfPages(contam_pdf)
 
-    return send_from_directory(contam_pdf, filename, as_attachment=True)#, mimetype="application/pdf", as_attachment=True)
+    return render_template(contam_pdf, filename, as_attachment=True)#, mimetype="application/pdf", as_attachment=True)
     #return flask.Response(pdf_obj, mimetype="application/pdf",
     #                      headers={"Content-disposition": "attachment; filename={}_{}_contam.pdf".format(targname, instname)})
 
