@@ -17,15 +17,10 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 The subpackages currently included are:
 
 Contamination and Visibility Calculators
-
 Groups and Intrgrations Calculator
-
 Transit Light-­Curve Fitting Tools
-
 Limb-­Darkening Calculator
-
 Phase Constraint Calculator
-
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
 
 All source code can be found on `GitHub <https://github.com/ExoCTK/exoctk>`_.
@@ -52,6 +47,11 @@ The Contamination Overlap tool is made up of two calculators: the visibility cal
 The groups_integrations tool is a JWST observation planning tool designed with exoplanet observations in mind. Given a potential observation (which requires transit time, and an estimate of model and magnitude for the host star, and specifics of instrument setup) it's simple to get an optimized groups and integrations plan for the observation. The example notebook also outlines cases for batch demos -- testing many transits/sources in a given instrument setup, or figuring out which instrument setup is best for a given transit.
 
 The Groups and Integrations Calculator runs with pre-sampled pandeia data in the background -- so it can have the power of those carefully built instrument models, but still run 100 times faster.
+
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.GroupsandIntegrationsCalculator
 
 .. toctree::
   :maxdepth: 1
@@ -85,16 +85,26 @@ Users who wish to use the ``atmospheric_retrievals`` tools may do so by installi
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.atmospheric_retrievals
-
-**Phase Constraint Calculator**
-
-  The Phase Constraint Calculator provides a simple interface for calculating the JWST observation start window. The calculation currently only applies to transits, though one can subtract 0.5 from the phase values to compute the eclipse observation start window for planets on circular orbits. Enter the minimum and maximum phase values into the APT special requirements section when planning your observations.
+  tutorials/exoctk.AtmosphericRetrivals
 
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.phase_constraint
+  source/exoctk.atmospheric_retrievals
+
+**Phase Constraint Calculator**
+
+The Phase Constraint Calculator provides a simple interface for calculating JWST observation start windows in phase-space for both, transits and eclipse observations. This allows the user to quickly calculate minimum and maximum phase values that serve as inputs for the APT special requirements section when planning your observations.
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.phase_constraint_overlap
+
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.PhaseConstraintCalculator
 
 ****************************************************
 Installation Instructions and Notebook Availability
