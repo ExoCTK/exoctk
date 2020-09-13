@@ -74,7 +74,7 @@ def plotTemps(TEMPS, allRA, allDEC):
     sm._A = []
 
     cbar = plt.colorbar(sm, fraction=0.046, pad=0.04)
-    cbar.set_label('effective Temperature (T)', fontsize=20)
+    cbar.set_label('effective Temperature (K)', fontsize=20)
 
 
 def traceLength(inst):
