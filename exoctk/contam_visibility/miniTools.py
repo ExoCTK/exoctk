@@ -55,6 +55,7 @@ def plotTemps(TEMPS, allRA, allDEC):
     colors = colors_0
     starsx, starsy = allRA[i], allDEC[i]
 
+    plt.style.use('dark_background')
     for x, y, c in zip(starsx, starsy, colors):
         plt.scatter(
             x,
@@ -72,7 +73,8 @@ def plotTemps(TEMPS, allRA, allDEC):
                                                   vmax=TEMPS.max()))
     sm._A = []
 
-    plt.colorbar(sm, fraction=0.046, pad=0.04)
+    cbar = plt.colorbar(sm, fraction=0.046, pad=0.04)
+    cbar.set_label('effective Temperature (T)', fontsize=20)
 
 
 def traceLength(inst):
@@ -355,7 +357,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
         # Adding to PDF
         pdfobj.savefig(fig, bbox_inches='tight')
-        
+
     pdfobj.close()
 
     if web==True:
