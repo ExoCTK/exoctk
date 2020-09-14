@@ -150,13 +150,12 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
     """
     print('Generating FOV...')
-    # Converting to decimal degrees
-    targetcrd = crd.SkyCoord(ra=RA, dec=DEC, unit=(u.hour, u.deg))
-    targetRA = targetcrd.ra.value
-    targetDEC = targetcrd.dec.value
-    rad = 0.5
+    # Decimal degrees --> HMSDMS for Irsa.query_region()
+    targetcrd = crd.SkyCoord(ra=RA, dec=DEC, unit='deg').to_string('hmsdms')
+    targetRA, targetDEC = RA, DEC
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
+    rad = 0.5
     print('Querying for point-sources within {} arcminutes...'.format(str(rad)))
     info = Irsa.query_region(
         targetcrd,
