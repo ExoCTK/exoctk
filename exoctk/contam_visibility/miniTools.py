@@ -12,19 +12,19 @@ Author(s)
 ---------
 Jennifer V. Medina, 2020
 """
-import os
+import astropy.coordinates as crd
+import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pysiaf
 
 from astropy.io import fits
 from astroquery.irsa import Irsa
-import astropy.coordinates as crd
-import astropy.units as u
-from scipy.io import readsav
 from matplotlib import cm
 from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
 from matplotlib.figure import Figure
+from scipy.io import readsav
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if not EXOCTK_DATA:
