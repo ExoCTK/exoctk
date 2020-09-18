@@ -17,7 +17,7 @@ We can also use the resolution argument to resample the model spectra. This grea
 	print(model_grid.data)
 
 ``1056 models loaded from /Users/jfilippazzo/Documents/STScI/ExoCTK/EXOCTK_DATA/modelgrid/ACES/
- Teff  logg ...                          filename                         
+ Teff  logg ...                          filename
 ------ ---- ... ----------------------------------------------------------
 5800.0  3.0 ... lte05800-3.00-0.0.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits
 7600.0  5.0 ... lte07600-5.00+0.5.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits
@@ -55,16 +55,16 @@ Loading flux into table...
 
 Now we can caluclate the limb darkening coefficients using the limb_darkening_fit.LDC() class.
 
-.. code-block:: python 
+.. code-block:: python
 
 	ld = lf.LDC(model_grid)
 
 
 We just need to specify the desired effective temperature, surface gravity, metallicity, and the function(s) to fit to the limb darkening profile (including 'uniform', 'linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', and 'nonlinear').
 
-We can do this with for a single model on the grid...
+We can do this with for a single model on the grid:
 
-..code-block:: python 
+.. code-block:: python
 
 	teff, logg, FeH = 2500, 5, 0
 	ld.calculate(teff, logg, FeH, 'quadratic', name='on-grid', color='blue')
@@ -72,9 +72,9 @@ We can do this with for a single model on the grid...
 ``Bandpass trimmed to 0.05 um - 2.5999 um
 1 bins of 100 pixels each.``
 
-Or a single model off the grid, where the spectral intensity model is directly interpolated before the limb darkening coefficients are calculated. This takes a few seconds...
+Or a single model off the grid, where the spectral intensity model is directly interpolated before the limb darkening coefficients are calculated. This takes a few seconds when calculating:
 
-..code-block:: python 
+.. code-block:: python
 
 	teff, logg, FeH = 2511, 5.22, 0.04
 	ld.calculate(teff, logg, FeH, 'quadratic', name='off-grid', color='red')
@@ -85,13 +85,13 @@ Run time in seconds:  11.166051149368286
 Bandpass trimmed to 0.05 um - 2.5999 um
 1 bins of 100 pixels each.``
 
-Now we can see the results table with
+Now we can see the results table using the following command:
 
-..code-block:: python
+.. code-block:: python
 
 	print(ld.results)
 
-``  name    Teff  logg FeH   profile   filter ... color   c1    e1    c2    e2 
+``  name    Teff  logg FeH   profile   filter ... color   c1    e1    c2    e2
 -------- ------ ---- ---- --------- ------- ... ----- ----- ----- ----- -----
  on-grid 2500.0  5.0  0.0 quadratic Top Hat ...  blue 0.218 0.024 0.391 0.033
 off-grid 2511.0 5.22 0.04 quadratic Top Hat ...   red 0.224 0.025 0.398 0.033``
@@ -105,15 +105,15 @@ Additionally, we can calculate the limb darkening through a particular photometr
 
 First we have to create a ``svo_filters.svo.Filter()`` object which we can then pass to the calculate method. Let's use 2MASS H-band for this example.
 
-..code-block:: python 
+.. code-block:: python
 
 	H_band = svo.Filter('2MASS.H')
 	H_band.plot()
 
 
-Now we can tell ``LDC.calculate()`` to apply the filter to the spectral intensity models before calculating the limb darkening coefficients using the bandpass argument. We'll compare the results of using the bandpass (purple line) to the results where we just used the wavelength window of 1.4-1.9 :math:`\mathcal mu m` (green line).
+Now we can tell ``LDC.calculate()`` to apply the filter to the spectral intensity models before calculating the limb darkening coefficients using the bandpass argument. We'll compare the results of using the bandpass (purple line) to the results where we just used the wavelength window of 1.4-1.9 :math:`\mathcal $mu$ m` (green line).
 
-..code-block:: python 
+.. code-block:: python
 
 	ld = lf.LDC(model_grid)
 	teff, logg, FeH = 2511, 5.22, 0.04
@@ -133,7 +133,7 @@ Using a Grism
 
 Grisms are also supported. We can use the whole grism wavelength range (as if it was a bandpass) or truncate the grism to consider arbitrary wavelength ranges by setting the ``wave_min`` and ``wave_max`` arguments.
 
-..code-block:: python 
+.. code-block:: python
 
 	G141 = svo.Filter('WFC3_IR.G141', wave_min=1.61*q.um, wave_max=1.65*q.um)
 	G141.plot()
@@ -143,7 +143,7 @@ Grisms are also supported. We can use the whole grism wavelength range (as if it
 
 Now we can caluclate the LDCs for each of the 15 wavelength bins of the G141 grism we just created, where the first column in the table is the bin center. This is not very useful to plot but... why not?
 
-..code-block:: python 
+.. code-block:: python
 
 	teff, logg, FeH = 2511, 5.22, 0.04
 	ld.calculate(teff, logg, FeH, '4-parameter', bandpass=G141)
@@ -151,7 +151,7 @@ Now we can caluclate the LDCs for each of the 15 wavelength bins of the G141 gri
 
 ``Interpolating grid point [2511/5.22/0.04]...
 Run time in seconds:  12.591181993484497
-  name   Teff  logg FeH    profile   ...   e2    c3     e3    c4     e4 
+  name   Teff  logg FeH    profile   ...   e2    c3     e3    c4     e4
 ------- ------ ---- ---- ----------- ... ----- ------ ----- ------ -----
 1.12 um 2511.0 5.22 0.04 4-parameter ... 0.011 -0.599 0.011  0.193 0.004
 1.15 um 2511.0 5.22 0.04 4-parameter ... 0.016  0.454 0.017 -0.071 0.006
@@ -168,9 +168,3 @@ Run time in seconds:  12.591181993484497
 1.54 um 2511.0 5.22 0.04 4-parameter ...  0.05 -0.623 0.053  0.235  0.02
 1.59 um 2511.0 5.22 0.04 4-parameter ...  0.01  0.308 0.011 -0.049 0.004
 1.63 um 2511.0 5.22 0.04 4-parameter ... 0.005   0.57 0.005 -0.131 0.002``
-
-
-
-
-
-	
