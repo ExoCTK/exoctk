@@ -62,7 +62,7 @@ Now we can caluclate the limb darkening coefficients using the limb_darkening_fi
 
 We just need to specify the desired effective temperature, surface gravity, metallicity, and the function(s) to fit to the limb darkening profile (including 'uniform', 'linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', and 'nonlinear').
 
-We can do this with for a single model on the grid...
+We can do this with for a single model on the grid:
 
 ..code-block:: python 
 
@@ -72,7 +72,7 @@ We can do this with for a single model on the grid...
 ``Bandpass trimmed to 0.05 um - 2.5999 um
 1 bins of 100 pixels each.``
 
-Or a single model off the grid, where the spectral intensity model is directly interpolated before the limb darkening coefficients are calculated. This takes a few seconds...
+Or a single model off the grid, where the spectral intensity model is directly interpolated before the limb darkening coefficients are calculated. This takes a few seconds when calculating: 
 
 ..code-block:: python 
 
@@ -85,7 +85,7 @@ Run time in seconds:  11.166051149368286
 Bandpass trimmed to 0.05 um - 2.5999 um
 1 bins of 100 pixels each.``
 
-Now we can see the results table with
+Now we can see the results table using the following command:
 
 ..code-block:: python
 
@@ -111,7 +111,7 @@ First we have to create a ``svo_filters.svo.Filter()`` object which we can then 
 	H_band.plot()
 
 
-Now we can tell ``LDC.calculate()`` to apply the filter to the spectral intensity models before calculating the limb darkening coefficients using the bandpass argument. We'll compare the results of using the bandpass (purple line) to the results where we just used the wavelength window of 1.4-1.9 :math:`\mathcal mu m` (green line).
+Now we can tell ``LDC.calculate()`` to apply the filter to the spectral intensity models before calculating the limb darkening coefficients using the bandpass argument. We'll compare the results of using the bandpass (purple line) to the results where we just used the wavelength window of 1.4-1.9 :math:`\mathcal $mu$ m` (green line).
 
 ..code-block:: python 
 
