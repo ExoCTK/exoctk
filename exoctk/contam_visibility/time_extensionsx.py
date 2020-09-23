@@ -67,15 +67,15 @@ def leap_years(year1, year2):
     """
 
     # Find next years after year1 that are divisible by 4, 100, and 400
-    next_div4 = int(4 * ceil(year1/4.0))
-    next_div100 = int(100 * ceil(year1/100.0))
-    next_div400 = int(400 * ceil(year1/400.0))
+    next_div4 = int(4 * ceil(year1 / 4.0))
+    next_div100 = int(100 * ceil(year1 / 100.0))
+    next_div400 = int(400 * ceil(year1 / 400.0))
 
     # Now compute number of years between year1 and year2 that are
     # evenly divisible by 4, 100, 400
-    div4_years = int(ceil((year2 - next_div4)/4.0))
-    div100_years = int(ceil((year2 - next_div100)/100.0))
-    div400_years = int(ceil((year2 - next_div400)/400.0))
+    div4_years = int(ceil((year2 - next_div4) / 4.0))
+    div100_years = int(ceil((year2 - next_div100) / 100.0))
+    div400_years = int(ceil((year2 - next_div400) / 400.0))
 
     # Leap years are years divisible by 4, except for years
     # divisible by 100 that are not divisible by 400
@@ -163,7 +163,7 @@ def round_to_second(time):
     float
         The number of seconds in as many days.
     """
-    return(round(time * 86400)/86400.0)
+    return(round(time * 86400) / 86400.0)
 
 
 def display_time(time, force_hours=False):
@@ -274,7 +274,7 @@ def display_date(mjd):
     fractional_day = mjd % 1
 
     # First compute year and day without allowing for leap years, then adjust
-    year = 1858 + int_days/365
+    year = 1858 + int_days / 365
     day_of_year = int_days % 365 - leap_years(1858, year)
     # handle case where leap year adjustment has made day negative
     while (day_of_year < 1):
@@ -308,12 +308,12 @@ def compute_mjd(year, day_of_year, hour, minute, second):
     float
         The modified julian day.
     """
-    fractional_days = (hour * 3600 + minute * 60 + second)/86400.0
+    fractional_days = (hour * 3600 + minute * 60 + second) / 86400.0
     mjd_years = year - 1859
     num_leaps = leap_years(1858, year)  # number of leap years since 1858
 
     # Add 45 days from Nov. 17 to end of 1858
-    return((365*mjd_years)+num_leaps+45+(day_of_year-1)+fractional_days)
+    return((365 * mjd_years) + num_leaps + 45 + (day_of_year - 1) + fractional_days)
 
 
 def mjd_from_string(time_string):
@@ -373,6 +373,7 @@ def jd_to_mjd(jd):
 class Interval(object):
     """Class to represent a simple temporal interval.
     """
+
     def __init__(self, start, end):
         """Constructor for an interval.
 
@@ -435,6 +436,7 @@ class FlexibleInterval(Interval):
     """Class to represent an interval with flexibility on when it can
     start and end.
     """
+
     def __init__(self, est, lst, let):
         """Constructor for a FlexibileInterval.
 

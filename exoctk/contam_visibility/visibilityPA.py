@@ -25,29 +25,8 @@ from . import ephemeris_old2x as EPH
 from jwst_gtvt.find_tgt_info import get_table
 
 
-D2R = math.pi/180.  # degrees to radians
-R2D = 180./math.pi  # radians to degrees
-
-
-def convert_ddmmss_to_float(astring):
-    """Convert sexigesimal to decimal degrees
-
-    Parameters
-    ----------
-    astring: str
-        The sexigesimal coordinate.
-
-    Returns
-    -------
-    hour_or_deg : float
-        The converted coordinate.
-    """
-    aline = astring.split(':')
-    d = float(aline[0])
-    m = float(aline[1])
-    s = float(aline[2])
-    hour_or_deg = (s/60.+m)/60.+d
-    return hour_or_deg
+D2R = math.pi / 180.  # degrees to radians
+R2D = 180. / math.pi  # radians to degrees
 
 
 def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
@@ -94,7 +73,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # convert dates from MJD to Gregorian calendar dates
     mjd = np.array(eph.datelist)
-    d = mdates.julian2num(mjd+2400000.5)
+    d = mdates.julian2num(mjd + 2400000.5)
     gd = mdates.num2date(d)
 
     # loop through dates and determine VIS and PAs (nominal, min, max)
@@ -112,17 +91,17 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
         # search for minimum PA allowed by roll
         pa0 = pa
-        while eph.is_valid(mjd[i], ra, dec, pa0-0.002):
+        while eph.is_valid(mjd[i], ra, dec, pa0 - 0.002):
             pa0 -= 0.002
 
         # search for maximum PA allowed by roll
         pa1 = pa
-        while eph.is_valid(mjd[i], ra, dec, pa1+0.002):
+        while eph.is_valid(mjd[i], ra, dec, pa1 + 0.002):
             pa1 += 0.002
 
-        paNom[i] = (pa*R2D) % 360
-        paMin[i] = (pa0*R2D) % 360
-        paMax[i] = (pa1*R2D) % 360
+        paNom[i] = (pa * R2D) % 360
+        paMin[i] = (pa0 * R2D) % 360
+        paMax[i] = (pa1 * R2D) % 360
 
     # does PA go through 360 deg?
     wrap = np.any(np.abs(np.diff(paNom[np.where(vis)[0]])) > 350)
@@ -137,7 +116,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     pa.sort()
 
     i1, = np.where(np.diff(pa) > 10)
-    i0 = np.insert(i1+1, 0, 0)
+    i0 = np.insert(i1 + 1, 0, 0)
     i1 = np.append(i1, -1)
     paGood = np.dstack((pa[i0], pa[i1])).round(1).reshape(-1, 2).tolist()
 
@@ -146,12 +125,12 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     if paGood[0][0] > 0:
         paBad.append([0., paGood[0][0]])
     for i in range(1, len(paGood)):
-        paBad.append([paGood[i-1][1], paGood[i][0]])
+        paBad.append([paGood[i - 1][1], paGood[i][0]])
     if paGood[-1][1] < 360.:
         paBad.append([paGood[-1][1], 360.])
 
     # Make a figure
-    if fig is None or fig == True:
+    if fig is None or fig:
         tools = 'crosshair, reset, hover, save'
         radec = ', '.join([str(ra), str(dec)])
         fig = figure(tools=tools, plot_width=800, plot_height=400,
@@ -165,29 +144,29 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     gdMasked = np.copy(gd)
 
     i = np.argmax(paNom)
-    if paNom[i+1] < 10:
+    if paNom[i + 1] < 10:
         i += 1
     paMasked = np.insert(paMasked, i, np.nan)
     gdMasked = np.insert(gdMasked, i, gdMasked[i])
 
     i = np.argmax(paMin)
-    goUp = paMin[i-2] < paMin[i-1]  # PA going up at wrap point?
+    goUp = paMin[i - 2] < paMin[i - 1]  # PA going up at wrap point?
 
     # Top part
     i0_top = 0 if goUp else i
-    i1_top = i if goUp else paMin.size-1
+    i1_top = i if goUp else paMin.size - 1
     paMaxTmp = np.copy(paMax)
     paMaxTmp[np.where(paMin > paMax)[0]] = 360
 
     # Bottom part
     i = np.argmin(paMax)
     i0_bot = i if goUp else 0
-    i1_bot = paMin.size-1 if goUp else i
+    i1_bot = paMin.size - 1 if goUp else i
     paMinTmp = np.copy(paMin)
     paMinTmp[np.where(paMin > paMax)[0]] = 0
 
     # Convert datetime to a number for Bokeh
-    gdMaskednum = [datetime.date(2019, 6, 1)+datetime.timedelta(days=n)
+    gdMaskednum = [datetime.date(2019, 6, 1) + datetime.timedelta(days=n)
                    for n, d in enumerate(gdMasked)]
     color = 'green'
 
@@ -195,28 +174,27 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
     # Top
-    terr_y = np.concatenate([paMin[i0_top:i1_top+1],
-                            paMaxTmp[i0_top:i1_top+1][::-1]])
-    terr_x = np.concatenate([gdMaskednum[i0_top:i1_top+1],
-                            gdMaskednum[i0_top:i1_top+1][::-1]])
+    terr_y = np.concatenate([paMin[i0_top:i1_top + 1],
+                             paMaxTmp[i0_top:i1_top + 1][::-1]])
+    terr_x = np.concatenate([gdMaskednum[i0_top:i1_top + 1],
+                             gdMaskednum[i0_top:i1_top + 1][::-1]])
     fig.patch(terr_x, terr_y, color=color, fill_alpha=0.2, line_alpha=0)
 
-
     # Bottom
-    berr_y = np.concatenate([paMinTmp[i0_bot:i1_bot+1],
-                            paMax[i0_bot:i1_bot+1][::-1]])
-    berr_x = np.concatenate([gdMaskednum[i0_bot:i1_bot+1],
-                            gdMaskednum[i0_bot:i1_bot+1][::-1]])
+    berr_y = np.concatenate([paMinTmp[i0_bot:i1_bot + 1],
+                             paMax[i0_bot:i1_bot + 1][::-1]])
+    berr_x = np.concatenate([gdMaskednum[i0_bot:i1_bot + 1],
+                             gdMaskednum[i0_bot:i1_bot + 1][::-1]])
     fig.patch(berr_x, berr_y, color='red', fill_alpha=0.2, line_alpha=0)
     from bokeh.plotting import show
     show(fig)
-
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
     fig.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     return paGood, paBad, gd, fig
+
 
 def fill_between(fig, xdata, pamin, pamax, **kwargs):
     # addressing NIRSpec issue
@@ -233,7 +211,14 @@ def fill_between(fig, xdata, pamin, pamax, **kwargs):
         fig.patch(x, y, **kwargs)
     return fig
 
-def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, output='bokeh'):
+
+def using_gtvt(
+        ra,
+        dec,
+        instrument,
+        targetName='noName',
+        ephFileName=None,
+        output='bokeh'):
     """Plot the visibility (at a range of position angles) against time.
 
     Parameters
@@ -266,9 +251,9 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     tab = get_table(ra, dec)
 
     gd = tab['Date']
-    paMin = tab[str(instrument)+' min']
-    paMax = tab[str(instrument)+' max']
-    paNom = tab[str(instrument)+' nom']
+    paMin = tab[str(instrument) + ' min']
+    paMax = tab[str(instrument) + ' max']
+    paNom = tab[str(instrument) + ' nom']
     v3min = tab['V3PA min']
     v3max = tab['V3PA max']
 
@@ -283,56 +268,56 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
         try:
             a1 = paNom[idx]
-            b1 = paNom[idx+1]
+            b1 = paNom[idx + 1]
 
-            if (np.isfinite(a1)==True) & (np.isfinite(b1)==True):
-                delta = np.abs(a1-b1)
+            if (np.isfinite(a1)) & (np.isfinite(b1)):
+                delta = np.abs(a1 - b1)
 
-                if delta>250:
-                    print(a1,b1,delta)
-                    gd = np.insert(gd, idx+1, np.nan)
-                    paMin = np.insert(paMin, idx+1, np.nan)
-                    paMax = np.insert(paMax, idx+1, np.nan)
-                    paNom = np.insert(paNom, idx+1, np.nan)
-                    v3min = np.insert(v3min, idx+1, np.nan)
-                    v3max = np.insert(v3min, idx+1, np.nan)
-        except:
+                if delta > 250:
+                    print(a1, b1, delta)
+                    gd = np.insert(gd, idx + 1, np.nan)
+                    paMin = np.insert(paMin, idx + 1, np.nan)
+                    paMax = np.insert(paMax, idx + 1, np.nan)
+                    paNom = np.insert(paNom, idx + 1, np.nan)
+                    v3min = np.insert(v3min, idx + 1, np.nan)
+                    v3max = np.insert(v3min, idx + 1, np.nan)
+        except BaseException:
             pass
 
     # Setting up HoverTool parameters & other variables
     COLOR = 'green'
     TOOLS = 'pan, wheel_zoom, box_zoom, reset, save'
-    SOURCE = ColumnDataSource(data=dict(pamin=paMin,\
-                                        panom=paNom,\
-                                        pamax=paMax,\
+    SOURCE = ColumnDataSource(data=dict(pamin=paMin,
+                                        panom=paNom,
+                                        pamax=paMax,
                                         date=gd))
-    TOOLTIPS = [('Date','@date{%F}'),\
-                ('Maximum Aperture PA', '@pamax'),\
-                ('Nominal Aperture PA', '@panom'),\
+    TOOLTIPS = [('Date', '@date{%F}'),
+                ('Maximum Aperture PA', '@pamax'),
+                ('Nominal Aperture PA', '@panom'),
                 ('Minimum Aperture PA', '@pamin')]
 
     # Time to plot
-    if output=='bokeh':
-        fig = figure(tools=TOOLS,\
-                     plot_width=800,\
-                     plot_height=400,\
-                     x_axis_type='datetime',\
+    if output == 'bokeh':
+        fig = figure(tools=TOOLS,
+                     plot_width=800,
+                     plot_height=400,
+                     x_axis_type='datetime',
                      title='{} Visibility with {}'.format(targetName,
                                                           instrument))
 
     # Draw the curve and PA min/max circles
     nom = fig.line('date', 'panom',
-                    line_color=COLOR,
-                    legend='Nominal Aperture PA',
-                    alpha=.5,
-                    source=SOURCE)
+                   line_color=COLOR,
+                   legend='Nominal Aperture PA',
+                   alpha=.5,
+                   source=SOURCE)
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
     fig.add_tools(HoverTool(renderers=[nom],
                             tooltips=TOOLTIPS,
-                            formatters={'date':'datetime'},
+                            formatters={'date': 'datetime'},
                             mode='vline'))
 
     # Plot formatting
@@ -343,10 +328,11 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     # Making the output table
     # Creating new lists w/o the NaN values
     v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = \
-    [], [], [], [], [], [], []
+        [], [], [], [], [], [], []
 
-    for vmin, vmax, pnom, pmin, pmax, date in zip(v3min, v3max, paNom, paMin, paMax, gd):
-        if np.isfinite(pmin)==True:
+    for vmin, vmax, pnom, pmin, pmax, date in zip(
+            v3min, v3max, paNom, paMin, paMax, gd):
+        if np.isfinite(pmin):
             v3minnan.append(vmin)
             v3maxnan.append(vmax)
             paNomnan.append(pnom)
@@ -362,9 +348,20 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
         mjdnan.append(mjd)
 
     # Adding lists to a table object
-    table = Table([v3minnan, v3maxnan, paMinnan, paMaxnan, paNomnan, gdnan, mjdnan],\
-                  names=('min_V3_PA', 'max_V3_PA','min_Aperture_PA',\
-                         'max_Aperture_PA', 'nom_Aperture_PA', 'Gregorian', 'MJD'))
+    table = Table([v3minnan,
+                   v3maxnan,
+                   paMinnan,
+                   paMaxnan,
+                   paNomnan,
+                   gdnan,
+                   mjdnan],
+                  names=('min_V3_PA',
+                         'max_V3_PA',
+                         'min_Aperture_PA',
+                         'max_Aperture_PA',
+                         'nom_Aperture_PA',
+                         'Gregorian',
+                         'MJD'))
 
     # Getting bad PAs
     allPAs = np.arange(0, 360, 1)
@@ -385,7 +382,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     for badpa in badPAs:
 
         for panom in paNomnan:
-            diff = np.abs(badpa-panom)
+            diff = np.abs(badpa - panom)
             if diff < 7:
                 remove_pa.append(badpa)
 
