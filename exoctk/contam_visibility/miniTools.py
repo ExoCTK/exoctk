@@ -246,11 +246,11 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
     contam = {}
 
-    if web==False:
+    if not web:
         filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
         defaultPDF = os.path.join(os.getcwd(), filename).replace(' ', '_')
         PDF = defaultPDF if PDF == '' else PDF
-    elif web==True:
+    elif web:
         filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
         PDF = os.path.join(TRACES_PATH, filename)
 
@@ -359,5 +359,5 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
     pdfobj.close()
 
-    if web==True:
+    if web:
         return PDF
