@@ -109,14 +109,14 @@ def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
             # interval => it looks like a step size of 0.1 day is
             # sufficient to ensure that.
             if (iflag):
-                step = currentdate-scanningStepSize
+                step = currentdate - scanningStepSize
                 wstart = ephemeris.bisect_by_FOR(currentdate, step, ra, dec)
 
             # IF iflag = False we are reaching the end of a visibility period.
             # Like for the previous case a bisection method is used to locate
             # accurately the end of the visibility period.
             else:
-                step = currentdate-scanningStepSize
+                step = currentdate - scanningStepSize
                 wend = ephemeris.bisect_by_FOR(step, currentdate, ra, dec)
                 startList.append(wstart)
                 endList.append(wend)
@@ -250,7 +250,7 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
             # 0.1 day is
             # sufficient to ensure that.
             if (iflag):
-                step = currentdate-scanningStepSize
+                step = currentdate - scanningStepSize
                 wstart = ephemeris.bisect_by_attitude(currentdate, step,
                                                       ra, dec, pa)
 
@@ -258,7 +258,7 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
             # Like for the previous case a bisection method is used to locate
             # accurately the end of the visibility period.
             else:
-                step = currentdate-scanningStepSize
+                step = currentdate - scanningStepSize
                 wend = ephemeris.bisect_by_attitude(step, currentdate,
                                                     ra, dec, pa)
                 startList.append(wstart)
@@ -290,7 +290,7 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
     return startList, endList, statusList
 
 
-def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
+def f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
                                               ra, dec, pa, mjdc):
     """Computes the duration of a specific visibility period associated to a
     given (RA,DEC), a given PA and given date
@@ -389,9 +389,8 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
         iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
 
         if (not iflag):
-            wstart = ephemeris.bisect_by_attitude(currentmjd,
-                                                  currentmjd+scanningStepSize,
-                                                  ra, dec, pa)
+            wstart = ephemeris.bisect_by_attitude(
+                currentmjd, currentmjd + scanningStepSize, ra, dec, pa)
             iflipLeft = True
             continueFlag = False
         elif (boundaryFlag):
@@ -411,7 +410,7 @@ def f_computeDurationOfVisibilityPeriodWithPA(ephemeris,  mjdmin, mjdmax,
 
         iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
         if (not iflag):
-            wend = ephemeris.bisect_by_attitude(currentmjd-scanningStepSize,
+            wend = ephemeris.bisect_by_attitude(currentmjd - scanningStepSize,
                                                 currentmjd, ra, dec, pa)
             iflipRight = True
             continueFlag = False

@@ -26,8 +26,13 @@
     	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
     	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
     	</p>
-        <p>Note: The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</p>
-
+      <p>Potential caveats:</p>
+      <ul>
+        <li>The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</li>
+        <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots. A future update is coming soon to address this issue.</li>
+        <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>
+      </ul>
+      <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
     <form class='form-horizontal' action="/contam_visibility" method="POST" />
 
         {{ form.hidden_tag() }}
