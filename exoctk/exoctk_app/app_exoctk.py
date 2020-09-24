@@ -181,7 +181,8 @@ def limb_darkening():
 
         # Store the tables as a string
         keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
-        file_as_string = str(ld.results[[col for col in keep_cols if col in ld.results.colnames]])
+        print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
+        file_as_string = '\n'.join(print_table.pformat(max_lines=-1, max_width=-1)) 
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
