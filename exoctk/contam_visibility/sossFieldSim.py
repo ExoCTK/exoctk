@@ -465,7 +465,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     return simuCube
 
-def compute_cube(V3PA, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube):
+def compute_cube(V3PA, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube):
 
     # Get APA from V3PA
     APA = V3PA + add_to_v3pa
@@ -706,7 +706,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
     pool = mp.Pool(mp.cpu_count())
-    pool.starmap(compute_cube, [(pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube) for pa in V3PA])
+    pool.starmap(compute_cube, [(pa, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube) for pa in V3PA])
     pool.close()
 
     return simuCube
