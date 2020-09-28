@@ -251,7 +251,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     # Calling the variables
     deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 0.5  # arcmins
+    rad = 2.5  # arcmins
     pixel_scale = 0.063  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
@@ -273,7 +273,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad * u.arcmin)
+                             radius=2.5 * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -465,7 +465,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     return simuCube
 
-def compute_cube(V3PA, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube):
+def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube, mincol, maxcol, minrow, maxrow, subX, subY):
 
     # Get APA from V3PA
     APA = V3PA + add_to_v3pa
@@ -611,7 +611,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calling the variables
     deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 0.5  # arcmins
+    rad = 2.5  # arcmins
     pixel_scale = 0.11  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
@@ -630,10 +630,11 @@ def lrsFieldSim(ra, dec, binComp=''):
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
+    print(targetcrd)
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad * u.arcmin)
+                             radius=2.5 * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -706,7 +707,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
     pool = mp.Pool(mp.cpu_count())
-    pool.starmap(compute_cube, [(pa, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube) for pa in V3PA])
+    pool.starmap(compute_cube, [(pa, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube, mincol, maxcol, minrow, maxrow, subX, subY) for pa in V3PA])
     pool.close()
 
     return simuCube
