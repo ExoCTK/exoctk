@@ -467,8 +467,9 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     return simuCube
 
-def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube, mincol, maxcol, minrow, maxrow, subX, subY):
+def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, mincol, maxcol, minrow, maxrow, subX, subY):
     print(V3PA)
+    cube = np.zeros([subY, subX])
     # Get APA from V3PA
     APA = V3PA + add_to_v3pa
     # Get target's attitude matrix for each Position Angle
@@ -581,7 +582,6 @@ def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA,
 
             tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-            
             cube[0:trY, 0:trX] += tr
 
         return cube
@@ -717,9 +717,9 @@ def lrsFieldSim(ra, dec, binComp=''):
     #pool.close()
 
     pool = ThreadPool(mp.cpu_count())
-    func = partial(compute_cube, aper=aper, add_to_v3pa=add_to_v3pa, v2targ=v2targ, v3targ=v3targ, targetIndex=targetIndex, targetRA=targetRA, targetDEC=targetDEC, stars=stars, nStars=nStars, cube=cube, mincol=mincol, maxcol=maxcol, minrow=minrow, maxrow=maxrow, subX=subX, subY=subY)
+    func = partial(compute_frame, aper=aper, add_to_v3pa=add_to_v3pa, v2targ=v2targ, v3targ=v3targ, targetIndex=targetIndex, targetRA=targetRA, targetDEC=targetDEC, stars=stars, nStars=nStars, mincol=mincol, maxcol=maxcol, minrow=minrow, maxrow=maxrow, subX=subX, subY=subY)
     data = list(V3PA)
-    simuCube = np.asarray(pool.map(func, data), dtype=np.float16)
+    simuCube = np.asarray(pool.map(func, data))#, dtype=np.float16)
     pool.close()
     pool.join()
 
