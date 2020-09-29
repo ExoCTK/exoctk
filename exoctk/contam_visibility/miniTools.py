@@ -161,7 +161,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
         targetcrd,
         catalog='fp_psc',
         spatial='Cone',
-        radius=rad * u.arcmin)
+        radius=2.5 * u.arcmin)
 
     # Coordinates of all stars in FOV, including target
     allRA = info['ra'].data.data

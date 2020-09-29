@@ -272,7 +272,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad * u.arcmin)
+                             radius=2.5 * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -515,7 +515,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
     info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad * u.arcmin)
+                             radius=2.5 * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
