@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
 from astroquery.irsa import Irsa
+from functools import partial
 from matplotlib import cm
+from multiprocessing.pool import ThreadPool
 from scipy.io import readsav
 from astropy.io import fits
 from exoctk.utils import get_env_variables
@@ -466,7 +468,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     return simuCube
 
 def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, cube, mincol, maxcol, minrow, maxrow, subX, subY):
-
+    print(V3PA)
     # Get APA from V3PA
     APA = V3PA + add_to_v3pa
     # Get target's attitude matrix for each Position Angle
@@ -571,7 +573,7 @@ def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA,
             tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
 
-            cube[0, 0:trY, 0:trX] = tr
+            cube[0:trY, 0:trX] = tr
 
         # Fleshing out indexes 1-361 of the simulation cube
         # (trace of neighboring stars at every position angle)
@@ -579,7 +581,10 @@ def compute_cube(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA,
 
             tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-            cube[V3PA + 1, 0:trY, 0:trX] += tr
+            
+            cube[0:trY, 0:trX] += tr
+
+        return cube
 
 def lrsFieldSim(ra, dec, binComp=''):
     """ Produce a MIRI Low Resoluton Spectroscopic mode field simulation for a
@@ -616,7 +621,8 @@ def lrsFieldSim(ra, dec, binComp=''):
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
     # Generate cube of field simulation at every degree of APA rotation
-    simuCube = np.zeros([nPA + 1, subY, subX])
+    #cube = np.zeros([nPA + 1, subY, subX])
+    cube = np.zeros([subY, subX])
     xSweet, ySweet = aper.reference_point('det')
     add_to_v3pa = aper.V3IdlYAngle
     # MIRI Full Frame dimensions
@@ -703,12 +709,19 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
-    V3PA = np.arange(0, nPA)
-    inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
+    V3PA = np.arange(0, 361)
+    #inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
-    pool = mp.Pool(mp.cpu_count())
-    pool.starmap(compute_cube, [(pa, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube, mincol, maxcol, minrow, maxrow, subX, subY) for pa in V3PA])
+    #pool = mp.Pool(mp.cpu_count())
+    #pool.starmap(compute_cube, [(pa, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube, mincol, maxcol, minrow, maxrow, subX, subY) for pa in V3PA])
+    #pool.close()
+
+    pool = ThreadPool(mp.cpu_count())
+    func = partial(compute_cube, aper=aper, add_to_v3pa=add_to_v3pa, v2targ=v2targ, v3targ=v3targ, targetIndex=targetIndex, targetRA=targetRA, targetDEC=targetDEC, stars=stars, nStars=nStars, cube=cube, mincol=mincol, maxcol=maxcol, minrow=minrow, maxrow=maxrow, subX=subX, subY=subY)
+    data = list(V3PA)
+    simuCube = np.asarray(pool.map(func, data), dtype=np.float16)
     pool.close()
+    pool.join()
 
     return simuCube
 
