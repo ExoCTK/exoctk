@@ -469,7 +469,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
 def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, mincol, maxcol, minrow, maxrow, subX, subY):
     print(V3PA)
-    cube = np.zeros([subY, subX])
+    frame = np.zeros([subY, subX])
     # Get APA from V3PA
     APA = V3PA + add_to_v3pa
     # Get target's attitude matrix for each Position Angle
@@ -574,7 +574,7 @@ def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA
             tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
 
-            cube[0:trY, 0:trX] = tr
+            frame[0:trY, 0:trX] = tr
 
         # Fleshing out indexes 1-361 of the simulation cube
         # (trace of neighboring stars at every position angle)
@@ -582,7 +582,7 @@ def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA
 
             tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-            cube[0:trY, 0:trX] += tr
+            frame[0:trY, 0:trX] += tr
 
     return cube
 
