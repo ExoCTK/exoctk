@@ -584,7 +584,7 @@ def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA
             trX, trY = np.shape(tr)[1], np.shape(tr)[0]
             frame[0:trY, 0:trX] += tr
 
-    return cube
+    return frame
 
 def lrsFieldSim(ra, dec, binComp=''):
     """ Produce a MIRI Low Resoluton Spectroscopic mode field simulation for a
