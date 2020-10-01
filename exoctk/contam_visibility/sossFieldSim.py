@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
 from astroquery.irsa import Irsa
+from datetime import datetime
 from functools import partial
 from matplotlib import cm
 from multiprocessing.pool import ThreadPool
@@ -28,6 +29,7 @@ if not EXOCTK_DATA:
     TRACES_PATH = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
+
 
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
@@ -220,6 +222,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     return simuCube
 
 
+
 def gtsFieldSim(ra, dec, filter, binComp=''):
     """ Produce a Grism Time Series field simulation for a target.
     Parameters
@@ -355,6 +358,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
         xdet, ydet = [], []
         xsci, ysci = [], []
+        print('sky to sci for each star: {}'.format(datetime.now().strftime("%H:%M:%S")))
         for starRA, starDEC in zip(stars['RA'], stars['DEC']):
             # Get the TEL coordinates of each star w attitude matrix
             V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
@@ -368,6 +372,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
             ydet.append(YDET)
             xsci.append(XSCI)
             ysci.append(YSCI)
+        print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
 
         # Record keeping
         stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
@@ -379,6 +384,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     #############################STEP 5#####################################
     ########################################################################
         inFOV = []
+        print('determine stars in FOV: {}'.format(datetime.now().strftime("%H:%M:%S")))
         for star in range(0, nStars):
 
             x, y = stars['xdet'][star], stars['ydet'][star]
@@ -386,6 +392,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 inFOV.append(star)
 
         inFOV = np.array(inFOV)
+        print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
 
     #############################STEP 6#####################################
     ########################################################################
@@ -467,124 +474,91 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     return simuCube
 
-def compute_frame(V3PA, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, mincol, maxcol, minrow, maxrow, subX, subY):
-    print(V3PA)
+
+
+def compute_frame(idx, fitsFiles, sci_targx, sci_targy, targetIndex, stars, nStars, subX, subY):
+    """ Generates a the frame with the trace of a single source (idx) in its
+    position relative to the target, in the sub array.
+    """
     frame = np.zeros([subY, subX])
-    # Get APA from V3PA
-    APA = V3PA + add_to_v3pa
-    # Get target's attitude matrix for each Position Angle
-    attitude = rotations.attitude_matrix(v2targ, v3targ,
-                                         targetRA, targetDEC,
-                                         APA)
+    # for every star in the FOV (inFOV)
 
-    xdet, ydet = [], []
-    xsci, ysci = [], []
-    for starRA, starDEC in zip(stars['RA'], stars['DEC']):
-        # Get the TEL coordinates of each star w attitude matrix
-        V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
-        # Convert to arcsec and turn to a float
-        V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
+    sci_dx = round(sci_targx - stars['xsci'][idx])
+    sci_dy = round(sci_targy - stars['ysci'][idx])
+    temp = stars['Temp'][idx]
 
-        XDET, YDET = aper.tel_to_det(V2, V3)
-        XSCI, YSCI = aper.det_to_sci(XDET, YDET)
+    for file in fitsFiles:
+        if str(temp) in file:
+            trace = fits.getdata(file)[0]
 
-        xdet.append(XDET)
-        ydet.append(YDET)
-        xsci.append(XSCI)
-        ysci.append(YSCI)
+    fluxscale = 10.0**(-0.4 * \
+                       (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
 
-    # Record keeping
-    stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
-    stars['xsci'], stars['ysci'] = np.array(xsci), np.array(ysci)
+    # Padding array
+    pad_trace = np.pad(trace, pad_width=5000, mode='constant',
+                       constant_values=0)
 
-    sci_targx, sci_targy = stars['xsci'][targetIndex],\
-        stars['ysci'][targetIndex]
-    #############################STEP 5#####################################
-    ########################################################################
-    inFOV = []
-    for star in range(0, nStars):
+    # Determine the highest pixel value of trace
+    maxY, maxX = np.where(pad_trace == pad_trace.max())
+    peakY, peakX = maxY[0], maxX[0]
 
-        x, y = stars['xdet'][star], stars['ydet'][star]
-        if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
-            inFOV.append(star)
+    # Use relative distances (sci_dx, sci_dy) to find target
+    # xTarg,yTarg are essentially the "sweetspot" in the PADDED arr
+    xTarg = peakX + sci_dx
+    yTarg = peakY + sci_dy
 
-    inFOV = np.array(inFOV)
+    # Use the (xTarg, yTarg) coordinates to slice out subarray
+    # remember X is columns, Y is rows
+    dimX0, dimX1 = xTarg - sci_targx, xTarg + subX - sci_targx
+    dimY0, dimY1 = yTarg - sci_targy, yTarg + subY - sci_targy
 
-    #############################STEP 6#####################################
-    ########################################################################
-    fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
-    fitsFiles = np.sort(fitsFiles)
+    if dimX0 < 0:
+        dimX0 = 0
+        dimX1 = subX
+    if dimY0 < 0:
+        dimY0 = 0
+        dimY1 = subY
 
-    for idx in inFOV:
+    traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+    if dimX1 > traceX:
+        dimX1 = traceX
+        dimX0 = traceX - subX
+    if dimY1 > traceY:
+        dimY1 = traceY
+        dimY0 = traceY - subY
 
-        sci_dx = round(sci_targx - stars['xsci'][idx])
-        sci_dy = round(sci_targy - stars['ysci'][idx])
-        temp = stars['Temp'][idx]
+    if (dimX1 < 0) or (dimY1 < 0):
+        #continue
+        pass
 
-        for file in fitsFiles:
-            if str(temp) in file:
-                trace = fits.getdata(file)[0]
+    # -1 because pySIAF is 1-indexed
+    mx0, mx1 = int(dimX0) - 1, int(dimX1) - 1
+    my0, my1 = int(dimY0) - 1, int(dimY1) - 1
 
-        fluxscale = 10.0**(-0.4 * \
-                           (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
+    # Fleshing out index 0 of the simulation cube (trace of target)
+    if (sci_dx == 0) & (sci_dy == 0):  # this is the target
 
-        # Padding array
-        pad_trace = np.pad(trace, pad_width=5000, mode='constant',
-                           constant_values=0)
+        tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
+        trX, trY = np.shape(tr)[1], np.shape(tr)[0]
 
-        # Determine the highest pixel value of trace
-        maxY, maxX = np.where(pad_trace == pad_trace.max())
-        peakY, peakX = maxY[0], maxX[0]
+        #frame[0:trY, 0:trX] = tr
 
-        # Use relative distances (sci_dx, sci_dy) to find target
-        # xTarg,yTarg are essentially the "sweetspot" in the PADDED arr
-        xTarg = peakX + sci_dx
-        yTarg = peakY + sci_dy
+    # Fleshing out indexes 1-361 of the simulation cube
+    # (traces of neighboring stars at every position angle)
+    else:
 
-        # Use the (xTarg, yTarg) coordinates to slice out subarray
-        # remember X is columns, Y is rows
-        dimX0, dimX1 = xTarg - sci_targx, xTarg + subX - sci_targx
-        dimY0, dimY1 = yTarg - sci_targy, yTarg + subY - sci_targy
+        tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
+        trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+        frame[0:trY, 0:trX] += tr
 
-        if dimX0 < 0:
-            dimX0 = 0
-            dimX1 = subX
-        if dimY0 < 0:
-            dimY0 = 0
-            dimY1 = subY
-
-        traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
-        if dimX1 > traceX:
-            dimX1 = traceX
-            dimX0 = traceX - subX
-        if dimY1 > traceY:
-            dimY1 = traceY
-            dimY0 = traceY - subY
-
-        if (dimX1 < 0) or (dimY1 < 0):
-            continue
-
-        # -1 because pySIAF is 1-indexed
-        mx0, mx1 = int(dimX0) - 1, int(dimX1) - 1
-        my0, my1 = int(dimY0) - 1, int(dimY1) - 1
-
-        # Fleshing out index 0 of the simulation cube (trace of target)
-        if (sci_dx == 0) & (sci_dy == 0):  # this is the target
-
-            tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-            trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-
-            frame[0:trY, 0:trX] = tr
-
-        # Fleshing out indexes 1-361 of the simulation cube
-        # (trace of neighboring stars at every position angle)
-        else:
-
-            tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-            trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-            frame[0:trY, 0:trX] += tr
-
+    print(np.shape(frame))
     return frame
+
+
+
+#def parallelize_pas():
+
+
 
 def lrsFieldSim(ra, dec, binComp=''):
     """ Produce a MIRI Low Resoluton Spectroscopic mode field simulation for a
@@ -621,8 +595,8 @@ def lrsFieldSim(ra, dec, binComp=''):
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
     # Generate cube of field simulation at every degree of APA rotation
-    #cube = np.zeros([nPA + 1, subY, subX])
-    cube = np.zeros([subY, subX])
+    simuCube = np.zeros([nPA + 1, subY, subX])
+    #cube = np.zeros([subY, subX])
     xSweet, ySweet = aper.reference_point('det')
     add_to_v3pa = aper.V3IdlYAngle
     # MIRI Full Frame dimensions
@@ -709,19 +683,89 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
-    V3PA = np.arange(0, 361)
     #inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
-    #pool = mp.Pool(mp.cpu_count())
-    #pool.starmap(compute_cube, [(pa, aper, add_to_v3pa, v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube, mincol, maxcol, minrow, maxrow, subX, subY) for pa in V3PA])
-    #pool.close()
+    print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
+    for V3PA in range(0, 360, 1):
 
-    pool = ThreadPool(mp.cpu_count())
-    func = partial(compute_frame, aper=aper, add_to_v3pa=add_to_v3pa, v2targ=v2targ, v3targ=v3targ, targetIndex=targetIndex, targetRA=targetRA, targetDEC=targetDEC, stars=stars, nStars=nStars, mincol=mincol, maxcol=maxcol, minrow=minrow, maxrow=maxrow, subX=subX, subY=subY)
-    data = list(V3PA)
-    simuCube = np.asarray(pool.map(func, data))#, dtype=np.float16)
-    pool.close()
-    pool.join()
+        print('Working on angle: {}'.format(str(V3PA)))
+
+        # Get APA from V3PA
+        APA = V3PA + add_to_v3pa
+        # Get target's attitude matrix for each Position Angle
+        attitude = rotations.attitude_matrix(v2targ, v3targ,
+                                             targetRA, targetDEC,
+                                             APA)
+
+        xdet, ydet = [], []
+        xsci, ysci = [], []
+
+        print('sky to sci for each star: {}'.format(datetime.now().strftime("%H:%M:%S")))
+        for starRA, starDEC in zip(stars['RA'], stars['DEC']):
+            # Get the TEL coordinates of each star w attitude matrix
+            V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
+            # Convert to arcsec and turn to a float
+            V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
+
+            XDET, YDET = aper.tel_to_det(V2, V3)
+            XSCI, YSCI = aper.det_to_sci(XDET, YDET)
+
+            xdet.append(XDET)
+            ydet.append(YDET)
+            xsci.append(XSCI)
+            ysci.append(YSCI)
+        print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
+
+        # Record keeping
+        stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
+        stars['xsci'], stars['ysci'] = np.array(xsci), np.array(ysci)
+
+        sci_targx, sci_targy = stars['xsci'][targetIndex],\
+            stars['ysci'][targetIndex]
+
+        #############################STEP 5#####################################
+        ########################################################################
+        inFOV = []
+
+        print('determine stars in FOV: {}'.format(datetime.now().strftime("%H:%M:%S")))
+        for star in range(0, nStars):
+
+            x, y = stars['xdet'][star], stars['ydet'][star]
+            if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
+                inFOV.append(star)
+
+        inFOV = np.array(inFOV)
+        print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
+
+        #############################STEP 6#####################################
+        ########################################################################
+        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
+        fitsFiles = np.sort(fitsFiles)
+
+        #print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
+        # targtrace = compute_frame(, target=True)
+        pool = ThreadPool(mp.cpu_count())
+
+        #frame = np.zeros([subY, subX])
+        func = partial(compute_frame, fitsFiles=fitsFiles, sci_targx=sci_targx, sci_targy=sci_targy,\
+                                      targetIndex=targetIndex, stars=stars,\
+                                      nStars=nStars, subX=subX, subY=subY)
+
+        frames = np.asarray(pool.map(func, inFOV))#, dtype=np.float16)
+
+        for idx in range(0, len(inFOV)):
+
+            frame = frames[idx]
+            simuCube[V3PA + 1, :, :] += frame
+
+        pool.close()
+        pool.join()
+
+        #simuCube = targtrace.extend(simuCube)
+        #print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
+
+    print(np.shape(simuCube))
+    print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
 
     return simuCube
 
