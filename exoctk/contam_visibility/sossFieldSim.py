@@ -612,8 +612,8 @@ def lrsFieldSim(ra, dec, binComp=''):
     print(targetcrd)
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',\
-                             radius=2.5*u.arcmin)
+    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
+                             radius=1.0 * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -685,7 +685,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     #inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
     print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
-    for V3PA in range(0, 360, 1):
+    for V3PA in range(0, 361, 1):
 
         print('Working on angle: {}'.format(str(V3PA)))
 
