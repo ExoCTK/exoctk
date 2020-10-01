@@ -480,6 +480,9 @@ def compute_frame(idx, fitsFiles, sci_targx, sci_targy, targetIndex, stars, nSta
     """ Generates a the frame with the trace of a single source (idx) in its
     position relative to the target, in the sub array.
     """
+
+    if idx=='':
+        idx=targetIndex
     frame = np.zeros([subY, subX])
     # for every star in the FOV (inFOV)
 
@@ -556,10 +559,6 @@ def compute_frame(idx, fitsFiles, sci_targx, sci_targy, targetIndex, stars, nSta
 
 
 
-#def parallelize_pas():
-
-
-
 def lrsFieldSim(ra, dec, binComp=''):
     """ Produce a MIRI Low Resoluton Spectroscopic mode field simulation for a
     target.
@@ -613,8 +612,8 @@ def lrsFieldSim(ra, dec, binComp=''):
     print(targetcrd)
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=2.5 * u.arcmin)
+    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',\
+                             radius=2.5*u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -753,13 +752,19 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         frames = np.asarray(pool.map(func, inFOV))#, dtype=np.float16)
 
+        pool.close()
+        pool.join()
+
+        simuCube[0, :, :] += compute_frame(targetIndex, fitsFiles=fitsFiles, sci_targx=sci_targx, sci_targy=sci_targy,\
+                                      targetIndex=targetIndex, stars=stars,\
+                                      nStars=nStars, subX=subX, subY=subY)
+
         for idx in range(0, len(inFOV)):
 
             frame = frames[idx]
             simuCube[V3PA + 1, :, :] += frame
 
-        pool.close()
-        pool.join()
+
 
         #simuCube = targtrace.extend(simuCube)
         #print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
