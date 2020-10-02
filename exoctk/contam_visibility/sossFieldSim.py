@@ -154,7 +154,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             '*modelOrder12*.sav'))
 
     # Big loop to generate a simulation at each instrument PA
-
+    print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
         V3PA = APA + 0.57  # from APT
@@ -219,6 +219,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
                 mod = models[k, my0:my1, mx0:mx1]
                 simuCube[kPA + 2, y0:y0 + my1 - my0,
                          x0:x0 + mx1 - mx0] += mod * fluxscale
+
+    print('done cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
     return simuCube
 
 
@@ -481,8 +483,6 @@ def compute_frame(idx, fitsFiles, sci_targx, sci_targy, targetIndex, stars, nSta
     position relative to the target, in the sub array.
     """
 
-    if idx=='':
-        idx=targetIndex
     frame = np.zeros([subY, subX])
     # for every star in the FOV (inFOV)
 
@@ -544,7 +544,7 @@ def compute_frame(idx, fitsFiles, sci_targx, sci_targy, targetIndex, stars, nSta
         tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
         trX, trY = np.shape(tr)[1], np.shape(tr)[0]
 
-        #frame[0:trY, 0:trX] = tr
+        frame[0:trY, 0:trX] = tr
 
     # Fleshing out indexes 1-361 of the simulation cube
     # (traces of neighboring stars at every position angle)
@@ -684,8 +684,11 @@ def lrsFieldSim(ra, dec, binComp=''):
 
     #inputs = (v2targ, v3targ, targetIndex, targetRA, targetDEC, stars, nStars, simuCube)
 
+    fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
+    fitsFiles = np.sort(fitsFiles)
+
     print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
-    for V3PA in range(0, 361, 1):
+    for V3PA in range(0, 360, 1):
 
         print('Working on angle: {}'.format(str(V3PA)))
 
@@ -738,38 +741,31 @@ def lrsFieldSim(ra, dec, binComp=''):
 
         #############################STEP 6#####################################
         ########################################################################
-        fitsFiles = glob.glob(os.path.join(TRACES_PATH, 'MIRI', 'LOW*.fits'))
-        fitsFiles = np.sort(fitsFiles)
 
         #print('compute cube: {}'.format(datetime.now().strftime("%H:%M:%S")))
         # targtrace = compute_frame(, target=True)
         pool = ThreadPool(mp.cpu_count())
 
-        #frame = np.zeros([subY, subX])
+        print('creating frames: {}'.format(datetime.now().strftime("%H:%M:%S")))
         func = partial(compute_frame, fitsFiles=fitsFiles, sci_targx=sci_targx, sci_targy=sci_targy,\
                                       targetIndex=targetIndex, stars=stars,\
                                       nStars=nStars, subX=subX, subY=subY)
 
         frames = np.asarray(pool.map(func, inFOV))#, dtype=np.float16)
-
+        print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
         pool.close()
         pool.join()
-
-        simuCube[0, :, :] += compute_frame(targetIndex, fitsFiles=fitsFiles, sci_targx=sci_targx, sci_targy=sci_targy,\
-                                      targetIndex=targetIndex, stars=stars,\
-                                      nStars=nStars, subX=subX, subY=subY)
 
         for idx in range(0, len(inFOV)):
 
             frame = frames[idx]
             simuCube[V3PA + 1, :, :] += frame
 
+    simuCube[0, :, :] += compute_frame(targetIndex, fitsFiles=fitsFiles, sci_targx=sci_targx, sci_targy=sci_targy,\
+                                  targetIndex=targetIndex, stars=stars,\
+                                  nStars=nStars, subX=subX, subY=subY)
 
 
-        #simuCube = targtrace.extend(simuCube)
-        #print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
-
-    print(np.shape(simuCube))
     print('done: {}'.format(datetime.now().strftime("%H:%M:%S")))
 
     return simuCube

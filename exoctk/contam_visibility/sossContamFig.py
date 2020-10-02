@@ -205,8 +205,8 @@ def miriContam(cube, paRange=[0, 360]):
         wt = tr / np.sum(tr**2)
         ww = np.tile(wt, nPA).reshape([nPA, tr.size])
 
-        contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT] * wt,
-                                where=~np.isnan(cube[:, Y, LEFT:RIGHT] * wt),
+        contamO1[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT] * wt,\
+                                where=~np.isnan(cube[:, Y, LEFT:RIGHT] * wt),\
                                 axis=1)
 
         #target = np.sum(cube[0, Y, LEFT:RIGHT], axis=0)
