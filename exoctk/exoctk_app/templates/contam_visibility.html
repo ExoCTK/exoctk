@@ -21,7 +21,7 @@
     	<p>This tool is designed for the slitless observation modes of all JWST instruments.
     	For slitless observations, the spectrum of a target star may be contaminated by partially overlapping spectra of
     	nearby stars. For a given target, this contamination depends on the
-    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS, NIRCam Grism Time Series, and MIRI LRS observations of a
+    	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS observations of a
     	given target, and produces an estimate of the level of contamination as a function of the PA of the
     	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
     	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
@@ -29,8 +29,7 @@
       <p>Potential caveats:</p>
       <ul>
         <li>The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</li>
-        <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots. A future update is coming soon to address this issue.</li>
-        <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>
+        <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.
       </ul>
       <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
     <form class='form-horizontal' action="/contam_visibility" method="POST" />
