@@ -152,6 +152,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
+        print('Generating field at APA : {}'.format(str(APA)))
+
         V3PA = APA + 0.57  # from APT
 
         sindx = np.sin((np.pi / 2) + APA / radeg) * stars['dDEC']
@@ -203,7 +205,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             # in output cube
             if (intx == 0) & (inty == 0) & (kPA == 0):
                 fNameModO12 = saveFiles[k]
-                print(fNameModO12)
+
                 modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
                 ord1 = modelO12[0, my0:my1, mx0:mx1] * fluxscale
                 ord2 = modelO12[1, my0:my1, mx0:mx1] * fluxscale
@@ -342,9 +344,10 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
     for V3PA in range(0, nPA, 1):
-        print('Working on {}'.format(str(V3PA)))
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        print('Generating field at APA : {}'.format(str(APA)))
+
         # Get target's attitude matrix for each Position Angle
         attitude = rotations.attitude_matrix(v2targ, v3targ,
                                              targetRA, targetDEC,
@@ -585,9 +588,10 @@ def lrsFieldSim(ra, dec, binComp=''):
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
     for V3PA in range(0, nPA, 1):
-        print('Generating field at APA : {}'.format(str(V3PA)))
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        print('Generating field at APA : {}'.format(str(APA)))
+
         # Get target's attitude matrix for each Position Angle
         attitude = rotations.attitude_matrix(v2targ, v3targ,
                                              targetRA, targetDEC,
