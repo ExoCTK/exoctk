@@ -1,0 +1,40 @@
+from astropy.coordinates import SkyCoord
+from bokeh.plotting import show
+
+from exoctk.contam_visibility import visibilityPA as vpa
+from exoctk.contam_visibility import sossFieldSim as fs
+from exoctk.contam_visibility import sossContamFig as cf
+
+def main():
+    """ Wrapper to the field simulator and contamination figure generator.
+    """
+
+    # User inputs
+    ra = input('Please input the Right Ascension of your target in decimal degrees : \n')
+    dec = input('Please input the Declination of your target in decimal degrees : \n')
+    instrument = input('Please input the instrument your target will be observed with (Case-sensitive. Can be: NIRISS, MIRI, NIRCam F322W2, or NIRCam F444W) : \n')
+
+    # Making sure the instrument input is correct before we continue
+    possible_instruments = ['NIRISS', 'MIRI', 'NIRCam F322W2', 'NIRCam F444W']
+    if instrument not in possible_instruments:
+        print('It looks like your last input (instrument) had a typo. The instrument input is case-sensitive and can only be NIRISS, MIRI, NIRCam F322W2, or NIRCam F444W. Starting over...')
+        main()
+
+    # Getting the bad PAs from visibility calculator for shading purposes
+    instrument_vpa = instrument.split(' ')[0]
+    paMin, paMax, gd, fig, table, grouped_badPAs = vpa.using_gtvt(ra, dec, instrument_vpa)
+
+    # Converting RA, DEC from decimal degrees (ExoMAST) to HMSDMS
+    sc = SkyCoord(ra, dec, unit='deg')
+    ra_dec = sc.to_string('hmsdms')
+    ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
+
+    # Generating cube with a field for every Aperture Position Angle (APA)
+    cube = fs.fieldSim(ra_hms, dec_dms, instrument)
+
+    # Generating Bokeh figure `fig` that plots contamination levels at every APA
+    fig = cf.contam(cube, instrument, targetName='Target RA: {} \n DEC: {}'.format(ra, dec), badPAs=grouped_badPAs)
+    show(fig)
+
+if __name__ == "__main__":
+    main()
