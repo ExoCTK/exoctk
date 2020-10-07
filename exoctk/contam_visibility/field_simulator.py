@@ -583,8 +583,6 @@ def lrsFieldSim(ra, dec, binComp=''):
     ########################################################################
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
-    print('v2, v3 (should be -378.832074, -344.944543)')
-    print(v2targ, v3targ)
 
     for V3PA in range(0, nPA, 1):
         print('Generating field at APA : {}'.format(str(V3PA)))
