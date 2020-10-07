@@ -346,6 +346,11 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     for V3PA in range(0, nPA, 1):
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        if APA > 360:
+            APA = APA-360
+        elif APA < 0:
+            APA = APA+360
+
         print('Generating field at APA : {}'.format(str(APA)))
 
         # Get target's attitude matrix for each Position Angle
@@ -496,7 +501,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calling the variables
     deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 2.5  # arcmins
+    rad = 2.0  # arcmins
     pixel_scale = 0.11  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
@@ -590,6 +595,11 @@ def lrsFieldSim(ra, dec, binComp=''):
     for V3PA in range(0, nPA, 1):
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        if APA > 360:
+            APA = APA-360
+        elif APA < 0:
+            APA = APA+360
+
         print('Generating field at APA : {}'.format(str(APA)))
 
         # Get target's attitude matrix for each Position Angle

@@ -32,8 +32,9 @@ def main():
     # Generating cube with a field for every Aperture Position Angle (APA)
     cube = fs.fieldSim(ra_hms, dec_dms, instrument)
 
+    title_ra, title_dec = str(np.round(float(ra), 3)), str(np.round(float(dec), 3))
     # Generating Bokeh figure `fig` that plots contamination levels at every APA
-    fig = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(ra, dec), badPAs=grouped_badPAs)
+    fig = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(title_ra, title_dec), badPAs=grouped_badPAs)
     show(fig)
 
 if __name__ == "__main__":
