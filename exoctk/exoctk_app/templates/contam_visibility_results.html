@@ -21,14 +21,21 @@
       	given target, and produces an estimate of the level of contamination as a function of the PA of the
       	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
       	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
+        </p>
+        <p>
+        NIRCam and MIRI options: Users can calculate contamination levels for NIRCam Grism Time Series (F322W2, F444W) and MIRI Low Resolution
+        Spectroscopic mode by calling this tool locally on a terminal. Please keep in mind that the calculation for the
+        NIRCam and MIRI modes may take upwards of 10 minutes due to the complexity of the algorithm. For instructions on how to
+        generate the contamination plots for NIRCam and MIRI, please refer to our <a href="https://jwst-docs.stsci.edu/display/JDOX/.Contamination+Overlap+Tool+v1.1#id-.ContaminationOverlapToolv1.1-PCCContaminationCalculatorforNIRCamandMIRImodes(AvailableLocally)">JDocs page</a>.
       	</p>
         <p>Potential caveats:</p>
         <ul>
           <li>The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</li>
-          <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.
+          <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.</li>
+          <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>
         </ul>
         <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
-
+        
             <hr>
     		<h3>Target Visibility</h3>
     		{{ vis_plot | safe }}
@@ -87,7 +94,7 @@ good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
     			<li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
     		</ul>
         <br>
-        
+
         {% endif %}
 
             	<br>
