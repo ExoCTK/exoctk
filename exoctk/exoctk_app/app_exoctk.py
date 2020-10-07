@@ -18,8 +18,8 @@ import form_validation as fv
 import numpy as np
 
 from exoctk.contam_visibility import visibilityPA as vpa
-from exoctk.contam_visibility import sossFieldSim as fs
-from exoctk.contam_visibility import sossContamFig as cf
+from exoctk.contam_visibility import field_simulator as fs
+from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
