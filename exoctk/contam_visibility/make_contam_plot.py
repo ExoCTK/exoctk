@@ -2,8 +2,8 @@ from astropy.coordinates import SkyCoord
 from bokeh.plotting import show
 
 from exoctk.contam_visibility import visibilityPA as vpa
-from exoctk.contam_visibility import sossFieldSim as fs
-from exoctk.contam_visibility import sossContamFig as cf
+from exoctk.contam_visibility import field_simulator as fs
+from exoctk.contam_visibility import contamination_figure as cf
 
 def main():
     """ Wrapper to the field simulator and contamination figure generator.
