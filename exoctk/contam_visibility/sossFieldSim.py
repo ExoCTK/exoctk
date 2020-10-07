@@ -587,7 +587,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     print(v2targ, v3targ)
 
     for V3PA in range(0, nPA, 1):
-        print('Workin on {}'.format(str(V3PA)))
+        print('Generating field at APA : {}'.format(str(V3PA)))
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
         # Get target's attitude matrix for each Position Angle
