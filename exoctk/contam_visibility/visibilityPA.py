@@ -371,7 +371,7 @@ def using_gtvt(
         if (pa not in np.round(paMinnan)) & \
            (pa not in np.round(paMaxnan)) & \
            (pa not in np.round(paNomnan)):
-            print('the bad PAs:', pa)
+
             badPAs.append(pa)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -399,8 +399,7 @@ def using_gtvt(
     for idx in range(1, len(badPAs)):
 
         if ((badPAs[idx - 1] + 1) == badPAs[idx]):
-            print((badPAs[idx - 1] + 1))
-            print(badPAs[idx])
+            
             grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
 
         elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
