@@ -328,9 +328,9 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
     s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
-            line_color='blue', legend='> 0.001')
+            line_color='blue', legend_label='> 0.001')
     s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
-            line_color='green', legend='> 0.01')
+            line_color='green', legend_label='> 0.01')
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
 
@@ -386,9 +386,9 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
                     x_range=Range1d(100, 0), title=None)
         s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
-                line_color='blue', legend='> 0.001')
+                line_color='blue', legend_label='> 0.001')
         s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
-                line_color='green', legend='> 0.01')
+                line_color='green', legend_label='> 0.01')
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
 
