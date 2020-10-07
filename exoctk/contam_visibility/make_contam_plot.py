@@ -33,7 +33,7 @@ def main():
     cube = fs.fieldSim(ra_hms, dec_dms, instrument)
 
     # Generating Bokeh figure `fig` that plots contamination levels at every APA
-    fig = cf.contam(cube, instrument, targetName='Target {}, {} (RA, DEC)'.format(ra, dec), badPAs=grouped_badPAs)
+    fig = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(ra, dec), badPAs=grouped_badPAs)
     show(fig)
 
 if __name__ == "__main__":
