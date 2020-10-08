@@ -289,6 +289,11 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
+    if np.min(distance) > 1*(10**-4):
+        coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
+        ra, dec = coords.split(' ')[0], coords.split(' ')[1]
+        raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
+
     targetIndex = np.argmin(distance)
 
     # Add any missing companion
@@ -439,7 +444,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 dimY0 = 0
                 dimY1 = subY
 
-            traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+            traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
             if dimX1 > traceX:
                 dimX1 = traceX
                 dimX0 = traceX - subX
@@ -538,6 +543,11 @@ def lrsFieldSim(ra, dec, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
+    if np.min(distance) > 1*(10**-4):
+        coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
+        ra, dec = coords.split(' ')[0], coords.split(' ')[1]
+        raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
+
     targetIndex = np.argmin(distance)
 
     # Add any missing companion
@@ -592,7 +602,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
-    for V3PA in range(0, nPA, 1):
+    for V3PA in range(0, 2, 1):
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
         if APA > 360:
@@ -649,6 +659,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
             sci_dx = round(sci_targx - stars['xsci'][idx])
             sci_dy = round(sci_targy - stars['ysci'][idx])
+
             temp = stars['Temp'][idx]
 
             for file in fitsFiles:
@@ -683,7 +694,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 dimY0 = 0
                 dimY1 = subY
 
-            traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+            traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
             if dimX1 > traceX:
                 dimX1 = traceX
                 dimX0 = traceX - subX
