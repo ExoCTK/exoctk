@@ -602,7 +602,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
-    for V3PA in range(0, 2, 1):
+    for V3PA in range(0, nPA, 1):
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
         if APA > 360:
