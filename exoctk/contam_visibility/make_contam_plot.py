@@ -12,15 +12,15 @@ def main():
     """
 
     # User inputs
-    ra = input('Please input the Right Ascension of your target in decimal degrees (The more decimal places the better for increased precision) : \n')
+    ra = input('Please input the Right Ascension of your target in decimal degrees (The more decimal places the better) : \n')
     # Making sure RA input is correct before we continue
-    if (ra < 0) or (ra > 360):
+    if (float(ra) < 0) or (float(ra) > 360):
         print('RA should be between 0 and 360 decimal degrees. Got {}. Starting over...'.format(ra))
         main()
 
-    dec = input('Please input the Declination of your target in decimal degrees (The more decimal places the better for increased precision) : \n')
+    dec = input('Please input the Declination of your target in decimal degrees (The more decimal places the better) : \n')
     # Making sure DEC input is correct
-    if (dec < -90) or (dec > 90):
+    if (float(dec) < -90) or (float(dec) > 90):
         print('DEC should be between -90 and +90 in decimal degrees. Got {}. Starting over...'.format(dec))
         main()
 
