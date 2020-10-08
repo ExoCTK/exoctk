@@ -185,6 +185,7 @@ def miriContam(cube, paRange=[0, 360]):
 
     # the width of the trace (in Y-direction for NIRCam GTS)
     peak = targ.max()
+
     low_lim_col = np.where(targ > 0.0001 * peak)[1].min()
     high_lim_col = np.where(targ > 0.0001 * peak)[1].max()
 
