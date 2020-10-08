@@ -274,7 +274,7 @@ def using_gtvt(
                 delta = np.abs(a1 - b1)
 
                 if delta > 250:
-                    print(a1, b1, delta)
+
                     gd = np.insert(gd, idx + 1, np.nan)
                     paMin = np.insert(paMin, idx + 1, np.nan)
                     paMax = np.insert(paMax, idx + 1, np.nan)
