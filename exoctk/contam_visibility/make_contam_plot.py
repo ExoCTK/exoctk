@@ -13,9 +13,16 @@ def main():
 
     # User inputs
     ra = input('Please input the Right Ascension of your target in decimal degrees : \n')
-    dec = input('Please input the Declination of your target in decimal degrees : \n')
-    instrument = input('Please input the instrument your target will be observed with (Case-sensitive. Can be: NIRISS, MIRI, NIRCam F322W2, or NIRCam F444W) : \n')
+    # Making sure RA input is correct before we continue
+    if (ra < 0) or (ra > 360):
+        print('RA should be between 0 and 360 decimal degrees. Got {}. Starting over...'.format(ra))
 
+    dec = input('Please input the Declination of your target in decimal degrees : \n')
+    # Making sure DEC input is correct
+    if (dec < -90) or (dec > 90):
+        print('DEC should be between -90 and +90 in decimal degrees. Got {}. Starting over...'.format(dec))
+
+    instrument = input('Please input the instrument your target will be observed with (Case-sensitive. Can be: NIRISS, MIRI, NIRCam F322W2, or NIRCam F444W) : \n')
     # Making sure the instrument input is correct before we continue
     possible_instruments = ['NIRISS', 'MIRI', 'NIRCam F322W2', 'NIRCam F444W']
     if instrument not in possible_instruments:
