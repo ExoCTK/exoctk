@@ -296,17 +296,6 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
 
     targetIndex = np.argmin(distance)
 
-    # Add any missing companion
-    if binComp != '':
-        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
-        J_Hobs = Jmag - Hmag
-        H_Kobs = Hmag - Kmag
-
     # Restoring model parameters
     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
                          verbose=False)
@@ -328,6 +317,17 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     # J-H band, H-K band. This will be used to derive the Teff
     J_Hobs = Jmag - Hmag
     H_Kobs = Hmag - Kmag
+
+    # Add any missing companion
+    if binComp != '':
+        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
+        allRA = np.append(allRA, (allRA[targetIndex] + bb))
+        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
+        Jmag = np.append(Jmag, binComp[2])
+        Hmag = np.append(Kmag, binComp[3])
+        Kmag = np.append(Kmag, binComp[4])
+        J_Hobs = Jmag - Hmag
+        H_Kobs = Hmag - Kmag
 
     # Number of stars
     nStars = stars['RA'].size
@@ -550,17 +550,6 @@ def lrsFieldSim(ra, dec, binComp=''):
 
     targetIndex = np.argmin(distance)
 
-    # Add any missing companion
-    if binComp != '':
-        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
-        J_Hobs = Jmag - Hmag
-        H_Kobs = Hmag - Kmag
-
     # Restoring model parameters
     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
                          verbose=False)
@@ -583,6 +572,17 @@ def lrsFieldSim(ra, dec, binComp=''):
     J_Hobs = Jmag - Hmag
     H_Kobs = Hmag - Kmag
 
+    # Add any missing companion
+    if binComp != '':
+        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
+        allRA = np.append(allRA, (allRA[targetIndex] + bb))
+        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
+        Jmag = np.append(Jmag, binComp[2])
+        Hmag = np.append(Kmag, binComp[3])
+        Kmag = np.append(Kmag, binComp[4])
+        J_Hobs = Jmag - Hmag
+        H_Kobs = Hmag - Kmag
+
     # Number of stars
     nStars = stars['RA'].size
 
@@ -602,7 +602,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
-    for V3PA in range(0, nPA, 1):
+    for V3PA in range(0, 2, 1):
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
         if APA > 360:
@@ -728,7 +728,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     return simuCube
 
 
-def fieldSim(ra, dec, instrument, binComp='', testing=False):
+def fieldSim(ra, dec, instrument, binComp, testing=False):
     """ Wraps ``sossFieldSim``, ``gtsFieldSim``, and ``lrsFieldSim`` together.
     Produces a field simulation for a target using any instrument (NIRISS,
     NIRCam, or MIRI).
