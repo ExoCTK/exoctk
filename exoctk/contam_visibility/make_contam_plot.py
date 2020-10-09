@@ -1,5 +1,4 @@
 import numpy as np
-import os
 
 from astropy.coordinates import SkyCoord
 from bokeh.layouts import gridplot
@@ -59,23 +58,7 @@ def main():
     # Generating Bokeh figure `fig` that plots contamination levels at every APA
     plot = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(title_ra, title_dec), badPAs=grouped_badPAs)
 
-    # Adding caption
-    caption = figure(x_range=(0,1), y_range=(0,1), plot_width=1000, plot_height=500)
-    caption.toolbar.logo = None
-    caption.toolbar_location = None
-    caption.xaxis.visible = None
-    caption.yaxis.visible = None
-    caption.xgrid.grid_line_color = None
-    caption.ygrid.grid_line_color = None
-    caption.outline_line_alpha = 0
-
-    contam_vis_dir = os.path.dirname(fs.__file__)
-    fig_path = os.path.join(contam_vis_dir, 'fig_explacation.pdf')
-    caption.image_url(url=[fig_path], x=0, y=1, w=1.0, h=0.6)
-
-    fig = gridplot(children=[[plot], [caption]], toolbar_location=None)
-
-    show(fig)
+    show(plot)
 
 if __name__ == "__main__":
     main()
