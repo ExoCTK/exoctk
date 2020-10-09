@@ -728,7 +728,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     return simuCube
 
 
-def fieldSim(ra, dec, instrument, binComp, testing=False):
+def fieldSim(ra, dec, instrument, binComp='', testing=False):
     """ Wraps ``sossFieldSim``, ``gtsFieldSim``, and ``lrsFieldSim`` together.
     Produces a field simulation for a target using any instrument (NIRISS,
     NIRCam, or MIRI).
