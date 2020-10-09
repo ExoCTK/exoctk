@@ -171,7 +171,10 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     color = 'green'
 
     # Draw the curve and error
-    fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
+    try:
+        fig.line(gdMaskednum, paMasked, legend_label='cutoff', line_color=color)
+    except AttributeError:
+        fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
     # Top
     terr_y = np.concatenate([paMin[i0_top:i1_top + 1],
@@ -274,7 +277,7 @@ def using_gtvt(
                 delta = np.abs(a1 - b1)
 
                 if delta > 250:
-                    print(a1, b1, delta)
+
                     gd = np.insert(gd, idx + 1, np.nan)
                     paMin = np.insert(paMin, idx + 1, np.nan)
                     paMax = np.insert(paMax, idx + 1, np.nan)
@@ -306,11 +309,19 @@ def using_gtvt(
                                                           instrument))
 
     # Draw the curve and PA min/max circles
-    nom = fig.line('date', 'panom',
-                   line_color=COLOR,
-                   legend='Nominal Aperture PA',
-                   alpha=.5,
-                   source=SOURCE)
+    try:
+        nom = fig.line('date', 'panom',
+                       line_color=COLOR,
+                       legend_label='Nominal Aperture PA',
+                       alpha=.5,
+                       source=SOURCE)
+    except AttributeError:
+        nom = fig.line('date', 'panom',
+                       line_color=COLOR,
+                       legend='Nominal Aperture PA',
+                       alpha=.5,
+                       source=SOURCE)
+                       
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
@@ -371,7 +382,7 @@ def using_gtvt(
         if (pa not in np.round(paMinnan)) & \
            (pa not in np.round(paMaxnan)) & \
            (pa not in np.round(paNomnan)):
-            print('the bad PAs:', pa)
+
             badPAs.append(pa)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -399,8 +410,7 @@ def using_gtvt(
     for idx in range(1, len(badPAs)):
 
         if ((badPAs[idx - 1] + 1) == badPAs[idx]):
-            print((badPAs[idx - 1] + 1))
-            print(badPAs[idx])
+
             grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
 
         elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
