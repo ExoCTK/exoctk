@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from astropy.coordinates import SkyCoord
 from bokeh.layouts import gridplot
@@ -67,9 +68,12 @@ def main():
     caption.xgrid.grid_line_color = None
     caption.ygrid.grid_line_color = None
     caption.outline_line_alpha = 0
-    caption.image_url(url=['fig_explacation.pdf'], x=0, y=1, w=1.0, h=0.6)
 
-    fig = gridplot(children=[[plot], [caption]])
+    contam_vis_dir = os.path.dirname(fs.__file__)
+    fig_path = os.path.join(contam_vis_dir, 'fig_explacation.pdf')
+    caption.image_url(url=[fig_path], x=0, y=1, w=1.0, h=0.6)
+
+    fig = gridplot(children=[[plot], [caption]], toolbar_location=None)
 
     show(fig)
 
