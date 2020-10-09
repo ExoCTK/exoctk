@@ -185,6 +185,7 @@ def miriContam(cube, paRange=[0, 360]):
 
     # the width of the trace (in Y-direction for NIRCam GTS)
     peak = targ.max()
+
     low_lim_col = np.where(targ > 0.0001 * peak)[1].min()
     high_lim_col = np.where(targ > 0.0001 * peak)[1].max()
 
@@ -327,10 +328,18 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     channels = cols if 'NIRCam' in instrument else rows
     s3 = figure(tools=TOOLS, width=150, height=500,
                 x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
-    s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
-            line_color='blue', legend='> 0.001')
-    s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
-            line_color='green', legend='> 0.01')
+
+    try:
+        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
+                line_color='blue', legend_label='> 0.001')
+        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
+                line_color='green', legend_label='> 0.01')
+    except AttributeError:
+        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
+                line_color='blue', legend='> 0.001')
+        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
+                line_color='green', legend='> 0.01')
+
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
 
@@ -385,10 +394,18 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         # Line plot
         s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
                     x_range=Range1d(100, 0), title=None)
-        s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
-                line_color='blue', legend='> 0.001')
-        s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
-                line_color='green', legend='> 0.01')
+
+        try:
+            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
+                    line_color='blue', legend_label='> 0.001')
+            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
+                    line_color='green', legend_label='> 0.01')
+        except AttributeError:
+            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
+                    line_color='blue', legend='> 0.001')
+            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
+                    line_color='green', legend='> 0.01')
+
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
 
