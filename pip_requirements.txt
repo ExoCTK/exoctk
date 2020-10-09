@@ -23,10 +23,11 @@ numpydoc==1.1.0
 pandas==1.1.0
 paramiko==2.7.1
 platon==5.1.1
+pysiaf==0.6.2
 pysynphot==1.0.0
 pytest==6.0.1
 pyyaml==5.3.1
-scipy==1.5.2
+scipy==1.2.0
 scp==0.13.2
 sphinx==3.1.2
 sphinx_astropy==1.3

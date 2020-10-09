@@ -329,9 +329,13 @@ class ModelGrid(object):
                 # Convert from A to desired units
                 raw_wave *= self.const
 
+                # Janky unit nullification
+                def toQ(val):
+                    return val if hasattr(val, 'unit') else val * self.wave_units
+
                 # Trim the wavelength and flux arrays
-                idx, = np.where(np.logical_and(raw_wave * self.wave_units >= self.wave_rng[0],
-                                               raw_wave * self.wave_units <= self.wave_rng[1]))
+                idx, = np.where(np.logical_and(raw_wave * self.wave_units >= toQ(self.wave_rng[0]),
+                                               raw_wave * self.wave_units <= toQ(self.wave_rng[1])))
                 flux = raw_flux[:, idx]
                 wave = raw_wave[idx]
 

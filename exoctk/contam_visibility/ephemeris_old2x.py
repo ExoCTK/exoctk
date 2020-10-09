@@ -8,14 +8,14 @@ from . import astro_funcx as astro_func
 from . import quaternionx as qx
 from . import time_extensionsx as time2
 
-D2R = math.pi/180.  # degrees to radians
+D2R = math.pi / 180.  # degrees to radians
 R2D = 180. / math.pi  # radians to degrees
 PI2 = 2. * math.pi  # 2 math.pi
 MIN_SUN_ANGLE = 84.8 * D2R  # minimum Sun angle, in radians
 MAX_SUN_ANGLE = 135.0 * D2R  # maximum Sun angle, in radians
 SUN_ANGLE_PAD = 0.5 * D2R   # pad away from Sun angle limits
 
-Qecl2eci = qx.QX(23.439291*D2R)  # At J2000 equinox
+Qecl2eci = qx.QX(23.439291 * D2R)  # At J2000 equinox
 
 
 class Ephemeris:
@@ -29,6 +29,7 @@ class Ephemeris:
     08/03/2010 Got rid of degrees trig functions
               Removed in_FOR, is_valid_att etc. as those are S/C dependent
     """
+
     def __init__(self, ephem_file, cnvrt=False):
         """Ephemeris constructor
 
@@ -60,15 +61,15 @@ class Ephemeris:
             item = item.strip()
             item = item.split()
             adate = time2.mjd_from_string(item[0])  # represent dates as mjds
-            x = float(item[1])*ascale
-            y = float(item[2])*ascale
-            z = float(item[3])*ascale
+            x = float(item[1]) * ascale
+            y = float(item[2]) * ascale
+            z = float(item[3]) * ascale
             if cnvrt:
                 aV.set_eq(x, y, z)
                 ll = aV.length()
-                aV = aV/ll
+                aV = aV / ll
                 aV = Qecl2eci.inv_cnvrt(aV)
-                aV = aV*ll
+                aV = aV * ll
                 x = aV.rx()
                 y = aV.ry()
                 z = aV.rz()
@@ -82,7 +83,6 @@ class Ephemeris:
         self.amax = adate
         fin.close()
 
-        
     def report_ephemeris(self, limit=100000, pathname=None):
         """Prints a formatted report of the ephemeris.
 
@@ -101,8 +101,8 @@ class Ephemeris:
         else:
             dest = sys.stdout  # defaults to standard output
 
-        print(('%17s  %14s  %14s  %14s\n' % ('DATE      ', 'X (KM)   ',
-               'Y (KM)   ', 'Z (KM)   ')), file=dest)
+        print(('%17s  %14s  %14s  %14s\n' %
+               ('DATE      ', 'X (KM)   ', 'Y (KM)   ', 'Z (KM)   ')), file=dest)
 
         for num in range(num_to_report):
             date = self.datelist[num]
@@ -116,7 +116,6 @@ class Ephemeris:
         if (pathname):
             dest.close()   # Clean up
 
-            
     def pos(self, adate):
         """Computes the position of the telescope at a given date using the
         grid of positions of the ephemeris as a starting point and
@@ -134,15 +133,17 @@ class Ephemeris:
         """
         cal_days = adate - self.datelist[0]
         index = int(cal_days)
-        if (index == len(self.datelist)-1):
+        if (index == len(self.datelist) - 1):
             index = index - 1
         frac = cal_days - index
-        x = (self.xlist[index+1] - self.xlist[index])*frac + self.xlist[index]
-        y = (self.ylist[index+1] - self.ylist[index])*frac + self.ylist[index]
-        z = (self.zlist[index+1] - self.zlist[index])*frac + self.zlist[index]
+        x = (self.xlist[index + 1] - self.xlist[index]) * \
+            frac + self.xlist[index]
+        y = (self.ylist[index + 1] - self.ylist[index]) * \
+            frac + self.ylist[index]
+        z = (self.zlist[index + 1] - self.zlist[index]) * \
+            frac + self.zlist[index]
         return qx.Vector(x, y, z)
 
-    
     def Vsun_pos(self, adate):
         """The vector of the sun at the given date
 
@@ -160,7 +161,6 @@ class Ephemeris:
         Vsun = Vsun / Vsun.length()
         return Vsun
 
-    
     def sun_pos(self, adate):
         """The coordinates of the sun at the given date
 
@@ -182,7 +182,6 @@ class Ephemeris:
             coord1 += PI2
         return (coord1, coord2)
 
-    
     def normal_pa(self, adate, tgt_c1, tgt_c2):
         """Calculate the V3 position
 
@@ -209,7 +208,6 @@ class Ephemeris:
             V3_pa -= PI2
         return V3_pa
 
-    
     def long_term_attitude(self, date):
         """Defines a long-term safe attitude as of a given date.
 
@@ -248,7 +246,6 @@ class Ephemeris:
         pa = self.normal_pa(date, vec1.ra, vec1.dec)
         return(qx.Attitude(vec1.ra, vec1.dec, pa, degrees=False))
 
-    
     def is_valid(self, date, ngc_1, ngc_2, V3pa):
         """Indicates whether an attitude is valid at a given date.
 
@@ -275,7 +272,7 @@ class Ephemeris:
 
         (sun_1, sun_2) = self.sun_pos(date)
         d = astro_func.dist(ngc_1, ngc_2, sun_1, sun_2)
-        vehicle_pitch = math.pi/2 - d   # see JI memo from May 2006
+        vehicle_pitch = math.pi / 2 - d   # see JI memo from May 2006
         # sun pitch is always equal or greater than sun angle (V1 to sun)
         if (d < MIN_SUN_ANGLE or d > MAX_SUN_ANGLE):
             return False
@@ -283,13 +280,12 @@ class Ephemeris:
         pa = astro_func.pa(ngc_1, ngc_2, sun_1, sun_2) + math.pi
         roll = math.acos(math.cos(V3pa - pa))
         sun_roll = math.asin(math.sin(roll) * math.cos(vehicle_pitch))
-        if (abs(sun_roll) <= 5.2*D2R):
+        if (abs(sun_roll) <= 5.2 * D2R):
             sun_pitch = math.atan2(math.tan(vehicle_pitch), math.cos(roll))
-            if (sun_pitch <= 5.2*D2R and sun_pitch >= -45.*D2R):
+            if (sun_pitch <= 5.2 * D2R and sun_pitch >= -45. * D2R):
                 return True
         return False
 
-    
     def in_FOR(self, date, ngc_1, ngc_2):
         """Test if in the FOR
 
@@ -314,7 +310,6 @@ class Ephemeris:
             return False
         return True
 
-    
     def bisect_by_FOR(self, in_date, out_date, ngc_1, ngc_2):
         """Find the midpoint in time between in and out of FOR,
         assumes only one "root" in interval
@@ -336,7 +331,7 @@ class Ephemeris:
             The midpoint in time.
         """
         delta_days = 200.
-        mid_date = (in_date+out_date)/2.
+        mid_date = (in_date + out_date) / 2.
         while delta_days > 0.000001:
             (sun_1, sun_2) = self.sun_pos(mid_date)
             d = astro_func.dist(ngc_1, ngc_2, sun_1, sun_2)
@@ -344,8 +339,8 @@ class Ephemeris:
                 out_date = mid_date
             else:
                 in_date = mid_date
-            mid_date = (in_date+out_date)/2.
-            delta_days = abs(in_date-out_date)/2.
+            mid_date = (in_date + out_date) / 2.
+            delta_days = abs(in_date - out_date) / 2.
             # print "UU", mid_date
         # ensure returned date always in FOR
         if in_date > out_date:
@@ -354,7 +349,6 @@ class Ephemeris:
             mid_date = mid_date - 0.000001
         return mid_date
 
-    
     def bisect_by_attitude(self, in_date, out_date, ngc_1, ngc_2, pa):
         """Find the midpoint in time between in and out of FOR,
         assumes only one "root" in interval
@@ -379,21 +373,20 @@ class Ephemeris:
         """
         icount = 0
         delta_days = 200.
-        mid_date = (in_date+out_date)/2.
+        mid_date = (in_date + out_date) / 2.
         # print "bisect >", in_date, out_date, abs(in_date-out_date )
         while delta_days > 0.000001:
             if self.is_valid(mid_date, ngc_1, ngc_2, pa):
                 in_date = mid_date
             else:
                 out_date = mid_date
-            mid_date = (in_date+out_date)/2.
-            delta_days = abs(in_date-out_date)/2.
+            mid_date = (in_date + out_date) / 2.
+            delta_days = abs(in_date - out_date) / 2.
             # print "UU", mid_date
             icount = icount + 1
         # print " bisected >", icount
         return mid_date
 
-    
     def OP_window(self, adate, ngc_1, ngc_2, pa, mdelta, pdelta):
         """Attitude at adate must be valid, else returns (0, 0).
         If valid, returns (adate-mdelta, adate+pdelta) or the constraint
@@ -420,15 +413,15 @@ class Ephemeris:
             The OP window.
         """
         if self.is_valid(adate, ngc_1, ngc_2, pa):
-            if self.is_valid(adate-mdelta, ngc_1, ngc_2, pa):
-                OP_min = adate-mdelta
+            if self.is_valid(adate - mdelta, ngc_1, ngc_2, pa):
+                OP_min = adate - mdelta
             else:
-                OP_min = self.bisect_by_attitude(adate, adate-mdelta,
+                OP_min = self.bisect_by_attitude(adate, adate - mdelta,
                                                  ngc_1, ngc_2, pa)
-            if self.is_valid(adate+pdelta, ngc_1, ngc_2, pa):
-                OP_max = adate+pdelta
+            if self.is_valid(adate + pdelta, ngc_1, ngc_2, pa):
+                OP_max = adate + pdelta
             else:
-                OP_max = self.bisect_by_attitude(adate, adate+pdelta,
+                OP_max = self.bisect_by_attitude(adate, adate + pdelta,
                                                  ngc_1, ngc_2, pa)
         else:
             OP_min = 0.
