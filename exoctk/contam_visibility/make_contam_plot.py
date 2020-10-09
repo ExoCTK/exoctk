@@ -1,7 +1,8 @@
 import numpy as np
 
 from astropy.coordinates import SkyCoord
-from bokeh.plotting import show
+from bokeh.layouts import gridplot
+from bokeh.plotting import figure, show
 
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import field_simulator as fs
@@ -24,6 +25,16 @@ def main():
         print('DEC should be between -90 and +90 in decimal degrees. Got {}. Starting over...'.format(dec))
         main()
 
+    companion = input('Any companion not in IRSA`s 2MASS Point-Source Catalog that should be considered for contamination? If no, just press Enter. If yes, please enter the following (comma-separated, no spaces): \n RA offset ("), DEC offset ("), 2MASS J (mag), H (mag) and Ks (mag) \n ').split(',')
+    print(len(companion))
+    if len(companion)==5:
+        binComp = [int(param) for param in companion]
+    elif len(companion)==1:
+        binComp = ''
+    elif (len(companion) < 5) & (len(companion) > 1):
+        print('Companion information is incomplete. Starting over...')
+        main()
+
     instrument = input('Please input the instrument your target will be observed with (Case-sensitive. Can be: NIRISS, MIRI, NIRCam F322W2, or NIRCam F444W) : \n')
     # Making sure the instrument input is correct before we continue
     possible_instruments = ['NIRISS', 'MIRI', 'NIRCam F322W2', 'NIRCam F444W']
@@ -41,11 +52,25 @@ def main():
     ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
     # Generating cube with a field for every Aperture Position Angle (APA)
-    cube = fs.fieldSim(ra_hms, dec_dms, instrument)
+    cube = fs.fieldSim(ra_hms, dec_dms, instrument, binComp)
 
     title_ra, title_dec = str(np.round(float(ra), 3)), str(np.round(float(dec), 3))
     # Generating Bokeh figure `fig` that plots contamination levels at every APA
-    fig = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(title_ra, title_dec), badPAs=grouped_badPAs)
+    plot = cf.contam(cube, instrument, targetName=' {}, {} (RA, DEC)'.format(title_ra, title_dec), badPAs=grouped_badPAs)
+
+    # Adding caption
+    caption = figure(x_range=(0,1), y_range=(0,1), plot_width=1000, plot_height=500)
+    caption.toolbar.logo = None
+    caption.toolbar_location = None
+    caption.xaxis.visible = None
+    caption.yaxis.visible = None
+    caption.xgrid.grid_line_color = None
+    caption.ygrid.grid_line_color = None
+    caption.outline_line_alpha = 0
+    caption.image_url(url=['fig_explacation.pdf'], x=0, y=1, w=1.0, h=0.6)
+
+    fig = gridplot(children=[[plot], [caption]])
+
     show(fig)
 
 if __name__ == "__main__":
