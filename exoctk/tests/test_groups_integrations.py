@@ -28,7 +28,7 @@ from exoctk.groups_integrations.groups_integrations import perform_calculation
 
 GROUPS_INTEGRATIONS_FILE = resource_filename('exoctk', 'data/groups_integrations/groups_integrations.json')
 INSTRUMENTS = ['miri', 'nircam', 'niriss', 'nirspec']
-MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 12.5]
+MAGNITUDES = [4.5, 6.5, 8.5, 10.5, 11.5, 12.5]
 PHOENIX_MODEL_KEYS = [
     'f0i', 'f0v', 'f5i', 'f2v', 'f5v', 'f8v',
     'g0v', 'g0iii', 'g2v', 'g5v', 'g8v', 'g0i', 'g5iii', 'g5i',
@@ -255,6 +255,7 @@ def test_sat_keys(key, instrument, filt, subarray, model):
 
     assert instrument in DATA[key]
     assert filt in DATA[key][instrument]
-    assert subarray in DATA[key][instrument][filt]
-    assert model in DATA[key][instrument][filt][subarray]
-    assert len(DATA[key][instrument][filt][subarray][model]) == len(MAGNITUDES)
+    if subarray is not 'sub1024a':  # NIRSPEC sub1024a not supported for PRISM mode
+        assert subarray in DATA[key][instrument][filt]
+        assert model in DATA[key][instrument][filt][subarray]
+        assert len(DATA[key][instrument][filt][subarray][model]) in [6, 10]  # There are 10 magnitude bins for NIRSpec
