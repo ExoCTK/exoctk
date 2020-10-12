@@ -20,7 +20,7 @@
         });  */
 
         $("#ins").change(function () {
-            $("#miri_filt, #nirspec_filt, #niriss_filt, #nircam_filt, #miri_filt_ta, #nirspec_filt_ta, #niriss_filt_ta, #nircam_filt_ta, #miri_sub, #nirspec_sub, #niriss_sub, #nircam_sub, #miri_sub_ta, #nircam_sub_ta, #niriss_sub_ta, #nirspec_sub_ta").hide(); 
+            $("#miri_filt, #nirspec_filt, #niriss_filt, #nircam_filt, #miri_filt_ta, #nirspec_filt_ta, #niriss_filt_ta, #nircam_filt_ta, #miri_sub, #nirspec_sub, #niriss_sub, #nircam_sub, #miri_sub_ta, #nircam_sub_ta, #niriss_sub_ta, #nirspec_sub_ta").hide();
             var selopt = $("#ins").val();
             switch (selopt) {
                 case "miri":
@@ -55,21 +55,24 @@
 <div class='form-group'>
     <h1>Groups & Integrations Calculator</h1>
     <br>
-            
+
     <p>
         This tool calculates the groups and integrations for an optimal transit observation.
-        We require some information about your background star, transit, and 
+        We require some information about your background star, transit, and
         planned use of JWST (instrument, subarray, and filter), in order to interpolate your
-        planned transit observation to our nearest information from 
+        planned transit observation to our nearest information from
         <a href="https://jwst-docs.stsci.edu/jwst-exposure-time-calculator-overview/jwst-etc-pandeia-engine-tutorial">pandeia</a>
-        (which powers the <a href="https://jwst.etc.stsci.edu/">JWST ETC</a>.) 
-        
+        (which powers the <a href="https://jwst.etc.stsci.edu/">JWST ETC</a>.)
+
     </p>
 
-            <p> Please know that at present this tool is likely to
-            overestimate saturation on direct comparison to the ETC. (This
-            means we may predict less groups -- and put you in LESS danger of
-            oversaturating your observation.)</p> 
+    <p> Please note the following caveats about this tool:
+        <br>
+        1. At present, this tool is likely to overestimate saturation on direct comparison to the ETC. (This means we may predict less groups -- and put the user in less danger of oversaturating your observation)<br>
+        2. Users should be aware of data rates.  There are maximum number of groups and integrations that each instrument (and APT) allows based on how much data JWST can store.  Therefore, results of this tool should always be checked against the documentation and APT.  More information can be found at the <a href="https://jwst-docs.stsci.edu/display/JDOX/JWST+Data+Rate+and+Data+Volume+Limits">"JWST Data Rate and Data Volume Limits" JDox page.</a><br>
+        3. For NIRCam, it is currently assumed that a 4-amplifier readout is needed. 1-amplifier readouts are currently not supported by this tool, but they are by, e.g., PandExo.<br>
+        4. NIRSpec/PRISM mode is currently not supported, but we aim to support this mode in future versions.<br>
+    </p>
 
     <form class='form-horizontal' id='searchform' method='post'>
         {{ form.hidden_tag() }}
@@ -115,7 +118,7 @@
             </div>
 
         </div>
-        
+
         <hr class="col-md-12">
 
         <div class='form-group'>
@@ -179,7 +182,7 @@
                 <span id="helpBlock" class="help-block">The JWST instrument</span>
             </div>
         </div>
-        
+
         <hr class="col-md-12">
 
         <div class='form-group' id="instrument-mode-section">
@@ -271,7 +274,7 @@
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="col-sm-10 col-sm-offset-2">
                 <span id="helpBlock" class="help-block">The filter for target acquisition</span>
             </div>
@@ -321,7 +324,7 @@
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="col-sm-10 col-sm-offset-2">
                 <span id="helpBlock" class="help-block">The full frame or subarray mode for your science observation</span>
             </div>
@@ -408,7 +411,7 @@
             </div>
 
             <div class="col-sm-10 col-sm-offset-2">
-                Some background on saturation levels to inform your decision: 
+                Some background on saturation levels to inform your decision:
                 The following is the saturation cap built into the ETC, and the
                 current estimates of max possible saturation (which is what we
                 use when you opt for well fraction).
@@ -440,11 +443,11 @@
             </div>
 
         </div>
-        
+
         <hr class="col-md-12">
-        
+
         <div class='form-group'>
-            
+
             <label for='submit' class="col-sm-2 control-label">Submit!</label>
             <div class="col-sm-10">
               <p>
