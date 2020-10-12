@@ -18,8 +18,8 @@ import form_validation as fv
 import numpy as np
 
 from exoctk.contam_visibility import visibilityPA as vpa
-from exoctk.contam_visibility import sossFieldSim as fs
-from exoctk.contam_visibility import sossContamFig as cf
+from exoctk.contam_visibility import field_simulator as fs
+from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
@@ -182,7 +182,7 @@ def limb_darkening():
         # Store the tables as a string
         keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
         print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
-        file_as_string = '\n'.join(print_table.pformat(max_lines=-1, max_width=-1)) 
+        file_as_string = '\n'.join(print_table.pformat(max_lines=-1, max_width=-1))
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
@@ -435,7 +435,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if (form.inst.data == 'NIRSpec'):
+        if ('NIRCam' in form.inst.data) or (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
