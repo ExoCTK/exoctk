@@ -152,6 +152,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     for kPA in range(PAtab.size):
         APA = PAtab[kPA]
+        print('Generating field at APA : {}'.format(str(APA)))
+
         V3PA = APA + 0.57  # from APT
 
         sindx = np.sin((np.pi / 2) + APA / radeg) * stars['dDEC']
@@ -203,7 +205,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
             # in output cube
             if (intx == 0) & (inty == 0) & (kPA == 0):
                 fNameModO12 = saveFiles[k]
-                print(fNameModO12)
+
                 modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
                 ord1 = modelO12[0, my0:my1, mx0:mx1] * fluxscale
                 ord2 = modelO12[1, my0:my1, mx0:mx1] * fluxscale
@@ -250,7 +252,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     # Calling the variables
     deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 1.0  # arcmins
+    rad = 2.5  # arcmins
     pixel_scale = 0.063  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
@@ -287,18 +289,12 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
-    targetIndex = np.argmin(distance)
+    if np.min(distance) > 1.0*(10**-4):
+        coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
+        ra, dec = coords.split(' ')[0], coords.split(' ')[1]
+        raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
 
-    # Add any missing companion
-    if binComp != '':
-        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
-        J_Hobs = Jmag - Hmag
-        H_Kobs = Hmag - Kmag
+    targetIndex = np.argmin(distance)
 
     # Restoring model parameters
     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
@@ -322,6 +318,17 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     J_Hobs = Jmag - Hmag
     H_Kobs = Hmag - Kmag
 
+    # Add any missing companion
+    if binComp != '':
+        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
+        allRA = np.append(allRA, (allRA[targetIndex] + bb))
+        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
+        Jmag = np.append(Jmag, binComp[2])
+        Hmag = np.append(Kmag, binComp[3])
+        Kmag = np.append(Kmag, binComp[4])
+        J_Hobs = Jmag - Hmag
+        H_Kobs = Hmag - Kmag
+
     # Number of stars
     nStars = stars['RA'].size
 
@@ -342,9 +349,15 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
     for V3PA in range(0, nPA, 1):
-        print('Working on {}'.format(str(V3PA)))
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        if APA > 360:
+            APA = APA-360
+        elif APA < 0:
+            APA = APA+360
+
+        print('Generating field at APA : {}'.format(str(APA)))
+
         # Get target's attitude matrix for each Position Angle
         attitude = rotations.attitude_matrix(v2targ, v3targ,
                                              targetRA, targetDEC,
@@ -431,7 +444,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
                 dimY0 = 0
                 dimY1 = subY
 
-            traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+            traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
             if dimX1 > traceX:
                 dimX1 = traceX
                 dimX0 = traceX - subX
@@ -493,7 +506,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     # Calling the variables
     deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 1.0  # arcmins
+    rad = 2.0  # arcmins
     pixel_scale = 0.11  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
@@ -530,18 +543,12 @@ def lrsFieldSim(ra, dec, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
-    targetIndex = np.argmin(distance)
+    if np.min(distance) > 1.0*(10**-4):
+        coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
+        ra, dec = coords.split(' ')[0], coords.split(' ')[1]
+        raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
 
-    # Add any missing companion
-    if binComp != '':
-        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
-        allRA = np.append(allRA, (allRA[targetIndex] + bb))
-        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
-        Jmag = np.append(Jmag, binComp[2])
-        Hmag = np.append(Kmag, binComp[3])
-        Kmag = np.append(Kmag, binComp[4])
-        J_Hobs = Jmag - Hmag
-        H_Kobs = Hmag - Kmag
+    targetIndex = np.argmin(distance)
 
     # Restoring model parameters
     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
@@ -565,6 +572,17 @@ def lrsFieldSim(ra, dec, binComp=''):
     J_Hobs = Jmag - Hmag
     H_Kobs = Hmag - Kmag
 
+    # Add any missing companion
+    if binComp != '':
+        bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
+        allRA = np.append(allRA, (allRA[targetIndex] + bb))
+        allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
+        Jmag = np.append(Jmag, binComp[2])
+        Hmag = np.append(Kmag, binComp[3])
+        Kmag = np.append(Kmag, binComp[4])
+        J_Hobs = Jmag - Hmag
+        H_Kobs = Hmag - Kmag
+
     # Number of stars
     nStars = stars['RA'].size
 
@@ -583,13 +601,17 @@ def lrsFieldSim(ra, dec, binComp=''):
     ########################################################################
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
-    print('v2, v3 (should be -378.832074, -344.944543)')
-    print(v2targ, v3targ)
 
     for V3PA in range(0, nPA, 1):
-        print('Workin on {}'.format(str(V3PA)))
         # Get APA from V3PA
         APA = V3PA + add_to_v3pa
+        if APA > 360:
+            APA = APA-360
+        elif APA < 0:
+            APA = APA+360
+
+        print('Generating field at APA : {}'.format(str(APA)))
+
         # Get target's attitude matrix for each Position Angle
         attitude = rotations.attitude_matrix(v2targ, v3targ,
                                              targetRA, targetDEC,
@@ -637,6 +659,7 @@ def lrsFieldSim(ra, dec, binComp=''):
 
             sci_dx = round(sci_targx - stars['xsci'][idx])
             sci_dy = round(sci_targy - stars['ysci'][idx])
+
             temp = stars['Temp'][idx]
 
             for file in fitsFiles:
@@ -671,7 +694,7 @@ def lrsFieldSim(ra, dec, binComp=''):
                 dimY0 = 0
                 dimY1 = subY
 
-            traceY, traceX = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+            traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
             if dimX1 > traceX:
                 dimX1 = traceX
                 dimX0 = traceX - subX

@@ -155,7 +155,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     targetRA, targetDEC = RA, DEC
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    rad = 0.5
+    rad = 2.5
     print('Querying for point-sources within {} arcminutes...'.format(str(rad)))
     info = Irsa.query_region(
         targetcrd,
