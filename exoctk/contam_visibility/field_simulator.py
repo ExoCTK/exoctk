@@ -289,7 +289,7 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
-    if np.min(distance) > 1.0*(10**-5):
+    if np.min(distance) > 1.0*(10**-4):
         coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
         ra, dec = coords.split(' ')[0], coords.split(' ')[1]
         raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
@@ -543,7 +543,7 @@ def lrsFieldSim(ra, dec, binComp=''):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
-    if np.min(distance) > 1.0*(10**-5):
+    if np.min(distance) > 1.0*(10**-4):
         coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
         ra, dec = coords.split(' ')[0], coords.split(' ')[1]
         raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
