@@ -94,7 +94,7 @@ class GroupsIntsForm(BaseForm):
 
     # Filter selects
     miri_filt = SelectField('miri_filt', choices=[('lrs', 'LRS')])
-    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M'), ('clear_prism', 'CLEAR/PRISM')])
+    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M')])
     niriss_filt = SelectField('niriss_filt', choices=[('soss', 'SOSS')])
     nircam_filt = SelectField('nircam_filt', choices=[('f322w2', 'F322W2'), ('f444w', 'F444W'), ('f277w', 'F277W'), ('f356w', 'F356W')])
 
