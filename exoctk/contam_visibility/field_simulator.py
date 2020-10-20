@@ -77,6 +77,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
 
     # Add any missing companion
     if binComp != '':
+        binComp = [float(i) for i in binComp.split(',')]
+        print(binComp)
         deg2rad = np.pi / 180
         bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
         allRA = np.append(allRA, (allRA[targetIndex] + bb))
