@@ -7,3 +7,4 @@ from . import test_atmospheric_retrievals
 from . import test_lightcurve_fitting
 from . import test_limb_darkening
 from . import test_modelgrid
+from . import test_visibilityPA
