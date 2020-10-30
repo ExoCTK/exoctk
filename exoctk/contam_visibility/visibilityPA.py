@@ -23,7 +23,6 @@ import numpy as np
 
 from . import ephemeris_old2x as EPH
 from jwst_gtvt.find_tgt_info import get_table
-from ..utils import blockPrint, enablePrint
 
 
 D2R = math.pi / 180.  # degrees to radians
@@ -204,7 +203,29 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     return paGood, paBad, gd, fig
 
 
-def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, output='bokeh'):
+def fill_between(fig, xdata, pamin, pamax, **kwargs):
+    # addressing NIRSpec issue
+
+    # now creating the patches for the arrays
+    nanbot = np.where([np.isnan(i) for i in pamin])[0]
+    nantop = np.where([np.isnan(i) for i in pamax])[0]
+    yb = np.split(pamin, nanbot)
+    xs = np.split(xdata, nanbot)
+    yt = np.split(pamax, nantop)
+    for x, bot, top in zip(xs, yb, yt):
+        x = np.append(x, x[::-1])
+        y = np.append(bot, top[::-1])
+        fig.patch(x, y, **kwargs)
+    return fig
+
+
+def using_gtvt(
+        ra,
+        dec,
+        instrument,
+        targetName='noName',
+        ephFileName=None,
+        output='bokeh'):
     """Plot the visibility (at a range of position angles) against time.
 
     Parameters
@@ -234,9 +255,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     """
     # Getting calculations from GTVT (General Target Visibility Tool)
-    blockPrint()
     tab = get_table(ra, dec)
-    enablePrint()
 
     gd = tab['Date']
     paMin = tab[str(instrument) + ' min']
@@ -374,9 +393,16 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     # This addresses a bokeh shading issue that accidentally shades
     # accessible PAs (e.g: trappist-1b)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    remove_pa = []
+    for badpa in badPAs:
 
-    badPAs = select_badPAs_ge_paNomnan(badPAs, paNomnan)
+        for panom in paNomnan:
+            diff = np.abs(badpa - panom)
+            if diff < 7:
+                remove_pa.append(badpa)
 
+    for pa in np.unique(remove_pa):
+        badPAs.remove(pa)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Grouping the bad PAs into lists within the badPAs list.
     # This will make bad PA shading easier in the contamination Bokeh plot
@@ -399,37 +425,6 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
         grouped_badPAs = np.asarray(grouped_badPAs)
 
     else:  # Accounting for targets with 100% visibility
-
         grouped_badPAs = np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
-
-
-def select_badPAs_ge_paNomnan(badPAs, paNomnan, threshold=7):
-    """Returns the absolute difference between each badPAs and paNomnan
-    Should be greater than threshold (default=7)
-
-    Parameters
-    ----------
-    badPAs: list
-        The list of bad position angles
-    paNomnan: list
-        The list of nominal PAs
-
-    Returns
-    -------
-    np.ndarray
-        The array of PAs
-    """
-    # Reshaping
-    badPAs_array = np.array(badPAs)[np.newaxis]  # (1, len(badPAs))
-    paNomnan_array = np.array(paNomnan)[np.newaxis].T  # (len(paNomnan), 1)
-
-    # elementwise absolute difference
-    diff = np.abs(np.subtract(badPAs_array, paNomnan_array))  # (len(paNomnan), len(badPAs))
-
-    # boolean array above threshold
-    above_thresh = np.all(diff >= threshold, axis=0)  # (len(badPAs),)
-
-    # index and return those that are above threshold
-    return badPAs_array[0, above_thresh]
