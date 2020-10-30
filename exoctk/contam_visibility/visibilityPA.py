@@ -172,7 +172,11 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
 
     # Draw the curve and error
     try:
-        fig.line(gdMaskednum, paMasked, legend_label='cutoff', line_color=color)
+        fig.line(
+            gdMaskednum,
+            paMasked,
+            legend_label='cutoff',
+            line_color=color)
     except AttributeError:
         fig.line(gdMaskednum, paMasked, legend='cutoff', line_color=color)
 
@@ -420,7 +424,7 @@ def using_gtvt(
 
         grouped_badPAs = np.asarray(grouped_badPAs)
 
-    else: # Accounting for targets with 100% visibility
+    else:  # Accounting for targets with 100% visibility
         grouped_badPAs = np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
