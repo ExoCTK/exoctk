@@ -321,7 +321,7 @@ def using_gtvt(
                        legend='Nominal Aperture PA',
                        alpha=.5,
                        source=SOURCE)
-                       
+
     fig.circle('date', 'pamin', color=COLOR, size=1, source=SOURCE)
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
@@ -405,17 +405,22 @@ def using_gtvt(
     # (sossContamFig.py)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     badPAs = np.sort(badPAs)
-    grouped_badPAs = [[badPAs[0]]]
 
-    for idx in range(1, len(badPAs)):
+    if len(badPAs > 0):
+        grouped_badPAs = [[badPAs[0]]]
 
-        if ((badPAs[idx - 1] + 1) == badPAs[idx]):
+        for idx in range(1, len(badPAs)):
 
-            grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
+            if ((badPAs[idx - 1] + 1) == badPAs[idx]):
 
-        elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
-            grouped_badPAs.append([badPAs[idx]])
+                grouped_badPAs[len(grouped_badPAs) - 1].append(badPAs[idx])
 
-    grouped_badPAs = np.asarray(grouped_badPAs)
+            elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
+                grouped_badPAs.append([badPAs[idx]])
+
+        grouped_badPAs = np.asarray(grouped_badPAs)
+
+    else: # Accounting for targets with 100% visibility
+        grouped_badPAs = np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
