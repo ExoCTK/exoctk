@@ -4,7 +4,7 @@ astroquery==0.4.1
 bandit==1.6.2
 batman-package==2.4.6
 bibtexparser==1.2.0
-bokeh==2.2.1
+bokeh==2.2.3
 boto3==1.15.9
 corner==2.1.0
 cython==0.29.21
