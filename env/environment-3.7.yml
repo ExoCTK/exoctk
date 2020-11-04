@@ -3,7 +3,7 @@ channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
 dependencies:
-  - astropy=3.2.2
+  - astropy=4.0.2
   - bokeh=2.2.3
   - boto3
   - cython=0.29.17
