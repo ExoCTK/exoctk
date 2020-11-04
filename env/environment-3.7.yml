@@ -1,4 +1,4 @@
-name: exoctk-test-3.7
+name: exoctk-3.7
 channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
