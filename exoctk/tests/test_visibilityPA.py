@@ -1,9 +1,23 @@
 from exoctk.contam_visibility import visibilityPA
 
+
 def test_using_gtvt():
-    ra = '88.5897756488149'
-    dec = '-64.1297956126618'
     instrument = 'NIRISS'
+
+    # this ra/dec has bad PAs
+    ra = "-66"
+    dec = "44"
+    paMin, paMax, gd, fig, table, grouped_badPAs = visibilityPA.using_gtvt(ra, dec, instrument, targetName="Target", output="bokeh")
+    assert grouped_badPAs is not None
+
+    # this ra/dec has 100% coverage (no bad PAs)
+    ra = '88'
+    dec = '-64'
     output = visibilityPA.using_gtvt(ra, dec, instrument, targetName="Target", output="bokeh")
 
     assert output is not None
+    assert len(output) == 6
+
+    paMin, paMax, gd, fig, table, grouped_badPAs = output
+
+    assert len(grouped_badPAs) == 0
