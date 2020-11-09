@@ -25,7 +25,6 @@ from astropy.extern.six.moves import StringIO
 import astropy.table as at
 import astropy.units as u
 from bokeh.resources import INLINE
-from bokeh.util.string import encode_utf8
 from bokeh.embed import components
 from bokeh.models import Range1d
 from bokeh.models.widgets import Panel, Tabs
