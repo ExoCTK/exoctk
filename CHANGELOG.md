@@ -6,7 +6,7 @@ This file tracks all major changes in each `exoctk` release.
 
 ### Added
 
-- Added `CHANGELOG.md` to repo
+- Added `CHANGELOG.md` (this file!) to repo
 
 ### Changed
 
