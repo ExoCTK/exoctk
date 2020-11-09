@@ -9,7 +9,6 @@ import astropy.table as at
 from astropy.time import Time
 import astropy.units as u
 from bokeh.resources import INLINE
-from bokeh.util.string import encode_utf8
 from bokeh.embed import components
 import flask
 from flask import Flask, Response, send_from_directory
@@ -594,7 +593,7 @@ def fortney():
                                  temp=temp_out,
                                  table_string=table_string
                                  )
-    return encode_utf8(html)
+    return html
 
 
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
@@ -626,7 +625,7 @@ def generic():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  )
-    return encode_utf8(html)
+    return html
 
 
 @app_exoctk.route('/fortney_result', methods=['POST'])
