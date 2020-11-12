@@ -1,10 +1,10 @@
 from functools import wraps
 import os
 import json
+import io
 from pkg_resources import resource_filename
 
 from astropy.coordinates import SkyCoord
-from astropy.extern.six.moves import StringIO
 import astropy.table as at
 from astropy.time import Time
 import astropy.units as u
@@ -460,7 +460,7 @@ def contam_visibility():
                                                                     targetName=str(title))
 
             # Make output table
-            fh = StringIO()
+            fh = io.StringIO()
             table.write(fh, format='csv', delimiter=',')
             visib_table = fh.getvalue()
 
