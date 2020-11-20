@@ -1,13 +1,13 @@
 """This is a module for calcuating groups and integrations with JWST on
 the fly. The main function (``perform_calculation``) takes a dictionary
 of inputs (modeled around how the web tool takes inputs) which must
-include: ``observation_time``, ``num_groups``, ``magnitude``, ``model``, ``band``,
-``filt``, ``filt_ta``, ``instrument``, ``subarray``, ``subarray_ta``,
-``saturation_mode``, ``max_saturation``, and ``infile``. It produces and dictionary
-of outputs that includes all of the original information as well as
-groups, integrations, saturation levels, and observation time estimates
-for target acquisition and science observations with JWST.
-
+include: ``observation_time``, ``num_groups``, ``magnitude``,
+``model``, ``band``, ``filt``, ``filt_ta``, ``instrument``,
+``subarray``, ``subarray_ta``, ``saturation_mode``, ``max_saturation``,
+and ``infile``. It produces and dictionary of outputs that includes all
+of the original information as well as groups, integrations, saturation
+levels, and observation time estimates for target acquisition and
+science observations with JWST.
 
 Authors
 -------
@@ -33,15 +33,11 @@ Dependencies
     - ``scipy``
 """
 
-from decimal import Decimal
 import json
 import math
-import os
 
-from astropy.io import ascii
 import numpy as np
 from scipy import interpolate
-from scipy.integrate import quad
 
 
 def calc_duration_time(num_groups, num_integrations, num_reset_frames, frame_time, frames_per_group=1):
@@ -377,8 +373,8 @@ def map_to_ta_modes(instrument, max_num_groups, min_num_groups):
 
     # Match the literal min and max groups to the nearest mode.
     allowable_groups = groups[instrument]
-    min_ta_groups = min(allowable_groups, key=lambda x:abs(x-min_num_groups))
-    max_ta_groups = min(allowable_groups, key=lambda x:abs(x-max_num_groups))
+    min_ta_groups = min(allowable_groups, key=lambda x: abs(x-min_num_groups))
+    max_ta_groups = min(allowable_groups, key=lambda x: abs(x-max_num_groups))
 
     # Unless it was oversaturated from the get-go OR there aren't enough groups
     # for SNR
@@ -424,7 +420,7 @@ def min_num_groups_for_sat(magnitude, instrument, filt, subarray, model, band, i
 
     # Match to closest magnitude
     magnitudes = [float(i) for i in data['magnitudes']]
-    closest_magnitude = min(magnitudes, key=lambda x:abs(x-float(magnitude)))
+    closest_magnitude = min(magnitudes, key=lambda x: abs(x-float(magnitude)))
     index = magnitudes.index(closest_magnitude)
 
     # Match to data
@@ -485,7 +481,6 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
 
     # Run all the calculations
     num_rows, num_columns, num_amps, pixel_size, frame_time, num_reset_frames = instrument_params
-    band_instrument = '{0}_{1}'.format(params['band'], params['filt'])
     params['max_saturation'] = convert_saturation(params['max_saturation'], params['saturation_mode'], params['instrument'], params['infile'])
 
     # Calculate countrate and n_groups if it isn't supplied
@@ -573,7 +568,7 @@ def set_params_from_instrument(instrument, subarray):
             rows, cols = 1024, 32
         elif subarray == 'sub512':
             rows, cols = 512, 32
-        amps = 1 # 4 if not NRSRAPID????
+        amps = 1  # 4 if not NRSRAPID????
         frame_time = calc_frame_time(cols, rows, amps, instrument)
 
     elif instrument == 'nircam':
