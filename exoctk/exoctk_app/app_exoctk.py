@@ -27,7 +27,6 @@ from exoctk.utils import filter_table, get_env_variables, get_target_data, get_c
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk import log_exoctk
-from exoctk.throughputs import Throughput
 
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -58,27 +57,13 @@ except IOError:
 @app_exoctk.route('/')
 @app_exoctk.route('/index')
 def index():
-    """Returns the rendered index page
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the index page.
-    
-    """
+    """The Index page"""
     return render_template('index.html')
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
-    """Returns the rendered limb darkening form page. 
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the limb-darkening page.    
-
-    """
+    """The limb darkening form page. """
     # Load default form
     form = fv.LimbDarkeningForm()
 
@@ -117,7 +102,7 @@ def limb_darkening():
             kwargs['wave_max'] = 2 * u.um
 
         # Get the filter
-        bandpass = Throughput(form.bandpass.data, **kwargs)
+        bandpass = svo.Filter(form.bandpass.data, **kwargs)
 
         # Update the form data
         form.wave_min.data = bandpass.wave_min.value
@@ -166,7 +151,8 @@ def limb_darkening():
         kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
 
         # Make filter object and plot
-        bandpass = Throughput(form.bandpass.data, **kwargs)
+        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+        # bp_name = bandpass.name
         bk_plot = bandpass.plot(draw=False)
         bk_plot.plot_width = 580
         bk_plot.plot_height = 280
@@ -236,27 +222,14 @@ def limb_darkening():
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
 def limb_darkening_error():
-    """The limb darkening error page
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the limb-darkening error page.
-
-    """
+    """The limb darkening error page"""
 
     return render_template('limb_darkening_error.html')
 
 
 @app_exoctk.route('/groups_integrations', methods=['GET', 'POST'])
 def groups_integrations():
-    """The groups and integrations calculator form page
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the Groups & Integrations calculator page.    
-    """
+    """The groups and integrations calculator form page"""
 
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
@@ -379,11 +352,11 @@ def groups_integrations():
                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
             if results_dict['max_ta_groups'] == -1:
                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
-                results_dict['min_saturation_ta'] = 0
-                results_dict['duration_time_ta_max'] = 0
-                results_dict['max_saturation_ta'] = 0
-                results_dict['duration_time_ta_max'] = 0
-            if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
+                results_dict['min_sat_ta'] = 0
+                results_dict['t_duration_ta_max'] = 0
+                results_dict['max_sat_ta'] = 0
+                results_dict['t_duration_ta_max'] = 0
+            if results_dict['max_sat_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
@@ -404,7 +377,7 @@ def groups_integrations():
             # Log the successful form inputs
             params['kmag'] = form.kmag.data
             params['targname'] = form.targname.data
-            params['num_groups'] = form.n_group.data
+            params['n_group'] = form.n_group.data
             log_exoctk.log_form_input(params, 'groups_integrations', DB)
 
             return render_template('groups_integrations_results.html',
@@ -419,29 +392,9 @@ def groups_integrations():
     return render_template('groups_integrations.html', form=form, sat_data=sat_data)
 
 
-@app_exoctk.route('/pa_contam', methods=['GET', 'POST'])
-def pa_contam():
-    """The contamination and visibility form page
-
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the contamination and visibility page.
-
-    """
-    return render_template('pa_contam.html')
-
-
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
-    """The contamination and visibility form page
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the contamination and visibility page.
-
-    """
+    """The contamination and visibility form page"""
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
@@ -490,7 +443,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if form.inst.data == 'NIRSpec':
+        if ('NIRCam' in form.inst.data) or (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
@@ -500,8 +453,6 @@ def contam_visibility():
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
-        instrument = fs.APERTURES[form.inst.data]['inst']
-
         try:
 
             # Log the form inputs
@@ -509,7 +460,10 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
+            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data),
+                                                                    str(form.dec.data),
+                                                                    form.inst.data.split(' ')[0],
+                                                                    targetName=str(title))
 
             # Make output table
             fh = io.StringIO()
@@ -524,61 +478,15 @@ def contam_visibility():
             # Contamination plot too
             if form.calculate_contam_submit.data:
 
-                # Get RA and Dec in degrees
+                # First convert ra and dec to HH:MM:SS
                 ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                sc = SkyCoord(ra_deg, dec_deg, unit='deg')
+                ra_dec = sc.to_string('hmsdms')
+                ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
-                # Add companion
-                try:
-                    comp_teff = float(form.teff.data)
-                except TypeError:
-                    comp_teff = None
-                try:
-                    comp_mag = float(form.delta_mag.data)
-                except TypeError:
-                    comp_mag = None
-                try:
-                    comp_dist = float(form.dist.data)
-                except TypeError:
-                    comp_dist = None
-                try:
-                    comp_pa = float(form.pa.data)
-                except TypeError:
-                    comp_pa = None
-
-                # Get PA value
-                pa_val = float(form.v3pa.data)
-                if pa_val == -1:
-
-                    # Add a companion
-                    companion = None
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
-
-                    # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, binComp=companion, plot=False, multi=False)
-
-                    # Make the plot
-                    # contam_plot = fs.contam_slider_plot(results)
-
-                    # Make old contam plot
-                    starCube = np.zeros((362, 2048, 256))
-                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, 'NIS_SUBSTRIP256', targetName=form.targname.data, badPAs=badPAs)
-
-                else:
-
-                    # Get stars
-                    stars = fs.find_stars(ra_deg, dec_deg, verbose=False)
-
-                    # Add companion
-                    print(comp_teff, comp_mag, comp_dist, comp_pa)
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        stars = fs.add_star(stars, 'Companion', ra_deg, dec_deg, comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa)
-
-                    # Calculate contam
-                    result, contam_plot = fs.calc_v3pa(pa_val, stars, 'NIS_SUBSTRIP256', plot=True, verbose=False)
+                # Make field simulation
+                contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
+                contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
 
                 # Get scripts
                 contam_js = INLINE.render_js()
@@ -596,7 +504,7 @@ def contam_visibility():
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
                                    contam_js=contam_js,
-                                   contam_css=contam_css, pa_val=pa_val)
+                                   contam_css=contam_css)
 
         except Exception as e:
             err = 'The following error occurred: ' + str(e)
@@ -607,14 +515,7 @@ def contam_visibility():
 
 @app_exoctk.route('/visib_result', methods=['POST'])
 def save_visib_result():
-    """Save the results of the Visibility Only calculation
-    
-    Returns
-    -------
-    ``flask.Response`` obj
-        flask.Response object with the results of the visibility only calculation.
-
-    """
+    """Save the results of the Visibility Only calculation"""
 
     visib_table = flask.request.form['data_file']
     targname = flask.request.form['targetname']
@@ -626,13 +527,7 @@ def save_visib_result():
 
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
-    """Save the results of the Contamination Science FOV 
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template (and attachment) for the Contamination FOV.
-    """
+    """Save the results of the Contamination Science FOV """
 
     RA, DEC = '19:50:50.2400', '+48:04:51.00'
     contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1,2], binComp=[], PDF='', web=True)
@@ -647,14 +542,7 @@ def save_contam_pdf():
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
-    """Save results to file
-    
-    Returns
-    -------
-    ``flask.make_response`` obj
-        Returns response including results in txt form.
-
-    """
+    """Save results to file"""
 
     file_as_string = eval(request.form['file_as_string'])
 
@@ -665,13 +553,7 @@ def exoctk_savefile():
 
 
 def _param_fort_validation(args):
-    """Validates the input parameters for the forward models
-    
-    Returns
-    -------
-    input_args : dict
-        Dictionary with the input parameters for the forward models.
-    """
+    """Validates the input parameters for the forward models"""
 
     temp = args.get('ptemp', 1000)
     chem = args.get('pchem', 'noTiO')
@@ -694,12 +576,6 @@ def _param_fort_validation(args):
 def fortney():
     """
     Pull up Forntey Grid plot the results and download
-
-    Returns
-    -------
-    html : ``flask.render_template`` obj
-        The rendered template for the Fortney results.
-
     """
 
     # Grab the inputs arguments from the URL
@@ -735,12 +611,6 @@ def fortney():
 def generic():
     """
     Pull up Generic Grid plot the results and download
-
-    Returns
-    -------
-    html: ``flask.render_template`` obj
-        The rendered template for the generic grid page.
-
     """
 
     # Grab the inputs arguments from the URL
@@ -776,7 +646,7 @@ def generic():
 
 @app_exoctk.route('/fortney_result', methods=['POST'])
 def save_fortney_result():
-    """Save the results of the Fortney grid"""
+    """SAve the results of the Fortney grid"""
 
     table_string = flask.request.form['data_file']
     return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
@@ -854,14 +724,7 @@ def requires_auth(page):
 @app_exoctk.route('/admin')
 @requires_auth
 def secret_page():
-    """Shhhhh! This is a secret page of admin stuff
-    
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the admin page.
-
-    """
+    """Shhhhh! This is a secret page of admin stuff"""
 
     tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
 
@@ -902,13 +765,6 @@ def atmospheric_retrievals():
 
 @app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
 def phase_constraint(transit_type='primary'):
-    """Render page for the phase-constraint calculator
-
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the phase-constraint calculator.
-    """
     # Load default form
     form = fv.PhaseConstraint()
 
