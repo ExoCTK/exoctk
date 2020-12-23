@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
+from .throughputs import JWST_THROUGHPUTS
+
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
             'square-root', 'logarithmic', 'exponential',
@@ -26,6 +28,8 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 
 # Supported filters
 FILTERS = svo.filters()
+NON_JWST = [row['Band'] for row in FILTERS if row['Instrument'] not in ['NIRISS', 'NIRCam', 'NIRSpec', 'MIRI']]
+FILTERS_LIST = sorted(NON_JWST + JWST_THROUGHPUTS)
 
 # Get the location of EXOCTK_DATA environvment variable and check that it is valid
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
