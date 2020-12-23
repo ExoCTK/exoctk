@@ -13,6 +13,40 @@ import astropy.constants as ac
 import astropy.units as q
 import numpy as np
 
+
+def fetch_pandeia_throughputs(path=None):
+    """
+    Copy all the JWST instrument throughputs from the pandeia_refdata
+    directory to the exoctk package
+    """
+    # Check if environment variable exists
+    path = path or os.environ.get('pandeia_refdata')
+
+    if path is None:
+        raise IOError("No path to pandeia_refdata directory provided!")
+
+    else:
+
+        files = []
+        instruments = ['niriss', 'nircam', 'nirspec', 'miri']
+        for inst in instruments:
+
+            # Path for instrument data
+            ipath = os.path.join(path, 'jwst', inst)
+
+            # Filter throughputs
+            files += glob(os.path.join(ipath, 'filters/*'))
+
+            # Disperser throughputs
+            files += glob(os.path.join(ipath, 'dispersion/*'))
+
+        # Copy files to ExoCTK directory
+        data_dir = resource_filename('exoctk', 'data/throughputs/')
+        for file in files:
+            print(file)
+            os.system("cp {} {}".format(file, data_dir))
+
+
 def external_files():
     """
     A snippet to propagate the external files directory
@@ -29,7 +63,8 @@ def external_files():
 
     return metadata.get('external_files')
 
-def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK', 'data/core/ModelGrid_tmp.fits')):
+
+def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk', 'data/core/ModelGrid_tmp.fits')):
     """
     Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
     
