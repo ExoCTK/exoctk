@@ -27,6 +27,7 @@ from exoctk.utils import filter_table, get_env_variables, get_target_data, get_c
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk import log_exoctk
+from exoctk.throughputs import Throughput
 
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -102,7 +103,7 @@ def limb_darkening():
             kwargs['wave_max'] = 2 * u.um
 
         # Get the filter
-        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+        bandpass = Throughput(form.bandpass.data, **kwargs)
 
         # Update the form data
         form.wave_min.data = bandpass.wave_min.value
@@ -151,7 +152,7 @@ def limb_darkening():
         kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
 
         # Make filter object and plot
-        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+        bandpass = Throughput(form.bandpass.data, **kwargs)
         # bp_name = bandpass.name
         bk_plot = bandpass.plot(draw=False)
         bk_plot.plot_width = 580
