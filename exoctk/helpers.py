@@ -43,8 +43,25 @@ def fetch_pandeia_throughputs(path=None):
         # Copy files to ExoCTK directory
         data_dir = resource_filename('exoctk', 'data/throughputs/')
         for file in files:
-            print(file)
-            os.system("cp {} {}".format(file, data_dir))
+
+            # Parse filename into instrument.element_name
+            filename = os.path.basename(file)
+            parts = filename.split('_')
+            name = '.'.join([parts[1].upper().replace('CAM', 'Cam').replace('SPEC', 'Spec'), parts[2].upper()])
+
+            # Read the data
+            rec = fits.getdata(file)
+            wave = rec['WAVELENGTH']
+            try:
+                thru = rec['THROUGHPUT']
+            except KeyError:
+                thru = rec['DLDS']
+
+            # Save to txt file
+            data = np.array([wave, thru]).T
+            datafile_path = os.path.join(data_dir, '{}.txt'.format(name))
+            with open(datafile_path, 'w+') as datafile_id:
+                np.savetxt(datafile_id, data)
 
 
 def external_files():
