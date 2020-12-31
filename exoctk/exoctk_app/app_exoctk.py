@@ -153,7 +153,6 @@ def limb_darkening():
 
         # Make filter object and plot
         bandpass = Throughput(form.bandpass.data, **kwargs)
-        # bp_name = bandpass.name
         bk_plot = bandpass.plot(draw=False)
         bk_plot.plot_width = 580
         bk_plot.plot_height = 280
