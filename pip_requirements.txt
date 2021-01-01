@@ -1,7 +1,7 @@
 asteval==0.9.16
 astropy==4.2
 astroquery==0.4.1
-bandit==1.6.2
+bandit==1.7.0
 batman-package==2.4.6
 bibtexparser==1.2.0
 bokeh==2.2.1
