@@ -15,7 +15,6 @@ import urllib
 from astropy.io import fits
 import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
-import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
 
@@ -108,7 +107,7 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
     # Perform the downloads
     for i, url in enumerate(urls):
         landing_path = os.path.join(exoctk_data_dir, os.path.basename(url))
-        print('({}/{}) Downloading data to {} from {}'.format(i+1, len(urls), landing_path, url))
+        print('({}/{}) Downloading data to {} from {}'.format(i + 1, len(urls), landing_path, url))
         with requests.get(url, stream=True) as response:
             with open(landing_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=2048):
@@ -237,13 +236,13 @@ def calc_zoom(R_f, arr):
         The array to zoom
     """
     # Get initial resolution
-    lam = arr[-1]-arr[0]
+    lam = arr[-1] - arr[0]
     d_lam_i = np.nanmean(np.diff(arr))
     # R_i = lam/d_lam_i
 
     # Calculate zoom
-    d_lam_f = lam/R_f
-    z = d_lam_i/d_lam_f
+    d_lam_f = lam / R_f
+    z = d_lam_i / d_lam_f
 
     return z
 
@@ -269,23 +268,19 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     wave, flux = spec
     nlam = len(wave)
     x0 = np.arange(nlam, dtype=float)
-    x0int = np.arange((nlam-1.) * oversamp + 1., dtype=float)/oversamp
+    x0int = np.arange((nlam - 1.) * oversamp + 1., dtype=float) / oversamp
     w0int = np.interp(x0int, x0, wave)
-    spec0int = np.interp(w0int, wave, flux)/oversamp
+    spec0int = np.interp(w0int, wave, flux) / oversamp
 
     # Set up the bin edges for down-binning
     maxdiffw1 = np.diff(wavnew).max()
-    w1bins = np.concatenate(([wavnew[0]-maxdiffw1],
-                             .5*(wavnew[1::]+wavnew[0: -1]),
-                             [wavnew[-1]+maxdiffw1]))
+    w1bins = np.concatenate(([wavnew[0] - maxdiffw1], .5 * (wavnew[1::] + wavnew[0: -1]), [wavnew[-1] + maxdiffw1]))
 
     # Bin down the interpolated spectrum:
     w1bins = np.sort(w1bins)
-    nbins = len(w1bins)-1
+    nbins = len(w1bins) - 1
     specnew = np.zeros(nbins)
-    inds2 = [[w0int.searchsorted(w1bins[ii], side='left'),
-              w0int.searchsorted(w1bins[ii+1], side='left')]
-             for ii in range(nbins)]
+    inds2 = [[w0int.searchsorted(w1bins[ii], side='left'), w0int.searchsorted(w1bins[ii + 1], side='left')] for ii in range(nbins)]
 
     for ii in range(nbins):
         specnew[ii] = np.sum(spec0int[inds2[ii][0]: inds2[ii][1]])
@@ -371,17 +366,16 @@ def smooth(x, window_len=10, window='hanning'):
         raise ValueError("Window is one of 'flat', 'hanning', 'hamming',\
                           'bartlett', 'blackman'")
 
-    s = np.r_[2*np.median(x[0: window_len/5])-x[window_len: 1: -1], x,
-              2*np.median(x[-window_len/5:])-x[-1: -window_len: -1]]
+    s = np.r_[2 * np.median(x[0: window_len / 5]) - x[window_len: 1: -1], x, 2 * np.median(x[-window_len / 5:]) - x[-1: -window_len: -1]]
 
     if window == 'flat':
         w = np.ones(window_len, 'd')
     else:
-        w = eval('np.'+window+'(window_len)')
+        w = eval('np.' + window + '(window_len)')
 
-    y = np.convolve(w/w.sum(), s, mode='same')
+    y = np.convolve(w / w.sum(), s, mode='same')
 
-    return y[window_len-1: -window_len+1]
+    return y[window_len - 1: -window_len + 1]
 
 
 def medfilt(x, window_len):
@@ -405,12 +399,11 @@ def medfilt(x, window_len):
     if window_len % 2 == 0:
         s1 = "Median filter length ("
         s2 = ") must be odd. Adding 1."
-        print(s1+str(window_len)+s2)
+        print(s1 + str(window_len) + s2)
         window_len += 1
     window_len = int(window_len)
-    k2 = int((window_len - 1)//2)
-    s = np.r_[2*np.median(x[0: int(window_len/5)])-x[window_len: 1: -1],
-              x, 2*np.median(x[int(-window_len/5):])-x[-1: -window_len: -1]]
+    k2 = int((window_len - 1) // 2)
+    s = np.r_[2 * np.median(x[0: int(window_len / 5)]) - x[window_len: 1: -1], x, 2 * np.median(x[int(-window_len / 5):]) - x[-1: -window_len: -1]]
     y = np.zeros((len(s), window_len), dtype=s.dtype)
 
     y[:, k2] = s
@@ -418,9 +411,9 @@ def medfilt(x, window_len):
         j = k2 - i
         y[j:, i] = s[:-j]
         y[: j, i] = s[0]
-        y[: -j, -(i+1)] = s[j:]
-        y[-j:, -(i+1)] = s[-1]
-    return np.median(y[window_len-1: -window_len+1], axis=1)
+        y[: -j, -(i + 1)] = s[j:]
+        y[-j:, -(i + 1)] = s[-1]
+    return np.median(y[window_len - 1: -window_len + 1], axis=1)
 
 
 def filter_table(table, **kwargs):
@@ -456,14 +449,12 @@ def filter_table(table, **kwargs):
             data = list(map(str, table[param]))
 
             if not value.startswith('*'):
-                value = '^'+value
+                value = '^' + value
             if not value.endswith('*'):
-                value = value+'$'
+                value = value + '$'
 
             # Strip double quotes and decod
-            value = value.replace("'", '')\
-                         .replace('"', '')\
-                         .replace('*', '(.*)')
+            value = value.replace("'", '').replace('"', '').replace('*', '(.*)')
 
             # Regex
             reg = re.compile(value, re.IGNORECASE)
@@ -486,7 +477,7 @@ def filter_table(table, **kwargs):
 
                 # Assume eqality if no operator
                 else:
-                    value = ['=='+value]
+                    value = ['==' + value]
 
             # Turn numbers into strings
             if isinstance(value, (int, float, np.float16)):
@@ -498,7 +489,7 @@ def filter_table(table, **kwargs):
                 # Equality
                 if cond.startswith('='):
                     v = cond.replace('=', '')
-                    if v.replace('.','',1).isdigit():
+                    if v.replace('.', '', 1).isdigit():
                         table = table[table[param] == eval(v)]
                     else:
                         table = table[table[param] == v]
@@ -554,8 +545,8 @@ def find_closest(axes, points, n=1, values=False):
     for i, (axis, point) in enumerate(zip(axes, points)):
         if point >= min(axis) and point <= max(axis):
             axis = np.asarray(axis)
-            idx = np.clip(axis.searchsorted(point), 1, len(axis)-1)
-            slc = slice(max(0, idx-n), min(idx+n, len(axis)))
+            idx = np.clip(axis.searchsorted(point), 1, len(axis) - 1)
+            slc = slice(max(0, idx - n), min(idx + n, len(axis)))
 
             if values:
                 result = axis[slc]
@@ -569,6 +560,7 @@ def find_closest(axes, points, n=1, values=False):
             return
 
     return results
+
 
 def build_target_url(target_name):
     '''Build restful api url based on target name.
@@ -588,6 +580,7 @@ def build_target_url(target_name):
 
     return target_url
 
+
 def get_canonical_name(target_name):
     '''Get ExoMAST prefered name for exoplanet.
 
@@ -604,13 +597,14 @@ def get_canonical_name(target_name):
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
 
     # Create params dict for url parsing. Easier than trying to format yourself.
-    params = {"name":target_name}
+    params = {"name": target_name}
 
     r = requests.get(target_url, params=params)
     planetnames = r.json()
     canonical_name = planetnames['canonicalName']
 
     return canonical_name
+
 
 def get_env_variables():
     """Returns a dictionary containing various environment variable
