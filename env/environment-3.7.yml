@@ -22,7 +22,7 @@ dependencies:
   - paramiko=2.7.2
   - pytest=6.1.1
   - python=3.7.1
-  - scipy>=1.5.2
+  - scipy=1.5.2
   - scp=0.13.2
   - sphinx=3.2.1
   - sqlalchemy=1.3.20
@@ -31,6 +31,7 @@ dependencies:
     - asteval==0.9.16
     - astroquery==0.4.1
     - awscli
+    - bandit==1.6.2
     - batman-package==2.4.6
     - bibtexparser==1.2.0
     - corner==2.1.0
@@ -39,7 +40,7 @@ dependencies:
     - platon==5.1.1
     - pysiaf==0.10.0
     - pysynphot==1.0
-    - PyYAML>=5.3.1
+    - PyYAML==5.3.1
     - sphinx_astropy==1.3
     - svo-filters==0.3.0
     - werkzeug==0.16.1

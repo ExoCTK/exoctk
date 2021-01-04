@@ -1,6 +1,7 @@
 asteval==0.9.16
 astropy==4.0.2
 astroquery==0.4.1
+bandit==1.6.2
 batman-package==2.4.6
 bibtexparser==1.2.0
 bokeh==2.2.3
@@ -25,7 +26,7 @@ platon==5.1.1
 pysiaf==0.10.0
 pysynphot==1.0.0
 pytest==6.1.2
-PyYAML>=5.3.1
+PyYAML==5.3.1
 scipy>=1.5.3
 scp==0.13.3
 sphinx==3.2.1
