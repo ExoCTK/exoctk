@@ -393,16 +393,22 @@ def using_gtvt(
     # This addresses a bokeh shading issue that accidentally shades
     # accessible PAs (e.g: trappist-1b)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    remove_pa = []
-    for badpa in badPAs:
+    def select_badPAs_ge_paNomnan(badPAs: list, paNomnan: list, threshold: int = 7) -> np.array:
+        """ the abs. diff. between each badPAs and paNomnan should be greater than threshold (default=7) """
 
-        for panom in paNomnan:
-            diff = np.abs(badpa - panom)
-            if diff < 7:
-                remove_pa.append(badpa)
+        badPAs_array = np.array(badPAs)[np.newaxis]  # (1, len(badPAs))
+        paNomnan_array = np.array(paNomnan)[np.newaxis].T  # (len(paNomnan), 1)
+        # elementwise absolute difference
+        diff = np.abs(np.subtract(badPAs_array, paNomnan_array))  # (len(paNomnan), len(badPAs))
+        # boolean array above threshold
+        above_thresh = np.all(diff >= threshold, axis=0)  # (len(badPAs),)
 
-    for pa in np.unique(remove_pa):
-        badPAs.remove(pa)
+        # index and return those that are above threshold
+        return badPAs_array[0, above_thresh]
+
+    # badPAs = remove_pa_loop(badPAs, paNomnan)
+    badPAs = select_badPAs_ge_paNomnan(badPAs, paNomnan)
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Grouping the bad PAs into lists within the badPAs list.
     # This will make bad PA shading easier in the contamination Bokeh plot
