@@ -11,7 +11,6 @@ dependencies:
   - docutils=0.16
   - flake8=3.8.4
   - flask=1.1.2
-  - flask_wtf==0.14.3
   - gunicorn=20.0.4
   - h5py=2.10.0
   - ipython=7.19.0
@@ -37,6 +36,7 @@ dependencies:
     - batman-package==2.4.6
     - bibtexparser==1.2.0
     - corner==2.1.0
+    - flask_wtf==0.14.3
     - lmfit==1.0.1
     - platon==5.1.2
     - pysiaf==0.10.0
