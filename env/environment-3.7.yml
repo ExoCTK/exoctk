@@ -4,7 +4,7 @@ channels:
   - http://ssb.stsci.edu/astroconda
 dependencies:
   - astropy=4.2
-  - bokeh=2.1.1
+  - bokeh=2.2.3
   - boto3
   - cython=0.29.17
   - docopt=0.6.2
