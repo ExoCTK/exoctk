@@ -11,6 +11,7 @@ before_cache:
   - rm -rf $HOME/miniconda3/envs/exoctk-3.6
   - rm -rf $HOME/miniconda3/envs/exoctk-3.7
   - rm -rf $HOME/miniconda3/envs/exoctk-3.8
+  - rm -rf $HOME/miniconda3/envs/exoctk-3.9
 
 os:
   - linux
@@ -20,6 +21,7 @@ env:
   - PYTHON_VERSION="3.6"
   - PYTHON_VERSION="3.7"
   - PYTHON_VERSION="3.8"
+  - PYTHON_VERSION="3.9"
 
 before_install:
   - export PATH="$HOME/miniconda3/bin:$PATH"
