@@ -3,7 +3,7 @@ channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
 dependencies:
-  - astropy=4.0.2
+  - astropy<4.1
   - bokeh=2.2.3
   - boto3
   - cython=0.29.17
@@ -20,6 +20,7 @@ dependencies:
   - numpydoc=1.1.0
   - pandas=1.2.0
   - paramiko=2.7.2
+  - pip=20.3.3
   - pytest=6.2.2
   - python=3.7.1
   - pyyaml
