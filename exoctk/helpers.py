@@ -14,56 +14,6 @@ import astropy.units as q
 import numpy as np
 
 
-def fetch_pandeia_throughputs(path=None):
-    """
-    Copy all the JWST instrument throughputs from the pandeia_refdata
-    directory to the exoctk package
-    """
-    # Check if environment variable exists
-    path = path or os.environ.get('pandeia_refdata')
-
-    if path is None:
-        raise IOError("No path to pandeia_refdata directory provided!")
-
-    else:
-
-        files = []
-        instruments = ['niriss', 'nircam', 'nirspec', 'miri']
-        for inst in instruments:
-
-            # Path for instrument data
-            ipath = os.path.join(path, 'jwst', inst)
-
-            # Filter throughputs
-            files += glob(os.path.join(ipath, 'filters/*'))
-
-            # Disperser throughputs
-            files += glob(os.path.join(ipath, 'dispersion/*'))
-
-        # Copy files to ExoCTK directory
-        data_dir = resource_filename('exoctk', 'data/throughputs/')
-        for file in files:
-
-            # Parse filename into instrument.element_name
-            filename = os.path.basename(file)
-            parts = filename.split('_')
-            name = '.'.join([parts[1].upper().replace('CAM', 'Cam').replace('SPEC', 'Spec'), parts[2].upper()])
-
-            # Read the data
-            rec = fits.getdata(file)
-            wave = rec['WAVELENGTH']
-            try:
-                thru = rec['THROUGHPUT']
-            except KeyError:
-                thru = rec['DLDS']
-
-            # Save to txt file
-            data = np.array([wave, thru]).T
-            datafile_path = os.path.join(data_dir, '{}.txt'.format(name))
-            with open(datafile_path, 'w+') as datafile_id:
-                np.savetxt(datafile_id, data)
-
-
 def external_files():
     """
     A snippet to propagate the external files directory
