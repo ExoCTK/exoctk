@@ -10,9 +10,12 @@ from pkg_resources import resource_filename
 import warnings
 
 import numpy as np
-from pandeia.engine.instrument_factory import InstrumentFactory
 from svo_filters.svo import Filter
 
+try:
+    from pandeia.engine.instrument_factory import InstrumentFactory
+except ImportError:
+    print("pandeia not installed. Functionality limited.")
 
 FILT_DIR = resource_filename('exoctk', 'data/throughputs/')
 JWST_THROUGHPUTS = [os.path.basename(file).replace('.txt', '') for file in glob(FILT_DIR + '*')]
