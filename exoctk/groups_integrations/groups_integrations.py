@@ -191,7 +191,7 @@ def calc_num_integrations(transit_time, num_groups, num_reset_frames, frame_time
         The required number of integraitions.
     """
 
-    num_integrations = math.ceil((float(transit_time) * 3600)/(frame_time * (num_groups * frames_per_group + num_reset_frames)))
+    num_integrations = math.ceil((float(transit_time) * 3600) / (frame_time * (num_groups * frames_per_group + num_reset_frames)))
 
     return num_integrations
 
@@ -373,8 +373,8 @@ def map_to_ta_modes(instrument, max_num_groups, min_num_groups):
 
     # Match the literal min and max groups to the nearest mode.
     allowable_groups = groups[instrument]
-    min_ta_groups = min(allowable_groups, key=lambda x: abs(x-min_num_groups))
-    max_ta_groups = min(allowable_groups, key=lambda x: abs(x-max_num_groups))
+    min_ta_groups = min(allowable_groups, key=lambda x: abs(x - min_num_groups))
+    max_ta_groups = min(allowable_groups, key=lambda x: abs(x - max_num_groups))
 
     # Unless it was oversaturated from the get-go OR there aren't enough groups
     # for SNR
@@ -420,7 +420,7 @@ def min_num_groups_for_sat(magnitude, instrument, filt, subarray, model, band, i
 
     # Match to closest magnitude
     magnitudes = [float(i) for i in data['magnitudes']]
-    closest_magnitude = min(magnitudes, key=lambda x: abs(x-float(magnitude)))
+    closest_magnitude = min(magnitudes, key=lambda x: abs(x - float(magnitude)))
     index = magnitudes.index(closest_magnitude)
 
     # Match to data
@@ -515,17 +515,17 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     params['integration_time'] = round(integration_time, 3)
     params['ramp_time'] = round(ramp_time, 3)
     params['num_integrations'] = num_integrations
-    params['exposure_time'] = round(exposure_time/3600, 3)
-    params['duration_time'] = round(duration_time/3600, 3)
+    params['exposure_time'] = round(exposure_time / 3600, 3)
+    params['duration_time'] = round(duration_time / 3600, 3)
     params['observation_efficiency'] = round(observation_efficiency, 3)
     params['ta_frame_time'] = ta_frame_time
     params['min_ta_groups'] = int(min_ta_groups)
     params['max_ta_groups'] = int(max_ta_groups)
     params['duration_time_ta_min'] = duration_time_ta_min
     params['duration_time_ta_max'] = duration_time_ta_max
-    params['max_saturation_prediction'] = round(saturation_rate*frame_time*params['num_groups'], 3)
-    params['max_saturation_ta'] = round(saturation_rate_ta*ta_frame_time*max_ta_groups, 3)
-    params['min_saturation_ta'] = round(saturation_rate_ta*ta_frame_time*min_ta_groups, 3)
+    params['max_saturation_prediction'] = round(saturation_rate * frame_time * params['num_groups'], 3)
+    params['max_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * max_ta_groups, 3)
+    params['min_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * min_ta_groups, 3)
 
     return params
 
