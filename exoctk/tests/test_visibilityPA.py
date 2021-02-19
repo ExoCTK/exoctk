@@ -1,6 +1,11 @@
+import sys
+
+import pytest
+
 from exoctk.contam_visibility import visibilityPA
 
 
+@pytest.mark.skipif(sys.version_info > (3, 9), reason='jwst_gtvt does not currently support python>=3.9.')
 def test_using_gtvt():
     instrument = 'NIRISS'
 
