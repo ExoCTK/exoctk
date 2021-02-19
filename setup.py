@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
-            'astropy',
+            'astropy<4.1',
             'astroquery',
             'bandit',
             'bibtexparser',
@@ -29,7 +29,7 @@ REQUIRES = ['asteval',
             'pysiaf',
             'pysynphot',
             'pytest',
-            'pyyaml==5.1.0',
+            'pyyaml',
             'scipy',
             'scp',
             'sphinx',
@@ -37,10 +37,8 @@ REQUIRES = ['asteval',
             'sqlalchemy',
             'svo_filters',
             'wtforms',
-            'werkzeug==0.16.1']
-
-DEPENDENCY_LINKS = [
-    'git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
+            'werkzeug==0.16.1',
+            'jwst_gtvt @ git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
@@ -57,7 +55,6 @@ setup(
     package_data={
         'exoctk': FILES},
     install_requires=REQUIRES,
-    dependency_links=DEPENDENCY_LINKS,
     author='The ExoCTK Group',
     author_email='exoctk@gmail.com',
     license='MIT',

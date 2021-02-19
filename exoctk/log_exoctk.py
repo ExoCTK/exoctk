@@ -26,6 +26,7 @@ def create_db(dbpath, overwrite=True):
         Overwrite dbpath if it already exists
     """
     if dbpath != ':memory:':
+
         # Make sure the path is valid
         if not os.path.exists(os.path.dirname(dbpath)):
             raise IOError('Not a valid path:', dbpath)
@@ -49,13 +50,22 @@ def create_db(dbpath, overwrite=True):
     cur = conn.cursor()
 
     # Table for groups_integrations
-    cur.execute("CREATE TABLE 'groups_integrations' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'ins' TEXT, 'mag' REAL, 'groups' TEXT, 'amps' INTEGER, 'subarray' TEXT, 'sat_lvl' REAL, 'sat' TEXT, 'T' REAL, 'n_reset' INTEGER, 'band' TEXT, 'filt' TEXT, PRIMARY KEY(id));")
+    cur.execute("CREATE TABLE 'groups_integrations' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targname' TEXT, 'kmag' REAL, 'mod' TEXT, 'obs_time' REAL, 'n_group' REAL, 'ins' TEXT, 'filt' TEXT, 'filt_ta' TEXT, 'subarray' TEXT, 'subarray_ta' TEXT, 'sat_mode' TEXT, 'sat_max' REAL, PRIMARY KEY(id));")
 
     # Table for limb_darkening
     cur.execute("CREATE TABLE 'limb_darkening' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'n_bins' INTEGER, 'teff' REAL, 'logg' REAL, 'feh' REAL, 'bandpass' TEXT, 'modeldir' TEXT, 'wave_min' REAL, 'mu_min' REAL, 'wave_max' REAL, 'local_files' TEXT, 'pixels_per_bin' INTEGER, 'uniform' TEXT, 'linear' TEXT, 'quadratic' TEXT, 'squareroot' TEXT, 'logarithmic' TEXT, 'exponential' TEXT, 'three_parameter' TEXT, 'four_parameter' TEXT, PRIMARY KEY(id));")
 
-    # Tale for contam_visibility
-    cur.execute("CREATE TABLE 'contam_visibility' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targetname' TEXT, 'ra' REAL, 'dec' REAL, 'pamax' REAL, 'pamin' REAL, 'bininfo' TEXT, PRIMARY KEY(id));")
+    # Table for contam_visibility
+    cur.execute("CREATE TABLE 'contam_visibility' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targname' TEXT, 'ra' REAL, 'dec' REAL, 'inst' TEXT, 'companion' TEXT, PRIMARY KEY(id));")
+
+    # Table for phase_constraint
+    cur.execute("CREATE TABLE 'phase_constraint' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targname' TEXT, 'orbital_period' REAL, 'eccentricity' REAL, 'transit_type' TEXT, 'omega' REAL, 'inclination' REAL, 'transit_time' REAL, 'window_size' REAL, 'observation_duration' REAL, 'minimum_phase' REAL, 'maximum_phase' REAL, PRIMARY KEY(id));")
+
+    # Table for fortney grid
+    cur.execute("CREATE TABLE 'fortney' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'ptemp' REAL, 'pchem' TEXT, 'cloud' TEXT, 'pmass' REAL, 'm_unit' TEXT, 'refrad' REAL, 'r_unit' TEXT, 'rstar' REAL, 'rstar_unit' TEXT, PRIMARY KEY(id));")
+
+    # Table for generic grid
+    cur.execute("CREATE TABLE 'generic' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'temperature' REAL, 'gravity' REAL, 'r_planet' REAL, 'r_star' REAL, 'condensation' TEXT, 'metallicity' REAL, 'c_o' REAL, 'haze' REAL, 'cloud' REAL, PRIMARY KEY(id));")
 
     # Commit and close the connection
     conn.commit()
@@ -79,6 +89,8 @@ def load_db(dbpath):
         con = sqlite3.connect(dbpath, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
         cur = con.cursor()
 
+        print('Database loaded: {}'.format(dbpath))
+
         return cur
 
     else:
@@ -98,25 +110,29 @@ def log_form_input(form_dict, table, database):
     database: sqlite.connection.cursor
         The database cursor object
     """
+    # Get the column names
+    colnames = np.array(database.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
+
     try:
-        # Convert hyphens to underscores and leading numerics to letters for
-        # db column names
-        inpt = {k.replace('-', '_').replace('3', 'three').replace('4', 'four'): v[0] for k, v in dict(form_dict).items()}
-    except TypeError:
-        inpt = form_dict
 
-    # Add a timestamp
-    inpt['date'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        # Convert hyphens to underscores and leading numerics to letters for db column names
+        inpt = {k.replace('-', '_').replace('3', 'three').replace('4', 'four'): v for k, v in form_dict.items()}
 
-    # Insert the form valsues
-    qmarks = ', '.join('?' * len(inpt))
-    cols = ', '.join(inpt.keys())
-    qry = "Insert Into {} ({}) Values ({})".format(table, cols, qmarks)
+        # Add a timestamp
+        inpt['date'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    database.execute(qry, list(inpt.values()))
+        # Insert the form values that are valid column names
+        cols = [col for col in inpt.keys() if col in colnames]
+        vals = [str(inpt.get(col, 'none')) for col in cols]
+        qry = "Insert Into {} ({}) Values ({})".format(table, ', '.join(cols), ', '.join('?' * len(cols)))
+        database.execute(qry, vals)
+
+    except IOError:#Exception as e:
+        print('Could not log form submission.')
+        print(e)
 
 
-def view_log(database, table):
+def view_log(database, table, limit=50):
     """
     Visually inspect the job log
 
@@ -126,6 +142,8 @@ def view_log(database, table):
         The database cursor object
     table: str
         The table name
+    limit: int
+        The number of records to show
     """
     if isinstance(database, str):
         DB = load_db(database)
@@ -135,14 +153,18 @@ def view_log(database, table):
         print("Please enter the path to a .db file or a sqlite.Cursor object.")
 
     # Query the database
-    table = scrub(table)
     colnames = np.array(DB.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
-    results = DB.execute("SELECT * FROM {}".format(table)).fetchall()
+    results = DB.execute("SELECT * FROM {} LIMIT {}".format(table, limit)).fetchall()
 
-    results = at.Table(list(np.array(results).T), names=colnames)
+    # Empty table
+    table = at.Table(names=colnames, dtype=['O'] * len(colnames))
 
-    # Print them
-    return results
+    # Add the results
+    if len(results) > 0:
+        for row in results:
+            table.add_row(row)
+
+    return table
 
 
 def scrub(table_name):
