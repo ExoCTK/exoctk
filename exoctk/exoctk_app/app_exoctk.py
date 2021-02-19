@@ -26,10 +26,10 @@ from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
+from exoctk import log_exoctk
 
 from matplotlib.backends.backend_pdf import PdfPages
 
-import log_exoctk
 from svo_filters import svo
 
 # FLASK SET UP
@@ -137,14 +137,11 @@ def limb_darkening():
     # Validate form and submit for results
     if form.validate_on_submit() and form.calculate_submit.data:
 
+        # Form inputs for logging
+        form_input = dict(request.form)
+
         # Get the stellar parameters
         star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
-
-        # Log the form inputs
-        try:
-            log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-        except Exception:
-            pass
 
         # Load the model grid
         model_grid = ModelGrid(form.modeldir.data, resolution=500)
@@ -207,6 +204,12 @@ def limb_darkening():
             html_table = header + html_table
 
             profile_tables.append(html_table)
+
+            # Add the profile to the form inputs
+            form_input[profile] = 'true'
+
+        # Log the successful form inputs
+        log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
 
         return render_template('limb_darkening_results.html', form=form,
                                table=profile_tables, script=script, plot=div,
@@ -371,6 +374,12 @@ def groups_integrations():
             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
             results_dict['ins'] = form_dict[results_dict['ins']]
 
+            # Log the successful form inputs
+            params['kmag'] = form.kmag.data
+            params['targname'] = form.targname.data
+            params['n_group'] = form.n_group.data
+            log_exoctk.log_form_input(params, 'groups_integrations', DB)
+
             return render_template('groups_integrations_results.html',
                                    results_dict=results_dict,
                                    one_group_error=one_group_error,
@@ -447,10 +456,7 @@ def contam_visibility():
         try:
 
             # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
-            except Exception:
-                pass
+            log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
@@ -593,6 +599,11 @@ def fortney():
                                  temp=temp_out,
                                  table_string=table_string
                                  )
+
+    # Log the form inputs
+    if len(args) > 0:
+        log_exoctk.log_form_input(args, 'fortney', DB)
+
     return html
 
 
@@ -625,6 +636,11 @@ def generic():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  )
+
+    # Log the form inputs
+    if len(args) > 0:
+        log_exoctk.log_form_input(args, 'generic', DB)
+
     return html
 
 
@@ -791,6 +807,10 @@ def phase_constraint(transit_type='primary'):
     # Extract transit type:
     transit_type = form.transit_type.data
     if form.validate_on_submit() and form.calculate_submit.data:
+
+        # Log the form inputs
+        log_exoctk.log_form_input(request.form, 'phase_constraint', DB)
+
         if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data,
