@@ -13,7 +13,7 @@ Authors
 -------
 
     Jules Fowler, April 2017
-    Matthew Bourque, November 2020
+    Matthew Bourque, February 2021
 
 Use
 ---
@@ -547,13 +547,14 @@ def set_params_from_instrument(instrument, subarray):
         The number of pixels per row.
     cols : int
         The number of columns per row.
-    amps :
-
-    pixel_size :
-
-    frame_time :
-
-    num_reset_frames :
+    amps : int
+        The number of amplifiers.
+    pixel_size : int
+        The pixel size.
+    frame_time : float
+        The frame time.
+    num_reset_frames : int
+        The number of reset frames.
     """
 
     num_reset_frames = 1
