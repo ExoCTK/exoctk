@@ -62,7 +62,7 @@ def calc_duration_time(num_groups, num_integrations, num_reset_frames, frame_tim
         Duration time (in seconds).
     """
 
-    duration_time = frame_time*(num_groups*frames_per_group + num_reset_frames)*num_integrations
+    duration_time = frame_time * (num_groups * frames_per_group + num_reset_frames) * num_integrations
 
     return duration_time
 
@@ -84,7 +84,7 @@ def calc_exposure_time(num_integrations, ramp_time):
         Exposure time (in seconds).
     """
 
-    exposure_time = num_integrations*ramp_time
+    exposure_time = num_integrations * ramp_time
 
     return exposure_time
 
@@ -116,7 +116,7 @@ def calc_frame_time(num_columns, num_rows, num_amps, instrument):
     if instrument in ['nircam', 'niriss']:
         n = 1
 
-    frame_time = (num_columns/num_amps + 12)*(num_rows + n)*(1e-5)
+    frame_time = (num_columns / num_amps + 12) * (num_rows + n) * (1e-5)
 
     return frame_time
 
@@ -139,7 +139,7 @@ def calc_groups_from_exp_time(max_exptime_per_int, frame_time):
         The required number of groups.
     """
 
-    groups = np.floor(max_exptime_per_int/frame_time)
+    groups = np.floor(max_exptime_per_int / frame_time)
 
     return groups
 
@@ -164,7 +164,7 @@ def calc_integration_time(num_groups, frame_time, frames_per_group, num_skips):
         Integration time (in seconds)
     """
 
-    integration_time = (num_groups*(frames_per_group + num_skips) - num_skips)*frame_time
+    integration_time = (num_groups * (frames_per_group + num_skips) - num_skips) * frame_time
 
     return integration_time
 
@@ -191,7 +191,7 @@ def calc_num_integrations(transit_time, num_groups, num_reset_frames, frame_time
         The required number of integraitions.
     """
 
-    num_integrations = math.ceil((float(transit_time)*3600)/(frame_time*(num_groups*frames_per_group+num_reset_frames)))
+    num_integrations = math.ceil((float(transit_time) * 3600)/(frame_time * (num_groups * frames_per_group + num_reset_frames)))
 
     return num_integrations
 
@@ -212,7 +212,7 @@ def calc_observation_efficiency(exposure_time, duration_time):
         Observation efficiency.
     """
 
-    observation_efficiency = exposure_time/duration_time
+    observation_efficiency = exposure_time / duration_time
 
     return observation_efficiency
 
@@ -235,7 +235,7 @@ def calc_ramp_time(integration_time, num_reset_frames, frame_time):
         Ramp time (in seconds).
     """
 
-    ramp_time = integration_time + (num_reset_frames - 1)*frame_time
+    ramp_time = integration_time + (num_reset_frames - 1) * frame_time
 
     return ramp_time
 
@@ -269,7 +269,7 @@ def convert_saturation(max_saturation, saturation_mode, instrument, infile, targ
     instrument_dict = data['fullwell']
 
     if saturation_mode == 'well':
-        max_saturation = float(max_saturation)*float(instrument_dict[instrument])
+        max_saturation = float(max_saturation) * float(instrument_dict[instrument])
 
     if target_acq_mode:
         max_saturation = instrument_dict[instrument]
@@ -333,7 +333,7 @@ def interpolate_from_pandeia(magnitude, instrument, filt, subarray, model, band,
     max_saturation = 10**(max_log_saturation)
 
     # Figure out what it means in wake of the given saturation lvl
-    max_exptime = float(saturation_level)/max_saturation
+    max_exptime = float(saturation_level) / max_saturation
 
     # Calculate the nearest number of groups
     num_groups = calc_groups_from_exp_time(max_exptime, frame_time)
@@ -453,7 +453,7 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
         error it will return a string error message instead
     """
 
-    ## TARGET ACQ
+    # TARGET ACQ
     ta_frame_time = set_frame_time(
         params['infile'], params['instrument'], params['subarray_ta'], target_acq_mode=True)
 
@@ -473,8 +473,7 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
 
     duration_time_ta_max = calc_duration_time(max_ta_groups, 1, 1, ta_frame_time)
 
-
-    ## Science obs
+    # Science obs
     # Figure out the rows/cols/amps/pixel_size and saturation
     instrument_params = set_params_from_instrument(params['instrument'], params['subarray'])
     frame_time = set_frame_time(params['infile'], params['instrument'], params['subarray'])
@@ -492,7 +491,7 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     else:
         params['num_groups'] = int(float(params['num_groups']))
 
-    ## Aditional helpful params
+    # Aditional helpful params
     # Calculate times/ramps/etc
     integration_time = calc_integration_time(params['num_groups'], frame_time, frames_per_group, num_skips)
     ramp_time = calc_ramp_time(integration_time, num_reset_frames, frame_time)
