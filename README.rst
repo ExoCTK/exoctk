@@ -4,6 +4,9 @@
 
 |build-status| |docs|
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg)](https://doi.org/10.5281/zenodo.4556063)
+
+
 
 Introduction
 ------------
@@ -120,7 +123,42 @@ Missing Dependencies?
 If you find that the `exoctk` `conda` is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
 
 
+Citation
+--------
+
+If you use ExoCTK for work/research presented in a publication (whether directly, or as a dependency to another package), we recommend and encourage the following acknowledgment:
+
+::
+
+  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Éspinoza et al, 2021).
+
+where (Éspinoza et al, 2021) is a citation of the Zenodo record, e.g.:
+
+::
+
+  @software{nestor_espinoza_2021_4556063,
+    author       = {Néstor Espinoza and
+                    Matthew Bourque and
+                    Joseph Filippazzo and
+                    Michael Fox and
+                    Jules Fowler and
+                    Teagan King and
+                    Catherine Martlin and
+                    Jennifer Medina and
+                    Mees Fix and
+                    Kevin Stevenson and
+                    Jeff Valenti},
+    title        = {The Exoplanet Characterization Toolkit (ExoCTK)},
+    month        = feb,
+    year         = 2021,
+    publisher    = {Zenodo},
+    version      = {1.0.0},
+    doi          = {10.5281/zenodo.4556063},
+    url          = {https://doi.org/10.5281/zenodo.4556063}
+  }
+
+
 Want to stay up-to-date with our releases and updates?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------
 
 Subscribe to our newsletter by sending an email with a blank body and subject to ``exoctk-news-subscribe-request@maillist.stsci.edu`` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.
