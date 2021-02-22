@@ -2,10 +2,18 @@
     :alt: ExoCTK Logo
     :scale: 10%
 
-|build-status| |docs|
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg)](https://doi.org/10.5281/zenodo.4556063)
-
+.. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
+    :target: https://github.com/ExoCTK/exoctk/releases/latest/
+.. image:: https://img.shields.io/pypi/l/Django.svg
+    :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
+.. image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
+    :target: https://travis-ci.org/ExoCTK/exoctk
+.. image:: https://readthedocs.org/projects/exoctk/badge/?version=latest
+    :target: https://exoctk.readthedocs.io/en/latest/?badge=latest
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg
+   :target: https://doi.org/10.5281/zenodo.4556063
+.. image:: https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat
+   :target: http://www.stsci.edu
 
 
 Introduction
