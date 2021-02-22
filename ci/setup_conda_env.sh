@@ -3,6 +3,7 @@ echo "Creating base conda environment for Python $PYTHON_VERSION"
 conda create --yes --prefix /home/travis/envs python=$PYTHON_VERSION
 conda activate /home/travis/envs
 conda install sphinx
+conda install numpy
 
 echo "Creating ExoCTK conda environment for Python $PYTHON_VERSION"
 conda env update -f "env/environment-${PYTHON_VERSION}.yml" || exit 1
