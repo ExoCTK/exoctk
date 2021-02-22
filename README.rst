@@ -1,19 +1,11 @@
 .. image:: /exoctk/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
-    :scale: 5%
+    :scale: 10%
 
-.. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
-    :target: https://github.com/ExoCTK/exoctk/releases/latest/
-.. image:: https://img.shields.io/pypi/l/Django.svg
-    :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
-.. image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
-    :target: https://travis-ci.org/ExoCTK/exoctk
-.. image:: https://readthedocs.org/projects/exoctk/badge/?version=latest
-    :target: https://exoctk.readthedocs.io/en/latest/?badge=latest
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg
-   :target: https://doi.org/10.5281/zenodo.4556063
-.. image:: https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat
-   :target: http://www.stsci.edu
+|build-status| |docs|
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg)](https://doi.org/10.5281/zenodo.4556063)
+
 
 
 Introduction
@@ -138,9 +130,9 @@ If you use ExoCTK for work/research presented in a publication (whether directly
 
 ::
 
-  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Espinoza et al, 2021).
+  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Éspinoza et al, 2021).
 
-where (Espinoza et al, 2021) is a citation of the Zenodo record, e.g.:
+where (Éspinoza et al, 2021) is a citation of the Zenodo record, e.g.:
 
 ::
 
