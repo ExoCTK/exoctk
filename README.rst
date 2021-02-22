@@ -138,9 +138,9 @@ If you use ExoCTK for work/research presented in a publication (whether directly
 
 ::
 
-  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Éspinoza et al, 2021).
+  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Espinoza et al, 2021).
 
-where (Éspinoza et al, 2021) is a citation of the Zenodo record, e.g.:
+where (Espinoza et al, 2021) is a citation of the Zenodo record, e.g.:
 
 ::
 
