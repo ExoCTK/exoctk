@@ -352,11 +352,11 @@ def groups_integrations():
                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
             if results_dict['max_ta_groups'] == -1:
                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
-                results_dict['min_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-                results_dict['max_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-            if results_dict['max_sat_prediction'] > results_dict['sat_max']:
+                results_dict['min_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+                results_dict['max_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+            if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
