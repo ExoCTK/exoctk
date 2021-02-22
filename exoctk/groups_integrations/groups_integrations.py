@@ -323,7 +323,7 @@ def interpolate_from_pandeia(magnitude, instrument, filt, subarray, model, band,
         ta_or_sci = 'ta_sat'
 
     # The data
-    magnitudes = np.array(data['magnitudes'])
+    magnitudes = np.array(data['mags'])
     saturation = data[ta_or_sci][instrument][filt][subarray][model]
     log_saturation = np.log10(saturation)
 
@@ -419,7 +419,7 @@ def min_num_groups_for_sat(magnitude, instrument, filt, subarray, model, band, i
         data = json.load(f)
 
     # Match to closest magnitude
-    magnitudes = [float(i) for i in data['magnitudes']]
+    magnitudes = [float(i) for i in data['mags']]
     closest_magnitude = min(magnitudes, key=lambda x: abs(x - float(magnitude)))
     index = magnitudes.index(closest_magnitude)
 
@@ -437,10 +437,9 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     ----------
     params : dict
         Dictionary of all the needed parameters. Must include:
-        ``observation_time``, ``num_groups``, ``magnitude``, ``model``,
-        ``band``, ``filt``, ``filt_ta``, ``instrument``, ``subarray``,
-        ``subarray_ta``, ``saturation_mode``, ``max_saturation``,
-        ``infile``
+        ``obs_time``, ``n_group``, ``mag``, ``mod``, ``band``,
+        ``filt``, ``filt_ta``, ``ins``, ``subarray``, ``subarray_ta``,
+        ``sat_mode``, ``max_sat``, ``infile``
     frames_per_group : int, optional
         The number of frames -- almost always 1
     num_skips: int, optional
@@ -455,19 +454,19 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
 
     # TARGET ACQ
     ta_frame_time = set_frame_time(
-        params['infile'], params['instrument'], params['subarray_ta'], target_acq_mode=True)
+        params['infile'], params['ins'], params['subarray_ta'], target_acq_mode=True)
 
     max_saturation_ta_level = convert_saturation(
-        params['max_saturation'], params['saturation_mode'], params['instrument'], params['infile'], target_acq_mode=True)
+        params['sat_max'], params['sat_mode'], params['ins'], params['infile'], target_acq_mode=True)
 
     max_num_groups, saturation_rate_ta = interpolate_from_pandeia(
-        params['magnitude'], params['instrument'], params['filt_ta'], params['subarray_ta'], params['model'], params['band'],
+        params['mag'], params['ins'], params['filt_ta'], params['subarray_ta'], params['mod'], params['band'],
         ta_frame_time, max_saturation_ta_level, params['infile'], target_acq_mode=True)
 
     min_num_groups = min_num_groups_for_sat(
-        params['magnitude'], params['instrument'], params['filt_ta'], params['subarray_ta'], params['model'], params['band'], params['infile'])
+        params['mag'], params['ins'], params['filt_ta'], params['subarray_ta'], params['mod'], params['band'], params['infile'])
 
-    min_ta_groups, max_ta_groups = map_to_ta_modes(params['instrument'], max_num_groups, min_num_groups)
+    min_ta_groups, max_ta_groups = map_to_ta_modes(params['ins'], max_num_groups, min_num_groups)
 
     duration_time_ta_min = calc_duration_time(min_ta_groups, 1, 1, ta_frame_time)
 
@@ -475,57 +474,57 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
 
     # Science obs
     # Figure out the rows/cols/amps/pixel_size and saturation
-    instrument_params = set_params_from_instrument(params['instrument'], params['subarray'])
-    frame_time = set_frame_time(params['infile'], params['instrument'], params['subarray'])
+    instrument_params = set_params_from_instrument(params['ins'], params['subarray'])
+    frame_time = set_frame_time(params['infile'], params['ins'], params['subarray'])
 
     # Run all the calculations
     num_rows, num_columns, num_amps, pixel_size, frame_time, num_reset_frames = instrument_params
-    params['max_saturation'] = convert_saturation(params['max_saturation'], params['saturation_mode'], params['instrument'], params['infile'])
+    params['sat_max'] = convert_saturation(params['sat_max'], params['sat_mode'], params['ins'], params['infile'])
 
     # Calculate countrate and n_groups if it isn't supplied
     num_groups, saturation_rate = interpolate_from_pandeia(
-        params['magnitude'], params['instrument'], params['filt'], params['subarray'], params['model'], params['band'],
-        frame_time, params['max_saturation'], params['infile'])
-    if str(params['num_groups']) == 'optimize':
-        params['num_groups'] = int(num_groups)
+        params['mag'], params['ins'], params['filt'], params['subarray'], params['mod'], params['band'],
+        frame_time, params['sat_max'], params['infile'])
+    if str(params['n_group']) == 'optimize':
+        params['n_group'] = int(num_groups)
     else:
-        params['num_groups'] = int(float(params['num_groups']))
+        params['n_group'] = int(float(params['n_group']))
 
     # Aditional helpful params
     # Calculate times/ramps/etc
-    integration_time = calc_integration_time(params['num_groups'], frame_time, frames_per_group, num_skips)
+    integration_time = calc_integration_time(params['n_group'], frame_time, frames_per_group, num_skips)
     ramp_time = calc_ramp_time(integration_time, num_reset_frames, frame_time)
 
     # Calculate nubmer of integrations (THE MEAT)
-    num_integrations = calc_num_integrations(params['observation_time'], params['num_groups'], num_reset_frames, frame_time, frames_per_group)
+    num_integrations = calc_num_integrations(params['obs_time'], params['n_group'], num_reset_frames, frame_time, frames_per_group)
 
     # Other things that may come in handy who knows?
     exposure_time = calc_exposure_time(num_integrations, ramp_time)
-    duration_time = calc_duration_time(params['num_groups'], num_integrations, num_reset_frames, frame_time, frames_per_group)
+    duration_time = calc_duration_time(params['n_group'], num_integrations, num_reset_frames, frame_time, frames_per_group)
     observation_efficiency = calc_observation_efficiency(exposure_time, duration_time)
 
-    # Update params with new friends
-    params['num_columns'] = num_columns
-    params['num_rows'] = num_rows
-    params['num_amps'] = num_amps
-    params['num_reset_frames'] = num_reset_frames
+    # Update params with new information
+    params['duration_time'] = round(duration_time / 3600, 3)
+    params['duration_time_ta_max'] = duration_time_ta_max
+    params['duration_time_ta_min'] = duration_time_ta_min
+    params['exposure_time'] = round(exposure_time / 3600, 3)
     params['frames_per_group'] = frames_per_group
-    params['num_skips'] = num_skips
     params['frame_time'] = round(frame_time, 3)
     params['integration_time'] = round(integration_time, 3)
-    params['ramp_time'] = round(ramp_time, 3)
-    params['num_integrations'] = num_integrations
-    params['exposure_time'] = round(exposure_time / 3600, 3)
-    params['duration_time'] = round(duration_time / 3600, 3)
-    params['observation_efficiency'] = round(observation_efficiency, 3)
-    params['ta_frame_time'] = ta_frame_time
-    params['min_ta_groups'] = int(min_ta_groups)
-    params['max_ta_groups'] = int(max_ta_groups)
-    params['duration_time_ta_min'] = duration_time_ta_min
-    params['duration_time_ta_max'] = duration_time_ta_max
-    params['max_saturation_prediction'] = round(saturation_rate * frame_time * params['num_groups'], 3)
+    params['max_saturation_prediction'] = round(saturation_rate * frame_time * params['n_group'], 3)
     params['max_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * max_ta_groups, 3)
     params['min_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * min_ta_groups, 3)
+    params['max_ta_groups'] = int(max_ta_groups)
+    params['min_ta_groups'] = int(min_ta_groups)
+    params['num_amps'] = num_amps
+    params['num_columns'] = num_columns
+    params['num_integrations'] = num_integrations
+    params['num_reset_frames'] = num_reset_frames
+    params['num_rows'] = num_rows
+    params['num_skips'] = num_skips
+    params['observation_efficiency'] = round(observation_efficiency, 3)
+    params['ramp_time'] = round(ramp_time, 3)
+    params['ta_frame_time'] = ta_frame_time
 
     return params
 
