@@ -1,6 +1,6 @@
 .. image:: /exoctk/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
-    :scale: 10%
+    :scale: 5%
 
 .. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
     :target: https://github.com/ExoCTK/exoctk/releases/latest/
