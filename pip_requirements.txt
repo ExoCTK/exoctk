@@ -15,7 +15,7 @@ flask==1.1.2
 flask_wtf==0.14.3
 gunicorn==20.0.4
 h5py==3.1.0
-ipython==7.19.0
+ipython==7.21.0
 lmfit==1.0.1
 matplotlib==3.3.3
 numpy==1.19.4
