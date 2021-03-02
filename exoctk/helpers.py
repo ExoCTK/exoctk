@@ -13,6 +13,7 @@ import astropy.constants as ac
 import astropy.units as q
 import numpy as np
 
+
 def external_files():
     """
     A snippet to propagate the external files directory
@@ -29,7 +30,8 @@ def external_files():
 
     return metadata.get('external_files')
 
-def convert_ATLAS9(filepath, destination='', template=resource_filename('ExoCTK', 'data/core/ModelGrid_tmp.fits')):
+
+def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk', 'data/core/ModelGrid_tmp.fits')):
     """
     Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
     
