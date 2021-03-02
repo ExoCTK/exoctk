@@ -8,7 +8,6 @@ cache:
 
 before_cache:
   - rm -rf $HOME/miniconda3/pkgs/cache
-  - rm -rf $HOME/miniconda3/envs/exoctk-3.6
   - rm -rf $HOME/miniconda3/envs/exoctk-3.7
 
 os:
@@ -16,7 +15,6 @@ os:
   - osx
 
 env:
-  - PYTHON_VERSION="3.6"
   - PYTHON_VERSION="3.7"
 
 before_install:
