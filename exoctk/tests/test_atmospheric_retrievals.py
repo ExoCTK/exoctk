@@ -26,7 +26,7 @@ from ..atmospheric_retrievals.aws_tools import get_config
 from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
-ON_TRAVIS = os.path.expanduser('~') in ['/Users/travis', '/home/travis']
+ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
 def initialize_platon_wrapper_object():
@@ -103,7 +103,7 @@ def test_get_config():
     assert 'ssh_file' in settings
 
 
-@pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_retrieve_emcee():
     """Test that the ``emcee`` method of ``platon_wrapper``
     produces results for a small example.
@@ -115,7 +115,7 @@ def test_retrieve_emcee():
     assert pw.result
 
 
-@pytest.mark.skipif(ON_TRAVIS, reason='Test takes too long on Travis server.  Try testing locally.')
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_retrieve_multinest():
     """Test that the ``multinest`` method of ``platon_wrapper``
     produces results for a small example.
