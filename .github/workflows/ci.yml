@@ -36,8 +36,8 @@ jobs:
           echo "Installing exoctk conda environment"
           echo " "
           cd $RUNNER_WORKSPACE/
-          cd exoctk/env/
-          $CONDA/bin/conda env update -f environment-${MAJOR}.${MINOR}.yml -n exoctk-${{ matrix.python-version }}
+          cd exoctk/
+          $CONDA/bin/conda env update -f env/environment-${MAJOR}.${MINOR}.yml -n exoctk-${{ matrix.python-version }}
 
           echo " "
           echo "Installing exoctk package"
