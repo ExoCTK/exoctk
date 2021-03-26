@@ -138,6 +138,7 @@ class ContamVisForm(BaseForm):
 
 
 class PhaseConstraint(BaseForm):
+    """Form validation for the phase-constraint tool"""
 
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
