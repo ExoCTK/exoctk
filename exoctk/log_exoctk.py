@@ -106,6 +106,12 @@ def load_db(dbpath):
     ----------
     dbpath : str
         The path to the ``.db`` database file
+
+
+    Returns
+    -------
+    cur : ``sqlite.connection.cursor`` obj
+        An SQLite3 Cursor object if dbpath is found.
     """
 
     if os.path.isfile(dbpath) or dbpath == ':memory:':
@@ -168,6 +174,12 @@ def view_log(database, table, limit=50):
         The table name
     limit : int
         The number of records to show
+
+    Returns
+    -------
+    table : ``astropy.Table`` obj
+        An astropy.table object containing the results.
+
     """
 
     if isinstance(database, str):
