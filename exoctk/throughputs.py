@@ -82,6 +82,12 @@ def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd
 def generate_JWST_throughputs(path=None, data_dir=None):
     """
     Function to generate .txt filte of all JWST filter and grism throughputs
+
+    Parameters
+    ----------
+    path: str
+        The path to the directory
+    data_dir
     """
     # Check if environment variable exists
     path = path or os.environ.get('pandeia_refdata')
