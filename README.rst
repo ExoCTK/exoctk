@@ -1,8 +1,19 @@
 .. image:: /exoctk/data/images/ExoCTK_logo.png
     :alt: ExoCTK Logo
-    :scale: 10%
+    :scale: 5%
 
-|build-status| |docs|
+.. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
+    :target: https://github.com/ExoCTK/exoctk/releases/latest/
+.. image:: https://img.shields.io/pypi/l/Django.svg
+    :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
+.. image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
+    :target: https://travis-ci.org/ExoCTK/exoctk
+.. image:: https://readthedocs.org/projects/exoctk/badge/?version=latest
+    :target: https://exoctk.readthedocs.io/en/latest/?badge=latest
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg
+   :target: https://doi.org/10.5281/zenodo.4556063
+.. image:: https://img.shields.io/badge/powered%20by-STScI-blue.svg?colorA=707170&colorB=3e8ddd&style=flat
+   :target: http://www.stsci.edu
 
 
 Introduction
@@ -70,7 +81,7 @@ Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``
   conda env create -f environment-<PYTHON_VERSION>.yml
 
 
-where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.6.yml``)
+where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.8.yml``)
 
 Lastly, one can activate the newly-created environment with:
 
@@ -78,7 +89,7 @@ Lastly, one can activate the newly-created environment with:
 
   conda activate exoctk-<PYTHON_VERSION>
 
-where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.6``)
+where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.8``)
 
 
 Package Installation
@@ -120,7 +131,42 @@ Missing Dependencies?
 If you find that the `exoctk` `conda` is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
 
 
+Citation
+--------
+
+If you use ExoCTK for work/research presented in a publication (whether directly, or as a dependency to another package), we recommend and encourage the following acknowledgment:
+
+::
+
+  This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Espinoza et al, 2021).
+
+where (Espinoza et al, 2021) is a citation of the Zenodo record, e.g.:
+
+::
+
+  @software{nestor_espinoza_2021_4556063,
+    author       = {Néstor Espinoza and
+                    Matthew Bourque and
+                    Joseph Filippazzo and
+                    Michael Fox and
+                    Jules Fowler and
+                    Teagan King and
+                    Catherine Martlin and
+                    Jennifer Medina and
+                    Mees Fix and
+                    Kevin Stevenson and
+                    Jeff Valenti},
+    title        = {The Exoplanet Characterization Toolkit (ExoCTK)},
+    month        = feb,
+    year         = 2021,
+    publisher    = {Zenodo},
+    version      = {1.0.0},
+    doi          = {10.5281/zenodo.4556063},
+    url          = {https://doi.org/10.5281/zenodo.4556063}
+  }
+
+
 Want to stay up-to-date with our releases and updates?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------
 
 Subscribe to our newsletter by sending an email with a blank body and subject to ``exoctk-news-subscribe-request@maillist.stsci.edu`` from the email you want to enroll. You should then receive a confirmation email with instructions on how to confirm your subscription, please be sure to do so within 48 hours.
