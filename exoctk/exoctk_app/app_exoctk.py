@@ -352,11 +352,11 @@ def groups_integrations():
                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
             if results_dict['max_ta_groups'] == -1:
                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
-                results_dict['min_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-                results_dict['max_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-            if results_dict['max_sat_prediction'] > results_dict['sat_max']:
+                results_dict['min_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+                results_dict['max_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+            if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
@@ -377,7 +377,7 @@ def groups_integrations():
             # Log the successful form inputs
             params['kmag'] = form.kmag.data
             params['targname'] = form.targname.data
-            params['n_group'] = form.n_group.data
+            params['num_groups'] = form.n_group.data
             log_exoctk.log_form_input(params, 'groups_integrations', DB)
 
             return render_template('groups_integrations_results.html',
