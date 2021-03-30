@@ -377,7 +377,7 @@ def groups_integrations():
             # Log the successful form inputs
             params['kmag'] = form.kmag.data
             params['targname'] = form.targname.data
-            params['n_group'] = form.n_group.data
+            params['num_groups'] = form.n_group.data
             log_exoctk.log_form_input(params, 'groups_integrations', DB)
 
             return render_template('groups_integrations_results.html',
