@@ -40,7 +40,7 @@ dependencies:
     - platon==5.1.2
     - pysiaf==0.10.0
     - pysynphot==1.0
-    - pyyaml==5.4
+    - pyyaml
     - sphinx_astropy==1.3
     - svo-filters==0.3.1
     - werkzeug==0.16.1
