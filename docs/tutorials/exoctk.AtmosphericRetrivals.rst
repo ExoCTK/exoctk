@@ -356,23 +356,23 @@ Below are instructions for installing/configuring the software environment neede
     export EXOCTK_DATA=''
 
     // Create base CONDA
-    conda create --yes -n exoctk-3.6 python=3.6 git numpy flask pytest
+    conda create --yes -n exoctk-3.8 python=3.8 git numpy flask pytest
     conda init bash
     source ~/.bashrc
-    conda activate exoctk-3.6
+    conda activate exoctk-3.8
 
     // Install ExoCTK package and conda environment
     git clone https://github.com/ExoCTK/exoctk.git
     cd exoctk/
-    conda env update -f env/environment-3.6.yml
+    conda env update -f env/environment-3.8.yml
     conda init bash
     source ~/.bashrc
-    conda activate exoctk-3.6
+    conda activate exoctk-3.8
     python setup.py develop
     cd ../
 
     // Install jwst_gtvt
-    rm -fr /home/ec2-user/miniconda3/envs/exoctk-3.6/lib/python3.6/site-packages/jwst_gtvt
+    rm -fr /home/ec2-user/miniconda3/envs/exoctk-3.8/lib/python3.8/site-packages/jwst_gtvt
     git clone https://github.com/spacetelescope/jwst_gtvt.git
     cd jwst_gtvt
     git checkout cd6bc76f66f478eafbcc71834d3e735c73e03ed5
