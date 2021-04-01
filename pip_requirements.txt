@@ -17,7 +17,7 @@ gunicorn==20.1.0
 h5py==3.2.1
 ipython==7.22.0
 lmfit==1.0.1
-matplotlib==3.3.3
+matplotlib==3.4.1
 numpy==1.19.4
 numpydoc==1.1.0
 pandas==1.2.0
