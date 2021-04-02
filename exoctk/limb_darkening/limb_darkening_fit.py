@@ -298,7 +298,7 @@ class LDC:
         for n, ldarr in enumerate(scaled_ld):
 
             # Get effective wavelength of bin
-            wave_eff = bandpass.centers[0, n].round(5)
+            wave_eff = np.mean(bandpass.wave[0])
 
             try:
 
@@ -314,8 +314,8 @@ class LDC:
                 # Check the count
                 result['name'] = name or 'Calculation {}'.format(self.count)
                 self.count += 1
-                if len(bandpass.centers[0]) == len(scaled_ld) and name is None:
-                    result['name'] = '{} {}'.format(str(round(bandpass.centers[0][n], 2)), self.model_grid.wave_units)
+                if bandpass.wave.shape[0] == len(scaled_ld) and name is None:
+                    result['name'] = '{:.3f}'.format(np.mean(bandpass.wave[0]).round(2))
 
                 # Set a color if possible
                 result['color'] = color or self.ld_color[profile]
