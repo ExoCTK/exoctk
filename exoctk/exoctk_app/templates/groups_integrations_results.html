@@ -10,7 +10,7 @@
             <p> Please know that at present this tool is likely to
             overestimate saturation on direct comparison to the ETC. (This
             means we may predict less groups -- and put you in LESS danger of
-            oversaturating your observation.)</p> 
+            oversaturating your observation.)</p>
             <div class="span200">
             <h2> Source Specifics </h2>
             <div class="span100">
@@ -33,9 +33,9 @@
 
             <h2> Target Acquisition </h2>
             <div class="span100">
-                
+
                 <h4> Input and Instrument Parameters</h4>
-            
+
                     <center>
                     <table id="myTable">
                         <tr class="header">
@@ -48,7 +48,7 @@
                             <td>{{ results_dict['ins'] }}</td>
                             <td>{{ results_dict['filt_ta'] }}</td>
                             <td>{{ results_dict['subarray_ta'] }}</td>
-                            <td>{{ results_dict['ta_t_frame'] }}</td>
+                            <td>{{ results_dict['ta_frame_time'] }}</td>
                         </tr>
                     </table>
                     </center>
@@ -57,7 +57,7 @@
             <div class="span100">
                 <h4> APT Ready Outputs and Useful Tidbits </h4>
             <b> <font color="red">{{ zero_group_error }} </font></b>
-                    
+
                     <center>
                     <table id="myTable">
                         <tr class="header">
@@ -73,22 +73,22 @@
                             <td>1 (fixed for target acquisition)</td>
                             <td>{{ results_dict['max_ta_groups'] }}</td>
                             <td>{{ results_dict['min_ta_groups'] }}</td>
-                            <td>{{ results_dict['t_duration_ta_max'] }}</td>
-                            <td>{{ results_dict['t_duration_ta_min'] }}</td>
-                            <td>{{ results_dict['max_sat_ta'] }}</td>
-                            <td>{{ results_dict['min_sat_ta'] }}</td>
+                            <td>{{ results_dict['duration_time_ta_max'] }}</td>
+                            <td>{{ results_dict['duration_time_ta_min'] }}</td>
+                            <td>{{ results_dict['max_saturation_ta'] }}</td>
+                            <td>{{ results_dict['min_saturation_ta'] }}</td>
                         </tr>
                     </table>
                     </center>
             </div>
             </div>
-            
+
             <div class="span200">
             <h2> Science Observation </h2>
-            <div class="span100">    
-            
+            <div class="span100">
+
                 <h4> Input and Instrument Parameters</h4>
-            
+
                     <center>
                     <table id="myTable">
                         <tr class="header">
@@ -103,7 +103,7 @@
                             <td>{{ results_dict['filt'] }}</td>
                             <td>{{ results_dict['subarray'] }}</td>
                             <td>{{ results_dict['sat_max']}}</td>
-                            <td>{{ results_dict['t_frame'] }}</td>
+                            <td>{{ results_dict['frame_time'] }}</td>
                         </tr>
                     </table>
                     </center>
@@ -121,23 +121,23 @@
                             <th> Photon Collection Time (hours) </th>
                             <th> Observation Duration (hours) </th>
                             <th> Observation Efficiency </th>
-                            <th> Maximum Sat Reached </th> 
+                            <th> Maximum Sat Reached </th>
                         </tr>
                         <tr>
-                            <td>{{ results_dict['n_int'] }}</td>
+                            <td>{{ results_dict['num_integrations'] }}</td>
                             <td>{{ results_dict['n_group'] }}</td>
-                            <td>{{ results_dict['t_int'] }}</td>
-                            <td>{{ results_dict['t_exp'] }}</td>
-                            <td>{{ results_dict['t_duration'] }}</td>
-                            <td>{{ results_dict['obs_eff'] }}</td>
-                            <td>{{ results_dict['max_sat_prediction'] }}</td>  
+                            <td>{{ results_dict['integration_time'] }}</td>
+                            <td>{{ results_dict['exposure_time'] }}</td>
+                            <td>{{ results_dict['duration_time'] }}</td>
+                            <td>{{ results_dict['observation_efficiency'] }}</td>
+                            <td>{{ results_dict['max_saturation_prediction'] }}</td>
                         </tr>
                     </table>
                     </center>
-            
+
             </div>
             </div>
-            
+
 
 </div>
 
