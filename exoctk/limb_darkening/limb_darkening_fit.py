@@ -294,11 +294,14 @@ class LDC:
         imu, = np.where(mu > mu_min)
         scaled_mu, scaled_ld = mu[imu], ld[:, imu]
 
+        # Get effective wavelengths
+        wave_effs = np.mean(bandpass.wave, axis=1)
+
         # Fit limb darkening coefficients for each wavelength bin
         for n, ldarr in enumerate(scaled_ld):
 
             # Get effective wavelength of bin
-            wave_eff = np.mean(bandpass.wave[0])
+            wave_eff = wave_effs[n]
 
             try:
 
@@ -315,7 +318,7 @@ class LDC:
                 result['name'] = name or 'Calculation {}'.format(self.count)
                 self.count += 1
                 if bandpass.wave.shape[0] == len(scaled_ld) and name is None:
-                    result['name'] = '{:.3f}'.format(np.mean(bandpass.wave[0]).round(2))
+                    result['name'] = '{:.3f}'.format(wave_eff)
 
                 # Set a color if possible
                 result['color'] = color or self.ld_color[profile]
