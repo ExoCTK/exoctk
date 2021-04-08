@@ -232,7 +232,7 @@ def groups_integrations():
     """The groups and integrations calculator form page"""
 
     # Print out pandeia sat values
-    with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
+    with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations.json')) as f:
         sat_data = json.load(f)['fullwell']
 
     # Load default form
@@ -333,7 +333,7 @@ def groups_integrations():
         params['n_group'] = 'optimize' if form.n_group.data == 0 else int(form.n_group.data)
 
         # Also get the data path in there
-        params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')
+        params['infile'] = resource_filename('exoctk', 'data/groups_integrations/groups_integrations.json')
 
         # Convert the obs_time to hours
         if params['time_unit'] == 'day':
