@@ -317,6 +317,7 @@ class LDC:
                 # Check the count
                 result['name'] = name or 'Calculation {}'.format(self.count)
                 self.count += 1
+
                 if bandpass.wave.shape[0] == len(scaled_ld) and name is None:
                     result['name'] = '{:.3f}'.format(wave_eff)
 
