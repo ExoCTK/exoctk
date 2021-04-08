@@ -11,6 +11,7 @@ contamVerify - The main mini tool. Outputs a .pdf file with one or more figures
 Author(s)
 ---------
 Jennifer V. Medina, 2020
+
 """
 import astropy.coordinates as crd
 import astropy.units as u

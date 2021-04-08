@@ -14,6 +14,7 @@ from . import groups_integrations
 from . import limb_darkening
 from . import phase_constraint_overlap
 from . import lightcurve_fitting
+from . import log_exoctk
 
 try:
     setup_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'setup.py')

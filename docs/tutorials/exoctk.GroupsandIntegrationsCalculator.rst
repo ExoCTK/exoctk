@@ -5,7 +5,7 @@ Groups & Integrations Calculator
 
 .. contents::
 
-This is a quick demo for the Groups and Integrations Calculator (i.e. the `exoctk.groups_integrations` subpackage). This demo can run with the `exoctk-3.6` `conda` environment and a proper installation of the `exoctk` software package and the `EXOCTK_DATA` data package.  For instructions on how to download and install these things, see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_.
+This is a quick demo for the Groups and Integrations Calculator (i.e. the `exoctk.groups_integrations` subpackage). This demo can run with the `exoctk-3.8` `conda` environment and a proper installation of the `exoctk` software package and the `EXOCTK_DATA` data package.  For instructions on how to download and install these things, see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_.
 
 The Groups and Integrations Calculator was written as an exoplanet-focused alternative to the JWST ETC (also known as `pandeia`). It's power comes from:
 
