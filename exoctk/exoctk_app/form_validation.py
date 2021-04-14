@@ -7,7 +7,7 @@ from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, Valida
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
-from exoctk.utils import get_env_variables, FILTERS, PROFILES
+from exoctk.utils import get_env_variables, FILTERS_LIST, PROFILES
 from svo_filters import svo
 
 
@@ -67,7 +67,7 @@ class LimbDarkeningForm(BaseForm):
     # Bandpass
     default_filter = 'Kepler.K'
     defilt = svo.Filter(default_filter)
-    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')]+[(filt, filt) for filt in sorted(FILTERS['Band'])], validators=[InputRequired('A filter is required!')])
+    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in FILTERS_LIST], validators=[InputRequired('A filter is required!')])
     wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
     wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
     n_bins = IntegerField('n_bins', default=1)
@@ -138,6 +138,7 @@ class ContamVisForm(BaseForm):
 
 
 class PhaseConstraint(BaseForm):
+    """Form validation for the phase-constraint tool"""
 
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
