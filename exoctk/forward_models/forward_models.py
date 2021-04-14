@@ -69,6 +69,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
     temp_out : list of str of int
         The list of temperatures in the model grid.
     """
+    utils.check_for_data('fortney')
 
     # Check for Fortney Grid database
     print(os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
@@ -205,6 +206,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     error_message : str
         An error message, or lack therof.
     """
+    utils.check_for_data('generic')
 
     # Find path to the database.
     database_path = os.path.join(get_env_variables()['exoctk_data'], 'generic/generic_grid_db.hdf5')
