@@ -1,30 +1,54 @@
+"""This module creates and manages a SQL database as a log for all jobs
+submitted via the exoctk web app.
+
+Authors
+-------
+
+    - Joe Filippazzo
+
+Use
+---
+
+    This module is intended to be imported and used within a separate
+    python environment, e.g.
+
+    ::
+
+        from exoctk import log_exoctk
+        log_exoctk.create_db()
+
+Dependencies
+------------
+
+    - ``astropy``
+    - ``numpy``
+    - ``pathlib``
+    - ``sqlite3``
 """
-This module creates and manages a SQL database as a log for all jobs submitted
-via the exoctk web app
-"""
+
 import os
-import sqlite3
 import datetime
 
 import astropy.table as at
 import numpy as np
 from pathlib import Path
+import sqlite3
 
 
 def create_db(dbpath, overwrite=True):
-    """
-    Create a new database at the given dbpath
+    """Create a new database at the given ``dbpath``
 
     Parameters
     ----------
-    dbpath: str
-        The full path for the new database, including the filename and .db
-        file extension.
-    schema: str
-        The path to the .sql schema for the database
-    overwrite: bool
+    dbpath : str
+        The full path for the new database, including the filename
+        and ``.db`` file extension.
+    schema : str
+        The path to the ``.sql`` schema for the database
+    overwrite : bool
         Overwrite dbpath if it already exists
     """
+
     if dbpath != ':memory:':
 
         # Make sure the path is valid
@@ -37,7 +61,7 @@ def create_db(dbpath, overwrite=True):
 
         # Use pathlib.Path to become compliant with bandit.
         p = Path(dbpath)
-        
+
         # Remove existing file if overwriting
         if os.path.isfile(dbpath) and overwrite:
             p.unlink()
@@ -76,14 +100,20 @@ def create_db(dbpath, overwrite=True):
 
 
 def load_db(dbpath):
-    """
-    Load a database
+    """Load a database
 
     Parameters
     ----------
-    dbpath: str
-        The path to the .db database file
+    dbpath : str
+        The path to the ``.db`` database file
+
+
+    Returns
+    -------
+    cur : ``sqlite.connection.cursor`` obj
+        An SQLite3 Cursor object if dbpath is found.
     """
+
     if os.path.isfile(dbpath) or dbpath == ':memory:':
 
         con = sqlite3.connect(dbpath, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
@@ -98,18 +128,19 @@ def load_db(dbpath):
 
 
 def log_form_input(form_dict, table, database):
-    """
-    A function to store the form inputs of any page GET requests in a database
+    """A function to store the form inputs of any page ``GET`` requests
+    in a database.
 
     Parameters
     ----------
-    form_dict: dict
+    form_dict : dict
         The dictionary of form inputs
-    table: str
+    table : str
         The table name to INSERT on
-    database: sqlite.connection.cursor
+    database : ``sqlite.connection.cursor`` obj
         The database cursor object
     """
+
     # Get the column names
     colnames = np.array(database.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
 
@@ -133,18 +164,24 @@ def log_form_input(form_dict, table, database):
 
 
 def view_log(database, table, limit=50):
-    """
-    Visually inspect the job log
+    """Visually inspect the job log.
 
     Parameters
     ----------
-    database: str, sqlite3.connection.cursor
+    database : str or ``sqlite3.connection.cursor`` obj
         The database cursor object
-    table: str
+    table : str
         The table name
-    limit: int
+    limit : int
         The number of records to show
+
+    Returns
+    -------
+    table : ``astropy.Table`` obj
+        An astropy.table object containing the results.
+
     """
+
     if isinstance(database, str):
         DB = load_db(database)
     elif isinstance(database, sqlite3.Cursor):
@@ -168,7 +205,5 @@ def view_log(database, table, limit=50):
 
 
 def scrub(table_name):
-    """
-    Snippet to prevent SQL injection attcks! PEW PEW PEW!
-    """
+    """Snippet to prevent SQL injection attcks! PEW PEW PEW!"""
     return ''.join(chr for chr in table_name if chr.isalnum())
