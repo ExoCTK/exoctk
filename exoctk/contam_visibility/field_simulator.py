@@ -13,19 +13,6 @@ from astropy.io import fits
 from exoctk.utils import get_env_variables
 from pysiaf.utils import rotations
 
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-if not EXOCTK_DATA:
-    print('WARNING: The $EXOCTK_DATA environment variable is not set. '
-          'Contamination overlap will not work. Please set the '
-          'value of this variable to point to the location of the exoctk_data '
-          'download folder.  Users may retreive this folder by clicking the '
-          '"ExoCTK Data Download" button on the ExoCTK website, or by using '
-          'the exoctk.utils.download_exoctk_data() function.'
-          )
-    TRACES_PATH = None
-else:
-    TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -762,6 +749,7 @@ def fieldSim(ra, dec, instrument, binComp='', testing=False):
     plt.plot() : matplotlib object
         A plot. Only if `testing` parameter is set to True.
     """
+    utils.check_for_data('exoctk_contam')
 
     # Calling the variables which depend on what instrument you use
     if instrument == 'NIRISS':
