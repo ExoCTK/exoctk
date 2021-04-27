@@ -25,25 +25,14 @@ paramiko==2.7.2
 platon==5.1.2
 pysiaf==0.10.0
 pysynphot==1.0.0
-<<<<<<< HEAD
-pytest==6.1.2
-PyYAML>=5.4
-scipy>=1.5.3
-=======
 pytest==6.2.2
 pyyaml==5.4.1
 scipy==1.6.1
->>>>>>> 1da42a8d4afb405fa0731e26c443a28e4a41015e
 scp==0.13.3
 sphinx==3.5.1
 sphinx_astropy==1.3
 sphinx-automodapi==0.13
-<<<<<<< HEAD
-sqlalchemy==1.3.20
-svo_filters==0.3.0
-=======
 sqlalchemy==1.3.23
-svo_filters==0.2.16
->>>>>>> 1da42a8d4afb405fa0731e26c443a28e4a41015e
+svo_filters==0.4.1
 wtforms==2.3.3
 git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
