@@ -10,8 +10,9 @@ from astroquery.irsa import Irsa
 from matplotlib import cm
 from scipy.io import readsav
 from astropy.io import fits
-from exoctk.utils import get_env_variables
+from exoctk.utils import get_env_variables, check_for_data
 from pysiaf.utils import rotations
+
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if not EXOCTK_DATA:
@@ -220,19 +221,21 @@ def sossFieldSim_old(ra, dec, binComp='', dimX=256):
                          x0:x0 + mx1 - mx0] += mod * fluxscale
     return simuCube
 
-def allFieldSim(ra, dec, aperture, binComp='')):
-    """ Produce a Grism Time Series field simulation for a target.
+def allFieldSim(ra, dec, aperture, binComp='', verbose=False):
+    """ Produce a contamination field simulation at the given sky coordinates
+
     Parameters
     ----------
     ra : float
-        The RA of the target.
+        The RA of the target
     dec : float
-        The Dec of the target.
-    filter : str
-        The NIRCam filter being used. Can either be:
-        'F444W' or 'F322W2' (case-sensitive)
+        The Dec of the target
+    aperture: str
+        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2', 'MIRI_SLITLESSPRISM']
     binComp : sequence
-        The parameters of a binary companion.
+        The parameters of a binary companion
+    verbose: bool
+        Print statements
 
     Returns
     -------
@@ -241,29 +244,20 @@ def allFieldSim(ra, dec, aperture, binComp='')):
         the target for orders 1 and 2 (respectively). Index 2-362 show the trace
         of the target at every position angle (PA) of the instrument.
     """
-    valid_apertures = {'NIS_SUBSTRIP96': 'NIRISS', 'NIS_SUBSTRIP256': 'NIRISS', 'NRCA5_GRISM256_F444W': 'NIRCam', 'NRCA5_GRISM256_F322W2': 'NIRCam', 'MIRI_SLITLESSPRISM': 'MIRI']
+    # Aperture names
+    valid_apertures = {'NIS_SUBSTRIP96': 'NIRISS', 'NIS_SUBSTRIP256': 'NIRISS', 'NRCA5_GRISM256_F444W': 'NIRCam', 'NRCA5_GRISM256_F322W2': 'NIRCam', 'MIRI_SLITLESSPRISM': 'MIRI'}
+    full_apertures = {'NIRISS': 'NIS_SOSSFULL', 'NIRCam': 'NRCA5_FULL', 'MIRI': 'MIRIM_FULL'}
 
     if aperture not in valid_apertures:
         raise ValueError("{}: Not a supported aperture. Try {}".format(aperture, valid_apertures.keys()))
 
     # Instantiate a pySIAF object
-    siaf = pysiaf.Siaf(valid_apertures[aperture])
+    instrument = valid_apertures[aperture]
+    siaf = pysiaf.Siaf(instrument)
 
     # Get the full and subarray apertures
-    full = siaf.apertures['NRCA5_FULL']
+    full = siaf.apertures[full_apertures[instrument]]
     aper = siaf.apertures[aperture]
-
-    # TODO: Left off here.
-
-
-
-
-
-
-    if filter == 'F444W':
-        aper = siaf.apertures['NRCA5_GRISM256_F444W']
-    elif filter == 'F322W2':
-        aper = siaf.apertures['NRCA5_GRISM256_F322W2']
 
     # Calling the variables
     deg2rad = np.pi / 180
@@ -272,14 +266,20 @@ def allFieldSim(ra, dec, aperture, binComp='')):
     pixel_scale = 0.063  # arsec/pixel
     V3PAs = np.arange(0, 360, 1)
     nPA = len(V3PAs)
+
     # Generate cube of field simulation at every degree of APA rotation
     simuCube = np.zeros([nPA + 1, subY, subX])
     xSweet, ySweet = aper.reference_point('det')
     add_to_v3pa = aper.V3IdlYAngle
-    # NIRCam Full Frame dimensions
+
+    # Full Frame dimensions
     rows, cols = full.corners('det')
     minrow, maxrow = rows.min(), rows.max()
     mincol, maxcol = cols.min(), cols.max()
+
+    # Determine the traces for the given instrument
+    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam', aperture)
+    trace_files = np.sort(glob.glob(traces_path))
 
     #############################STEP 1#####################################
     ########################################################################
@@ -289,8 +289,7 @@ def allFieldSim(ra, dec, aperture, binComp='')):
     targetDEC = targetcrd.dec.value
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone',
-                             radius=rad * u.arcmin)
+    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=rad * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -302,6 +301,7 @@ def allFieldSim(ra, dec, aperture, binComp='')):
 
     #############################STEP 2#####################################
     ########################################################################
+
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
@@ -313,8 +313,7 @@ def allFieldSim(ra, dec, aperture, binComp='')):
     targetIndex = np.argmin(distance)
 
     # Restoring model parameters
-    modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
-                         verbose=False)
+    modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'), verbose=False)
     models = modelParam['models']
     modelPadX = modelParam['modelpadx']
     modelPadY = modelParam['modelpady']
@@ -326,10 +325,12 @@ def allFieldSim(ra, dec, aperture, binComp='')):
 
     #############################STEP 3#####################################
     ########################################################################
+
     # JHK bands of all stars in FOV, including target
     Jmag = info['j_m'].data.data
     Hmag = info['h_m'].data.data
     Kmag = info['k_m'].data.data
+
     # J-H band, H-K band. This will be used to derive the Teff
     J_Hobs = Jmag - Hmag
     H_Kobs = Hmag - Kmag
@@ -361,6 +362,7 @@ def allFieldSim(ra, dec, aperture, binComp='')):
 
     #############################STEP 4#####################################
     ########################################################################
+
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
 
@@ -372,18 +374,19 @@ def allFieldSim(ra, dec, aperture, binComp='')):
         elif APA < 0:
             APA = APA+360
 
-        print('Generating field at APA : {}'.format(str(APA)))
+        if verbose:
+            print('Generating field at APA : {}'.format(str(APA)))
 
         # Get target's attitude matrix for each Position Angle
-        attitude = rotations.attitude_matrix(v2targ, v3targ,
-                                             targetRA, targetDEC,
-                                             APA)
+        attitude = rotations.attitude_matrix(v2targ, v3targ, targetRA, targetDEC, APA)
 
         xdet, ydet = [], []
         xsci, ysci = [], []
         for starRA, starDEC in zip(stars['RA'], stars['DEC']):
+
             # Get the TEL coordinates of each star w attitude matrix
             V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
+
             # Convert to arcsec and turn to a float
             V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
 
@@ -404,6 +407,7 @@ def allFieldSim(ra, dec, aperture, binComp='')):
 
     #############################STEP 5#####################################
     ########################################################################
+
         inFOV = []
         for star in range(0, nStars):
 
@@ -415,13 +419,6 @@ def allFieldSim(ra, dec, aperture, binComp='')):
 
     #############################STEP 6#####################################
     ########################################################################
-        nircam_path = 'NIRCam_F444W' if filter == 'F444W' else 'NIRCam_F322W2'
-        fitsFiles = glob.glob(
-            os.path.join(
-                TRACES_PATH,
-                nircam_path,
-                'rot*.fits'))
-        fitsFiles = np.sort(fitsFiles)
 
         for idx in inFOV:
 
@@ -429,16 +426,14 @@ def allFieldSim(ra, dec, aperture, binComp='')):
             sci_dy = round(sci_targy - stars['ysci'][idx])
             temp = stars['Temp'][idx]
 
-            for file in fitsFiles:
+            for file in trace_files:
                 if str(temp) in file:
                     trace = fits.getdata(file, 1)[0]
 
-            fluxscale = 10.0**(-0.4 * \
-                               (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
+            fluxscale = 10.0**(-0.4 * (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
 
             # Padding array
-            pad_trace = np.pad(trace, pad_width=5000, mode='constant',
-                               constant_values=0)
+            pad_trace = np.pad(trace, pad_width=5000, mode='constant', constant_values=0)
 
             # Determine the highest pixel value of trace
             maxY, maxX = np.where(pad_trace == pad_trace.max())
