@@ -140,11 +140,10 @@ def log_form_input(form_dict, table, database):
     database : ``sqlite.connection.cursor`` obj
         The database cursor object
     """
-
-    # Get the column names
-    colnames = np.array(database.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
-
     try:
+
+        # Get the column names
+        colnames = np.array(database.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
 
         # Convert hyphens to underscores and leading numerics to letters for db column names
         inpt = {k.replace('-', '_').replace('3', 'three').replace('4', 'four'): v for k, v in form_dict.items()}
@@ -158,7 +157,7 @@ def log_form_input(form_dict, table, database):
         qry = "Insert Into {} ({}) Values ({})".format(table, ', '.join(cols), ', '.join('?' * len(cols)))
         database.execute(qry, vals)
 
-    except IOError:#Exception as e:
+    except Exception as e:
         print('Could not log form submission.')
         print(e)
 
