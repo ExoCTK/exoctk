@@ -27,21 +27,38 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 
 # Supported filters
 FILTERS = svo.filters()
-NON_JWST = [row['Band'] for row in FILTERS if row['Instrument'] not in ['NIRISS', 'NIRCam', 'NIRSpec', 'MIRI']]
+NON_JWST = [filt for filt in FILTERS if not filt.startswith('NIRISS') and not filt.startswith('NIRCam') and not filt.startswith('NIRSpec') and not filt.startswith('MIRI')]
 FILTERS_LIST = sorted(NON_JWST + JWST_THROUGHPUTS)
 
-# Get the location of EXOCTK_DATA environvment variable and check that it is valid
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+DATA_URLS = {
+    'exoctk_contam': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz'],
+    'groups_integrations': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz'],
+    'fortney': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz'],
+    'generic': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz'],
+    'exoctk_log': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz'],
+    'modelgrid': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
+                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
+                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz'],
+    'all': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz']
+    }
 
 # If the variable is blank or doesn't exist
 HOME_DIR = os.path.expanduser('~')
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA', os.path.join(HOME_DIR, 'exoctk_data'))
 ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
 if not ON_TRAVIS_OR_RTD:
     if not EXOCTK_DATA:
         print(
             'WARNING: The $EXOCTK_DATA environment variable is not set.  Please set the '
             'value of this variable to point to the location of the exoctk_data '
-            'download folder.  Users may retreive this folder by clicking the '
+            'download folder.  Users may retrieve this folder by clicking the '
             '"ExoCTK Data Download" button on the ExoCTK website, or by using '
             'the exoctk.utils.download_exoctk_data() function.')
     else:
@@ -52,13 +69,9 @@ if not ON_TRAVIS_OR_RTD:
                 'cannot be accessed.')
 
         # If the variable exists, points to a real location, but is missing contents
-        for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
+        for item in DATA_URLS.keys():
             if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
-                print(
-                    'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
-                    'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Download" '
-                    'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
-                    'function'.format(item, EXOCTK_DATA))
+                os.makedirs(os.path.join(EXOCTK_DATA, item))
 
         EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
         EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
@@ -68,38 +81,57 @@ if not ON_TRAVIS_OR_RTD:
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 
 
-def download_exoctk_data(download_location=os.path.expanduser('~')):
+def check_for_data(tool):
+    """Checks to see if the necessary data has been downloaded for the given tool
+
+    Parameters
+    ----------
+    tool: str
+        The tool to check for
+    """
+    # Validate tool
+    if tool not in DATA_URLS:
+        raise ValueError("'{}' not a supported tool. Try {}".format(tool, list(DATA_URLS.keys())))
+
+    # Make a path and glob the files
+    path = os.path.join(EXOCTK_DATA, tool)
+    files = glob.glob(os.path.join(path, '*'))
+    print(path, files)
+
+    if len(files) == 0:
+        raise IOError("This tool requires the '{0}' data. Try downloading with exoctk.utils.download_exoctk_data('{0}')".format(tool))
+
+
+def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
     """Retrieves the ``exoctk_data`` materials from Box, downloads them
     to the user's local machine, uncompresses the files, and arranges
     them into an ``exoctk_data`` directory.
 
     Parameters
     ----------
-    download_location : string
+    tool: str
+        The ExoCTK tool data to download
+    exoctk_data_dir : string
         The path to where the ExoCTK data package will be downloaded.
         The default setting is the user's $HOME directory.
     """
+    # Validate tool
+    if tool not in DATA_URLS:
+        raise ValueError("'{}' not a supported tool. Try {}".format(tool, list(DATA_URLS.keys())))
 
     print('\nDownloading ExoCTK data package.  This may take a few minutes.')
-    print('Materials will be downloaded to {}/exoctk_data/\n'.format(download_location))
+    print('Materials will be downloaded to {}/\n'.format(exoctk_data_dir))
 
     # Ensure the exoctk_data/ directory exists in user's home directory
-    exoctk_data_dir = os.path.join(download_location, 'exoctk_data')
     try:
         if not os.path.exists(exoctk_data_dir):
             os.makedirs(exoctk_data_dir)
     except PermissionError:
-        print('Data download failed.  Unable to create {}.  Please check permissions.')
+        print('Data download failed.  Unable to create {}.  Please check permissions.'.format(exoctk_data_dir))
 
-    # URLs to download contents
-    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz']
+    # Select the URLs and always include the log files
+    urls = DATA_URLS[tool]
+    urls += DATA_URLS['exoctk_log']
 
     # Build landing paths for downloads
     download_paths = [os.path.join(exoctk_data_dir, os.path.basename(url)) for url in urls]
@@ -141,9 +173,11 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
             shutil.move(src, dst)
         except shutil.Error:
             print('Unable to organize modelgrid/ directory')
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ATLAS9'))
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_1'))
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_2'))
+
+    for dir in ['modelgrid.ATLAS9', 'modelgrid.ACES_1', 'modelgrid.ACES_2']:
+        path = os.path.join(exoctk_data_dir, dir)
+        if os.path.exists(path):
+            shutil.rmtree(path)
 
     print('Completed!')
 
