@@ -9,11 +9,11 @@ dependencies:
   - cython=0.29.22
   - docopt=0.6.2
   - docutils=0.16
-  - flake8=3.8.4
+  - flake8=3.9.0
   - flask=1.1.2
-  - gunicorn=20.0.4
+  - gunicorn=20.1.0
   - h5py=2.10.0
-  - ipython=7.21.0
+  - ipython=7.22.0
   - jupyter=1.0.0
   - matplotlib=3.1.3
   - numpy=1.19.2
@@ -21,23 +21,21 @@ dependencies:
   - pandas=1.2.3
   - paramiko=2.7.2
   - pip=20.3.3
-  - pytest=6.2.2
+  - pytest=6.2.3
   - python=3.7.1
   - pyyaml
-  - scipy=1.6.1
+  - scipy=1.6.2
   - scp=0.13.3
   - sphinx=3.5.1
   - sqlalchemy=1.3.23
   - wtforms=2.3.3
   - pip:
     - asteval==0.9.16
-    - astroquery==0.4.1
-    - git+https://github.com/astropy/astroquery.git@3d73db4b95b2b1b374539f8d06ce6448338a3f2d
     - awscli
     - bandit==1.7.0
     - batman-package==2.4.6
     - bibtexparser==1.2.0
-    - corner==2.1.0
+    - corner==2.2.1
     - flask_wtf==0.14.3
     - lmfit==1.0.1
     - platon==5.1.2
@@ -48,3 +46,4 @@ dependencies:
     - svo-filters==0.4.1
     - werkzeug==0.16.1
     - git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
+    - git+https://github.com/astropy/astroquery.git@ccc96185beeff86f3a12a31a00a801afcebe1dbe
