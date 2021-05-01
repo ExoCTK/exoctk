@@ -27,7 +27,7 @@ pysiaf==0.10.0
 pysynphot==1.0.0
 pytest==6.2.3
 pyyaml==5.4.1
-scipy==1.6.0
+scipy==1.6.3
 scp==0.13.3
 sphinx==3.4.1
 sphinx_astropy==1.3
