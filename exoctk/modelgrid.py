@@ -26,6 +26,8 @@ from . import utils
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=FutureWarning)
 
+ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
+
 
 class ModelGrid(object):
     """
@@ -77,7 +79,9 @@ class ModelGrid(object):
             of the grid spectra
         wave_units: astropy.units.quantity
         """
-        utils.check_for_data('modelgrid')
+
+        if NOT ON_GITHUB_ACTIONS:
+            utils.check_for_data('modelgrid')
 
         # Make sure we can use glob if a directory
         # is given without a wildcard
