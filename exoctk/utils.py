@@ -221,6 +221,37 @@ def color_gen(colormap='viridis', key=None, n=10):
 COLORS = color_gen('Category10')
 
 
+def fill_between(fig, xdata, ymin, ymax, **kwargs):
+    """Function to emulate matplotlib fill_between in bokeh
+
+    Parameters
+    ----------
+    fig: bokeh.plotting.figure
+        The figure to draw on
+    xdata: sequence
+        The x-axis data
+    ymin: int
+        The lower y-bound
+    ymax: int
+        The upper y-bound
+
+    Returns
+    -------
+    bokeh.plotting.figure
+        The figure
+    """
+    nanbot = np.where([np.isnan(i) for i in ymin])[0]
+    nantop = np.where([np.isnan(i) for i in ymax])[0]
+    yb = np.split(ymin, nanbot)
+    xs = np.split(xdata, nanbot)
+    yt = np.split(ymax, nantop)
+    for x, bot, top in zip(xs, yb, yt):
+        x = np.append(x, x[::-1])
+        y = np.append(bot, top[::-1])
+        fig.patch(x, y, **kwargs)
+    return fig
+
+
 def interp_flux(mu, flux, params, values):
     """
     Interpolate a cube of synthetic spectra for a
