@@ -52,8 +52,8 @@ DATA_URLS = {
 # If the variable is blank or doesn't exist
 HOME_DIR = os.path.expanduser('~')
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA', os.path.join(HOME_DIR, 'exoctk_data'))
-ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
-if not ON_TRAVIS_OR_RTD:
+ON_GITHUB_ACTIONS_OR_RTD = HOME_DIR == '/home/runner' or HOME_DIR == '/Users/runner' or HOME_DIR == '/home/docs'
+if not ON_GITHUB_ACTIONS_OR_RTD:
     if not EXOCTK_DATA:
         print(
             'WARNING: The $EXOCTK_DATA environment variable is not set.  Please set the '
@@ -656,8 +656,8 @@ def get_env_variables():
     env_variables['exoctk_data'] = os.environ.get('EXOCTK_DATA')
 
     # If the variable is blank or doesn't exist
-    ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
-    if not ON_TRAVIS:
+    ON_GITHUB_ACTIONS = os.path.expanduser('~') == '/home/runner' or os.path.expanduser('~') == '/Users/runner'
+    if not ON_GITHUB_ACTIONS:
         if not env_variables['exoctk_data']:
             raise ValueError(
                 'The $EXOCTK_DATA environment variable is not set.  Please set the '
