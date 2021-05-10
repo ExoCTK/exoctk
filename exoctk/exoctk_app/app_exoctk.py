@@ -58,13 +58,27 @@ except IOError:
 @app_exoctk.route('/')
 @app_exoctk.route('/index')
 def index():
-    """The Index page"""
+    """Returns the rendered index page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the index page.
+    
+    """
     return render_template('index.html')
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
-    """The limb darkening form page. """
+    """Returns the rendered limb darkening form page. 
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the limb-darkening page.    
+
+    """
     # Load default form
     form = fv.LimbDarkeningForm()
 
@@ -222,14 +236,27 @@ def limb_darkening():
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
 def limb_darkening_error():
-    """The limb darkening error page"""
+    """The limb darkening error page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the limb-darkening error page.
+
+    """
 
     return render_template('limb_darkening_error.html')
 
 
 @app_exoctk.route('/groups_integrations', methods=['GET', 'POST'])
 def groups_integrations():
-    """The groups and integrations calculator form page"""
+    """The groups and integrations calculator form page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the Groups & Integrations calculator page.    
+    """
 
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
@@ -394,7 +421,14 @@ def groups_integrations():
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
-    """The contamination and visibility form page"""
+    """The contamination and visibility form page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the contamination and visibility page.
+
+    """
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
@@ -515,7 +549,14 @@ def contam_visibility():
 
 @app_exoctk.route('/visib_result', methods=['POST'])
 def save_visib_result():
-    """Save the results of the Visibility Only calculation"""
+    """Save the results of the Visibility Only calculation
+    
+    Returns
+    -------
+    ``flask.Response`` obj
+        flask.Response object with the results of the visibility only calculation.
+
+    """
 
     visib_table = flask.request.form['data_file']
     targname = flask.request.form['targetname']
@@ -527,7 +568,13 @@ def save_visib_result():
 
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
-    """Save the results of the Contamination Science FOV """
+    """Save the results of the Contamination Science FOV 
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template (and attachment) for the Contamination FOV.
+    """
 
     RA, DEC = '19:50:50.2400', '+48:04:51.00'
     contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1,2], binComp=[], PDF='', web=True)
@@ -542,7 +589,14 @@ def save_contam_pdf():
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
-    """Save results to file"""
+    """Save results to file
+    
+    Returns
+    -------
+    ``flask.make_response`` obj
+        Returns response including results in txt form.
+
+    """
 
     file_as_string = eval(request.form['file_as_string'])
 
@@ -553,7 +607,13 @@ def exoctk_savefile():
 
 
 def _param_fort_validation(args):
-    """Validates the input parameters for the forward models"""
+    """Validates the input parameters for the forward models
+    
+    Returns
+    -------
+    input_args : dict
+        Dictionary with the input parameters for the forward models.
+    """
 
     temp = args.get('ptemp', 1000)
     chem = args.get('pchem', 'noTiO')
@@ -576,6 +636,12 @@ def _param_fort_validation(args):
 def fortney():
     """
     Pull up Forntey Grid plot the results and download
+
+    Returns
+    -------
+    html : ``flask.render_template`` obj
+        The rendered template for the Fortney results.
+
     """
 
     # Grab the inputs arguments from the URL
@@ -611,6 +677,12 @@ def fortney():
 def generic():
     """
     Pull up Generic Grid plot the results and download
+
+    Returns
+    -------
+    html: ``flask.render_template`` obj
+        The rendered template for the generic grid page.
+
     """
 
     # Grab the inputs arguments from the URL
@@ -646,7 +718,7 @@ def generic():
 
 @app_exoctk.route('/fortney_result', methods=['POST'])
 def save_fortney_result():
-    """SAve the results of the Fortney grid"""
+    """Save the results of the Fortney grid"""
 
     table_string = flask.request.form['data_file']
     return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
@@ -724,7 +796,14 @@ def requires_auth(page):
 @app_exoctk.route('/admin')
 @requires_auth
 def secret_page():
-    """Shhhhh! This is a secret page of admin stuff"""
+    """Shhhhh! This is a secret page of admin stuff
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the admin page.
+
+    """
 
     tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
 
@@ -765,6 +844,13 @@ def atmospheric_retrievals():
 
 @app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
 def phase_constraint(transit_type='primary'):
+    """Render page for the phase-constraint calculator
+
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the phase-constraint calculator.
+    """
     # Load default form
     form = fv.PhaseConstraint()
 

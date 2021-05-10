@@ -77,6 +77,8 @@ class ModelGrid(object):
             of the grid spectra
         wave_units: astropy.units.quantity
         """
+        utils.check_for_data('modelgrid')
+
         # Make sure we can use glob if a directory
         # is given without a wildcard
         if '*' not in model_directory:
