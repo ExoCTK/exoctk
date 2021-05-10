@@ -29,6 +29,8 @@ jobs:
           echo " "
           export PYTHONVERSION=${{ matrix.python-version }}
           echo "PYTHONVERSION: $PYTHONVERSION"
+          ls $RUNNER_WORKSPACE/exoctk/exoctk/data/
+          export EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/
 
           echo " "
           echo "Installing exoctk conda environment"
