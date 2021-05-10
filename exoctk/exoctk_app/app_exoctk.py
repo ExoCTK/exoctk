@@ -1,15 +1,14 @@
 from functools import wraps
 import os
 import json
+import io
 from pkg_resources import resource_filename
 
 from astropy.coordinates import SkyCoord
-from astropy.extern.six.moves import StringIO
 import astropy.table as at
 from astropy.time import Time
 import astropy.units as u
 from bokeh.resources import INLINE
-from bokeh.util.string import encode_utf8
 from bokeh.embed import components
 import flask
 from flask import Flask, Response, send_from_directory
@@ -27,10 +26,11 @@ from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
+from exoctk import log_exoctk
+from exoctk.throughputs import Throughput
 
 from matplotlib.backends.backend_pdf import PdfPages
 
-import log_exoctk
 from svo_filters import svo
 
 # FLASK SET UP
@@ -58,13 +58,27 @@ except IOError:
 @app_exoctk.route('/')
 @app_exoctk.route('/index')
 def index():
-    """The Index page"""
+    """Returns the rendered index page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the index page.
+    
+    """
     return render_template('index.html')
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
 def limb_darkening():
-    """The limb darkening form page. """
+    """Returns the rendered limb darkening form page. 
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the limb-darkening page.    
+
+    """
     # Load default form
     form = fv.LimbDarkeningForm()
 
@@ -103,7 +117,7 @@ def limb_darkening():
             kwargs['wave_max'] = 2 * u.um
 
         # Get the filter
-        bandpass = svo.Filter(form.bandpass.data, **kwargs)
+        bandpass = Throughput(form.bandpass.data, **kwargs)
 
         # Update the form data
         form.wave_min.data = bandpass.wave_min.value
@@ -138,14 +152,11 @@ def limb_darkening():
     # Validate form and submit for results
     if form.validate_on_submit() and form.calculate_submit.data:
 
+        # Form inputs for logging
+        form_input = dict(request.form)
+
         # Get the stellar parameters
         star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
-
-        # Log the form inputs
-        try:
-            log_exoctk.log_form_input(request.form, 'limb_darkening', DB)
-        except Exception:
-            pass
 
         # Load the model grid
         model_grid = ModelGrid(form.modeldir.data, resolution=500)
@@ -155,8 +166,7 @@ def limb_darkening():
         kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
 
         # Make filter object and plot
-        bandpass = svo.Filter(form.bandpass.data, **kwargs)
-        # bp_name = bandpass.name
+        bandpass = Throughput(form.bandpass.data, **kwargs)
         bk_plot = bandpass.plot(draw=False)
         bk_plot.plot_width = 580
         bk_plot.plot_height = 280
@@ -209,6 +219,12 @@ def limb_darkening():
 
             profile_tables.append(html_table)
 
+            # Add the profile to the form inputs
+            form_input[profile] = 'true'
+
+        # Log the successful form inputs
+        log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
+
         return render_template('limb_darkening_results.html', form=form,
                                table=profile_tables, script=script, plot=div,
                                file_as_string=repr(file_as_string),
@@ -220,14 +236,27 @@ def limb_darkening():
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
 def limb_darkening_error():
-    """The limb darkening error page"""
+    """The limb darkening error page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the limb-darkening error page.
+
+    """
 
     return render_template('limb_darkening_error.html')
 
 
 @app_exoctk.route('/groups_integrations', methods=['GET', 'POST'])
 def groups_integrations():
-    """The groups and integrations calculator form page"""
+    """The groups and integrations calculator form page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the Groups & Integrations calculator page.    
+    """
 
     # Print out pandeia sat values
     with open(resource_filename('exoctk', 'data/groups_integrations/groups_integrations_input_data.json')) as f:
@@ -350,11 +379,11 @@ def groups_integrations():
                 zero_group_error = 'Be careful! This oversaturated the TA in the minimum groups. Consider a different TA setup.'
             if results_dict['max_ta_groups'] == -1:
                 zero_group_error = 'This object is too faint to reach the required TA SNR in this filter. Consider a different TA setup.'
-                results_dict['min_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-                results_dict['max_sat_ta'] = 0
-                results_dict['t_duration_ta_max'] = 0
-            if results_dict['max_sat_prediction'] > results_dict['sat_max']:
+                results_dict['min_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+                results_dict['max_saturation_ta'] = 0
+                results_dict['duration_time_ta_max'] = 0
+            if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
@@ -372,6 +401,12 @@ def groups_integrations():
             form_dict = {'miri': 'MIRI', 'nircam': 'NIRCam', 'nirspec': 'NIRSpec', 'niriss': 'NIRISS'}
             results_dict['ins'] = form_dict[results_dict['ins']]
 
+            # Log the successful form inputs
+            params['kmag'] = form.kmag.data
+            params['targname'] = form.targname.data
+            params['num_groups'] = form.n_group.data
+            log_exoctk.log_form_input(params, 'groups_integrations', DB)
+
             return render_template('groups_integrations_results.html',
                                    results_dict=results_dict,
                                    one_group_error=one_group_error,
@@ -386,7 +421,14 @@ def groups_integrations():
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
-    """The contamination and visibility form page"""
+    """The contamination and visibility form page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the contamination and visibility page.
+
+    """
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
@@ -448,10 +490,7 @@ def contam_visibility():
         try:
 
             # Log the form inputs
-            try:
-                log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
-            except Exception:
-                pass
+            log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
@@ -461,7 +500,7 @@ def contam_visibility():
                                                                     targetName=str(title))
 
             # Make output table
-            fh = StringIO()
+            fh = io.StringIO()
             table.write(fh, format='csv', delimiter=',')
             visib_table = fh.getvalue()
 
@@ -510,7 +549,14 @@ def contam_visibility():
 
 @app_exoctk.route('/visib_result', methods=['POST'])
 def save_visib_result():
-    """Save the results of the Visibility Only calculation"""
+    """Save the results of the Visibility Only calculation
+    
+    Returns
+    -------
+    ``flask.Response`` obj
+        flask.Response object with the results of the visibility only calculation.
+
+    """
 
     visib_table = flask.request.form['data_file']
     targname = flask.request.form['targetname']
@@ -522,7 +568,13 @@ def save_visib_result():
 
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
-    """Save the results of the Contamination Science FOV """
+    """Save the results of the Contamination Science FOV 
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template (and attachment) for the Contamination FOV.
+    """
 
     RA, DEC = '19:50:50.2400', '+48:04:51.00'
     contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1,2], binComp=[], PDF='', web=True)
@@ -537,7 +589,14 @@ def save_contam_pdf():
 
 @app_exoctk.route('/download', methods=['POST'])
 def exoctk_savefile():
-    """Save results to file"""
+    """Save results to file
+    
+    Returns
+    -------
+    ``flask.make_response`` obj
+        Returns response including results in txt form.
+
+    """
 
     file_as_string = eval(request.form['file_as_string'])
 
@@ -548,7 +607,13 @@ def exoctk_savefile():
 
 
 def _param_fort_validation(args):
-    """Validates the input parameters for the forward models"""
+    """Validates the input parameters for the forward models
+    
+    Returns
+    -------
+    input_args : dict
+        Dictionary with the input parameters for the forward models.
+    """
 
     temp = args.get('ptemp', 1000)
     chem = args.get('pchem', 'noTiO')
@@ -571,6 +636,12 @@ def _param_fort_validation(args):
 def fortney():
     """
     Pull up Forntey Grid plot the results and download
+
+    Returns
+    -------
+    html : ``flask.render_template`` obj
+        The rendered template for the Fortney results.
+
     """
 
     # Grab the inputs arguments from the URL
@@ -594,13 +665,24 @@ def fortney():
                                  temp=temp_out,
                                  table_string=table_string
                                  )
-    return encode_utf8(html)
+
+    # Log the form inputs
+    if len(args) > 0:
+        log_exoctk.log_form_input(args, 'fortney', DB)
+
+    return html
 
 
 @app_exoctk.route('/generic', methods=['GET', 'POST'])
 def generic():
     """
     Pull up Generic Grid plot the results and download
+
+    Returns
+    -------
+    html: ``flask.render_template`` obj
+        The rendered template for the generic grid page.
+
     """
 
     # Grab the inputs arguments from the URL
@@ -626,12 +708,17 @@ def generic():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  )
-    return encode_utf8(html)
+
+    # Log the form inputs
+    if len(args) > 0:
+        log_exoctk.log_form_input(args, 'generic', DB)
+
+    return html
 
 
 @app_exoctk.route('/fortney_result', methods=['POST'])
 def save_fortney_result():
-    """SAve the results of the Fortney grid"""
+    """Save the results of the Fortney grid"""
 
     table_string = flask.request.form['data_file']
     return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
@@ -709,7 +796,14 @@ def requires_auth(page):
 @app_exoctk.route('/admin')
 @requires_auth
 def secret_page():
-    """Shhhhh! This is a secret page of admin stuff"""
+    """Shhhhh! This is a secret page of admin stuff
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the admin page.
+
+    """
 
     tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
 
@@ -750,6 +844,13 @@ def atmospheric_retrievals():
 
 @app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
 def phase_constraint(transit_type='primary'):
+    """Render page for the phase-constraint calculator
+
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the phase-constraint calculator.
+    """
     # Load default form
     form = fv.PhaseConstraint()
 
@@ -792,6 +893,10 @@ def phase_constraint(transit_type='primary'):
     # Extract transit type:
     transit_type = form.transit_type.data
     if form.validate_on_submit() and form.calculate_submit.data:
+
+        # Log the form inputs
+        log_exoctk.log_form_input(request.form, 'phase_constraint', DB)
+
         if transit_type == 'primary':
             minphase, maxphase = phase_overlap_constraint(target_name=form.targname.data,
                                                           period=form.orbital_period.data,
