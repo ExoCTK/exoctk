@@ -15,9 +15,10 @@ import urllib
 from astropy.io import fits
 import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
-import matplotlib.pyplot as plt
 import numpy as np
 from svo_filters import svo
+
+from .throughputs import JWST_THROUGHPUTS
 
 # Supported profiles
 PROFILES = ['uniform', 'linear', 'quadratic',
@@ -26,19 +27,38 @@ PROFILES = ['uniform', 'linear', 'quadratic',
 
 # Supported filters
 FILTERS = svo.filters()
+NON_JWST = [filt for filt in FILTERS if not filt.startswith('NIRISS') and not filt.startswith('NIRCam') and not filt.startswith('NIRSpec') and not filt.startswith('MIRI')]
+FILTERS_LIST = sorted(NON_JWST + JWST_THROUGHPUTS)
 
-# Get the location of EXOCTK_DATA environvment variable and check that it is valid
-EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
+DATA_URLS = {
+    'exoctk_contam': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz'],
+    'groups_integrations': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz'],
+    'fortney': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz'],
+    'generic': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz'],
+    'exoctk_log': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz'],
+    'modelgrid': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
+                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
+                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz'],
+    'all': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
+            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz']
+    }
 
 # If the variable is blank or doesn't exist
 HOME_DIR = os.path.expanduser('~')
-ON_TRAVIS_OR_RTD = HOME_DIR == '/home/travis' or HOME_DIR == '/Users/travis' or HOME_DIR == '/home/docs'
-if not ON_TRAVIS_OR_RTD:
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA', os.path.join(HOME_DIR, 'exoctk_data'))
+ON_GITHUB_ACTIONS_OR_RTD = HOME_DIR == '/home/runner' or HOME_DIR == '/Users/runner' or HOME_DIR == '/home/docs'
+if not ON_GITHUB_ACTIONS_OR_RTD:
     if not EXOCTK_DATA:
         print(
             'WARNING: The $EXOCTK_DATA environment variable is not set.  Please set the '
             'value of this variable to point to the location of the exoctk_data '
-            'download folder.  Users may retreive this folder by clicking the '
+            'download folder.  Users may retrieve this folder by clicking the '
             '"ExoCTK Data Download" button on the ExoCTK website, or by using '
             'the exoctk.utils.download_exoctk_data() function.')
     else:
@@ -49,13 +69,9 @@ if not ON_TRAVIS_OR_RTD:
                 'cannot be accessed.')
 
         # If the variable exists, points to a real location, but is missing contents
-        for item in ['exoctk_contam', 'exoctk_log', 'fortney', 'generic', 'groups_integrations', 'modelgrid']:
+        for item in DATA_URLS.keys():
             if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
-                print(
-                    'WARNING: Missing {}/ directory from {}. Please ensure that the ExoCTK data package has been '
-                    'downloaded. Users may retrieve this package by clicking the "ExoCTK Data Download" '
-                    'button on the ExoCTK website, or by using the exoctk.utils.download_exoctk_data() '
-                    'function'.format(item, EXOCTK_DATA))
+                os.makedirs(os.path.join(EXOCTK_DATA, item))
 
         EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
         EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
@@ -65,38 +81,57 @@ if not ON_TRAVIS_OR_RTD:
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 
 
-def download_exoctk_data(download_location=os.path.expanduser('~')):
+def check_for_data(tool):
+    """Checks to see if the necessary data has been downloaded for the given tool
+
+    Parameters
+    ----------
+    tool: str
+        The tool to check for
+    """
+    # Validate tool
+    if tool not in DATA_URLS:
+        raise ValueError("'{}' not a supported tool. Try {}".format(tool, list(DATA_URLS.keys())))
+
+    # Make a path and glob the files
+    path = os.path.join(EXOCTK_DATA, tool)
+    files = glob.glob(os.path.join(path, '*'))
+    print(path, files)
+
+    if len(files) == 0:
+        raise IOError("This tool requires the '{0}' data. Try downloading with exoctk.utils.download_exoctk_data('{0}')".format(tool))
+
+
+def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
     """Retrieves the ``exoctk_data`` materials from Box, downloads them
     to the user's local machine, uncompresses the files, and arranges
     them into an ``exoctk_data`` directory.
 
     Parameters
     ----------
-    download_location : string
+    tool: str
+        The ExoCTK tool data to download
+    exoctk_data_dir : string
         The path to where the ExoCTK data package will be downloaded.
         The default setting is the user's $HOME directory.
     """
+    # Validate tool
+    if tool not in DATA_URLS:
+        raise ValueError("'{}' not a supported tool. Try {}".format(tool, list(DATA_URLS.keys())))
 
     print('\nDownloading ExoCTK data package.  This may take a few minutes.')
-    print('Materials will be downloaded to {}/exoctk_data/\n'.format(download_location))
+    print('Materials will be downloaded to {}/\n'.format(exoctk_data_dir))
 
     # Ensure the exoctk_data/ directory exists in user's home directory
-    exoctk_data_dir = os.path.join(download_location, 'exoctk_data')
     try:
         if not os.path.exists(exoctk_data_dir):
             os.makedirs(exoctk_data_dir)
     except PermissionError:
-        print('Data download failed.  Unable to create {}.  Please check permissions.')
+        print('Data download failed.  Unable to create {}.  Please check permissions.'.format(exoctk_data_dir))
 
-    # URLs to download contents
-    urls = ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz']
+    # Select the URLs and always include the log files
+    urls = DATA_URLS[tool]
+    urls += DATA_URLS['exoctk_log']
 
     # Build landing paths for downloads
     download_paths = [os.path.join(exoctk_data_dir, os.path.basename(url)) for url in urls]
@@ -104,7 +139,7 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
     # Perform the downloads
     for i, url in enumerate(urls):
         landing_path = os.path.join(exoctk_data_dir, os.path.basename(url))
-        print('({}/{}) Downloading data to {} from {}'.format(i+1, len(urls), landing_path, url))
+        print('({}/{}) Downloading data to {} from {}'.format(i + 1, len(urls), landing_path, url))
         with requests.get(url, stream=True) as response:
             with open(landing_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=2048):
@@ -138,9 +173,11 @@ def download_exoctk_data(download_location=os.path.expanduser('~')):
             shutil.move(src, dst)
         except shutil.Error:
             print('Unable to organize modelgrid/ directory')
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ATLAS9'))
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_1'))
-    shutil.rmtree(os.path.join(exoctk_data_dir, 'modelgrid.ACES_2'))
+
+    for dir in ['modelgrid.ATLAS9', 'modelgrid.ACES_1', 'modelgrid.ACES_2']:
+        path = os.path.join(exoctk_data_dir, dir)
+        if os.path.exists(path):
+            shutil.rmtree(path)
 
     print('Completed!')
 
@@ -233,13 +270,13 @@ def calc_zoom(R_f, arr):
         The array to zoom
     """
     # Get initial resolution
-    lam = arr[-1]-arr[0]
+    lam = arr[-1] - arr[0]
     d_lam_i = np.nanmean(np.diff(arr))
     # R_i = lam/d_lam_i
 
     # Calculate zoom
-    d_lam_f = lam/R_f
-    z = d_lam_i/d_lam_f
+    d_lam_f = lam / R_f
+    z = d_lam_i / d_lam_f
 
     return z
 
@@ -265,23 +302,19 @@ def rebin_spec(spec, wavnew, oversamp=100, plot=False):
     wave, flux = spec
     nlam = len(wave)
     x0 = np.arange(nlam, dtype=float)
-    x0int = np.arange((nlam-1.) * oversamp + 1., dtype=float)/oversamp
+    x0int = np.arange((nlam - 1.) * oversamp + 1., dtype=float) / oversamp
     w0int = np.interp(x0int, x0, wave)
-    spec0int = np.interp(w0int, wave, flux)/oversamp
+    spec0int = np.interp(w0int, wave, flux) / oversamp
 
     # Set up the bin edges for down-binning
     maxdiffw1 = np.diff(wavnew).max()
-    w1bins = np.concatenate(([wavnew[0]-maxdiffw1],
-                             .5*(wavnew[1::]+wavnew[0: -1]),
-                             [wavnew[-1]+maxdiffw1]))
+    w1bins = np.concatenate(([wavnew[0] - maxdiffw1], .5 * (wavnew[1::] + wavnew[0: -1]), [wavnew[-1] + maxdiffw1]))
 
     # Bin down the interpolated spectrum:
     w1bins = np.sort(w1bins)
-    nbins = len(w1bins)-1
+    nbins = len(w1bins) - 1
     specnew = np.zeros(nbins)
-    inds2 = [[w0int.searchsorted(w1bins[ii], side='left'),
-              w0int.searchsorted(w1bins[ii+1], side='left')]
-             for ii in range(nbins)]
+    inds2 = [[w0int.searchsorted(w1bins[ii], side='left'), w0int.searchsorted(w1bins[ii + 1], side='left')] for ii in range(nbins)]
 
     for ii in range(nbins):
         specnew[ii] = np.sum(spec0int[inds2[ii][0]: inds2[ii][1]])
@@ -367,17 +400,16 @@ def smooth(x, window_len=10, window='hanning'):
         raise ValueError("Window is one of 'flat', 'hanning', 'hamming',\
                           'bartlett', 'blackman'")
 
-    s = np.r_[2*np.median(x[0: window_len/5])-x[window_len: 1: -1], x,
-              2*np.median(x[-window_len/5:])-x[-1: -window_len: -1]]
+    s = np.r_[2 * np.median(x[0: window_len / 5]) - x[window_len: 1: -1], x, 2 * np.median(x[-window_len / 5:]) - x[-1: -window_len: -1]]
 
     if window == 'flat':
         w = np.ones(window_len, 'd')
     else:
-        w = eval('np.'+window+'(window_len)')
+        w = eval('np.' + window + '(window_len)')
 
-    y = np.convolve(w/w.sum(), s, mode='same')
+    y = np.convolve(w / w.sum(), s, mode='same')
 
-    return y[window_len-1: -window_len+1]
+    return y[window_len - 1: -window_len + 1]
 
 
 def medfilt(x, window_len):
@@ -401,12 +433,11 @@ def medfilt(x, window_len):
     if window_len % 2 == 0:
         s1 = "Median filter length ("
         s2 = ") must be odd. Adding 1."
-        print(s1+str(window_len)+s2)
+        print(s1 + str(window_len) + s2)
         window_len += 1
     window_len = int(window_len)
-    k2 = int((window_len - 1)//2)
-    s = np.r_[2*np.median(x[0: int(window_len/5)])-x[window_len: 1: -1],
-              x, 2*np.median(x[int(-window_len/5):])-x[-1: -window_len: -1]]
+    k2 = int((window_len - 1) // 2)
+    s = np.r_[2 * np.median(x[0: int(window_len / 5)]) - x[window_len: 1: -1], x, 2 * np.median(x[int(-window_len / 5):]) - x[-1: -window_len: -1]]
     y = np.zeros((len(s), window_len), dtype=s.dtype)
 
     y[:, k2] = s
@@ -414,9 +445,9 @@ def medfilt(x, window_len):
         j = k2 - i
         y[j:, i] = s[:-j]
         y[: j, i] = s[0]
-        y[: -j, -(i+1)] = s[j:]
-        y[-j:, -(i+1)] = s[-1]
-    return np.median(y[window_len-1: -window_len+1], axis=1)
+        y[: -j, -(i + 1)] = s[j:]
+        y[-j:, -(i + 1)] = s[-1]
+    return np.median(y[window_len - 1: -window_len + 1], axis=1)
 
 
 def filter_table(table, **kwargs):
@@ -452,14 +483,12 @@ def filter_table(table, **kwargs):
             data = list(map(str, table[param]))
 
             if not value.startswith('*'):
-                value = '^'+value
+                value = '^' + value
             if not value.endswith('*'):
-                value = value+'$'
+                value = value + '$'
 
             # Strip double quotes and decod
-            value = value.replace("'", '')\
-                         .replace('"', '')\
-                         .replace('*', '(.*)')
+            value = value.replace("'", '').replace('"', '').replace('*', '(.*)')
 
             # Regex
             reg = re.compile(value, re.IGNORECASE)
@@ -482,7 +511,7 @@ def filter_table(table, **kwargs):
 
                 # Assume eqality if no operator
                 else:
-                    value = ['=='+value]
+                    value = ['==' + value]
 
             # Turn numbers into strings
             if isinstance(value, (int, float, np.float16)):
@@ -494,7 +523,7 @@ def filter_table(table, **kwargs):
                 # Equality
                 if cond.startswith('='):
                     v = cond.replace('=', '')
-                    if v.replace('.','',1).isdigit():
+                    if v.replace('.', '', 1).isdigit():
                         table = table[table[param] == eval(v)]
                     else:
                         table = table[table[param] == v]
@@ -550,8 +579,8 @@ def find_closest(axes, points, n=1, values=False):
     for i, (axis, point) in enumerate(zip(axes, points)):
         if point >= min(axis) and point <= max(axis):
             axis = np.asarray(axis)
-            idx = np.clip(axis.searchsorted(point), 1, len(axis)-1)
-            slc = slice(max(0, idx-n), min(idx+n, len(axis)))
+            idx = np.clip(axis.searchsorted(point), 1, len(axis) - 1)
+            slc = slice(max(0, idx - n), min(idx + n, len(axis)))
 
             if values:
                 result = axis[slc]
@@ -565,6 +594,7 @@ def find_closest(axes, points, n=1, values=False):
             return
 
     return results
+
 
 def build_target_url(target_name):
     '''Build restful api url based on target name.
@@ -584,6 +614,7 @@ def build_target_url(target_name):
 
     return target_url
 
+
 def get_canonical_name(target_name):
     '''Get ExoMAST prefered name for exoplanet.
 
@@ -600,13 +631,14 @@ def get_canonical_name(target_name):
     target_url = "https://exo.mast.stsci.edu/api/v0.1/exoplanets/identifiers/"
 
     # Create params dict for url parsing. Easier than trying to format yourself.
-    params = {"name":target_name}
+    params = {"name": target_name}
 
     r = requests.get(target_url, params=params)
     planetnames = r.json()
     canonical_name = planetnames['canonicalName']
 
     return canonical_name
+
 
 def get_env_variables():
     """Returns a dictionary containing various environment variable
@@ -624,8 +656,8 @@ def get_env_variables():
     env_variables['exoctk_data'] = os.environ.get('EXOCTK_DATA')
 
     # If the variable is blank or doesn't exist
-    ON_TRAVIS = os.path.expanduser('~') == '/home/travis' or os.path.expanduser('~') == '/Users/travis'
-    if not ON_TRAVIS:
+    ON_GITHUB_ACTIONS = os.path.expanduser('~') == '/home/runner' or os.path.expanduser('~') == '/Users/runner'
+    if not ON_GITHUB_ACTIONS:
         if not env_variables['exoctk_data']:
             raise ValueError(
                 'The $EXOCTK_DATA environment variable is not set.  Please set the '

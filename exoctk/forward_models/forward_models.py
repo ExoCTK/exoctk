@@ -19,13 +19,12 @@ with a provided list or arguments.
 
 ## -- IMPORTS
 import os
+import io
 
 import astropy.constants as constants
-from astropy.extern.six.moves import StringIO
 import astropy.table as at
 import astropy.units as u
 from bokeh.resources import INLINE
-from bokeh.util.string import encode_utf8
 from bokeh.embed import components
 from bokeh.models import Range1d
 from bokeh.models.widgets import Panel, Tabs
@@ -70,6 +69,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
     temp_out : list of str of int
         The list of temperatures in the model grid.
     """
+    utils.check_for_data('fortney')
 
     # Check for Fortney Grid database
     print(os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
@@ -150,7 +150,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
         x, y = df['wavelength'], df['radius']**2.0 / 7e5**2.0
 
     tab = at.Table(data=[x, y])
-    fh = StringIO()
+    fh = io.StringIO()
     tab.write(fh, format='ascii.no_header')
 
     if write_table:
@@ -206,6 +206,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     error_message : str
         An error message, or lack therof.
     """
+    utils.check_for_data('generic')
 
     # Find path to the database.
     database_path = os.path.join(get_env_variables()['exoctk_data'], 'generic/generic_grid_db.hdf5')
@@ -215,7 +216,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
 
     # Build file out
     tab = at.Table(data=[solution['wv'], solution['spectra']])
-    fh = StringIO()
+    fh = io.StringIO()
     tab.write(fh, format='ascii.no_header')
 
     if write_table:
