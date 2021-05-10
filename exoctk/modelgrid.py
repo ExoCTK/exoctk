@@ -80,7 +80,7 @@ class ModelGrid(object):
         wave_units: astropy.units.quantity
         """
 
-        if NOT ON_GITHUB_ACTIONS:
+        if not ON_GITHUB_ACTIONS:
             utils.check_for_data('modelgrid')
 
         # Make sure we can use glob if a directory
