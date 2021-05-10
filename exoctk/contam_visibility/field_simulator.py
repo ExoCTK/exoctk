@@ -10,9 +10,11 @@ from astroquery.irsa import Irsa
 from matplotlib import cm
 from scipy.io import readsav
 from astropy.io import fits
+from exoctk import utils
 from exoctk.utils import get_env_variables
 from pysiaf.utils import rotations
 
+TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'traces')
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
     """ Produce a SOSS field simulation for a target.
@@ -65,7 +67,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256):
     # Add any missing companion
     if binComp != '':
         binComp = [float(i) for i in binComp.split(',')]
-        
+
         deg2rad = np.pi / 180
         bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
         allRA = np.append(allRA, (allRA[targetIndex] + bb))
