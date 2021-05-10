@@ -2,7 +2,7 @@
 
 This file tracks all major changes in each `exoctk` release.
 
-## [1.1.1] - Unreleased
+## [1.1.1] - 2021-05-10
 
 ### Added
 
