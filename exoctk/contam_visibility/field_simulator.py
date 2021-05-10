@@ -1,6 +1,9 @@
 import glob
 import os
 import pysiaf
+from multiprocessing import pool, cpu_count
+import time
+from functools import partial
 
 import astropy.coordinates as crd
 import astropy.units as u
@@ -14,7 +17,40 @@ from exoctk.utils import get_env_variables, check_for_data
 from pysiaf.utils import rotations
 
 
-def field_simulation(ra, dec, aperture, binComp='', verbose=False):
+APERTURES = {'NIS_SUBSTRIP96': ['NIRISS', 'NIS_SOSSFULL', 'NIRISS/modelOrder12_teff*'],
+             'NIS_SUBSTRIP256': ['NIRISS', 'NIS_SOSSFULL', 'NIRISS/modelOrder12_teff*'],
+             'NRCA5_GRISM256_F444W': ['NIRCam', 'NRCA5_FULL', 'NIRCam_F444W/*'],
+             'NRCA5_GRISM256_F322W2': ['NIRCam', 'NRCA5_FULL', 'NIRCam_F322W2/*'],
+             'MIRI_SLITLESSPRISM': ['MIRI', 'MIRIM_FULL', 'MIRI/_*']}
+
+def get_traces(aperture):
+    """Get the traces for the given aperture
+
+    Parameters
+    ----------
+    aperture: str
+        The aperture to use
+
+    Returns
+    -------
+    np.ndarray
+        A data cube of the traces
+    """
+    instrument, full, tracedir = APERTURES[aperture]
+
+    # Get the path to the trace files
+    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/', tracedir)
+
+    # Glob the file names
+    trace_files = glob.glob(traces_path)
+
+    # Make into dict
+    trace_dict = {os.path.basename(file).split('_')[-1].replace('teff', '').split('.')[0]: fits.getdata(file)[0] if instrument == 'MIRI' else fits.getdata(file, 1)[0] if instrument == 'NIRCam' else readsav(file, verbose=False)['modelo12'] for file in trace_files}
+
+    return trace_dict
+
+
+def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -27,8 +63,8 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
         The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2', 'MIRI_SLITLESSPRISM']
     binComp : sequence
         The parameters of a binary companion
-    verbose: bool
-        Print statements
+    n_jobs: int
+        Number of cores to use (-1 = All)
 
     Returns
     -------
@@ -37,19 +73,19 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
         the target for orders 1 and 2 (respectively). Index 2-362 show the trace
         of the target at every position angle (PA) of the instrument.
     """
-    # Aperture names
-    valid_apertures = {'NIS_SUBSTRIP96': 'NIRISS', 'NIS_SUBSTRIP256': 'NIRISS', 'NRCA5_GRISM256_F444W': 'NIRCam', 'NRCA5_GRISM256_F322W2': 'NIRCam', 'MIRI_SLITLESSPRISM': 'MIRI'}
-    full_apertures = {'NIRISS': 'NIS_SOSSFULL', 'NIRCam': 'NRCA5_FULL', 'MIRI': 'MIRIM_FULL'}
+    print('Starting contam cube...')
+    start = time.time()
 
-    if aperture not in valid_apertures:
-        raise ValueError("{}: Not a supported aperture. Try {}".format(aperture, valid_apertures.keys()))
+    # Aperture names
+    if aperture not in APERTURES:
+        raise ValueError("{}: Not a supported aperture. Try {}".format(aperture, APERTURES.keys()))
 
     # Instantiate a pySIAF object
-    instrument = valid_apertures[aperture]
+    instrument, full_aper, trace_dir = APERTURES[aperture]
     siaf = pysiaf.Siaf(instrument)
 
     # Get the full and subarray apertures
-    full = siaf.apertures[full_apertures[instrument]]
+    full = siaf.apertures[full_aper]
     aper = siaf.apertures[aperture]
 
     # Calling the variables
@@ -61,7 +97,6 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
     nPA = len(V3PAs)
 
     # Generate cube of field simulation at every degree of APA rotation
-    simuCube = np.zeros([nPA + 1, subY, subX])
     xSweet, ySweet = aper.reference_point('det')
     add_to_v3pa = aper.V3IdlYAngle
 
@@ -71,11 +106,11 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
     mincol, maxcol = cols.min(), cols.max()
 
     # Determine the traces for the given instrument
-    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam', aperture)
-    trace_files = np.sort(glob.glob(traces_path))
+    traces = get_traces(aperture)
 
     #############################STEP 1#####################################
     ########################################################################
+
     # Converting to degrees
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
     targetRA = targetcrd.ra.value
@@ -106,7 +141,8 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
     targetIndex = np.argmin(distance)
 
     # Restoring model parameters
-    modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'), verbose=False)
+    modpath = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/NIRISS/modelsInfo.sav')
+    modelParam = readsav(modpath, verbose=False)
     models = modelParam['models']
     modelPadX = modelParam['modelpadx']
     modelPadY = modelParam['modelpady']
@@ -158,128 +194,164 @@ def field_simulation(ra, dec, aperture, binComp='', verbose=False):
 
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
+    V3PAs = list(range(0, nPA, 1))
 
-    for V3PA in range(0, nPA, 1):
-        # Get APA from V3PA
-        APA = V3PA + add_to_v3pa
-        if APA > 360:
-            APA = APA-360
-        elif APA < 0:
-            APA = APA+360
+    # Set the number of cores for multiprocessing
+    max_cores = cpu_count()
+    if n_jobs == -1 or n_jobs > max_cores:
+        n_jobs = max_cores
 
-        if verbose:
-            print('Generating field at APA : {}'.format(str(APA)))
+    # Multiprocess PAs
+    pl = pool.ThreadPool(n_jobs)
+    func = partial(calc_v3pa, add_to_v3pa=add_to_v3pa, v2targ=v2targ, v3targ=v3targ, targetRA=targetRA, targetDEC=targetDEC, stars=stars, traces=traces, subY=subY, subX=subX, aper=aper, targetIndex=targetIndex, nStars=nStars, mincol=mincol, maxcol=maxcol, minrow=minrow, maxrow=maxrow)
+    images = zip(*pl.map(func, V3PAs))
+    pl.close()
+    pl.join()
 
-        # Get target's attitude matrix for each Position Angle
-        attitude = rotations.attitude_matrix(v2targ, v3targ, targetRA, targetDEC, APA)
+    # Make frames into a cube
+    simuCube = np.asarray(list(images))
 
-        xdet, ydet = [], []
-        xsci, ysci = [], []
-        for starRA, starDEC in zip(stars['RA'], stars['DEC']):
-
-            # Get the TEL coordinates of each star w attitude matrix
-            V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
-
-            # Convert to arcsec and turn to a float
-            V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
-
-            XDET, YDET = aper.tel_to_det(V2, V3)
-            XSCI, YSCI = aper.det_to_sci(XDET, YDET)
-
-            xdet.append(XDET)
-            ydet.append(YDET)
-            xsci.append(XSCI)
-            ysci.append(YSCI)
-
-        # Record keeping
-        stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
-        stars['xsci'], stars['ysci'] = np.array(xsci), np.array(ysci)
-
-        sci_targx, sci_targy = stars['xsci'][targetIndex],\
-            stars['ysci'][targetIndex]
-
-    #############################STEP 5#####################################
-    ########################################################################
-
-        inFOV = []
-        for star in range(0, nStars):
-
-            x, y = stars['xdet'][star], stars['ydet'][star]
-            if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
-                inFOV.append(star)
-
-        inFOV = np.array(inFOV)
-
-    #############################STEP 6#####################################
-    ########################################################################
-
-        for idx in inFOV:
-
-            sci_dx = round(sci_targx - stars['xsci'][idx])
-            sci_dy = round(sci_targy - stars['ysci'][idx])
-            temp = stars['Temp'][idx]
-
-            for file in trace_files:
-                if str(temp) in file:
-                    trace = fits.getdata(file, 1)[0]
-
-            fluxscale = 10.0**(-0.4 * (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
-
-            # Padding array
-            pad_trace = np.pad(trace, pad_width=5000, mode='constant', constant_values=0)
-
-            # Determine the highest pixel value of trace
-            maxY, maxX = np.where(pad_trace == pad_trace.max())
-            peakY, peakX = maxY[0], maxX[0]
-
-            # Use relative distances (sci_dx, sci_dy) to find target
-            xTarg = peakX + sci_dx
-            yTarg = peakY + sci_dy
-
-            # Use the (xTarg, yTarg) coordinates to slice out subarray
-            # remember X is columns, Y is rows
-            dimX0, dimX1 = xTarg - sci_targx, xTarg + subX - sci_targx
-            dimY0, dimY1 = yTarg - sci_targy, yTarg + subY - sci_targy
-
-            if dimX0 < 0:
-                dimX0 = 0
-                dimX1 = subX
-            if dimY0 < 0:
-                dimY0 = 0
-                dimY1 = subY
-
-            traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
-            if dimX1 > traceX:
-                dimX1 = traceX
-                dimX0 = traceX - subX
-            if dimY1 > traceY:
-                dimY1 = traceY
-                dimY0 = traceY - subY
-
-            if (dimX1 < 0) or (dimY1 < 0):
-                continue
-
-            # -1 because pySIAF is 1-indexed
-            mx0, mx1 = int(dimX0) - 1, int(dimX1) - 1
-            my0, my1 = int(dimY0) - 1, int(dimY1) - 1
-
-            # Fleshing out index 0 of the simulation cube (trace of target)
-            if (sci_dx == 0) & (sci_dy == 0):  # this is the target
-
-                tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-                trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-
-                simuCube[0, 0:trY, 0:trX] = tr
-
-            # Fleshing out indexes 1-361 of the simulation cube
-            # (trace of neighboring stars at every position angle)
-            else:
-
-                tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-                trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-                simuCube[V3PA + 1, 0:trY, 0:trX] += tr
+    print('Contam cube finished: {} {}'.format(round(time.time() - start, 3), 's'))
 
     return simuCube
+
+
+def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, traces, subY, subX, aper, targetIndex, nStars, mincol, maxcol, minrow, maxrow):
+    """
+    Function to make a frame of the simulated cube for the given PA
+
+    Returns
+    -------
+    np.ndarray
+        The 2D array
+    """
+    # Get APA from V3PA
+    APA = V3PA + add_to_v3pa
+    if APA > 360:
+        APA = APA-360
+    elif APA < 0:
+        APA = APA+360
+
+    # Get target's attitude matrix for each Position Angle
+    attitude = rotations.attitude_matrix(v2targ, v3targ, targetRA, targetDEC, APA)
+
+    xdet, ydet = [], []
+    xsci, ysci = [], []
+    for starRA, starDEC in zip(stars['RA'], stars['DEC']):
+
+        # Get the TEL coordinates of each star w attitude matrix
+        V2, V3 = rotations.sky_to_tel(attitude, starRA, starDEC)
+
+        # Convert to arcsec and turn to a float
+        V2, V3 = V2.to(u.arcsec).value, V3.to(u.arcsec).value
+
+        XDET, YDET = aper.tel_to_det(V2, V3)
+        XSCI, YSCI = aper.det_to_sci(XDET, YDET)
+
+        xdet.append(XDET)
+        ydet.append(YDET)
+        xsci.append(XSCI)
+        ysci.append(YSCI)
+
+    # Record keeping
+    stars['xdet'], stars['ydet'] = np.array(xdet), np.array(ydet)
+    stars['xsci'], stars['ysci'] = np.array(xsci), np.array(ysci)
+
+    sci_targx = stars['xsci'][targetIndex]
+    sci_targy = stars['ysci'][targetIndex]
+
+    #########################STEP 5#####################################
+    ####################################################################
+
+    inFOV = []
+    for star in range(0, nStars):
+
+        x, y = stars['xdet'][star], stars['ydet'][star]
+        if (mincol < x) & (x < maxcol) & (minrow < y) & (y < maxrow):
+            inFOV.append(star)
+
+    inFOV = np.array(inFOV)
+
+    #########################STEP 6#####################################
+    ####################################################################
+
+    simuImage = np.zeros((subY, subX))
+    for idx in inFOV:
+
+        # Get the Teff
+        sci_dx = round(sci_targx - stars['xsci'][idx])
+        sci_dy = round(sci_targy - stars['ysci'][idx])
+        temp = stars['Temp'][idx]
+
+        # Get the trace
+        trace = traces[str(int(temp))]
+        if trace.ndim == 3:
+            trace = np.sum()
+
+        # Get the flux scaling
+        fluxscale = 10.0**(-0.4 * (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
+
+        # Padding array
+        pad_trace = np.pad(trace, pad_width=5000, mode='constant', constant_values=0)
+
+        # Determine the highest pixel value of trace
+        maxY, maxX = np.where(pad_trace == pad_trace.max())
+        peakY, peakX = maxY[0], maxX[0]
+
+        # Use relative distances (sci_dx, sci_dy) to find target
+        xTarg = peakX + sci_dx
+        yTarg = peakY + sci_dy
+
+        # Use the (xTarg, yTarg) coordinates to slice out subarray
+        # remember X is columns, Y is rows
+        dimX0, dimX1 = xTarg - sci_targx, xTarg + subX - sci_targx
+        dimY0, dimY1 = yTarg - sci_targy, yTarg + subY - sci_targy
+
+        if dimX0 < 0:
+            dimX0 = 0
+            dimX1 = subX
+        if dimY0 < 0:
+            dimY0 = 0
+            dimY1 = subY
+
+        traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+        if dimX1 > traceX:
+            dimX1 = traceX
+            dimX0 = traceX - subX
+        if dimY1 > traceY:
+            dimY1 = traceY
+            dimY0 = traceY - subY
+
+        if (dimX1 < 0) or (dimY1 < 0):
+            continue
+
+        # -1 because pySIAF is 1-indexed
+        mx0, mx1 = int(dimX0) - 1, int(dimX1) - 1
+        my0, my1 = int(dimY0) - 1, int(dimY1) - 1
+
+        # Add trace to the image
+        tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
+        trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+        simuImage[0:trY, 0:trX] += tr
+
+        # # Fleshing out index 0 of the simulation cube (trace of target)
+        # if (sci_dx == 0) & (sci_dy == 0):  # this is the target
+        #
+        #     tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
+        #     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+        #
+        #     simuImage[0:trY, 0:trX] = tr
+        #
+        # # Fleshing out indexes 1-361 of the simulation cube
+        # # (trace of neighboring stars at every position angle)
+        # else:
+        #
+        #     tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
+        #     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+        #     simuImage[0:trY, 0:trX] += tr
+
+    return simuImage
+
 
 
 if __name__ == '__main__':
