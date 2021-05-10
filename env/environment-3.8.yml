@@ -33,7 +33,6 @@ dependencies:
     - asteval==0.9.22
     - awscli
     - bandit==1.7.0
-    - batman-package==2.4.7
     - bibtexparser==1.2.0
     - corner==2.2.1
     - flask_wtf==0.14.3
