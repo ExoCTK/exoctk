@@ -11,6 +11,8 @@ from bokeh.palettes import PuBu
 import numpy as np
 
 from . import visibilityPA as vpa
+from ..utils import fill_between
+
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 if not EXOCTK_DATA:

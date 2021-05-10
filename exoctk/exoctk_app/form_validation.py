@@ -131,7 +131,7 @@ class ContamVisForm(BaseForm):
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
-    inst = SelectField('inst', choices=[('NIRISS', 'NIRISS - SOSS'), ('NIRCam F322W2', 'NIRCam - Grism Time Series (F322W2)'), ('NIRCam F444W', 'NIRCam - Grism Time Series (F444W)'), ('MIRI', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
+    inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
     companion = StringField('companion', default='')
     pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
     pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])

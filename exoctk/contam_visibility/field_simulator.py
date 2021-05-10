@@ -73,6 +73,10 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
         the target for orders 1 and 2 (respectively). Index 2-362 show the trace
         of the target at every position angle (PA) of the instrument.
     """
+    # Check for contam tool data
+    check_for_data('exoctk_contam')
+
+    # Time it
     print('Starting contam cube...')
     start = time.time()
 
@@ -112,7 +116,7 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     ########################################################################
 
     # Converting to degrees
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
+    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
 
@@ -133,10 +137,10 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
-    if np.min(distance) > 1.0*(10**-4):
-        coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
-        ra, dec = coords.split(' ')[0], coords.split(' ')[1]
-        raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
+    # if np.min(distance) > 1.0*(10**-4):
+    #     coords = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg)).to_string('decimal')
+    #     ra, dec = coords.split(' ')[0], coords.split(' ')[1]
+    #     raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
 
     targetIndex = np.argmin(distance)
 
@@ -210,7 +214,6 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
 
     # Make frames into a cube
     simuCube = np.asarray(list(images))
-
     print('Contam cube finished: {} {}'.format(round(time.time() - start, 3), 's'))
 
     return simuCube
@@ -356,6 +359,4 @@ def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, tra
 
 if __name__ == '__main__':
     ra, dec = "04 25 29.0162", "-30 36 01.603"  # Wasp 79
-    #sossFieldSim(ra, dec)
-    if EXOCTK_DATA:
-        fieldSim(ra, dec, instrument='NIRISS')
+    field_simulation(ra, dec, 'NIS_SUBSTRIP256')
