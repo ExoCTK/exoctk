@@ -28,16 +28,16 @@ jobs:
           echo "Setting useful environment variables:"
           echo " "
           export PYTHONVERSION=${{ matrix.python-version }}
-          export MAJOR="$(echo $PYTHONVERSION | head -c 1)"
-          export MINOR="$(echo $PYTHONVERSION | tail -c 2)"
           echo "PYTHONVERSION: $PYTHONVERSION"
+          export EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/
+          echo $EXOCTK_DATA
 
           echo " "
           echo "Installing exoctk conda environment"
           echo " "
           cd $RUNNER_WORKSPACE/
           cd exoctk/
-          $CONDA/bin/conda env update -f env/environment-${MAJOR}.${MINOR}.yml -n exoctk-${{ matrix.python-version }}
+          $CONDA/bin/conda env update -f env/environment-${{ matrix.python-version }}.yml -n exoctk-${{ matrix.python-version }}
 
           echo " "
           echo "Installing exoctk package"
