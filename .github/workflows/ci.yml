@@ -29,7 +29,7 @@ jobs:
           echo " "
           export PYTHONVERSION=${{ matrix.python-version }}
           echo "PYTHONVERSION: $PYTHONVERSION"
-          export EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk_data/
+          export EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/
           echo $EXOCTK_DATA
 
           echo " "
@@ -58,11 +58,6 @@ jobs:
           echo "The conda environment being used:"
           echo " "
           $CONDA/bin/conda env export
-
-          echo " "
-          echo "Download necessary EXOCTK_DATA to run tests"
-          echo " "
-          python -c "from exoctk.utils import download_exoctk_data; download_exoctk_data('modelgrid')"
 
           echo " "
           echo "Running pytests"
