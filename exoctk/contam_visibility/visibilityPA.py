@@ -393,16 +393,9 @@ def using_gtvt(
     # This addresses a bokeh shading issue that accidentally shades
     # accessible PAs (e.g: trappist-1b)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    remove_pa = []
-    for badpa in badPAs:
 
-        for panom in paNomnan:
-            diff = np.abs(badpa - panom)
-            if diff < 7:
-                remove_pa.append(badpa)
+    badPAs = select_badPAs_ge_paNomnan(badPAs, paNomnan)
 
-    for pa in np.unique(remove_pa):
-        badPAs.remove(pa)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Grouping the bad PAs into lists within the badPAs list.
     # This will make bad PA shading easier in the contamination Bokeh plot
@@ -428,3 +421,33 @@ def using_gtvt(
         grouped_badPAs = np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
+
+
+def select_badPAs_ge_paNomnan(badPAs, paNomnan, threshold=7):
+    """Returns the absolute difference between each badPAs and paNomnan
+    Should be greater than threshold (default=7)
+
+    Parameters
+    ----------
+    badPAs: list
+        The list of bad position angles
+    paNomnan: list
+        The list of nominal PAs
+
+    Returns
+    -------
+    np.ndarray
+        The array of PAs
+    """
+    # Reshaping
+    badPAs_array = np.array(badPAs)[np.newaxis]  # (1, len(badPAs))
+    paNomnan_array = np.array(paNomnan)[np.newaxis].T  # (len(paNomnan), 1)
+
+    # elementwise absolute difference
+    diff = np.abs(np.subtract(badPAs_array, paNomnan_array))  # (len(paNomnan), len(badPAs))
+
+    # boolean array above threshold
+    above_thresh = np.all(diff >= threshold, axis=0)  # (len(badPAs),)
+
+    # index and return those that are above threshold
+    return badPAs_array[0, above_thresh]
