@@ -2,11 +2,15 @@
 
 This file tracks all major changes in each `exoctk` release.
 
-## [1.1.1] - Unreleased
+## [1.1.1] - 2021-05-10
 
 ### Added
 
 - Added `CHANGELOG.md` (this file!) to repo
+
+### Fixed
+
+- WFC3_IR.G102 filter in LDC
 
 ### Changed
 
