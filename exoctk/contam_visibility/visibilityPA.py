@@ -203,29 +203,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     return paGood, paBad, gd, fig
 
 
-def fill_between(fig, xdata, pamin, pamax, **kwargs):
-    # addressing NIRSpec issue
-
-    # now creating the patches for the arrays
-    nanbot = np.where([np.isnan(i) for i in pamin])[0]
-    nantop = np.where([np.isnan(i) for i in pamax])[0]
-    yb = np.split(pamin, nanbot)
-    xs = np.split(xdata, nanbot)
-    yt = np.split(pamax, nantop)
-    for x, bot, top in zip(xs, yb, yt):
-        x = np.append(x, x[::-1])
-        y = np.append(bot, top[::-1])
-        fig.patch(x, y, **kwargs)
-    return fig
-
-
-def using_gtvt(
-        ra,
-        dec,
-        instrument,
-        targetName='noName',
-        ephFileName=None,
-        output='bokeh'):
+def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, output='bokeh'):
     """Plot the visibility (at a range of position angles) against time.
 
     Parameters

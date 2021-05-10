@@ -477,7 +477,7 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if ('NIRCam' in form.inst.data) or (form.inst.data == 'MIRI') or (form.inst.data == 'NIRSpec'):
+        if form.inst.data == 'NIRSpec':
             form.calculate_contam_submit.disabled = True
         else:
             form.calculate_contam_submit.disabled = False
@@ -487,6 +487,8 @@ def contam_visibility():
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
+        instrument = fs.APERTURES[form.inst.data][0]
+
         try:
 
             # Log the form inputs
@@ -494,10 +496,7 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data),
-                                                                    str(form.dec.data),
-                                                                    form.inst.data.split(' ')[0],
-                                                                    targetName=str(title))
+            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
 
             # Make output table
             fh = io.StringIO()
@@ -519,8 +518,8 @@ def contam_visibility():
                 ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
                 # Make field simulation
-                contam_cube = fs.fieldSim(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
-                contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
+                contam_cube = fs.field_simulation(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
+                contam_plot = cf.contam(contam_cube, instrument, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
 
                 # Get scripts
                 contam_js = INLINE.render_js()
