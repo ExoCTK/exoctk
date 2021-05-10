@@ -34,6 +34,7 @@ dependencies:
     - batman-package==2.4.6
     - bibtexparser==1.2.0
     - corner==2.2.1
+    - ddtrace==0.48.2
     - docutils==0.15.2
     - flask_wtf==0.14.3
     - gunicorn==20.0.4
