@@ -40,7 +40,6 @@ dependencies:
     - gunicorn==20.0.4
     - lmfit==1.0.2
     - platon==5.1.2
-    - pyerfa==2.0.0
     - pysiaf==0.10.0
     - pysynphot==1.0.0
     - sphinx_astropy==1.3
