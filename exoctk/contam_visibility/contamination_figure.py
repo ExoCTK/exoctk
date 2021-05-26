@@ -90,11 +90,11 @@ def nirissContam(cube, paRange=[0, 360]):
     return contamO1, contamO2
 
 
-def nircamContam(cube, instrument, paRange=[0, 360]):
+def nircamContam(cube, paRange=[0, 360]):
     """ Generates the contamination figure that will be plotted on the website
     for NIRCam Grism Time Series mode.
 
-    PARAMETERS
+    Parameters
     ----------
     cube : arr or str
         A 3D array of the simulated field at every Aperture Position Angle (APA).
@@ -102,11 +102,7 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
         or
         The name of an HDU .fits file sthat has the cube.
 
-    instrument : str
-        The name of the instrument + what filter is being used. For NIRCam the
-        options are: 'NIRCam F322W2', 'NIRCam F444W'
-
-    RETURNS
+    Returns
     -------
     bokeh plot
     """
@@ -233,12 +229,22 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     PA = np.arange(PAmin, PAmax, 1)
 
     # Generate the contam figure
-    if instrument == 'NIRISS':
+    if instrument in ['NIS_SUBSTRIP256', 'NIS_SUBSTRIP96']:
         contamO1, contamO2 = nirissContam(cube)
-    elif (instrument == 'NIRCam F322W2') or (instrument == 'NIRCam F444W'):
-        contamO1 = nircamContam(cube, instrument)
-    elif instrument == 'MIRI':
+        xlim0 = lamO1.min()
+        xlim1 = lamO1.max()
+    elif instrument == 'NRCA5_GRISM256_F444W':
+        contamO1 = nircamContam(cube)
+        xlim0 = lam0_nircam444w
+        xlim1 = lam1_nircam444w
+    elif instrument == 'NRCA5_GRISM256_F322W2':
+        contamO1 = nircamContam(cube)
+        xlim0 = lam0_nircam322w2
+        xlim1 = lam1_nircam322w2
+    elif instrument == 'MIRIM_SLITLESSPRISM':
         contamO1 = miriContam(cube)
+        xlim0 = 5
+        xlim1 = 12
 
     TOOLS = 'pan, box_zoom, crosshair, reset, hover'
 
@@ -254,19 +260,6 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # Contam plot
-    if instrument == 'NIRISS':
-        xlim0 = lamO1.min()
-        xlim1 = lamO1.max()
-    elif instrument == 'NIRCam F322W2':
-        xlim0 = lam0_nircam322w2
-        xlim1 = lam1_nircam322w2
-    elif instrument == 'NIRCam F444W':
-        xlim0 = lam0_nircam444w
-        xlim1 = lam1_nircam444w
-    elif instrument == 'MIRI':
-        xlim0 = 5
-        xlim1 = 12
-
     ylim0 = PAmin - 0.5
     ylim1 = PAmax + 0.5
     color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:],
@@ -274,34 +267,24 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
 
-    orders = 'Orders 1 & 2' if instrument == 'NIRCam' else 'Order 1'
-    s2 = figure(
-        tools=TOOLS, width=500, height=500, title='{} {} Contamination with {}'.format(
-            orders, targetName, instrument), x_range=Range1d(
-            xlim0, xlim1), y_range=Range1d(
-                ylim0, ylim1))
+    orders = 'Orders 1 & 2' if instrument.startswith('NRCA') else 'Order 1'
+    s2 = figure(tools=TOOLS, width=500, height=500, title='{} {} Contamination with {}'.format(orders, targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
 
-    contamO1 = contamO1 if 'NIRCam' in instrument else contamO1.T
-    contamO1 = np.fliplr(contamO1) if (
-        instrument == 'MIRI') or (
-        instrument == 'NIRCam F322W2') else contamO1
-    fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.)
-                        )  # [:, :361] # might this
+    contamO1 = contamO1 if 'NRCA' in instrument else contamO1.T
+    contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
+    fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))  # [:, :361] # might this
     # index have somethig to
     # do w the choppiness
     # of o1 in all instruments
 
-    X = xlim1 if (instrument == 'MIRI') or (
-        instrument == 'NIRCam F322W2') else xlim0
-    DW = xlim0 - xlim1 if (instrument == 'MIRI') or (instrument ==
-                                                     'NIRCam F322W2') else xlim1 - xlim0
+    X = xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim0
+    DW = xlim0 - xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim1 - xlim0
 
     # Begin plotting ~~~~~~~~~~~~~~~~~~~~~~~~
 
-    s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0,
-             color_mapper=color_mapper)
+    s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    if instrument != 'NIRISS':
+    if not instrument.startswith('NIS'):
         s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     # Add bad PAs
@@ -327,52 +310,30 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     # Line plot
     #ax = 1 if 'NIRCam' in instrument else 0
-    channels = cols if 'NIRCam' in instrument else rows
-    s3 = figure(tools=TOOLS, width=150, height=500,
-                x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
+    channels = cols if 'NRCA' in instrument else rows
+    s3 = figure(tools=TOOLS, width=150, height=500, x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
 
     try:
-        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
-                line_color='blue', legend_label='> 0.001')
-        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
-                line_color='green', legend_label='> 0.01')
+        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
+        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2, line_color='green', legend_label='> 0.01')
     except AttributeError:
-        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2,
-                line_color='blue', legend='> 0.001')
-        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2,
-                line_color='green', legend='> 0.01')
+        s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2, line_color='blue', legend='> 0.001')
+        s3.line(100 * np.sum(contamO1 >= 0.01, axis=1) / channels, PA - dPA / 2, line_color='green', legend='> 0.01')
 
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
 
     # ~~~~~~ Order 2 ~~~~~~
     # Contam plot
-    if instrument == 'NIRISS':
+    if instrument.startswith('NIS'):
         xlim0 = lamO2.min()
         xlim1 = lamO2.max()
         ylim0 = PA.min() - 0.5 * dPA
         ylim1 = PA.max() + 0.5 * dPA
         xlim0 = 0.614
-        s5 = figure(
-            tools=TOOLS,
-            width=500,
-            height=500,
-            title='Order 2 {} Contamination with {}'.format(
-                targetName,
-                instrument),
-            x_range=Range1d(
-                xlim0,
-                xlim1),
-            y_range=s2.y_range)
+        s5 = figure(tools=TOOLS, width=500, height=500, title='Order 2 {} Contamination with {}'.format(targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
         fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
-        s5.image(
-            [fig_data],
-            x=xlim0,
-            y=ylim0,
-            dw=xlim1 - xlim0,
-            dh=ylim1 - ylim0,
-            color_mapper=color_mapper)
-        #s5.yaxis.major_label_text_font_size = '0pt'
+        s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
         s5.xaxis.axis_label = 'Wavelength (um)'
         s5.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
@@ -389,24 +350,17 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
                 lefts.append(xlim0)
                 rights.append(xlim1)
 
-            s5.quad(top=tops, bottom=bottoms,
-                    left=lefts, right=rights,
-                    color=bad_PA_color, alpha=bad_PA_alpha)
+            s5.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
 
         # Line plot
-        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range,
-                    x_range=Range1d(100, 0), title=None)
+        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range, x_range=Range1d(100, 0), title=None)
 
         try:
-            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
-                    line_color='blue', legend_label='> 0.001')
-            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
-                    line_color='green', legend_label='> 0.01')
+            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
+            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2, line_color='green', legend_label='> 0.01')
         except AttributeError:
-            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2,
-                    line_color='blue', legend='> 0.001')
-            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2,
-                    line_color='green', legend='> 0.01')
+            s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2, line_color='blue', legend='> 0.001')
+            s6.line(100 * np.sum(contamO2 >= 0.01, axis=0) / rows, PA - dPA / 2, line_color='green', legend='> 0.01')
 
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
@@ -424,20 +378,16 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
             lefts.append(0)
             rights.append(100)
 
-        s3.quad(top=tops, bottom=bottoms,
-                left=lefts, right=rights,
-                color=bad_PA_color, alpha=bad_PA_alpha)
-        if instrument == 'NIRISS':
-            s6.quad(top=tops, bottom=bottoms,
-                    left=rights, right=lefts,
-                    color=bad_PA_color, alpha=bad_PA_alpha)
+        s3.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
+        if instrument.startswith('NIS'):
+            s6.quad(top=tops, bottom=bottoms, left=rights, right=lefts, color=bad_PA_color, alpha=bad_PA_alpha)
 
     # ~~~~~~ Plotting ~~~~~~
 
-    if instrument != 'NIRISS':
-        fig = gridplot(children=[[s2, s3]])
-    else:
+    if instrument.startswith('NIS'):
         fig = gridplot(children=[[s6, s5, s2, s3]])
+    else:
+        fig = gridplot(children=[[s2, s3]])
 
     return fig  # , contamO1
 

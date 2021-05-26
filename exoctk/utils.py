@@ -96,7 +96,6 @@ def check_for_data(tool):
     # Make a path and glob the files
     path = os.path.join(EXOCTK_DATA, tool)
     files = glob.glob(os.path.join(path, '*'))
-    print(path, files)
 
     if len(files) == 0:
         raise IOError("This tool requires the '{0}' data. Try downloading with exoctk.utils.download_exoctk_data('{0}')".format(tool))
