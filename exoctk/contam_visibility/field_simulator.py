@@ -1,27 +1,35 @@
 import glob
 import os
-import pysiaf
 from multiprocessing import pool, cpu_count
 import time
 from functools import partial
 
 import astropy.coordinates as crd
 import astropy.units as u
-import matplotlib.pyplot as plt
+from bokeh.plotting import show
+from bokeh.layouts import gridplot
+from bokeh.plotting import figure
+from bokeh.models import Range1d, LinearColorMapper, Label
+from bokeh.models.widgets import Panel, Tabs
+from bokeh.palettes import PuBu
 import numpy as np
 from astroquery.irsa import Irsa
 from matplotlib import cm
 from scipy.io import readsav
 from astropy.io import fits
-from exoctk.utils import get_env_variables, check_for_data
+import pysiaf
 from pysiaf.utils import rotations
 
+from ..utils import get_env_variables, check_for_data
+from .visibilityPA import using_gtvt
 
-APERTURES = {'NIS_SUBSTRIP96': ['NIRISS', 'NIS_SOSSFULL', 'NIRISS/modelOrder12_teff*'],
-             'NIS_SUBSTRIP256': ['NIRISS', 'NIS_SOSSFULL', 'NIRISS/modelOrder12_teff*'],
-             'NRCA5_GRISM256_F444W': ['NIRCam', 'NRCA5_FULL', 'NIRCam_F444W/*'],
-             'NRCA5_GRISM256_F322W2': ['NIRCam', 'NRCA5_FULL', 'NIRCam_F322W2/*'],
-             'MIRI_SLITLESSPRISM': ['MIRI', 'MIRIM_FULL', 'MIRI/_*']}
+
+APERTURES = {'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'traces': 'NIRISS/modelOrder12_teff*', 'scale': 0.065, 'rad': 2.5, 'lam': [(0.8, 2.8), (0.6, 1.4)]},
+             'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'traces': 'NIRISS/modelOrder12_teff*', 'scale': 0.065, 'rad': 2.5, 'lam': [(0.8, 2.8), (0.6, 1.4)]},
+             'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'traces': 'NIRCam_F444W/*', 'scale': 0.063, 'rad': 2.5, 'lam': [(3.063, 5.111)]},
+             'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'traces': 'NIRCam_F322W2/*', 'scale': 0.063, 'rad': 2.5, 'lam': [(2.369, 4.417)]},
+             'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'traces': 'MIRI/_*', 'scale': 0.11, 'rad': 2.0, 'lam': [(5, 12)]}}
+
 
 def get_traces(aperture):
     """Get the traces for the given aperture
@@ -36,21 +44,22 @@ def get_traces(aperture):
     np.ndarray
         A data cube of the traces
     """
-    instrument, full, tracedir = APERTURES[aperture]
+    # Get aperture info
+    aper = APERTURES[aperture]
 
     # Get the path to the trace files
-    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/', tracedir)
+    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/', aper['traces'])
 
     # Glob the file names
     trace_files = glob.glob(traces_path)
 
     # Make into dict
-    trace_dict = {os.path.basename(file).split('_')[-1].replace('teff', '').split('.')[0]: fits.getdata(file)[0] if instrument == 'MIRI' else fits.getdata(file, 1)[0] if instrument == 'NIRCam' else readsav(file, verbose=False)['modelo12'] for file in trace_files}
+    trace_dict = {os.path.basename(file).split('_')[-1].replace('teff', '').split('.')[0]: fits.getdata(file)[0] if aper['inst'] == 'MIRI' else fits.getdata(file, 1)[0] if aper['inst'] == 'NIRCam' else readsav(file, verbose=False)['modelo12'] for file in trace_files}
 
     return trace_dict
 
 
-def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
+def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -65,6 +74,8 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
         The parameters of a binary companion
     n_jobs: int
         Number of cores to use (-1 = All)
+    nPA: int
+        The number of position angles
 
     Returns
     -------
@@ -85,22 +96,16 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
         raise ValueError("{}: Not a supported aperture. Try {}".format(aperture, APERTURES.keys()))
 
     # Instantiate a pySIAF object
-    instrument, full_aper, trace_dir = APERTURES[aperture]
-    siaf = pysiaf.Siaf(instrument)
+    inst = APERTURES[aperture]
+    siaf = pysiaf.Siaf(inst['inst'])
 
     # Get the full and subarray apertures
-    full = siaf.apertures[full_aper]
+    full = siaf.apertures[inst['full']]
     aper = siaf.apertures[aperture]
-
-    # Calling the variables
-    deg2rad = np.pi / 180
     subX, subY = aper.XSciSize, aper.YSciSize
-    rad = 2.5  # arcmins
-    pixel_scale = 0.063  # arsec/pixel
-    V3PAs = np.arange(0, 360, 1)
-    nPA = len(V3PAs)
 
     # Generate cube of field simulation at every degree of APA rotation
+    V3PAs = np.arange(0, nPA, 1)
     xSweet, ySweet = aper.reference_point('det')
     add_to_v3pa = aper.V3IdlYAngle
 
@@ -112,16 +117,13 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     # Determine the traces for the given instrument
     traces = get_traces(aperture)
 
-    #############################STEP 1#####################################
-    ########################################################################
-
     # Converting to degrees
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     targetRA = targetcrd.ra.value
     targetDEC = targetcrd.dec.value
 
     # Querying for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=rad * u.arcmin)
+    info = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=inst['rad'] * u.arcmin)
 
     # Coordinates of all the stars in FOV, including target
     allRA = info['ra'].data.data
@@ -131,9 +133,6 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     stars = {}
     stars['RA'], stars['DEC'] = allRA, allDEC
 
-    #############################STEP 2#####################################
-    ########################################################################
-
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
     distance = np.sqrt(sindRA**2 + cosdRA**2)
@@ -142,22 +141,13 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     #     ra, dec = coords.split(' ')[0], coords.split(' ')[1]
     #     raise Exception('Unable to detect a source with coordinates [RA: {}, DEC: {}] within IRSA`s 2MASS Point-Source Catalog. Please enter different coordinates or contact the JWST help desk.'.format(str(ra), str(dec)))
 
+    # The target is the "closest" star from the Irsa query
     targetIndex = np.argmin(distance)
 
-    # Restoring model parameters
-    modpath = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/NIRISS/modelsInfo.sav')
-    modelParam = readsav(modpath, verbose=False)
-    models = modelParam['models']
-    modelPadX = modelParam['modelpadx']
-    modelPadY = modelParam['modelpady']
-    dimXmod = modelParam['dimxmod']
-    dimYmod = modelParam['dimymod']
-    jhMod = modelParam['jhmod']
-    hkMod = modelParam['hkmod']
-    teffMod = modelParam['teffmod']
-
-    #############################STEP 3#####################################
-    ########################################################################
+    # 2MASS - Teff relations
+    jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
+    hkMod = np.array([0.313, 0.299, 0.284, 0.268, 0.257, 0.247, 0.24, 0.236, 0.229, 0.217,0.203, 0.188, 0.173, 0.159, 0.148, 0.138, 0.13, 0.123, 0.116, 0.112, 0.107, 0.102, 0.098, 0.094, 0.09, 0.086, 0.083, 0.079, 0.07, 0.067])
+    teffMod = np.array([2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5800, 6000])
 
     # JHK bands of all stars in FOV, including target
     Jmag = info['j_m'].data.data
@@ -170,6 +160,7 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
 
     # Add any missing companion
     if binComp != '':
+        deg2rad = np.pi / 180
         bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
         allRA = np.append(allRA, (allRA[targetIndex] + bb))
         allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
@@ -193,12 +184,8 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     stars['Temp'] = starsT
     stars['Jmag'] = Jmag
 
-    #############################STEP 4#####################################
-    ########################################################################
-
     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
-    V3PAs = list(range(0, nPA, 1))
 
     # Set the number of cores for multiprocessing
     max_cores = cpu_count()
@@ -217,6 +204,103 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1):
     print('Contam cube finished: {} {}'.format(round(time.time() - start, 3), 's'))
 
     return simuCube
+
+
+def plot_contamination(data, wlims, badPAs=[], minPA=0, maxPA=360, title=''):
+    """
+    Plot the contamination
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The cube of data
+    wlims: tuple
+        The wavelength min and max
+    badPAs: list
+        The list of position angles with no visibility
+    minPA: int
+        The minimum position angle to plot
+    maxPA: int
+        The maximum position angle to plot
+
+    Returns
+    -------
+    bokeh.layouts.gridplot
+        The contamination figure
+    """
+    # Target star and interlopers
+    targ = data[0, :, :]
+    cube = data[1:, :, :]
+
+    # Data dimensions
+    nPA, rows, cols = cube.shape
+    dPA = 1
+    PA = np.arange(minPA, maxPA, dPA)
+
+    # Plot setup
+    tools = 'pan, box_zoom, crosshair, reset, hover'
+    xlim0, xlim1 = wlims
+    ylim0 = minPA - 0.5
+    ylim1 = maxPA + 0.5
+    color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:], low=-4, high=1)
+    color_mapper.low_color = 'white'
+    color_mapper.high_color = 'black'
+
+    # The width of the trace
+    peak = targ.max()
+    low_lim_col = np.where(targ > 0.0001 * peak)[1].min()
+    high_lim_col = np.where(targ > 0.0001 * peak)[1].max()
+
+    # The length of the trace
+    targ_trace_start = np.where(targ > 0.0001 * peak)[0].min()
+    targ_trace_stop = np.where(targ > 0.0001 * peak)[0].max()
+
+    # Begin contam calculation at each channel (row) Y
+    contam = np.zeros([rows, nPA])
+    for Y in np.arange(rows):
+
+        # Calculate limits
+        peakX = np.argmax(targ[Y, :])
+        LEFT, RIGHT = peakX - low_lim_col, peakX + high_lim_col
+
+        # Calculate weights
+        tr = targ[Y, LEFT:RIGHT]
+        wt = tr / np.sum(tr**2)
+
+        # Add to the contam figure
+        contam[Y, :] = np.sum(cube[:, Y, LEFT:RIGHT] * wt, where=~np.isnan(cube[:, Y, LEFT:RIGHT] * wt), axis=1)
+
+    # Trim the figure
+    contam = contam[targ_trace_start:targ_trace_stop, :]
+
+    # Prep figure data
+    fig_data = np.log10(np.clip(contam, 1.e-10, 1.))
+
+    # Trace plot
+    trplot = figure(tools=tools, width=500, height=500, title=title, x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
+    trplot.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
+    trplot.xaxis.axis_label = 'Wavelength (um)'
+    trplot.yaxis.axis_label = 'Aperture Position Angle (degrees)'
+
+    # Shade bad position angles on the trace plot
+    nbadPA = len(badPAs)
+    if nbadPA > 0:
+        tops = [np.max(badPA) for badPA in badPAs]
+        bottoms = [np.min(badPA) for badPA in badPAs]
+        left = [xlim0] * nbadPA
+        right = [xlim1] * nbadPA
+        trplot.quad(top=tops, bottom=bottoms, left=left, right=right, color='#555555', alpha=0.6)
+
+    # Make a figure summing the contamination at a given PA
+    sumplot = figure(tools=tools, width=150, height=500, x_range=Range1d(0, 100), y_range=trplot.y_range, title=None)
+    sumplot.line(100 * np.sum(contam >= 0.001, axis=1) / rows, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
+    sumplot.line(100 * np.sum(contam >= 0.01, axis=1) / rows, PA - dPA / 2, line_color='green', legend_label='> 0.01')
+    sumplot.xaxis.axis_label = '% channels contam.'
+    sumplot.yaxis.major_label_text_font_size = '0pt'
+
+    final = gridplot(children=[[trplot, sumplot]])
+
+    show(final)
 
 
 def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, traces, subY, subX, aper, targetIndex, nStars, mincol, maxcol, minrow, maxrow):
@@ -286,15 +370,11 @@ def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, tra
         sci_dy = round(sci_targy - stars['ysci'][idx])
         temp = stars['Temp'][idx]
 
-        # Get the trace
-        trace = traces[str(int(temp))]
-        if trace.ndim == 3:
-            trace = np.sum()
-
         # Get the flux scaling
         fluxscale = 10.0**(-0.4 * (stars['Jmag'][idx] - stars['Jmag'][targetIndex]))
 
-        # Padding array
+        # Get the trace and pad it
+        trace = traces[str(int(temp))]
         pad_trace = np.pad(trace, pad_width=5000, mode='constant', constant_values=0)
 
         # Determine the highest pixel value of trace
@@ -317,7 +397,7 @@ def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, tra
             dimY0 = 0
             dimY1 = subY
 
-        traceX, traceY = np.shape(pad_trace)[1], np.shape(pad_trace)[0]
+        traceY, traceX = pad_trace.shape
         if dimX1 > traceX:
             dimX1 = traceX
             dimX0 = traceX - subX
@@ -334,24 +414,8 @@ def calc_v3pa(V3PA, add_to_v3pa, v2targ, v3targ, targetRA, targetDEC, stars, tra
 
         # Add trace to the image
         tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-        trX, trY = np.shape(tr)[1], np.shape(tr)[0]
+        trY, trX = tr.shape
         simuImage[0:trY, 0:trX] += tr
-
-        # # Fleshing out index 0 of the simulation cube (trace of target)
-        # if (sci_dx == 0) & (sci_dy == 0):  # this is the target
-        #
-        #     tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-        #     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-        #
-        #     simuImage[0:trY, 0:trX] = tr
-        #
-        # # Fleshing out indexes 1-361 of the simulation cube
-        # # (trace of neighboring stars at every position angle)
-        # else:
-        #
-        #     tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
-        #     trX, trY = np.shape(tr)[1], np.shape(tr)[0]
-        #     simuImage[0:trY, 0:trX] += tr
 
     return simuImage
 
