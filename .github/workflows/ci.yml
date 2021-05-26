@@ -44,15 +44,15 @@ jobs:
           echo " "
           python setup.py develop
 
-          echo " "
-          echo "Testing package installation"
-          echo " "
-          python -c "import exoctk; print('Version: ' + exoctk.__version__); print('Path: ' + exoctk.__path__[0])"
-
           # echo " "
           # echo "Reinstall numpy to fix numpy.core.multiarray error"
           # echo " "
           pip install -U numpy
+
+          echo " "
+          echo "Testing package installation"
+          echo " "
+          python -c "import exoctk; print('Version: ' + exoctk.__version__); print('Path: ' + exoctk.__path__[0])"
 
           echo " "
           echo "The conda environment being used:"
