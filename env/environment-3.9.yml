@@ -19,7 +19,6 @@ dependencies:
   - pandas=1.2.3
   - paramiko=2.7.2
   - pip=20.3.3
-  - pyerfa=2.0.0
   - pytest=6.2.3
   - python=3.9.1
   - pyyaml
