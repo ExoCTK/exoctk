@@ -14,6 +14,7 @@ from exoctk import utils
 from exoctk.utils import get_env_variables
 from pysiaf.utils import rotations
 
+EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
 TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'traces')
 
 def sossFieldSim(ra, dec, binComp='', dimX=256):
