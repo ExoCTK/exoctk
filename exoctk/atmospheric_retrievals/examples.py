@@ -117,20 +117,20 @@ def example(method):
 
     # Fit for the stellar radius and planetary mass using Gaussian priors.  This
     # is a way to account for the uncertainties in the published values
-    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+    pw.fit_info.add_gaussian_fit_param('Rs', 0.02 * R_sun)
+    pw.fit_info.add_gaussian_fit_param('Mp', 0.04 * M_jup)
 
     # Fit for other parameters using uniform priors
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.4 * R_jup), 1.1*(1.4 * R_jup))
-    pw.fit_info.add_uniform_fit_param('T', 0.5*1200, 1.5*1200)
+    pw.fit_info.add_uniform_fit_param('Rp', 0.9 * (1.4 * R_jup), 1.1 * (1.4 * R_jup))
+    pw.fit_info.add_uniform_fit_param('T', 0.5 * 1200, 1.5 * 1200)
     pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
     pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
     pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
     pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Define bins, depths, and errors
-    pw.wavelengths = 1e-6*np.array([1.119, 1.1387])
-    pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
+    pw.wavelengths = 1e-6 * np.array([1.119, 1.1387])
+    pw.bins = [[w - 0.0095e-6, w + 0.0095e-6] for w in pw.wavelengths]
     pw.depths = 1e-6 * np.array([14512.7, 14546.5])
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
@@ -176,20 +176,20 @@ def example_aws_short(method):
 
     # Fit for the stellar radius and planetary mass using Gaussian priors.  This
     # is a way to account for the uncertainties in the published values
-    pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-    pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
+    pw.fit_info.add_gaussian_fit_param('Rs', 0.02 * R_sun)
+    pw.fit_info.add_gaussian_fit_param('Mp', 0.04 * M_jup)
 
     # Fit for other parameters using uniform priors
-    pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.4 * R_jup), 1.1*(1.4 * R_jup))
-    pw.fit_info.add_uniform_fit_param('T', 0.5*1200, 1.5*1200)
+    pw.fit_info.add_uniform_fit_param('Rp', 0.9 * (1.4 * R_jup), 1.1 * (1.4 * R_jup))
+    pw.fit_info.add_uniform_fit_param('T', 0.5 * 1200, 1.5 * 1200)
     pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 1)
     pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
     pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 5)
     pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
 
     # Define bins, depths, and errors
-    pw.wavelengths = 1e-6*np.array([1.119, 1.1387])
-    pw.bins = [[w-0.0095e-6, w+0.0095e-6] for w in pw.wavelengths]
+    pw.wavelengths = 1e-6 * np.array([1.119, 1.1387])
+    pw.bins = [[w - 0.0095e-6, w + 0.0095e-6] for w in pw.wavelengths]
     pw.depths = 1e-6 * np.array([14512.7, 14546.5])
     pw.errors = 1e-6 * np.array([50.6, 35.5])
 
@@ -228,19 +228,19 @@ def example_aws_long(method):
     pw.set_parameters(params)
 
     if method == 'multinest':
-        pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-        pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
-        pw.fit_info.add_uniform_fit_param('Rp', 0.9*(1.39 * R_jup), 1.1*(1.39 * R_jup))
+        pw.fit_info.add_gaussian_fit_param('Rs', 0.02 * R_sun)
+        pw.fit_info.add_gaussian_fit_param('Mp', 0.04 * M_jup)
+        pw.fit_info.add_uniform_fit_param('Rp', 0.9 * (1.39 * R_jup), 1.1 * (1.39 * R_jup))
         pw.fit_info.add_uniform_fit_param('T', 300, 3000)
         pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 2)
         pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
         pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 7)
         pw.fit_info.add_uniform_fit_param("error_multiple", 0.5, 5)
     elif method == 'emcee':
-        pw.fit_info.add_gaussian_fit_param('Rs', 0.02*R_sun)
-        pw.fit_info.add_gaussian_fit_param('Mp', 0.04*M_jup)
-        pw.fit_info.add_uniform_fit_param('Rp', 0, np.inf, 0.9*(1.39 * R_jup), 1.1*(1.39 * R_jup))
-        pw.fit_info.add_uniform_fit_param('T', 300, 3000, 0.5*1476.81, 1.5*1476.81)
+        pw.fit_info.add_gaussian_fit_param('Rs', 0.02 * R_sun)
+        pw.fit_info.add_gaussian_fit_param('Mp', 0.04 * M_jup)
+        pw.fit_info.add_uniform_fit_param('Rp', 0, np.inf, 0.9 * (1.39 * R_jup), 1.1 * (1.39 * R_jup))
+        pw.fit_info.add_uniform_fit_param('T', 300, 3000, 0.5 * 1476.81, 1.5 * 1476.81)
         pw.fit_info.add_uniform_fit_param("log_scatt_factor", 0, 5, 0, 2)
         pw.fit_info.add_uniform_fit_param("logZ", -1, 3)
         pw.fit_info.add_uniform_fit_param("log_cloudtop_P", -0.99, 7)
@@ -287,11 +287,11 @@ def get_example_data(object_name):
     df = pandas.read_csv(data_file, names=['wavelengths', 'bin_sizes', 'depths', 'errors'])
 
     # Remove and rows outside of wavelength range (3e-7 to 3e-5)
-    df = df.loc[(1e-6*df['wavelengths'] - 1e-6*df['bin_sizes'] >= 3e-7) & (1e-6*df['wavelengths'] + 1e-6*df['bin_sizes'] <= 3e-5)]
+    df = df.loc[(1e-6 * df['wavelengths'] - 1e-6 * df['bin_sizes'] >= 3e-7) & (1e-6 * df['wavelengths'] + 1e-6 * df['bin_sizes'] <= 3e-5)]
 
     # Parse the data
-    wavelengths = 1e-6*np.array(df['wavelengths'])
-    bin_sizes = 1e-6*np.array(df['bin_sizes'])
+    wavelengths = 1e-6 * np.array(df['wavelengths'])
+    bin_sizes = 1e-6 * np.array(df['bin_sizes'])
     depths = np.array(df['depths'])
     errors = np.array(df['errors'])
 
