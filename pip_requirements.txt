@@ -3,7 +3,7 @@ astropy==4.2.1
 bandit==1.7.0
 batman-package==2.4.6
 bibtexparser==1.2.0
-bokeh==2.3.0
+bokeh==2.3.2
 boto3==1.17.42
 corner==2.2.1
 cython==0.29.22
