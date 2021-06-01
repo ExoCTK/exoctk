@@ -6,7 +6,7 @@ bibtexparser==1.2.0
 bokeh==2.3.2
 boto3==1.17.84
 corner==2.2.1
-cython==0.29.22
+cython==0.29.23
 ddtrace==0.48.2
 docopt==0.6.2
 docutils==0.16
