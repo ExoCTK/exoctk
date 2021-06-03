@@ -27,7 +27,8 @@ class Ephemeris:
     12/05/2008 Switched to spline fit.
     07/29/2010 Added OP window calc
     08/03/2010 Got rid of degrees trig functions
-              Removed in_FOR, is_valid_att etc. as those are S/C dependent
+               Removed in_FOR, is_valid_att etc. as those are S/C
+               dependent
     """
 
     def __init__(self, ephem_file, cnvrt=False):
@@ -330,9 +331,10 @@ class Ephemeris:
         return (OP_min, OP_max)
 
     def pos(self, adate):
-        """Computes the position of the telescope at a given date using the
-        grid of positions of the ephemeris as a starting point and
-        applying a linear interpolation between the ephemeris grid points
+        """Computes the position of the telescope at a given date using
+        the grid of positions of the ephemeris as a starting point and
+        applying a linear interpolation between the ephemeris grid
+        points
 
         Parameters
         ----------

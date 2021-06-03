@@ -2,9 +2,8 @@
 # quaternion module
 """Version 4 September 9, 2010 WMK
 Flipped sign of the angle in the QX, QY, QZ, QJX, QJY, QJZ, set_values,
-set_as_QX, ... functions to be consistent with the corrected multiplication.
-Also updated
-the doc strings.
+set_as_QX, ... functions to be consistent with the corrected
+multiplication. Also updated the doc strings.
 
 Version 3 September 8, 2010 RLH
 Backed out change to cnvrt in version 2.
@@ -18,12 +17,14 @@ Modified cnvrt method to return a CelestialVector
 4/9/2010 WMK
 Redefined the __init__ inputs
 Changed from a Vector internal representation to 3 scalers
-Fixed an error in cvt_att_Q_to_angles, was assuming an att2inertial Quaternion!
+Fixed an error in cvt_att_Q_to_angles, was assuming an att2inertial
+Quaternion!
 Streamlined some of the functions
  Version 1.0 August 3, 2010
  Got rid of degrees trig functions.
 
-Combined this and rotationsx.py module to avoid circular imports and made it
+Combined this and rotationsx.py module to avoid circular imports and
+made it
 PEP Compliant
 Joe Filippazzo - 2018/06/26
 """
@@ -115,8 +116,8 @@ class Vector:
     def __init__(self, x=0.0, y=0.0, z=0.0):
         """Constructor for a three-dimensional vector.
 
-        Note that two-dimensional vectors can be constructed by omitting one
-        of the coordinates, which will default to 0.
+        Note that two-dimensional vectors can be constructed by omitting
+        one of the coordinates, which will default to 0.
 
         Parameters
         ----------
@@ -150,8 +151,8 @@ class Vector:
         return (self)
 
     def __mul__(self, rs):
-        """Implements Vector * scalar.  Can then use '*' syntax in multiplying
-        a vector by a scalar rs
+        """Implements Vector * scalar.  Can then use '*' syntax in
+        multiplying a vector by a scalar rs
 
         Parameters
         ----------
@@ -324,8 +325,8 @@ class Vector:
     def set_eq(self, x=None, y=None, z=None):
         """Assigns new value to vector.
 
-        Arguments are now optional to permit this to be used with 2D vectors
-        or to modify any subset of coordinates.
+        Arguments are now optional to permit this to be used with 2D
+        vectors or to modify any subset of coordinates.
 
         Parameters
         ----------
@@ -365,32 +366,33 @@ class CelestialVector (Vector):
     def __init__(self, ra=0.0, dec=0.0, frame='eq', degrees=True):
         """Constructor for a celestial vector.
 
-        There are two spherical coordinates, a longitudinal coordinate (called
-        right ascension), and a latitudinal coordinate (called declination).
-        The RA is defined as the counterclockwise angle from a reference
-        direction on the equatorial plane; it ranges from 0-360 degrees.
-        The DEC is the angle between the vector and the equatorial plane;
-        it ranges from -90 to 90 degrees. Angles are specified in degrees but
-        represented internally as radians.
+        There are two spherical coordinates, a longitudinal coordinate
+        (called right ascension), and a latitudinal coordinate (called
+        declination). The RA is defined as the counterclockwise angle
+        from a reference direction on the equatorial plane; it ranges
+        from 0-360 degrees. The DEC is the angle between the vector and
+        the equatorial plane; it ranges from -90 to 90 degrees. Angles
+        are specified in degrees but represented internally as radians.
 
-        The frame attribute indicates the coordinate frame of the vector,
-        which may be 'eq' (equatorial, default), 'ec' (ecliptic), or 'gal'
-        (galactic).  In equatorial coordinates, the equatorial plane is the
-        celestial equator (extension of the Earth's equator) and the reference
-        axis is the vernal equinox.  In ecliptic coordiantes, the equatorial
-        plane is the ecliptic (the Earth's orbital plane) and the reference
-        axis is usually defined relative to the Sun.  In galactic coordinates,
-        the equatorial plane is the plane of the Galaxy.
+        The frame attribute indicates the coordinate frame of the
+        vector, which may be 'eq' (equatorial, default), 'ec'
+        (ecliptic), or 'gal' (galactic).  In equatorial coordinates, the
+        equatorial plane is the celestial equator (extension of the
+        Earth's equator) and the reference axis is the vernal equinox.
+        In ecliptic coordiantes, the equatorial plane is the ecliptic
+        (the Earth's orbital plane) and the reference axis is usually
+        defined relative to the Sun.  In galactic coordinates, the
+        equatorial plane is the plane of the Galaxy.
 
-        The degrees attribute should be True if the RA, DEC inputs are in
-        degrees. Otherwise radians is assumed.
+        The degrees attribute should be True if the RA, DEC inputs are
+        in degrees. Otherwise radians is assumed.
 
         The coordinates "ra" and "dec" may be used in all three systems.
-        Other names for coordinates in different frames may be defined for
-        clarity.
+        Other names for coordinates in different frames may be defined
+        for clarity.
 
-        A CelestialVector is also an ordinary unit vector, with Cartesian
-        coordinates defined relative to the equatorial plane.
+        A CelestialVector is also an ordinary unit vector, with
+        Cartesian coordinates defined relative to the equatorial plane.
 
         Parameters
         ----------
@@ -418,8 +420,8 @@ class CelestialVector (Vector):
         Vector.__init__(self, x=x, y=y, z=z)
 
     def __str__(self, verbose=True):
-        """Returns a string representation of the vector.  Displays angles
-        in degrees.
+        """Returns a string representation of the vector.  Displays
+        angles in degrees.
 
         Parameters
         ----------
@@ -435,12 +437,13 @@ class CelestialVector (Vector):
             return celest_info
 
     def position_angle(self, v):
-        """Returns the position angle of v at the self vector, in radians.
+        """Returns the position angle of v at the self vector, in
+        radians.
 
-        v is an arbitrary vector that should be a CelestialVector object.
-        The position angle is the angle between the North vector on the
-        plane orthogonal to the self vector and the projection of v onto
-        that plane, defined counterclockwise.
+        v is an arbitrary vector that should be a CelestialVector
+        object. The position angle is the angle between the North vector
+        on the plane orthogonal to the self vector and the projection of
+        v onto that plane, defined counterclockwise.
         See "V3-axis Position Angle", John Isaacs, May 2003 for
         further discussion.
 
@@ -517,9 +520,10 @@ class CelestialVector (Vector):
         Rotation is counterclockwise looking outward from origin along
         eigenaxis. Function uses rotation matrix from Rodrigues formula.
 
-        Note: This function is more general than rotate_about_axis above and
-        could be used in its place.  However, rotate_about_axis is faster and
-        clearer when the rotation axis is one of the Cartesian axes.
+        Note: This function is more general than rotate_about_axis above
+        and could be used in its place.  However, rotate_about_axis is
+        faster and clearer when the rotation axis is one of the
+        Cartesian axes.
 
         Parameters
         ----------
@@ -560,8 +564,8 @@ class CelestialVector (Vector):
         """Returns the vector that results from rotating the self vector
         counterclockwise from the North projection onto the plane
         orthogonal to that vector by the specified position angle
-        (in radians). See "V3-axis Position Angle", John Isaacs, May 2003 for
-        further discussion.
+        (in radians). See "V3-axis Position Angle", John Isaacs, May
+        2003 for further discussion.
 
         Parameters
         ----------
@@ -637,8 +641,8 @@ class CelestialVector (Vector):
     def transform_frame(self, new_frame):
         """Transforms coordinates between celestial and ecliptic frames
         and returns result as a new CelestialVector.
-        If new coordinate frame is the same as the old, a copy of the vector
-        is returned.
+        If new coordinate frame is the same as the old, a copy of the
+        vector is returned.
 
         Parameters
         ----------
@@ -705,7 +709,8 @@ class CelestialVector (Vector):
         return (result)
 
     def update_cartesian(self, x=None, y=None, z=None):
-        """Modifies a celestial vector by specifying new Cartesian coordinates.
+        """Modifies a celestial vector by specifying new Cartesian
+        coordinates.
 
         Any subset of the Cartesian coordinates may be specifed.
 
@@ -739,8 +744,9 @@ class Attitude(CelestialVector):
     def __init__(self, ra=0.0, dec=0.0, pa=0.0, frame='eq', degrees=True):
         """Constructor for an Attitude.
 
-        pa = position_angle in degrees(default) or radians if degrees=False
-        is specified. Other arguments are the same as with CelestialVector
+        pa = position_angle in degrees(default) or radians if
+        degrees=False is specified. Other arguments are the same as with
+        CelestialVector
 
         Parameters
         ----------
@@ -820,10 +826,10 @@ NGP = GalacticPole(192.859508, 27.128336, 32.932)
 class Matrix(list):
     """Class to encapsulate matrix data and methods.
 
-    A matrix is simply a list of lists that correspond to rows of the matrix.
-    This is just intended to handle simple multiplication and vector rotations.
-    For anything more advanced or computationally intensive, Python library
-    routines should be used."""
+    A matrix is simply a list of lists that correspond to rows of the
+    matrix. This is just intended to handle simple multiplication and
+    vector rotations. For anything more advanced or computationally
+    intensive, Python library routines should be used."""
 
     def __init__(self, rows):
         """Constructor for a matrix.
@@ -840,7 +846,8 @@ class Matrix(list):
             self.append(NumericList(row))  # copy list
 
     def __mul__(m1, m2):
-        """Multiplies two Matrix objects and returns the resulting matrix.
+        """Multiplies two Matrix objects and returns the resulting
+        matrix.
 
         Number of rows in m1 must equal the number of columns in m2.
 
@@ -954,12 +961,13 @@ class Matrix(list):
 
 
 class NumericList(list):
-    """List class that supports multiplication.  Only valid for numbers."""
+    """List class that supports multiplication.  Only valid for
+    numbers."""
 
     def __mul__(L1, L2):
         """Take the dot product of two numeric lists.
-        Not using Vector for this because it is limited to three dimensions.
-        Lists must have the same number of elements
+        Not using Vector for this because it is limited to three
+        dimensions. Lists must have the same number of elements
 
         Parameters
         ----------
@@ -1173,8 +1181,8 @@ class Quaternion:
         self.q4 = Q.q4
 
     def set_values(self, V, angle):
-        """Sets quaterion values using a direction vector and a rotation of
-        the coordinate frame about it.
+        """Sets quaterion values using a direction vector and a rotation
+        of the coordinate frame about it.
 
         Parameters
         ----------
@@ -1237,8 +1245,8 @@ def cross(v1, v2):
 
 
 def cvt_body2inertial_Q_to_c1c2pa_tuple(Q):
-    """Creates a angle tuple from Q, assuming body frame to inertial Q and
-    321 rotation sequence.
+    """Creates a angle tuple from Q, assuming body frame to inertial Q
+    and 321 rotation sequence.
 
     Parameters
     ----------
@@ -1542,7 +1550,8 @@ def QZ(angle):
 
 def Qmake_aperture2inertial(coord1, coord2, APA, xoff, yoff, s, YapPA,
                             V3ref, V2ref):
-    """Creates a rotation Q, going from the target in aperture frame to body.
+    """Creates a rotation Q, going from the target in aperture frame to
+    body.
 
     Parameters
     ----------
@@ -1640,7 +1649,8 @@ def Qmake_v2v3_2inertial(coord1, coord2, V3pa, v2, v3):
 
 
 def ra_delta(v1, v2):
-    """Returns difference in right ascension between two CelestialVectors.
+    """Returns difference in right ascension between two
+    CelestialVectors.
 
     Parameters
     ----------
@@ -1668,8 +1678,9 @@ def ra_delta(v1, v2):
 
 
 def ra_separation(v1, v2):
-    """Returns separation in right ascension between two CelestialVectors.
-    This is accurate only if the difference in declination is small.
+    """Returns separation in right ascension between two
+    CelestialVectors. This is accurate only if the difference in
+    declination is small.
 
     |sep| = DELTA-RA cos DEC
 
@@ -1693,9 +1704,9 @@ def ra_separation(v1, v2):
 def separation(v1, v2, norm=False):
     """Returns angle between two unit vectors in radians.
 
-    The angle between two normalized vectors is the arc-cosine of the dot
-    product. Unless the norm attribute is set to True, it is assumed the
-    vectors are already normalized (for performance).
+    The angle between two normalized vectors is the arc-cosine of the
+    dot product. Unless the norm attribute is set to True, it is assumed
+    the vectors are already normalized (for performance).
 
     Parameters
     ----------
@@ -1728,8 +1739,8 @@ def separation(v1, v2, norm=False):
 
 
 def vel_ab(U, Vel):
-    """Takes a unit vector and a velocity vector(km/s) and returns a unit
-    vector modidifed by the velocity abberation.
+    """Takes a unit vector and a velocity vector(km/s) and returns a
+    unit vector modidifed by the velocity abberation.
 
     Parameters
     ----------

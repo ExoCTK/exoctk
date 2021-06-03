@@ -15,8 +15,8 @@ epsilon = 23.43929 * D2R  # obliquity of the ecliptic J2000
 
 
 def delta_pa_no_roll(pos1_c1, pos1_c2, pos2_c1, pos2_c2):
-    """Calculates the change in position angle between two positions with no
-    roll about V1
+    """Calculates the change in position angle between two positions
+    with no roll about V1
 
     Parameters
     ----------
@@ -66,8 +66,8 @@ def dist(obj1_c1, obj1_c2, obj2_c1, obj2_c2):
 
 
 def JWST_same_ori(tgt0_c1, tgt0_c2, p0, tgt_c1, tgt_c2):
-    """Calculates normal orientation of second target, given first target's
-    orientation is normal. This is in Ecliptic coordinates!
+    """Calculates normal orientation of second target, given first
+    target's orientation is normal. This is in Ecliptic coordinates!
 
     Parameters
     ----------

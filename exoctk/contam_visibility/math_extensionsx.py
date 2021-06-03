@@ -32,8 +32,8 @@ class Histogram(object):
         return(result)
 
     def normalize(self, total=None):
-        """Takes a histogram and returns a new histogram that normalizes all
-        its values.
+        """Takes a histogram and returns a new histogram that normalizes
+        all its values.
 
         Parameters
         ----------
@@ -62,7 +62,8 @@ class Histogram(object):
         return(sum([bin.count for bin in self.bins]))
 
     def retrieve_count(self, bin_index):
-        """Returns the number of items stored in a given bin of the histogram.
+        """Returns the number of items stored in a given bin of the
+        histogram.
 
         Parameters
         ----------
@@ -102,7 +103,8 @@ class Polynomial(object):
         Parameters
         ----------
         coefficients: sequence
-            The list of coefficients, starting with order 0 and increasing.
+            The list of coefficients, starting with order 0 and
+            increasing.
         """
         self.coefficients = coefficients
 
@@ -168,13 +170,15 @@ class Rectangle(object):
         return(self.length * self.width)
 
     def motion_tolerant_area(self, motion_length, motion_angle):
-        """Returns the area within a rectangle that can tolerate a motion in
-        a known direction while remaining within the rectangle.
+        """Returns the area within a rectangle that can tolerate a
+        motion in a known direction while remaining within the
+        rectangle.
 
         Parameters
         ----------
         motion_length: float
-            Distance of motion (same units as rectangle length and width).
+            Distance of motion (same units as rectangle length and
+            width).
         motion_angle: float
             Angle in radians between the direction of motion and long
             direction of rectangle.
@@ -418,8 +422,8 @@ class DiscreteHistogram(Histogram):
 
 class LinearEquation(Polynomial):
     """Subclass of Polynomial for linear equations.
-    This implementation is three times faster, so Polynomial should be reserved
-    for higher orders."""
+    This implementation is three times faster, so Polynomial should be
+    reserved for higher orders."""
 
     def __init__(self, coeff0, coeff1):
         """Constructor for a linear equation to provide a more 'natural'
@@ -465,8 +469,8 @@ class PoissonDistribution(DiscreteHistogram):
             Mean parameter for the Poisson distribution.
         max_boundary: float
             The largest parameter for which the probability is to
-            be computed. All values larger than max_boundary will be lumped
-            into the highest bin.
+            be computed. All values larger than max_boundary will be
+            lumped into the highest bin.
         """
         self.mean = mean
         self.bins = []
@@ -489,13 +493,14 @@ class PoissonDistribution(DiscreteHistogram):
         return(poisson_info + generic_info)
 
     def cumulative_probability(self, value):
-        """Returns the probability that a random variable will have a value no
-        greater than the one specified.
+        """Returns the probability that a random variable will have a
+        value no greater than the one specified.
 
         Parameters
         ----------
         value: float
-            The value between 0 and the max_boundary of the distribution.
+            The value between 0 and the max_boundary of the
+            distribution.
 
         Returns
         -------
@@ -520,8 +525,8 @@ class PoissonDistribution(DiscreteHistogram):
         self.bins[-1].count = 1.0 - cum
 
     def probability(self, k):
-        """Computes the probability that the Poisson distribution takes on
-        the value k.
+        """Computes the probability that the Poisson distribution takes
+        on the value k.
 
         Value must be a nonnegative integer.
 
@@ -689,8 +694,8 @@ class Square(Rectangle):
         return('Square: side = % .2f' % (self.side))
 
     def inner_area(self, excluded_width):
-        """Returns the area of the square after removing a strip of specified
-        width along each edge.
+        """Returns the area of the square after removing a strip of
+        specified width along each edge.
 
         Parameters
         ----------
@@ -741,8 +746,8 @@ class StatisticalList(list):
 
     def compute_statistics(self, min_value=None, max_value=None,
                            max_bins=None):
-        """Computes statistics for a StatisticalList object; must contain at
-        least one element.
+        """Computes statistics for a StatisticalList object; must
+        contain at least one element.
 
         Parameters
         ----------
@@ -829,8 +834,8 @@ class StatisticalList(list):
 
 
 def acos2(val):
-    """Safe version of acos that handles invalid arguments in the same way as
-    asin2
+    """Safe version of acos that handles invalid arguments in the same
+    way as asin2
 
     Parameters
     ----------
@@ -848,8 +853,8 @@ def acos2(val):
 def asin2(val):
     """Safe version of asin that handles invalid arguments.
 
-    Arguments greater than 1 are truncated to 1; arguments less than -1 are
-    set to -1.
+    Arguments greater than 1 are truncated to 1; arguments less than -1
+    are set to -1.
 
     Parameters
     ----------
@@ -915,8 +920,8 @@ def avg2(num1, num2):
 
 
 def combine_histograms(histograms):
-    """Takes a list of histograms and returns a new Histogram object that sums
-    the values in each bin.
+    """Takes a list of histograms and returns a new Histogram object
+    that sums the values in each bin.
 
     All histograms in the list must be identical except for the count.
 
@@ -1100,7 +1105,8 @@ def sind(x):
 
 
 def stdev(numbers):
-    """Standard deviation of a list of numbers that represent sample values
+    """Standard deviation of a list of numbers that represent sample
+    values
 
     Parameters
     ----------
@@ -1136,7 +1142,8 @@ def variance(numbers):
 
 
 def average_histograms(histograms):
-    """Takes a list of histogram objects and simply averages all the bin values.
+    """Takes a list of histogram objects and simply averages all the bin
+    values.
 
     All histograms in the list must be identical except for the count.
 

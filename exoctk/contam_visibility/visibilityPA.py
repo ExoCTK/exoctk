@@ -34,9 +34,11 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     Parameters
     ----------
     ra: str
-        The RA of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The RA of the target in hh:mm:ss.s or dd:mm:ss.s or representing
+        a float
     dec: str
-        The Dec of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The Dec of the target in hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     targetName: str
         The target name
     ephFileName: str
@@ -230,16 +232,19 @@ def using_gtvt(
     Parameters
     ----------
     ra : str
-        The RA of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The RA of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     dec : str
-        The Dec of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The Dec of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
         'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
     ephFileName : str
         The filename of the ephemeris file.
     output : str
-        Switches on plotting with Bokeh. Parameter value must be 'bokeh'.
+        Switches on plotting with Bokeh. Parameter value must be
+        'bokeh'.
 
     Returns
     -------
