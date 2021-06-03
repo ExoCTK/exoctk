@@ -1,16 +1,16 @@
 """
-Series of functions to compute the visibility periods for a given (RA,DEC)
-with in some cases the possibility to select a PA value.
+Series of functions to compute the visibility periods for a given
+(RA, DEC) with in some cases the possibility to select a PA value.
 
 Functions derived from the code of Wayne Kinzel provided by Jeff Valenti
 Extract from the e-mail of Wayne Kinzel:
-As before, the code is not officially tested, nor is it an official STScI
-product. Users should be warned that the apparent position of the Sun changes
-~+/-0.2 degrees epending upon where JWST is in its orbit.
-So do not rely strongly on these results if the target is within ~0.2 degrees
-of |ecliptic latitude| 45 degrees or 85 degrees.
-For example if a target is at 84.9 degrees latitude and the tool says it is
-CVZ, it may not be with the operational orbit.
+As before, the code is not officially tested, nor is it an official
+STScI product. Users should be warned that the apparent position of the
+Sun changes ~+/-0.2 degrees epending upon where JWST is in its orbit.
+So do not rely strongly on these results if the target is within ~0.2
+degrees of |ecliptic latitude| 45 degrees or 85 degrees.
+For example if a target is at 84.9 degrees latitude and the tool says it
+is CVZ, it may not be with the operational orbit.
 """
 import math
 
@@ -21,8 +21,8 @@ PI2 = 2. * math.pi  # 2 pi
 
 def f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
                                               ra, dec, pa, mjdc):
-    """Computes the duration of a specific visibility period associated to a
-    given (RA,DEC), a given PA and given date
+    """Computes the duration of a specific visibility period associated
+    to a given (RA,DEC), a given PA and given date
 
     flag = 0 visibility period fully in the search interval
     flag = -1 start of the visibility period truncated by

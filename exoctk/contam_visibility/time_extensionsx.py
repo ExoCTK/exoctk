@@ -417,8 +417,8 @@ def round_to_second(time):
 
 
 def seconds_into_day(time):
-    """Takes a time in fractional days and returns number of seconds since
-    the start of the current day.
+    """Takes a time in fractional days and returns number of seconds
+    since the start of the current day.
 
     Parameters
     ----------
@@ -451,9 +451,9 @@ def seconds_to_days(seconds):
 
 
 def time_from_string(time_string):
-    """Takes a string of the form ddd:hh:mm:ss and converts it to fractional
-    days. All subfields above seconds are optional and may be omitted if the
-    subfield and all higher-order ones are zero.
+    """Takes a string of the form ddd:hh:mm:ss and converts it to
+    fractional days. All subfields above seconds are optional and may be
+    omitted if the subfield and all higher-order ones are zero.
 
     Parameters
     ----------

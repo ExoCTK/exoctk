@@ -17,9 +17,9 @@ TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'trac
 
 
 def fieldSim(ra, dec, instrument, binComp='', testing=False):
-    """ Wraps ``sossFieldSim``, ``gtsFieldSim``, and ``lrsFieldSim`` together.
-    Produces a field simulation for a target using any instrument (NIRISS,
-    NIRCam, or MIRI).
+    """ Wraps ``sossFieldSim``, ``gtsFieldSim``, and ``lrsFieldSim``
+    together. Produces a field simulation for a target using any
+    instrument (NIRISS, NIRCam, or MIRI).
 
     Parameters
     ----------
@@ -34,17 +34,18 @@ def fieldSim(ra, dec, instrument, binComp='', testing=False):
     binComp : sequence
         The parameters of a binary companion.
     testing : bool
-        Shoud be ``True`` if running fieldSim for testing / troubleshooting
-        purposes. This will generate a matplotlib figure showing the target
-        FOV. The neighboring stars in this FOV will be included in the
-        contamination calculation (contamFig.py).
+        Shoud be ``True`` if running fieldSim for testing /
+        troubleshooting purposes. This will generate a matplotlib figure
+        showing the target FOV. The neighboring stars in this FOV will
+        be included in the contamination calculation (contamFig.py).
 
     Returns
     -------
     simuCube : np.ndarray
-        The simulated data cube. Index 0 and 1 (axis=0) show the trace of
-        the target for orders 1 and 2 (respectively). Index 2-362 show the trace
-        of the target at every position angle (PA) of the instrument.
+        The simulated data cube. Index 0 and 1 (axis=0) show the trace
+        of the target for orders 1 and 2 (respectively). Index 2-362
+        show the trace of the target at every position angle (PA) of the
+        instrument.
     plt.plot() : matplotlib object
         A plot. Only if `testing` parameter is set to True.
     """
@@ -83,9 +84,10 @@ def gtsFieldSim(ra, dec, filter, binComp=''):
     Returns
     -------
     simuCube : np.ndarray
-        The simulated data cube. Index 0 and 1 (axis=0) show the trace of
-        the target for orders 1 and 2 (respectively). Index 2-362 show the trace
-        of the target at every position angle (PA) of the instrument.
+        The simulated data cube. Index 0 and 1 (axis=0) show the trace
+        of the target for orders 1 and 2 (respectively). Index 2-362
+        show the trace of the target at every position angle (PA) of the
+        instrument.
     """
     # Instantiate a pySIAF object
     siaf = pysiaf.Siaf('NIRCam')
@@ -326,9 +328,10 @@ def lrsFieldSim(ra, dec, binComp=''):
     Returns
     -------
     simuCube : np.ndarray
-        The simulated data cube. Index 0 and 1 (axis=0) show the trace of
-        the target for orders 1 and 2 (respectively). Index 2-362 show the trace
-        of the target at every position angle (PA) of the instrument.
+        The simulated data cube. Index 0 and 1 (axis=0) show the trace
+        of the target for orders 1 and 2 (respectively). Index 2-362
+        show the trace of the target at every position angle (PA) of the
+        instrument.
     """
     # INSTRUMENT PARAMETERS
     # Instantiate a pySIAF object
