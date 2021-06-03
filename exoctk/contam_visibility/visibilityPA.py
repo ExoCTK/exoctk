@@ -15,9 +15,8 @@ import pkg_resources
 
 from astropy.table import Table
 from astropy.time import Time
-from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool, ranges
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.plotting import figure, ColumnDataSource
 import matplotlib.dates as mdates
 import numpy as np
 
@@ -342,8 +341,7 @@ def using_gtvt(
 
     # Making the output table
     # Creating new lists w/o the NaN values
-    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = \
-        [], [], [], [], [], [], []
+    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan = [], [], [], [], [], []
 
     for vmin, vmax, pnom, pmin, pmax, date in zip(
             v3min, v3max, paNom, paMin, paMax, gd):
