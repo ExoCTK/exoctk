@@ -1,12 +1,13 @@
-""" The contamVerify mini tool will be a companion to ExoCTK's Contamination
-Overlap tool, as it will visualize the Contaminaton Bokeh plots on the website.
+""" The contamVerify mini tool will be a companion to ExoCTK's
+Contamination Overlap tool, as it will visualize the Contaminaton Bokeh
+plots on the website.
 
 Functions are:
 plotTemps    - Plots the temperatures of stars according to color.
 traceLengths - Fine-tunes the trace lengths in the plot.
-contamVerify - The main mini tool. Outputs a .pdf file with one or more figures
-               showing the FOV in the science frame according to the input
-               Aperture Position Angle(s) it is fed.
+contamVerify - The main mini tool. Outputs a .pdf file with one or more
+               figures showing the FOV in the science frame according to
+               the input Aperture Position Angle(s) it is fed.
 
 Author(s)
 ---------
@@ -41,7 +42,8 @@ TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
 
 def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     """ Generates a PDF file of figures displaying a simulation
-    of the science image for any given observation using the parameters provided.
+    of the science image for any given observation using the parameters
+    provided.
 
     Parameter(s)
     ------------
@@ -54,7 +56,8 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
         The software currently supports:
         'MIRI', 'NIRISS', 'NIRCam F322W2', 'NIRCam F444W'
     APAlist : list
-        A list of Aperture Position Angle(s). Element(s) must be in integers.
+        A list of Aperture Position Angle(s). Element(s) must be in
+        integers.
         Example 1:
         [1, 25, 181, 205]
         Example 2:
@@ -65,23 +68,24 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
         [RA (arcseconds), DEC (arcseconds), J mag, H mag, K mag]
         [string, string, integer, integer, integer]
     PDF : string
-        The path to where the PDF file will be saved. If left blank, the PDF
-        file will be saved in your current working directory.
+        The path to where the PDF file will be saved. If left blank, the
+        PDF file will be saved in your current working directory.
         Example:
         'path/to/my/file.pdf'
     web : boolean
-        Makes it easier to integrate it onto the website. Leave this as false,
-        unless you're running this in app_exoctk.py
+        Makes it easier to integrate it onto the website. Leave this as
+        false, unless you're running this in app_exoctk.py
 
     Returns
     -------
     A .PDF file containing a simulation of the FOV of your target in the
-    science coordinate system. Some things to consider when reading the figures:
+    science coordinate system. Some things to consider when reading the
+    figures:
 
     1. The target is circled in red
     2. Stellar temperatures of all sources are plotted by color
-    3. The gray region oulined in blue represents the aperture for the given
-       instrument.
+    3. The gray region oulined in blue represents the aperture for the
+       given instrument.
     4. The blue square represents the readout region, or the "origin"
 
     """
@@ -284,8 +288,8 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
 
 def plotTemps(TEMPS, allRA, allDEC):
-    """ The stars' colors in the plot will be a function of effective stellar
-    temperatures when plotting with this function. """
+    """ The stars' colors in the plot will be a function of effective
+    stellar temperatures when plotting with this function."""
 
     # Getting the color palette
     colors = cm.get_cmap('viridis', len(TEMPS))
@@ -321,7 +325,8 @@ def plotTemps(TEMPS, allRA, allDEC):
 
 
 def traceLength(inst):
-    """ For fine-tuning the trace lengths in the contamVerify output figures """
+    """ For fine-tuning the trace lengths in the contamVerify output
+    figures"""
 
     # Getting example trace to calculate rough estimate of trace lengths
     if 'NIRCam' in inst:

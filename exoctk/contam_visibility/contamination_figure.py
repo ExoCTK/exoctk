@@ -242,8 +242,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
 
 def miriContam(cube, paRange=[0, 360]):
-    """ Generates the contamination figure that will be plotted on the website
-    for MIRI LRS.
+    """ Generates the contamination figure that will be plotted on the
+    website for MIRI LRS.
     """
     # Get data from FITS file
     if isinstance(cube, str):
@@ -296,20 +296,20 @@ def miriContam(cube, paRange=[0, 360]):
 
 
 def nircamContam(cube, instrument, paRange=[0, 360]):
-    """ Generates the contamination figure that will be plotted on the website
-    for NIRCam Grism Time Series mode.
+    """ Generates the contamination figure that will be plotted on the
+    website for NIRCam Grism Time Series mode.
 
     PARAMETERS
     ----------
     cube : arr or str
-        A 3D array of the simulated field at every Aperture Position Angle (APA).
-        The shape of the cube is (361, subY, subX).
+        A 3D array of the simulated field at every Aperture Position
+        Angle (APA). The shape of the cube is (361, subY, subX).
         or
         The name of an HDU .fits file sthat has the cube.
 
     instrument : str
-        The name of the instrument + what filter is being used. For NIRCam the
-        options are: 'NIRCam F322W2', 'NIRCam F444W'
+        The name of the instrument + what filter is being used. For
+        NIRCam the options are: 'NIRCam F322W2', 'NIRCam F444W'
 
     RETURNS
     -------
@@ -361,8 +361,8 @@ def nircamContam(cube, instrument, paRange=[0, 360]):
 
 
 def nirissContam(cube, paRange=[0, 360]):
-    """ Generates the contamination figure that will be plotted on the website
-    for NIRISS SOSS.
+    """ Generates the contamination figure that will be plotted on the
+    website for NIRISS SOSS.
     """
     # Get data from FITS file
     if isinstance(cube, str):

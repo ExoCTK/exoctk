@@ -90,8 +90,8 @@ def authenticate():
 
 
 def check_auth(username, password):
-    """This function is called to check if a username password combination is
-    valid
+    """This function is called to check if a username password
+    combination is valid
 
     Parameters
     ----------
@@ -348,7 +348,8 @@ def groups_integrations():
     Returns
     -------
     ``flask.render_template`` obj
-        The rendered template for the Groups & Integrations calculator page.
+        The rendered template for the Groups & Integrations calculator
+        page.
     """
 
     # Print out pandeia sat values
@@ -823,7 +824,8 @@ def save_contam_pdf():
     Returns
     -------
     ``flask.render_template`` obj
-        The rendered template (and attachment) for the Contamination FOV.
+        The rendered template (and attachment) for the Contamination
+        FOV.
     """
 
     RA, DEC = '19:50:50.2400', '+48:04:51.00'
@@ -863,7 +865,8 @@ def save_visib_result():
     Returns
     -------
     ``flask.Response`` obj
-        flask.Response object with the results of the visibility only calculation.
+        flask.Response object with the results of the visibility only
+        calculation.
     """
 
     visib_table = flask.request.form['data_file']
