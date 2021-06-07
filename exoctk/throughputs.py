@@ -3,11 +3,11 @@
 """
 A module for creating and managing grids of model spectra
 """
+
 from glob import glob
 import json
 import os
 from pkg_resources import resource_filename
-import warnings
 
 import numpy as np
 from svo_filters.svo import Filter
@@ -24,7 +24,8 @@ JWST_THROUGHPUTS = [os.path.basename(file).replace('.txt', '') for file in glob(
 class Throughput(Filter):
     def __init__(self, name, **kwargs):
         """
-        Initialize the Throughput object as a child class of svo_filters.svo.Filter
+        Initialize the Throughput object as a child class of
+        svo_filters.svo.Filter
 
         Parameters
         ----------
@@ -81,7 +82,8 @@ def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd
 
 def generate_JWST_throughputs(path=None, data_dir=None):
     """
-    Function to generate .txt filte of all JWST filter and grism throughputs
+    Function to generate .txt filte of all JWST filter and grism
+    throughputs
     """
     # Check if environment variable exists
     path = path or os.environ.get('pandeia_refdata')
