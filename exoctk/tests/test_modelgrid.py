@@ -17,7 +17,6 @@ Use
         pytest -s modelgrid.py
 """
 
-import os
 from pkg_resources import resource_filename
 
 import numpy as np
@@ -61,4 +60,3 @@ def test_model_getter_off_grid():
     model = mgrid.get(4023, 4.1, -0.1)
 
     assert isinstance(model.get('flux'), np.ndarray)
-
