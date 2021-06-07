@@ -3,7 +3,7 @@ import os
 from flask_wtf import FlaskForm
 import numpy as np
 from svo_filters import svo
-from wtforms import StringField, SubmitField, DecimalField, MultiCheckboxField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
+from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
 from wtforms.validators import InputRequired, NumberRange
 from wtforms.widgets import ListWidget, CheckboxInput
 
@@ -19,6 +19,12 @@ class BaseForm(FlaskForm):
 
     # Submit button
     resolve_submit = SubmitField('Resolve Target')
+
+
+class MultiCheckboxField(SelectMultipleField):
+    """Makes a list of checkbox inputs"""
+    widget = ListWidget(prefix_label=False)
+    option_widget = CheckboxInput()
 
 
 class ContamVisForm(BaseForm):
@@ -129,12 +135,6 @@ class LimbDarkeningForm(BaseForm):
     calculate_submit = SubmitField('Calculate Coefficients')
     filter_submit = SubmitField('Filter Selected')
     modelgrid_submit = SubmitField('Model Grid Selected')
-
-
-class MultiCheckboxField(SelectMultipleField):
-    """Makes a list of checkbox inputs"""
-    widget = ListWidget(prefix_label=False)
-    option_widget = CheckboxInput()
 
 
 class PhaseConstraint(BaseForm):
