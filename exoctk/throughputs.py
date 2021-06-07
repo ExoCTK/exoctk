@@ -81,10 +81,9 @@ def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd
 
 
 def generate_JWST_throughputs(path=None, data_dir=None):
-    """
-    Function to generate .txt filte of all JWST filter and grism
-    throughputs
-    """
+    """Function to generate .txt filte of all JWST filter and grism
+    throughputs"""
+
     # Check if environment variable exists
     path = path or os.environ.get('pandeia_refdata')
     data_dir = data_dir or resource_filename('exoctk', 'data/throughputs/')
@@ -149,7 +148,7 @@ def generate_JWST_throughputs(path=None, data_dir=None):
                             print("{} file created!".format(datafile_path))
 
                         except KeyError:
-                            print("Could not produce throughput for {}".format(conf)
+                            print("Could not produce throughput for {}".format(conf))
 
         # Do NIRSpec separately because pandeia doesn't show them correctly
         nirspec_combos = ['G140M/F070LP', 'G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP', 'G140H/F070LP', 'G140H/F100LP', 'G235H/F170LP', 'G395H/F290LP', 'PRISM/CLEAR']

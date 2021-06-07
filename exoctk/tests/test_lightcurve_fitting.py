@@ -39,7 +39,7 @@ class TestLightcurve(unittest.TestCase):
         # Test that parameters can be assigned
         lin1 = models.PolynomialModel(c1=0.0005, c0=0.997, name='linear 1')
         lin2 = models.PolynomialModel(c1=0.001, c0=0.92, name='linear 2')
-        comp_model = lin1*lin2
+        comp_model = lin1 * lin2
 
         # Test the fitting routine
         self.lc.fit(comp_model)
@@ -52,7 +52,7 @@ class TestModels(unittest.TestCase):
         """Tests for the CompositeModel class"""
         model1 = models.Model()
         model2 = models.Model()
-        self.comp_model = model1*model2
+        self.comp_model = model1 * model2
         self.comp_model.name = 'composite'
 
     def setUp(self):
