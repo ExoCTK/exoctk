@@ -5,6 +5,18 @@ This file tracks all major changes in each `exoctk` release.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.2.1] - 2021-06-09
+
+### Added
+
+- NIRSpec grism support for the limb darkening calculator
+- Test module for the `forward_models.py` module
+
+### Fixed
+
+- Broken forward modeling page of the Web application
+
 ## [1.2.0] - 2021-05-10
 
 ### Added
@@ -135,7 +147,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Jupyter notebooks for LDC, PAL, and TOT modules
 - SVO Filter Profile Service for photometric bandpasses
 
-[1.1.1]: https://github.com/ExoCTK/exoctk/compare/v1.1.0...HEAD
+[1.2.1]: https://github.com/ExoCTK/exoctk/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/ExoCTK/exoctk/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/ExoCTK/exoctk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/ExoCTK/exoctk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ExoCTK/exoctk/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/ExoCTK/exoctk/compare/v0.2.0...v0.4.0
