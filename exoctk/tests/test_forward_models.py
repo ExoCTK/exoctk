@@ -18,8 +18,11 @@ Use
 """
 
 import unittest
+import pytest
 
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
+
+ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
 class TestFortney(unittest.TestCase):
@@ -40,6 +43,7 @@ class TestFortney(unittest.TestCase):
                       'm_unit': m_unit, 'reference_radius': reference_radius,
                       'r_unit': r_unit, 'rstar': rstar, 'rstar_unit': rstar_unit}
 
+    @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Grid data not available')
     def test_model(self):
         """Test that fortney_grid can be run"""
         fig, fh, temp_out = fortney_grid(self.args, write_plot=False, write_table=False)
@@ -53,6 +57,7 @@ class TestGeneric(unittest.TestCase):
                      'condensation': 'local', 'metallicity': '+1.0', 'c_o': '0.56', 'haze': '0010',
                      'cloud': '0.00'}
 
+    @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Grid data not available')
     def test_model(self):
         """Test that fortney_grid can be run"""
         fig, fh, closest_match, error_message = generic_grid(self.args, write_plot=False, write_table=False)
