@@ -42,7 +42,7 @@ class Throughput(Filter):
             super().__init__(name, **kwargs)
 
 
-def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd', aperture='soss'):
+def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd', aperture='soss', detector=None):
     """
     Use pandeia to generate the JWST throughputs
 
@@ -66,7 +66,7 @@ def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd
     """
     # Get optical element configuration
     obsmode = {'instrument': instrument, 'mode': mode, 'filter': filter, 'aperture': aperture, 'disperser': disperser}
-    conf = {'instrument': obsmode}
+    conf = {'instrument': obsmode, 'detector': detector}
     i = InstrumentFactory(config=conf)
 
     # Determine wavelength range
@@ -92,8 +92,8 @@ def generate_JWST_throughputs(path=None, data_dir=None):
 
     else:
 
-        # Iterate over science instruments
-        for inst in ['niriss', 'nircam', 'nirspec', 'miri']:
+        # Iterate over science instruments (NIRSpec separated out below)
+        for inst in ['niriss', 'nircam', 'miri']:
 
             # Get all valid configurations from pandeia config file
             cfgfile = open(os.path.join(path, 'jwst/{}/config.json'.format(inst)))
@@ -148,3 +148,25 @@ def generate_JWST_throughputs(path=None, data_dir=None):
 
                         except KeyError:
                             print("Could not produce throughput for {}".format(conf))
+
+        # Do NIRSpec separately because pandeia doesn't show them correctly
+        nirspec_combos = ['G140M/F070LP', 'G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP', 'G140H/F070LP', 'G140H/F100LP', 'G235H/F170LP', 'G395H/F290LP', 'PRISM/CLEAR']
+
+        for disp, filt in [i.split('/') for i in nirspec_combos]:
+            inst = 'nirspec'
+            aper = 's200a1'
+            mode = 'fixed_slit'
+            detector = {"nexp": 1, "ngroup": 10, "nint": 1, "readout_pattern": "nrs", "subarray": "full"}
+
+            # Generate throughput
+            wave, thru = get_pce(inst, mode, filt.lower(), disp.lower(), aper, detector)
+            name = '.'.join(
+                [inst.upper().replace('CAM', 'Cam').replace('SPEC', 'Spec'), filt.upper(),
+                 disp.upper(), aper.upper()])
+
+            # Save to txt file
+            data = np.array([wave, thru]).T
+            datafile_path = os.path.join(data_dir, '{}.txt'.format(name))
+            with open(datafile_path, 'w+') as datafile_id:
+                np.savetxt(datafile_id, data)
+            print("{} file created!".format(datafile_path))
