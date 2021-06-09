@@ -19,6 +19,7 @@ Use
 
 import unittest
 import pytest
+import os
 
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 
