@@ -20,7 +20,6 @@ class PlanetarySystem():
             for key in self.json_data:
                 setattr(self, key, self.json_data[key])
             self.gas_scale = np.array(list(self.gas_abundances.values()))
-
         else:
             self.observatory = None
             self.wavenumber_min = None
@@ -176,23 +175,23 @@ class GenerateModel():
         tempurature, pressure = self.profile_tempeture_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
         self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
         t1 = time.time()
-        
+
         Tavg = 0.5*(self.T[1:]+self.T[:-1])
         Pavg = 0.5*(self.atmosphere_grid['P'][1:] + self.atmosphere_grid['P'][:-1])
-        
-        #interpolation chem
-        # logCtoO, logMet, Tarr, logParr, loggas = self.cross_sections.xsecarr[9:]  #see xsects_HST/JWST routine...
-        loggas = self.cross_sections.xsecarr[:-1]
-        Ngas = loggas.shape[-2]
-        gas = np.zeros((Ngas,len(self.atmosphere_grid['P'])))+1E-20
 
+        #interpolation chem
+        # No need to unpack, trying to avoid passing big arrays around and just use class members in assignment.
+        # logCtoO, logMet, Tarr, logParr, loggas = self.cross_sections.xsecarr[9:]  #see xsects_HST/JWST routine...    
+        Ngas = self.cross_sections.loggas.shape[-2]
+        gas = np.zeros((Ngas,len(self.atmosphere_grid['P'])))+1E-20
         #             H2O   CH4   CO    CO2    NH3   N2    HCN   H2S   PH3 C2H2   C2H6   Na     K    TiO    VO     FeH     H    H2   He   e  H-
         mu = np.array([18.02,16.04,28.01,44.01,17.03,28.01,27.02,34.08,  34.,26.04, 30.07,22.99, 39.1, 63.87, 66.94, 56.85, 1.01, 2.02, 4.0,0.,1.01,0 ])
 
         self.cross_sections.gas_scale*=1E0
         for i in range(Ngas): gas[i,:] = 10**self.cross_sections.gas_scale[i]
 
-        H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw = gas
+        H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr,C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr,FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw = gas
+
         H2He = 1.-np.sum(gas,axis=0)
         frac = 0.176471
         H2arr = H2He/(1.+frac)
@@ -202,17 +201,17 @@ class GenerateModel():
 
         mmw[:] = gas.T.dot(mu)
 
-
         #ackerman & Marley cloud model here
-        mmw_cond = 100.39#molecular weight of condensate (in AMU)  MgSiO3=100.39
-        rho_cond = 3250#density of condensate (in kg/m3)           MgSiO3=3250.
-        rr = 10** (np.arange(-2,2.6,0.1))  #Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! iF YOU CHANGE THIS IT WILL BREAK
+        mmw_cond = 100.39 # molecular weight of condensate (in AMU)  MgSiO3=100.39
+        rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
+        rr = 10** (np.arange(-2,2.6,0.1)) # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! IF YOU CHANGE THIS IT WILL BREAK
         qc = self.cloud_profile(fsed, Cld_VMR, self.atmosphere_grid['P'], Pbase)
         r_sed, r_eff, r_g, f_r = self.particle_radius(fsed, Kzz, mmw, self.T, self.atmosphere_grid['P'], 
                                             self.atmosphere_grid['g0'], rho_cond,mmw_cond, qc, rr*1E-6)
-        
-        Pref=1.1#10.1  #reference pressure bar-keep fixed
+
+        #10.1  #reference pressure bar-keep fixed
         #computing transmission spectrum-----------
+        Pref=1.1
         
         self.spec = self.tran(self.cross_sections.xsecarr, self.T, self.atmosphere_grid['P'], mmw, Pref,
                 CldOpac, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,
@@ -269,6 +268,71 @@ class GenerateModel():
             return Fratio_int, Fp
 
 
+    def kcoeff_interp(self, logPgrid, logTgrid, logPatm, logTatm, wnogrid, kcoeff):
+        """
+        This routine interpolates the correlated-K tables
+        to the appropriate atmospheric P & T for each wavenumber and 
+        g-ordinate for each gas. It uses a standard bi-linear 
+        interpolation scheme.
+        
+        Parameters
+        ---------- 
+        logPgrid : ndarray
+            pressure grid (log10) on which the CK coeff's are pre-computed (Npressure points)
+        logTgrid : ndarray
+            temperature grid (log10) on which the CK coeffs are pre-computed (Ntemperature points)
+        logPatm : ndarray 
+            atmospheric pressure grid (log10) 
+        logTatm : ndarray 
+            atmospheric temperature grid (log10)
+        wnogrid : ndarray 
+            CK wavenumber grid (Nwavenumber points) (actually, this doesn't need to be passed...it does nothing here...)
+        kcoeff : ndarray 
+            massive CK coefficient array (in log10)--Ngas x Npressure x Ntemperature x Nwavenumbers x Ngordinates
+        
+        Returns
+        ------- 
+        kcoeff_int 
+            the interpolated-to-atmosphere CK coefficients (in log). 
+            This will be Nlayers x Nwavenumber x Ngas x Ngordiantes
+        """
+
+        Ng, NP, NT, Nwno, Nord = self.cross_sections.xsecarr.shape
+
+        Natm=len(logTatm)
+
+        kcoeff_int=np.zeros((Natm,Nwno,Ng,Nord))
+
+        for i in range(Natm):  #looping through atmospheric layers
+
+            y=logPatm[i]
+            x=logTatm[i]
+
+            p_ind_hi=np.where(logPgrid>=y)[0][0]
+            p_ind_low=np.where(logPgrid<y)[0][-1]
+            T_ind_hi=np.where(logTgrid>=x)[0][0]
+            T_ind_low=np.where(logTgrid<x)[0][-1]
+
+            y2=logPgrid[p_ind_hi]
+            y1=logPgrid[p_ind_low]
+            x2=logTgrid[T_ind_hi]
+            x1=logTgrid[T_ind_low]
+        
+            for j in range(Ng): #looping through gases
+                for k in range(Nwno): #looping through wavenumber
+                    for l in range(Nord): #looping through g-ord
+                        arr=kcoeff[j,:,:,k,l]
+                        Q11=arr[p_ind_low,T_ind_low]
+                        Q12=arr[p_ind_hi,T_ind_low]
+                        Q22=arr[p_ind_hi,T_ind_hi]
+                        Q21=arr[p_ind_low,T_ind_hi]
+                        fxy1=(x2-x)/(x2-x1)*Q11+(x-x1)/(x2-x1)*Q21
+                        fxy2=(x2-x)/(x2-x1)*Q12+(x-x1)/(x2-x1)*Q22
+                        fxy=(y2-y)/(y2-y1)*fxy1 + (y-y1)/(y2-y1)*fxy2
+                        kcoeff_int[i,k,j,l]=fxy
+
+        return kcoeff_int
+
     def tran(self, xsects, T, P, mmw,Ps,CldOpac,alphaH2O,alphaCH4,alphaCO,alphaCO2,alphaNH3,alphaNa,alphaK,alphaTiO,alphaVO, alphaC2H2, alphaHCN, alphaH2S,alphaFeH,fH,fe,fHm,fH2,fHe,amp,power,f_r,M,Rstar,Rp):
         """Runs all requisite routins for transmisison spectroscopy
         Returns
@@ -311,8 +375,18 @@ class GenerateModel():
 
         #Load measured cross-sectional values and their corresponding
         #T,P,and wno grids on which they were measured
-        Pgrid, Tgrid, wno, gord, wts, xsecarr, radius, Mies, Fstar=xsects[0:9]
         
+        # Stop unpacking array, use class members for variable assignment
+        #Pgrid, Tgrid, wno, gord, wts, xsecarr, radius, Mies, Fstar=xsects[0:9]
+        Pgrid = self.cross_sections.P
+        Tgrid = self.cross_sections.T
+        wno = self.cross_sections.wno
+        gord = self.cross_sections.g
+        wts = self.cross_sections.wts
+        xsecarr = self.cross_sections.xsecarr
+        radius = self.cross_sections.radius
+        Mies = self.cross_sections.mies_arr
+        Fstar = self.cross_sections.Fstar
         
         #Calculate Temperature, Pressure and Height grids on which
         #transmissivity will be computed
@@ -334,7 +408,7 @@ class GenerateModel():
         Pavg = np.array([0.0]*(n-1))
         for z in range(n-1):
             Pavg[z] = np.sqrt(P[z]*P[z+1])
-            Tavg[z] = interp(np.log10(Pavg[z]),sp.log10(P),T)
+            Tavg[z] = sp.interp(np.log10(Pavg[z]),sp.log10(P),T)
         #create hydrostatic altitutde grid from P and T
         Phigh=P.compress((P>Ps).flat)  #deeper than reference pressure
         Plow=P.compress((P<=Ps).flat)   #shallower than reference pressure
@@ -370,7 +444,7 @@ class GenerateModel():
         PP[Pavg >=300 ]=300
 
 
-        kcoeffs_interp=10**kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
+        kcoeffs_interp=10**self.kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
         t3=time.time()
         #print('Kcoeff Interp', t3-t2)
         #continuum opacities (nlayers x nwnobins x ncont)***********
@@ -396,7 +470,7 @@ class GenerateModel():
         #********************************************
         #Calculate transmissivity as a function of
         #wavenumber and height in the atmosphere
-        t=CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
+        t=self.CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
         t5=time.time()
         #print('Transmittance', t5-t4)    
 
@@ -407,6 +481,76 @@ class GenerateModel():
 
         return wno, F, Z#, TauOne
 
+
+    def CalcTauXsecCK(self, kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Continuum, xsecContinuum):
+        """
+        Calculate opacity using correlated-k tables 
+        
+        Parameters
+        ----------
+        kcoeffs : ndarray 
+            correlated-k tables 
+        Z : ndarray
+            height above ref pressure
+        Pavg : ndarray
+            pressure grid 
+        Tavg : ndarray
+            temperature grid 
+        Fractions : ndarray
+            volume mixing ratios of species 
+        Fractions_Continuum : ndarray
+            volume mixing ratios of continuum species 
+        xsecContinuum : ndarray
+            cross sections for continuum
+        Returns
+        -------
+        transmission
+        """
+        ngas=Fractions.shape[0]
+        nlevels=len(Z)
+        nwno=kcoeffs.shape[1]
+        trans=np.zeros((nwno, nlevels))+1.
+        dlarr=np.zeros((nlevels,nlevels))
+        ncont=xsecContinuum.shape[-1]
+        uarr=np.zeros((nlevels,nlevels))
+        kb=1.38E-23
+        kbTavg=kb*Tavg
+        Pavg_pascal=1E5*Pavg
+        for i in range(nlevels):
+            for j in range(i):
+                index=i-j-1
+                r1=r0+Z[i]
+                r2=r0+Z[i-j]
+                r3=r0+Z[index]
+                dlarr[i,j]=(r3**2-r1**2)**0.5-(r2**2-r1**2)**0.5
+                uarr[i,j]=dlarr[i,j]*Pavg_pascal[index]/kbTavg[index]
+        
+        for v in range(nwno):
+            for i in range(nlevels):
+                transfull=1.
+                #for CK gases--try to do ALL gases as CK b/c of common interpolation
+                for k in range(ngas):
+                    transtmp=0.
+                    for l in range(len(wts)):
+                        tautmp=0.
+                        for j in range(i):
+                            index=i-j-1
+                            tautmp+=2.*Fractions[k,index]*kcoeffs[index,v,k,l]*uarr[i,j]
+                        transtmp+=np.exp(-tautmp)*wts[l]/2.
+                    transfull*=transtmp
+                #for continuum aborbers (gas rayligh, condensate scattering etc.--nlayers x nwno x ncont
+                #'''
+                for k in range(ncont):
+                    tautmp=0.
+                    for j in range(i):
+
+                        index=i-j-1
+                        tautmp+=2.*Fractions_Continuum[k,index]*xsecContinuum[index,v,k]*uarr[i,j]
+
+                    transfull*=np.exp(-tautmp)
+                #'''
+                trans[v,i]=transfull
+        return trans
 
     def cloud_profile(self, fsed,cloud_VMR, Pavg, Pbase):
         """
@@ -690,7 +834,7 @@ class LoadCrossSections(PlanetarySystem):
             Fstar = [np.nan]
 
         #loading mie coefficients-----------------------------
-        file=os.path.join(self.directory, 'MIE_COEFFS',self.cond_name+'_r_0.01_300um_wl_0.3_200um_interp_R100_20gp_50_30000wno.h5')
+        file=os.path.join(self.directory, 'MIE_COEFFS',self.cond_name+'_r_0.01_300um_wl_0.3_200um_interp_STIS_WFC3_2000_30000wno.h5')
         hf=h5py.File(file, 'r')
         # wno_M=np.array(hf['wno_M'])
         radius=np.array(hf['radius'])
@@ -706,9 +850,9 @@ class LoadCrossSections(PlanetarySystem):
 
         #cropping in wavenumber 
         loc=np.where((wno <= self.wavenumber_max) & (wno >= self.wavenumber_min))[0]
-        wno=wno[loc]
+        self.wno=wno[loc]
         self.xsecarr=xsecarr[:,:,:,loc,:]
-        self.mies_arr=mies_arr[:,:,:,loc]    
+        self.mies_arr=mies_arr[:,:,:,loc]
         if self.stellar_parameters['stellar_file'] != None: 
             self.Fstar=Fstar[loc]
         else: 
@@ -721,9 +865,9 @@ class LoadCrossSections(PlanetarySystem):
         self.Tarr = np.array(hf['Tarr'])  #400 - 3400
         self.logParr = np.array(hf['logParr'])   #-7.0 - 2.4
 
-        gases = np.array(hf['gases'])  ##H2O  CH4  CO  CO2 NH3  N2   HCN   H2S  PH3  C2H2 C2H6  Na    K   TiO   VO   FeH  H    H2   He   e- h-  mmw
+        self.gases = np.array(hf['gases'])  ##H2O  CH4  CO  CO2 NH3  N2   HCN   H2S  PH3  C2H2 C2H6  Na    K   TiO   VO   FeH  H    H2   He   e- h-  mmw
 
-        self.gases = np.log10(gases)
+        self.loggas = np.log10(self.gases)
         hf.close()
 
         self.radius = radius*1E-6
