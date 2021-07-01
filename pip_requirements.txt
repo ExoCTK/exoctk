@@ -20,7 +20,7 @@ lmfit==1.0.1
 matplotlib==3.4.2
 numpy==1.21.0
 numpydoc==1.1.0
-pandas==1.2.4
+pandas==1.2.5
 paramiko==2.7.2
 platon==5.1.2
 pysiaf==0.10.0
