@@ -21,7 +21,7 @@ import unittest
 
 import numpy as np
 
-from ..lightcurve_fitting import lightcurve, models, parameters, simulations
+from ..lightcurve_fitting import lightcurve, models, parameters
 
 
 class TestLightcurve(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestLightcurve(unittest.TestCase):
         # Test that parameters can be assigned
         lin1 = models.PolynomialModel(c1=0.0005, c0=0.997, name='linear 1')
         lin2 = models.PolynomialModel(c1=0.001, c0=0.92, name='linear 2')
-        comp_model = lin1*lin2
+        comp_model = lin1 * lin2
 
         # Test the fitting routine
         self.lc.fit(comp_model)
@@ -47,6 +47,14 @@ class TestLightcurve(unittest.TestCase):
 
 class TestModels(unittest.TestCase):
     """Tests for the models.py module"""
+
+    def test_compositemodel(self):
+        """Tests for the CompositeModel class"""
+        model1 = models.Model()
+        model2 = models.Model()
+        self.comp_model = model1 * model2
+        self.comp_model.name = 'composite'
+
     def setUp(self):
         """Setup for the tests"""
         # Set time to use for evaluations
@@ -64,13 +72,6 @@ class TestModels(unittest.TestCase):
         self.model.units = 'MJD'
         self.assertEqual(self.model.units, 'MJD')
         self.assertRaises(TypeError, setattr, self.model.units, 'foobar')
-
-    def test_compositemodel(self):
-        """Tests for the CompositeModel class"""
-        model1 = models.Model()
-        model2 = models.Model()
-        self.comp_model = model1*model2
-        self.comp_model.name = 'composite'
 
     def test_polynomialmodel(self):
         """Tests for the PolynomialModel class"""
@@ -141,20 +142,3 @@ class TestParameters(unittest.TestCase):
         # Test the auto attribute assignment
         self.assertEqual(self.params.param1.values, ('param1', 123.456, 'free'))
         self.assertEqual(self.params.param2.values, ('param2', 234.567, 'free', 200, 300))
-
-
-# class TestSimulations(unittest.TestCase):
-#     """Test the simulations.py module"""
-#     def setUp(self):
-#         """Setup for the tests"""
-#         pass
-#
-#     def test_simulation(self):
-#         """Test the simulations can be made properly"""
-#         # Test to pass
-#         npts = 1234
-#         time, flux, unc, params = simulations.simulate_lightcurve('WASP-19b', 0.1, npts=npts, plot=True)
-#         self.assertEqual(len(time), npts)
-#
-#         # Test to fail
-#         self.assertRaises(ValueError, simulations.simulate_lightcurve, 'foobar', 0.1)

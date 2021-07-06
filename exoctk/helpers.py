@@ -25,10 +25,7 @@ Dependencies
     - ``numpy``
 """
 
-from glob import glob
-import os
 from pkg_resources import resource_filename
-from shutil import copyfile
 
 import astropy.constants as ac
 from astropy.io import fits, ascii
@@ -36,35 +33,14 @@ import astropy.units as q
 import numpy as np
 
 
-def external_files():
-    """A snippet to propagate the external files directory to the
-    to the submodules
-
-
-    Returns
-    -------
-    ext_files : str
-        The external files directory
-    """
-    try:
-        from ConfigParser import ConfigParser
-    except ImportError:
-        from configparser import ConfigParser
-
-    conf = ConfigParser()
-    conf.read(['../setup.cfg'])
-    metadata = dict(conf.items('metadata'))
-    ext_files = metadata.get('external_files')
-
-    return ext_files
-
-
 def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk', 'data/core/ModelGrid_tmp.fits')):
     """
-    Split ATLAS9 FITS files into separate files containing one Teff, log(g), and Fe/H
-    
-    ACES models are in [erg/s/cm2/cm] whereas ATLAS9 models are in [erg/cm2/s/hz/ster]
-    
+    Split ATLAS9 FITS files into separate files containing one Teff,
+    log(g), and Fe/H
+
+    ACES models are in [erg/s/cm2/cm] whereas ATLAS9 models are in
+    [erg/cm2/s/hz/ster]
+
     Parameters
     ----------
     filepath : str
@@ -80,12 +56,12 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk'
 
     # Get the indexes of each log(g) chunk
     start = []
-    for idx,l in enumerate(L):
+    for idx, l in enumerate(L):
         if l.startswith('TEFF'):
             start.append(idx)
 
     # Break up into chunks
-    for n,idx in enumerate(start):
+    for n, idx in enumerate(start):
 
         try:
 
@@ -95,21 +71,21 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk'
             logg = float(h[3][:3])
             vturb = float(h[8])
             xlen = float(h[11])
-            feh = float(h[6].replace('[','').replace(']',''))
+            feh = float(h[6].replace('[', '').replace(']', ''))
 
             # Parse the data
             try:
-                end = start[n+1]
+                end = start[n + 1]
             except:
                 end = -1
-            data = L[idx+3:end-4]
+            data = L[idx + 3:end - 4]
 
             # Fix column spacing
-            for n,l in enumerate(data):
-                data[n] = l[:19]+' '+' '.join([l[idx:idx+6] for idx in np.arange(19,len(l),6)])
+            for n, l in enumerate(data):
+                data[n] = l[:19] + ' ' + ' '.join([l[idx:idx + 6] for idx in np.arange(19, len(l), 6)])
 
             # Get cols and data
-            cols = ['wl']+L[idx+2].strip().split()
+            cols = ['wl'] + L[idx + 2].strip().split()
             data = ascii.read(data, names=cols)
 
             # Put intensity array for increasing mu values in a cube
@@ -120,28 +96,28 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk'
             data_cube[-1] *= 1E5
 
             # Apply units
-            data_cube = data_cube*q.erg/q.cm**2/q.s/q.steradian/q.Hz
+            data_cube = data_cube * q.erg / q.cm ** 2 / q.s / q.steradian / q.Hz
 
             # mu values
-            mu = list(map(float,cols[1:]))[::-1]
+            mu = list(map(float, cols[1:]))[::-1]
 
             # Get the wavelength and convert from nm to A
-            wave = np.array(data['wl'])*q.nm.to(q.AA)
+            wave = np.array(data['wl']) * q.nm.to(q.AA)
 
             # Convert the flux from [erg/cm2/s/hz/ster] to [erg*m/cm**2/Hz/s**2/sr]
             # by multiplying by c/lambda**2
-            data_cube = data_cube*ac.c/(wave**2)
+            data_cube = data_cube * ac.c / (wave ** 2)
 
             # Convert [m/sr] to [cm-1]
-            data_cube = data_cube*q.steradian/q.cm**2
+            data_cube = data_cube * q.steradian / q.cm ** 2
 
             # Convert to [erg/s/cm2/cm]
-            data_cube = data_cube.to(q.erg/q.s/q.cm**3)*1E16
+            data_cube = data_cube.to(q.erg / q.s / q.cm ** 3) * 1E16
 
             # Copy the old HDU list
-            logg_txt = str(abs(int(logg*10.))).zfill(2)
-            feh_txt = '{}{}'.format('m' if feh<0 else 'p', str(abs(int(feh*10.))).zfill(2))
-            new_file = destination+'ATLAS9_{}_{}_{}.fits'.format(teff,logg_txt,feh_txt)
+            logg_txt = str(abs(int(logg * 10.))).zfill(2)
+            feh_txt = '{}{}'.format('m' if feh < 0 else 'p', str(abs(int(feh * 10.))).zfill(2))
+            new_file = destination + 'ATLAS9_{}_{}_{}.fits'.format(teff, logg_txt, feh_txt)
             HDU = fits.open(template)
 
             # Write the new data
@@ -178,3 +154,26 @@ def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk'
 
         except:
             pass
+
+
+def external_files():
+    """A snippet to propagate the external files directory to the
+    to the submodules
+
+
+    Returns
+    -------
+    ext_files : str
+        The external files directory
+    """
+    try:
+        from ConfigParser import ConfigParser
+    except ImportError:
+        from configparser import ConfigParser
+
+    conf = ConfigParser()
+    conf.read(['../setup.cfg'])
+    metadata = dict(conf.items('metadata'))
+    ext_files = metadata.get('external_files')
+
+    return ext_files
