@@ -144,18 +144,23 @@ where (Espinoza et al, 2021) is a citation of the Zenodo record, e.g.:
 
 ::
 
-  @software{nestor_espinoza_2021_4556063,
-    author       = {Néstor Espinoza and
-                    Matthew Bourque and
+  @software{matthew_bourque_2021_4556063,
+    author       = {Matthew Bourque and
+                    Néstor Espinoza and
                     Joseph Filippazzo and
-                    Michael Fox and
-                    Jules Fowler and
+                    Mees Fix and
                     Teagan King and
                     Catherine Martlin and
                     Jennifer Medina and
-                    Mees Fix and
+                    Natasha Batalha and
+                    Michael Fox and
+                    Jules Fowler and
+                    Jonathan Fraine and
+                    Matthew Hill and
+                    Nikole Lewis and
                     Kevin Stevenson and
-                    Jeff Valenti},
+                    Jeff Valenti and
+                    Hannah Wakeford},
     title        = {The Exoplanet Characterization Toolkit (ExoCTK)},
     month        = feb,
     year         = 2021,
