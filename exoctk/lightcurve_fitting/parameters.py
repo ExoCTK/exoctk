@@ -3,6 +3,7 @@
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
+
 import os
 import json
 
@@ -76,8 +77,7 @@ class Parameter:
 
 
 class Parameters:
-    """A class to hold the Parameter instances
-    """
+    """A class to hold the Parameter instances"""
     def __init__(self, param_file=None, **kwargs):
         """Initialize the parameter object
 
