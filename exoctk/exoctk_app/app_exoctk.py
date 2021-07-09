@@ -750,7 +750,7 @@ def phase_constraint(transit_type='primary'):
 
                 form.eccentricity.data = data.get('eccentricity')
                 if form.eccentricity.data is None:
-                    form.omega.data = np.nan
+                    form.eccentricity.data = np.nan
 
                 form.target_url.data = str(target_url)
 
