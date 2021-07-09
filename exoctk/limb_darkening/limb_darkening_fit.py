@@ -1,29 +1,29 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
 """
-A module to calculate limb darkening coefficients from a grid of model spectra
+A module to calculate limb darkening coefficients from a grid of model
+spectra
 """
-import copy
+
 import inspect
 import os
 import warnings
 
 from astropy.io import ascii as ii
 import astropy.table as at
-import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
+import bokeh.plotting as bkp
+from bokeh.models import Range1d
+from bokeh.models.widgets import Panel, Tabs
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
 from scipy.optimize import curve_fit
 from svo_filters import svo
-import bokeh.plotting as bkp
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
 
-from .. import utils
 from .. import modelgrid
+from .. import utils
 
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
 rc('text', usetex=True)
@@ -134,8 +134,8 @@ class LDC:
         Parameters
         ----------
         model_grid: exoctk.modelgrid.ModelGrid
-            The grid of synthetic spectra from which the coefficients will
-            be calculated
+            The grid of synthetic spectra from which the coefficients
+            will be calculated
         """
         # Try ACES or ATLAS
         if model_grid == 'ACES':
@@ -198,8 +198,8 @@ class LDC:
                   bandpass=None, name=None, color=None, **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
-        spectrum. If the model grid does not contain a spectrum of the given
-        parameters, the grid is interpolated to those parameters.
+        spectrum. If the model grid does not contain a spectrum of the
+        given parameters, the grid is interpolated to those parameters.
 
         Reference for limb-darkening laws:
         http://www.astro.ex.ac.uk/people/sing/David_Sing/Limb_Darkening.html
@@ -367,48 +367,6 @@ class LDC:
             except ValueError:
                 print("Could not calculate coefficients at {}".format(wave_eff))
 
-    def plot_tabs(self, show=False, **kwargs):
-        """Plot the LDCs in a tabbed figure
-
-        Parameters
-        ----------
-        fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
-            An existing figure to plot on
-        show: bool
-            Show the figure
-        """
-        # Change names to reflect ld profile
-        old_names = self.results['name']
-        for n, row in enumerate(self.results):
-            self.results[n]['name'] = row['profile']
-
-        # Draw a figure for each wavelength bin
-        tabs = []
-        for wav in np.unique(self.results['wave_eff']):
-
-            # Plot it
-            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
-            self.plot(wave_eff=wav, fig=fig)
-
-            # Plot formatting
-            fig.legend.location = 'bottom_right'
-            fig.xaxis.axis_label = 'mu'
-            fig.yaxis.axis_label = 'Intensity'
-
-            tabs.append(Panel(child=fig, title=str(wav)))
-
-        # Make the final tabbed figure
-        final = Tabs(tabs=tabs)
-
-        # Put the names back
-        self.results['name'] = old_names
-
-        if show:
-            bkp.show(final)
-        else:
-            return final
-
     def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
 
@@ -495,6 +453,48 @@ class LDC:
 
         else:
             return fig
+
+    def plot_tabs(self, show=False, **kwargs):
+        """Plot the LDCs in a tabbed figure
+
+        Parameters
+        ----------
+        fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
+            An existing figure to plot on
+        show: bool
+            Show the figure
+        """
+        # Change names to reflect ld profile
+        old_names = self.results['name']
+        for n, row in enumerate(self.results):
+            self.results[n]['name'] = row['profile']
+
+        # Draw a figure for each wavelength bin
+        tabs = []
+        for wav in np.unique(self.results['wave_eff']):
+
+            # Plot it
+            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
+            self.plot(wave_eff=wav, fig=fig)
+
+            # Plot formatting
+            fig.legend.location = 'bottom_right'
+            fig.xaxis.axis_label = 'mu'
+            fig.yaxis.axis_label = 'Intensity'
+
+            tabs.append(Panel(child=fig, title=str(wav)))
+
+        # Make the final tabbed figure
+        final = Tabs(tabs=tabs)
+
+        # Put the names back
+        self.results['name'] = old_names
+
+        if show:
+            bkp.show(final)
+        else:
+            return final
 
     def save(self, filepath):
         """
