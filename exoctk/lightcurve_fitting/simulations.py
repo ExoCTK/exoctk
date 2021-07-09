@@ -3,12 +3,13 @@
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
-import numpy as np
-from bokeh.plotting import figure, show
+
 try:
     import batman
 except ImportError:
     print("Could not import batman. Functionality may be limited.")
+from bokeh.plotting import figure, show
+import numpy as np
 
 from .. import utils
 
@@ -76,7 +77,7 @@ def simulate_lightcurve(target, snr=1000., npts=1000, nbins=10, radius=None, ldc
 
         # Add noise
         ideal_flux = np.asarray(flux)
-        flux = np.random.normal(loc=ideal_flux, scale=ideal_flux/snr)
+        flux = np.random.normal(loc=ideal_flux, scale=ideal_flux / snr)
         unc = flux - ideal_flux
 
         # Plot it
