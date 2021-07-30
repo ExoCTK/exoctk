@@ -23,6 +23,7 @@ import numpy as np
 
 from . import ephemeris_old2x as EPH
 from jwst_gtvt.find_tgt_info import get_table
+from ..utils import blockPrint, enablePrint
 
 
 D2R = math.pi / 180.  # degrees to radians
@@ -233,7 +234,9 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     """
     # Getting calculations from GTVT (General Target Visibility Tool)
+    blockPrint()
     tab = get_table(ra, dec)
+    enablePrint()
 
     gd = tab['Date']
     paMin = tab[str(instrument) + ' min']
