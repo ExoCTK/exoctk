@@ -11,6 +11,7 @@ import re
 import requests
 import shutil
 import urllib
+import sys
 
 from astropy.io import fits
 import bokeh.palettes as bpal
@@ -79,6 +80,15 @@ if not ON_TRAVIS_OR_RTD:
         GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
         GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+
+def blockPrint():
+    """Function to suppress print statements"""
+    sys.stdout = open(os.devnull, 'w')
+
+
+def enablePrint():
+    """Function to enable print statements"""
+    sys.stdout = sys.__stdout__
 
 
 def check_for_data(tool):
