@@ -1,4 +1,4 @@
-asteval==0.9.16
+asteval==0.9.25
 astropy==4.0.2
 bandit==1.7.0
 batman-package==2.4.6
