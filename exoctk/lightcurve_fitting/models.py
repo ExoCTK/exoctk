@@ -4,6 +4,7 @@ used to fit light curves
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
+
 import copy
 import inspect
 import os
