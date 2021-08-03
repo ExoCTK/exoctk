@@ -26,8 +26,8 @@ Dependencies
     - ``sqlite3``
 """
 
-import os
 import datetime
+import os
 
 import astropy.table as at
 import numpy as np
@@ -162,6 +162,11 @@ def log_form_input(form_dict, table, database):
         print(e)
 
 
+def scrub(table_name):
+    """Snippet to prevent SQL injection attcks! PEW PEW PEW!"""
+    return ''.join(chr for chr in table_name if chr.isalnum())
+
+
 def view_log(database, table, limit=50):
     """Visually inspect the job log.
 
@@ -201,8 +206,3 @@ def view_log(database, table, limit=50):
             table.add_row(row)
 
     return table
-
-
-def scrub(table_name):
-    """Snippet to prevent SQL injection attcks! PEW PEW PEW!"""
-    return ''.join(chr for chr in table_name if chr.isalnum())
