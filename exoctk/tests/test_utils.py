@@ -65,7 +65,7 @@ def build_table():
     return table
 
 
-@pytest.mark.parametrize("operator", ['>4021', '<3856', '>=4928', '<=3740', '==4000', '4*'])
+@pytest.mark.parametrize("operator", ['>4021', '<3856', '>=4928', '<=3740', '==4000'])
 def test_filter_table(build_table, operator):
     '''test table filter function with fake table'''
     # Test wavelength sort
