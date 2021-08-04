@@ -31,8 +31,8 @@ TEST_DATA = [('HD108236f', {'canonical_name': 'HD 108236 f', 'Fe/H': -0.28, 'Tef
              ('2MASSJ10193800-0948225b', {'canonical_name': 'WASP-43 b', 'Fe/H': -0.01, 'Teff': 4400.0, 'stellar_gravity': 4.49, 'transit_duration': 0.0483, 'RA': 154.9081869, 'DEC': -9.8064431}),
              pytest.param('djgfjhsg', {'canonical_name': 'sfghsfkjg', 'Fe/H': -999, 'Teff': -999, 'stellar_gravity': -999, 'transit_duration': -999, 'RA': -999, 'DEC': -999}, marks=pytest.mark.xfail)]
 
-MEDFILT_DATA = [(np.array([1,  1,  8, 12,  2, 10,  5,  2,  5, 2]), 4),
-                (np.array([1,  1,  8, 12,  2, 10,  5,  2,  5, 2]), 4)]
+MEDFILT_DATA = [(np.array([1, 1, 8, 12, 2, 10, 5, 2, 5, 2]), 4),
+                (np.array([1, 1, 8, 12, 2, 10, 5, 2, 5, 2]), 4)]
 
 
 @pytest.mark.parametrize(ARGS, TEST_DATA)
