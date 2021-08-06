@@ -61,7 +61,6 @@ def generate_jwst_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=1
 
             # Perform calculation
             report = perform_calculation(configuration, webapp=False)
-            trace = np.rot90(report['2d']['detector'])
 
             # Set directory for output
             if outdir is None:
@@ -73,7 +72,7 @@ def generate_jwst_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=1
 
             # Save the file
             hdu0 = fits.PrimaryHDU()
-            hdu1 = fits.ImageHDU([trace])
+            hdu1 = fits.ImageHDU([report['2d']['detector']])
             hdulist = fits.HDUList([hdu0, hdu1])
             hdulist.writeto(os.path.join(fullpath, '{}_{}.fits'.format(name, int(teff))), overwrite=True)
             print("Saved {}".format(fullpath))
