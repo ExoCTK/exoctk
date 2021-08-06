@@ -100,7 +100,7 @@ def calc_v3pa(V3PA, stars, aper, targetIndex, pixel_pos):
 
     # Determine stars in FOV
     inFOV = []
-    for star in range(sci_targx.size):
+    for star in range(stars['RA'].size):
 
         x, y = stars['xdet'][star], stars['ydet'][star]
         if (pixel_pos[0] < y) & (y < pixel_pos[1]) & (pixel_pos[2] < x) & (x < pixel_pos[3]):
@@ -121,6 +121,7 @@ def calc_v3pa(V3PA, stars, aper, targetIndex, pixel_pos):
 
         # Get the trace and pad it
         trace = get_trace(aper.AperName, int(temp))
+        # trace = np.rot90(trace, k=3)
         pad_trace = np.pad(trace, pad_width=2000, mode='constant', constant_values=0)
 
         # Determine the highest pixel value of trace
@@ -235,10 +236,10 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360, plot=Tru
     # Distance to each FOV star
     sindRA = (targetRA - stars['RA']) * np.cos(targetDEC)
     cosdRA = targetDEC - stars['DEC']
-    distance = np.sqrt(sindRA**2 + cosdRA**2)
+    stars['distance'] = np.sqrt(sindRA**2 + cosdRA**2)
 
     # The target is the "closest" star from the Irsa query
-    targetIndex = np.argmin(distance)
+    targetIndex = np.argmin(stars['distance'])
 
     # 2MASS - Teff relations
     jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
@@ -302,7 +303,8 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360, plot=Tru
         minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
 
         # Make the plot
-        plt = plot_contamination(simuCube, inst['lam'], badPAs, minPA, maxPA)
+        # plt = plot_contamination(simuCube, inst['lam'], badPAs, minPA, maxPA)
+        plt = plot_contamination(simuCube, inst['lam'], badPAs)
 
     return simuCube, plt
 
@@ -364,6 +366,11 @@ def plot_contamination(data, wlims, badPAs=[], minPA=0, maxPA=360, title=''):
     targ = data[0, :, :]
     cube = data[1:, :, :]
 
+    print(targ.shape)
+    fig = figure()
+    fig.image([targ], x=0, y=0, dw=targ.shape[1], dh=targ.shape[0])
+    show(fig)
+
     # Data dimensions
     nPA, rows, cols = cube.shape
     dPA = 1
@@ -378,12 +385,12 @@ def plot_contamination(data, wlims, badPAs=[], minPA=0, maxPA=360, title=''):
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
 
-    # The width of the trace
+    # The width of the target trace
     peak = targ.max()
     low_lim_col = np.where(targ > 0.0001 * peak)[1].min()
     high_lim_col = np.where(targ > 0.0001 * peak)[1].max()
 
-    # The length of the trace
+    # The length of the target trace
     targ_trace_start = np.where(targ > 0.0001 * peak)[0].min()
     targ_trace_stop = np.where(targ > 0.0001 * peak)[0].max()
 
