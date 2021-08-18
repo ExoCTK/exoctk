@@ -19,6 +19,7 @@ Use
 
 import os
 
+import astropy
 import sqlite3
 
 from exoctk import log_exoctk
@@ -28,42 +29,42 @@ def test_create_db():
     """Test the ``create_db`` function"""
 
     # Create the database
-    dbpath = './test.db'
-    log_exoctk.create_db(dbpath)
+    db_path = './test.db'
+    log_exoctk.create_db(db_path)
 
     # Ensure the database exists
-    assert os.path.exists(dbpath)
+    assert os.path.exists(db_path)
 
     # Remove the database
-    os.remove(dbpath)
+    os.remove(db_path)
 
 
 def test_load_db():
     """Test the ``load_db`` function"""
 
     # Create the database
-    dbpath = './test.db'
-    log_exoctk.create_db(dbpath)
+    db_path = './test.db'
+    log_exoctk.create_db(db_path)
 
     # Ensure the database can be loaded
-    cursor = log_exoctk.load_db(dbpath)
-    assert isinstance(cursor, object) and cursor is not None
+    cursor = log_exoctk.load_db(db_path)
+    assert isinstance(cursor, sqlite3.Cursor) and cursor is not None
 
     # Remove the database
-    os.remove(dbpath)
+    os.remove(db_path)
 
 
 def test_log_form_input():
     """Test the ``log_form_input`` function"""
 
     # Create database
-    dbpath = './test.db'
-    log_exoctk.create_db(dbpath)
+    db_path = './test.db'
+    log_exoctk.create_db(db_path)
 
     # Define test parameters
     form_dict = {}
     tables = ['groups_integrations', 'limb_darkening', 'contam_visibility', 'phase_constraint', 'fortney', 'generic']
-    database = sqlite3.connect(dbpath, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
+    database = sqlite3.connect(db_path, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
     cursor = database.cursor()
 
     # Test the function
@@ -76,7 +77,7 @@ def test_log_form_input():
         assert len(rows) > 0
 
     # Remove the database
-    os.remove(dbpath)
+    os.remove(db_path)
 
 
 def test_scrub():
@@ -92,18 +93,18 @@ def test_view_log():
     """Test the ``view_log`` function"""
 
     # Create database
-    dbpath = './test.db'
-    log_exoctk.create_db(dbpath)
+    db_path = './test.db'
+    log_exoctk.create_db(db_path)
 
     # Define test parameters
     tables = ['groups_integrations', 'limb_darkening', 'contam_visibility', 'phase_constraint', 'fortney', 'generic']
-    conn = sqlite3.connect(dbpath, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
+    conn = sqlite3.connect(db_path, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread=False)
     database = conn.cursor()
 
     # Test the function
     for table in tables:
         data = log_exoctk.view_log(database, table)
-        assert isinstance(data, object) and data is not None
+        assert isinstance(data, astropy.table.table.Table) and data is not None
 
     # Remove the database
-    os.remove(dbpath)
+    os.remove(db_path)
