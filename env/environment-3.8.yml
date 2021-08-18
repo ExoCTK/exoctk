@@ -40,7 +40,7 @@ dependencies:
     - ddtrace==0.50.3
     - flask_wtf==0.14.3
     - lmfit==1.0.2
-    - platon==5.3
+    - platon==4.0
     - pysiaf==0.10.0
     - pysynphot==1.0.1
     - sphinx_astropy==1.5
