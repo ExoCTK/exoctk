@@ -3,9 +3,11 @@
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
-import numpy as np
-import lmfit
+
 import copy
+
+import lmfit
+import numpy as np
 
 from .parameters import Parameters
 
@@ -36,7 +38,7 @@ def lmfitter(time, data, model, uncertainty=None, verbose=True, **kwargs):
     # Initialize lmfit Params object
     initialParams = lmfit.Parameters()
 
-    #TODO: Do something so that duplicate param names can all be handled (e.g. two Polynomail models with c0). Perhaps append something to the parameter name like c0_1 and c0_2?)
+    # TODO: Do something so that duplicate param names can all be handled (e.g. two Polynomail models with c0). Perhaps append something to the parameter name like c0_1 and c0_2?)
 
     # Concatenate the lists of parameters
     all_params = [i for j in [model.components[n].parameters.list
@@ -71,8 +73,7 @@ def lmfitter(time, data, model, uncertainty=None, verbose=True, **kwargs):
         uncertainty = np.ones(len(data))
 
     # Fit light curve model to the simulated data
-    result = lcmodel.fit(data, weights=1/uncertainty, params=initialParams,
-                         **indep_vars, **kwargs)
+    result = lcmodel.fit(data, weights=1 / uncertainty, params=initialParams, **indep_vars, **kwargs)
 
     if verbose:
         print(result.fit_report())

@@ -3,6 +3,7 @@
 """
 A module for managing references in ExoCTK
 """
+
 import os
 import pkg_resources
 
@@ -17,7 +18,8 @@ class References(object):
     Attributes
     ----------
     bibfile: str
-        The path to the bibtex file from which the references will be read
+        The path to the bibtex file from which the references will be
+        read
     refs: list
         The list of bibcodes saved during the user session
     database: bibtexparser.bibdatabase.BibDatabase object
@@ -34,7 +36,8 @@ class References(object):
         Parameters
         ----------
         bibfile: str
-          The path to the bibtex file from which the references will be read
+          The path to the bibtex file from which the references will be
+          read
 
         """
         bibfile = bibfile or \
@@ -79,7 +82,8 @@ class References(object):
         Parameters
         ----------
         bibcode: str
-            The unique compact identifier for the reference to be removed
+            The unique compact identifier for the reference to be
+            removed
 
         """
         # Check that the bibcode is in the bibtex file
