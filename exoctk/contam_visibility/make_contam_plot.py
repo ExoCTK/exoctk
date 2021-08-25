@@ -1,16 +1,15 @@
+from astropy.coordinates import SkyCoord
+from bokeh.plotting import show
 import numpy as np
 
-from astropy.coordinates import SkyCoord
-from bokeh.layouts import gridplot
-from bokeh.plotting import figure, show
-
-from exoctk.contam_visibility import visibilityPA as vpa
-from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
+from exoctk.contam_visibility import field_simulator as fs
+from exoctk.contam_visibility import visibilityPA as vpa
+
 
 def main():
-    """ Wrapper to the field simulator and contamination figure generator.
-    """
+    """ Wrapper to the field simulator and contamination figure
+    generator."""
 
     # User inputs
     ra = input('Please input the Right Ascension of your target in decimal degrees (The more decimal places the better) : \n')
@@ -27,9 +26,9 @@ def main():
 
     companion = input('Any companion not in IRSA`s 2MASS Point-Source Catalog that should be considered for contamination? If no, just press Enter. If yes, please enter the following (comma-separated, no spaces): \n RA offset ("), DEC offset ("), 2MASS J (mag), H (mag) and Ks (mag) \n ').split(',')
     print(len(companion))
-    if len(companion)==5:
+    if len(companion) == 5:
         binComp = [int(param) for param in companion]
-    elif len(companion)==1:
+    elif len(companion) == 1:
         binComp = ''
     elif (len(companion) < 5) & (len(companion) > 1):
         print('Companion information is incomplete. Starting over...')
@@ -60,5 +59,7 @@ def main():
 
     show(plot)
 
+
 if __name__ == "__main__":
+
     main()

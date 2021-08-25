@@ -1,22 +1,166 @@
 """
-Series of functions to compute the visibility periods for a given (RA,DEC)
-with in some cases the possibility to select a PA value.
+Series of functions to compute the visibility periods for a given
+(RA, DEC) with in some cases the possibility to select a PA value.
 
 Functions derived from the code of Wayne Kinzel provided by Jeff Valenti
 Extract from the e-mail of Wayne Kinzel:
-As before, the code is not officially tested, nor is it an official STScI
-product. Users should be warned that the apparent position of the Sun changes
-~+/-0.2 degrees epending upon where JWST is in its orbit.
-So do not rely strongly on these results if the target is within ~0.2 degrees
-of |ecliptic latitude| 45 degrees or 85 degrees.
-For example if a target is at 84.9 degrees latitude and the tool says it is
-CVZ, it may not be with the operational orbit.
+As before, the code is not officially tested, nor is it an official
+STScI product. Users should be warned that the apparent position of the
+Sun changes ~+/-0.2 degrees epending upon where JWST is in its orbit.
+So do not rely strongly on these results if the target is within ~0.2
+degrees of |ecliptic latitude| 45 degrees or 85 degrees.
+For example if a target is at 84.9 degrees latitude and the tool says it
+is CVZ, it may not be with the operational orbit.
 """
 import math
 
 D2R = math.pi / 180.  # degrees to radians
 R2D = 180. / math.pi  # radians to degrees
 PI2 = 2. * math.pi  # 2 pi
+
+
+def f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
+                                              ra, dec, pa, mjdc):
+    """Computes the duration of a specific visibility period associated
+    to a given (RA,DEC), a given PA and given date
+
+    flag = 0 visibility period fully in the search interval
+    flag = -1 start of the visibility period truncated by
+           the start of the search interval
+    flag = -2 end of the visibility period truncated by
+           the end of the search interval
+    flag = +1 the search interval is fully included in
+           the visibility period
+
+    Parameters
+    ----------
+    ephemeris: Ephemeris
+        The input ephemeris object.
+    mjdmin: float
+        The beginning of the search interval (modified
+        Julian date). It must be covered by the ephemeris.
+    mjdmax: float
+        The end of the search interval (modified
+        Julian date). It must be covered by the ephemeris.
+    ra: float
+        The input RA coordinate (equatorial coordinate, in rad).
+    dec: float
+        The input DEC coordinate (equatorial coordinate, in rad).
+    pa: float
+        The position angle.
+
+    Example
+    -------
+    >>> f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
+    ra, dec, pa, mjdc)
+
+    Returns
+    -------
+    tuple
+        The lists of visibility period starts and ends with flags.
+    """
+    if (ephemeris.amin > mjdmin):
+        print("""f_computeDurationOfVisibilityPeriodWithPA(): the start of\
+                 thesearch interval is not covered by the ephemeris.""")
+        print("""Ephemeris start date (modified Julian date):\
+                 {:8.5f}""".format(ephemeris.amin))
+        print("""Search interval start date (modified Julian date):\
+                 {:8.5f}""".format(mjdmin))
+        raise ValueError
+
+    if (ephemeris.amax < mjdmax):
+        print("""f_computeDurationOfVisibilityPeriodWithPA(): the end of the\
+                 search interval is not covered by the ephemeris.""")
+        print("""Ephemeris end date (modified Julian date):\
+                 {:8.5f}""".format(ephemeris.amax))
+        print("""Search interval end date (modified Julian date):\
+                 {:8.5f}""".format(mjdmax))
+        raise ValueError
+
+    if (mjdmin > mjdc):
+        print("""f_computeDurationOfVisibilityPeriodWithPA():\
+                 initial date is not included in the search interval.""")
+        print("""Search interval start date (modified Julian date):\
+                 {:8.5f}""".format(mjdmin))
+        print("Initial date (modified Julian date): {:8.5f}".format(mjdc))
+        raise ValueError
+
+    if (mjdmax < mjdc):
+        print("""f_computeDurationOfVisibilityPeriodWithPA(): initial date is\
+                 not included in the search interval.""")
+        print("""Search interval end date (modified Julian date):\
+                 {:8.5f}""".format(mjdmax))
+        print("Initial date (modified Julian date): {:8.5f}".format(mjdc))
+        raise ValueError
+
+    iflag = ephemeris.is_valid(mjdc, ra, dec, pa)
+    if (not iflag):
+        print("""f_computeDurationOfVisibilityPeriodWithPA(): invalid date\
+                 (not in a vsibility period).""")
+        print("Date (modified Julian date): {:8.5f}".format(mjdc))
+        raise ValueError
+
+    # ===========================================================
+    # Looking for the start of the visibility period
+    # ===========================================================
+    scanningStepSize = 0.1
+    iflipLeft = False
+    currentmjd = mjdc
+    continueFlag = True
+    boundaryFlag = False
+    while (continueFlag):
+        currentmjd -= scanningStepSize
+
+        if (currentmjd < mjdmin):
+            currentmjd = mjdmin
+            boundaryFlag = True
+            continueFlag = False
+        iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
+
+        if (not iflag):
+            wstart = ephemeris.bisect_by_attitude(
+                currentmjd, currentmjd + scanningStepSize, ra, dec, pa)
+            iflipLeft = True
+            continueFlag = False
+        elif (boundaryFlag):
+            wstart = mjdmin
+
+    iflipRight = False
+    currentmjd = mjdc
+    boundaryFlag = False
+    continueFlag = True
+    while (continueFlag):
+
+        currentmjd += scanningStepSize
+        if (currentmjd > mjdmax):
+            currentmjd = mjdmax
+            boundaryFlag = True
+            continueFlag = False
+
+        iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
+        if (not iflag):
+            wend = ephemeris.bisect_by_attitude(currentmjd - scanningStepSize,
+                                                currentmjd, ra, dec, pa)
+            iflipRight = True
+            continueFlag = False
+
+        elif (boundaryFlag):
+            wend = mjdmax
+
+    if ((not iflipLeft) and (not iflipRight)):
+        status = 1
+
+    elif (not iflipLeft):
+        status = -1
+
+    elif (not iflipRight):
+        status = -2
+
+    else:
+        status = 0
+
+    # End of the function
+    return wstart, wend, status
 
 
 def f_computeVisibilityPeriods(ephemeris, mjdmin, mjdmax, ra, dec):
@@ -288,147 +432,3 @@ def f_computeVisibilityPeriodsWithPA(ephemeris, mjdmin, mjdmax, ra, dec, pa):
 
     # End of the function
     return startList, endList, statusList
-
-
-def f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
-                                              ra, dec, pa, mjdc):
-    """Computes the duration of a specific visibility period associated to a
-    given (RA,DEC), a given PA and given date
-
-    flag = 0 visibility period fully in the search interval
-    flag = -1 start of the visibility period truncated by
-           the start of the search interval
-    flag = -2 end of the visibility period truncated by
-           the end of the search interval
-    flag = +1 the search interval is fully included in
-           the visibility period
-
-    Parameters
-    ----------
-    ephemeris: Ephemeris
-        The input ephemeris object.
-    mjdmin: float
-        The beginning of the search interval (modified
-        Julian date). It must be covered by the ephemeris.
-    mjdmax: float
-        The end of the search interval (modified
-        Julian date). It must be covered by the ephemeris.
-    ra: float
-        The input RA coordinate (equatorial coordinate, in rad).
-    dec: float
-        The input DEC coordinate (equatorial coordinate, in rad).
-    pa: float
-        The position angle.
-
-    Example
-    -------
-    >>> f_computeDurationOfVisibilityPeriodWithPA(ephemeris, mjdmin, mjdmax,
-    ra, dec, pa, mjdc)
-
-    Returns
-    -------
-    tuple
-        The lists of visibility period starts and ends with flags.
-    """
-    if (ephemeris.amin > mjdmin):
-        print("""f_computeDurationOfVisibilityPeriodWithPA(): the start of\
-                 thesearch interval is not covered by the ephemeris.""")
-        print("""Ephemeris start date (modified Julian date):\
-                 {:8.5f}""".format(ephemeris.amin))
-        print("""Search interval start date (modified Julian date):\
-                 {:8.5f}""".format(mjdmin))
-        raise ValueError
-
-    if (ephemeris.amax < mjdmax):
-        print("""f_computeDurationOfVisibilityPeriodWithPA(): the end of the\
-                 search interval is not covered by the ephemeris.""")
-        print("""Ephemeris end date (modified Julian date):\
-                 {:8.5f}""".format(ephemeris.amax))
-        print("""Search interval end date (modified Julian date):\
-                 {:8.5f}""".format(mjdmax))
-        raise ValueError
-
-    if (mjdmin > mjdc):
-        print("""f_computeDurationOfVisibilityPeriodWithPA():\
-                 initial date is not included in the search interval.""")
-        print("""Search interval start date (modified Julian date):\
-                 {:8.5f}""".format(mjdmin))
-        print("Initial date (modified Julian date): {:8.5f}".format(mjdc))
-        raise ValueError
-
-    if (mjdmax < mjdc):
-        print("""f_computeDurationOfVisibilityPeriodWithPA(): initial date is\
-                 not included in the search interval.""")
-        print("""Search interval end date (modified Julian date):\
-                 {:8.5f}""".format(mjdmax))
-        print("Initial date (modified Julian date): {:8.5f}".format(mjdc))
-        raise ValueError
-
-    iflag = ephemeris.is_valid(mjdc, ra, dec, pa)
-    if (not iflag):
-        print("""f_computeDurationOfVisibilityPeriodWithPA(): invalid date\
-                 (not in a vsibility period).""")
-        print("Date (modified Julian date): {:8.5f}".format(mjdc))
-        raise ValueError
-
-    # ===========================================================
-    # Looking for the start of the visibility period
-    # ===========================================================
-    scanningStepSize = 0.1
-    iflipLeft = False
-    currentmjd = mjdc
-    continueFlag = True
-    boundaryFlag = False
-    while (continueFlag):
-        currentmjd -= scanningStepSize
-
-        if (currentmjd < mjdmin):
-            currentmjd = mjdmin
-            boundaryFlag = True
-            continueFlag = False
-        iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
-
-        if (not iflag):
-            wstart = ephemeris.bisect_by_attitude(
-                currentmjd, currentmjd + scanningStepSize, ra, dec, pa)
-            iflipLeft = True
-            continueFlag = False
-        elif (boundaryFlag):
-            wstart = mjdmin
-
-    iflipRight = False
-    currentmjd = mjdc
-    boundaryFlag = False
-    continueFlag = True
-    while (continueFlag):
-
-        currentmjd += scanningStepSize
-        if (currentmjd > mjdmax):
-            currentmjd = mjdmax
-            boundaryFlag = True
-            continueFlag = False
-
-        iflag = ephemeris.is_valid(currentmjd, ra, dec, pa)
-        if (not iflag):
-            wend = ephemeris.bisect_by_attitude(currentmjd - scanningStepSize,
-                                                currentmjd, ra, dec, pa)
-            iflipRight = True
-            continueFlag = False
-
-        elif (boundaryFlag):
-            wend = mjdmax
-
-    if ((not iflipLeft) and (not iflipRight)):
-        status = 1
-
-    elif (not iflipLeft):
-        status = -1
-
-    elif (not iflipRight):
-        status = -2
-
-    else:
-        status = 0
-
-    # End of the function
-    return wstart, wend, status

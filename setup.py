@@ -49,7 +49,7 @@ for root, _, files in os.walk("exoctk"):
 
 setup(
     name='exoctk',
-    version='1.2.1',
+    version='1.2.2',
     description='Observation reduction and planning tools for exoplanet science',
     packages=find_packages(
         ".",
