@@ -39,7 +39,6 @@ dependencies:
     - corner==2.2.1
     - ddtrace==0.50.3
     - flask_wtf==0.14.3
-    - lmfit==1.0.2
     - platon==5.3
     - pysiaf==0.10.0
     - pysynphot==1.0.1
