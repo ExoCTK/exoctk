@@ -39,7 +39,6 @@ dependencies:
     - docutils==0.15.2
     - flask_wtf==0.14.3
     - gunicorn==20.0.4
-    - lmfit==1.0.2
     - platon==5.3
     - pysiaf==0.10.0
     - pysynphot==1.0.1
