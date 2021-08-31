@@ -108,7 +108,7 @@ def calc_v3pa(V3PA, stars, aper, targetIndex, pixel_pos):
     inFOV = np.array(inFOV)
 
     # Make simulated image
-    simuImage = np.zeros((subY, subX))
+    simuCube = np.zeros((361, subY, subX))
     for idx in inFOV:
 
         # Get the Teff
@@ -122,7 +122,7 @@ def calc_v3pa(V3PA, stars, aper, targetIndex, pixel_pos):
         # Get the trace and pad it
         trace = get_trace(aper.AperName, int(temp))
         # trace = np.rot90(trace, k=3)
-        pad_trace = np.pad(trace, pad_width=2000, mode='constant', constant_values=0)
+        pad_trace = np.pad(trace, pad_width=5000, mode='constant', constant_values=0)
 
         # Determine the highest pixel value of trace
         maxY, maxX = np.where(pad_trace == pad_trace.max())
@@ -162,9 +162,19 @@ def calc_v3pa(V3PA, stars, aper, targetIndex, pixel_pos):
         # Add trace to the image
         tr = pad_trace[my0:my1, mx0:mx1] * fluxscale
         trY, trX = tr.shape
-        simuImage[0:trY, 0:trX] += tr
 
-    return simuImage
+        # Fleshing out index 0 of the simulation cube (trace of target)
+        if (sci_dx == 0) & (sci_dy == 0):  # this is the target
+
+            simuCube[0, 0:trY, 0:trX] = tr
+
+        # Fleshing out indexes 1-361 of the simulation cube
+        # (trace of neighboring stars at every position angle)
+        else:
+
+            simuCube[V3PA + 1, 0:trY, 0:trX] += tr
+
+    return simuCube
 
 
 def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360, plot=True):
@@ -285,12 +295,12 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360, plot=Tru
     # Calculate contamination at each PA
     pl = pool.ThreadPool(n_jobs)
     func = partial(calc_v3pa, stars=stars, aper=aper, targetIndex=targetIndex, pixel_pos=pixel_pos)
-    images = zip(*pl.map(func, np.arange(0, nPA, 1)))
+    cubes = zip(*pl.map(func, np.arange(0, nPA, 1)))
     pl.close()
     pl.join()
 
-    # Make frames into a cube
-    simuCube = np.asarray(list(images))
+    # Sum cubes into a single cube
+    simuCube = np.nansum(np.asarray(list(cubes)).swapaxes(0, 1), axis=0)
     print('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
     plt = None
@@ -303,7 +313,6 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, nPA=360, plot=Tru
         minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
 
         # Make the plot
-        # plt = plot_contamination(simuCube, inst['lam'], badPAs, minPA, maxPA)
         plt = plot_contamination(simuCube, inst['lam'], badPAs)
 
     return simuCube, plt
@@ -366,7 +375,6 @@ def plot_contamination(data, wlims, badPAs=[], minPA=0, maxPA=360, title=''):
     targ = data[0, :, :]
     cube = data[1:, :, :]
 
-    print(targ.shape)
     fig = figure()
     fig.image([targ], x=0, y=0, dw=targ.shape[1], dh=targ.shape[0])
     show(fig)
