@@ -32,7 +32,7 @@ dependencies:
     - asteval==0.9.25
     - awscli
     - bandit==1.7.0
-    - batman-package==2.4.6
+    - batman-package==2.4.8
     - bibtexparser==1.2.0
     - corner==2.2.1
     - ddtrace==0.50.3
