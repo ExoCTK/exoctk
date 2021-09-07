@@ -41,7 +41,7 @@ dependencies:
     - flask_wtf==0.14.3
     - platon==5.3
     - pysiaf==0.10.0
-    - pysynphot==1.0.0
+    - pysynphot==1.0.1
     - PyYAML>=5.4
     - sphinx_astropy==1.5
     - svo-filters==0.4.1
