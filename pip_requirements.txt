@@ -1,7 +1,7 @@
 asteval==0.9.25
 astropy==4.0.2
 bandit==1.7.0
-batman-package==2.4.6
+batman-package==2.4.8
 bibtexparser==1.2.0
 bokeh==2.3.3
 boto3==1.18.33
@@ -35,6 +35,7 @@ sphinx-automodapi==0.13
 svo_filters==0.4.1
 sqlalchemy==1.4.23
 twine==3.4.2
+werkzeug>=2.0
 wtforms==2.3.3
 git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
 git+https://github.com/astropy/astroquery.git@ccc96185beeff86f3a12a31a00a801afcebe1dbe
