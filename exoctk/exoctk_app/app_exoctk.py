@@ -37,13 +37,13 @@ app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
-    dbpath = ':memory:'
+    DBPATH = ':memory:'
 else:
-    dbpath = os.path.realpath(os.path.join(get_env_variables()['exoctklog_dir'], 'exoctk_log.db'))
-    if not os.path.isfile(dbpath):
-        log_exoctk.create_db(dbpath)
+    DBPATH = os.path.realpath(os.path.join(get_env_variables()['exoctklog_dir'], 'exoctk_log.db'))
+    if not os.path.isfile(DBPATH):
+        log_exoctk.create_db(DBPATH)
 try:
-    DB = log_exoctk.load_db(dbpath)
+    DB = log_exoctk.load_db(DBPATH)
 except IOError:
     DB = None
 
@@ -888,6 +888,8 @@ def secret_page():
     ``flask.render_template`` obj
         The rendered template for the admin page.
     """
+    # Reload the DB when this page loads so the data is current
+    DB = log_exoctk.load_db(DBPATH)
 
     tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
 

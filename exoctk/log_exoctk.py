@@ -77,7 +77,7 @@ def create_db(dbpath, overwrite=True):
     cur.execute("CREATE TABLE 'groups_integrations' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targname' TEXT, 'kmag' REAL, 'mod' TEXT, 'obs_time' REAL, 'n_group' REAL, 'ins' TEXT, 'filt' TEXT, 'filt_ta' TEXT, 'subarray' TEXT, 'subarray_ta' TEXT, 'sat_mode' TEXT, 'sat_max' REAL, PRIMARY KEY(id));")
 
     # Table for limb_darkening
-    cur.execute("CREATE TABLE 'limb_darkening' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'n_bins' INTEGER, 'teff' REAL, 'logg' REAL, 'feh' REAL, 'bandpass' TEXT, 'modeldir' TEXT, 'wave_min' REAL, 'mu_min' REAL, 'wave_max' REAL, 'local_files' TEXT, 'pixels_per_bin' INTEGER, 'uniform' TEXT, 'linear' TEXT, 'quadratic' TEXT, 'squareroot' TEXT, 'logarithmic' TEXT, 'exponential' TEXT, 'three_parameter' TEXT, 'four_parameter' TEXT, PRIMARY KEY(id));")
+    cur.execute("CREATE TABLE 'limb_darkening' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'n_bins' INTEGER, 'teff' REAL, 'logg' REAL, 'feh' REAL, 'bandpass' TEXT, 'modeldir' TEXT, 'wave_min' REAL, 'mu_min' REAL, 'wave_max' REAL, 'local_files' TEXT, 'pixels_per_bin' INTEGER, 'linear' TEXT, 'quadratic' TEXT, 'squareroot' TEXT, 'logarithmic' TEXT, 'exponential' TEXT, 'three_parameter' TEXT, 'four_parameter' TEXT, PRIMARY KEY(id));")
 
     # Table for contam_visibility
     cur.execute("CREATE TABLE 'contam_visibility' ('id' INTEGER NOT NULL UNIQUE, 'date' TEXT NOT NULL, 'targname' TEXT, 'ra' REAL, 'dec' REAL, 'inst' TEXT, 'companion' TEXT, PRIMARY KEY(id));")

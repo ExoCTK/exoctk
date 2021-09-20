@@ -6,7 +6,7 @@ Email: jfilippazzo@stsci.edu
 
 import copy
 
-import lmfit
+# import lmfit
 import numpy as np
 
 from .parameters import Parameters

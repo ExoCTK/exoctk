@@ -337,10 +337,12 @@ def traceLength(inst):
         FILE = 'modelOrder12_teff6000.sav'
 
     trFile = os.path.join(TRACES_PATH, inst.replace(' ', '_'), FILE)
+    if 'NIRCam' in inst:
+        trFile = trFile.replace('NIRCam', 'NIRCam_F444W')
     trData = readsav(trFile)['modelo12'] if 'NIRISS' in inst \
         else fits.getdata(trFile, 1)
     trData = trData[0]
-    print(np.shape(trData))
+
     ax = 1 if 'NIRCam' in inst else 0
     peak = trData.max()
 

@@ -21,9 +21,7 @@ from svo_filters import svo
 from .throughputs import JWST_THROUGHPUTS
 
 # Supported profiles
-PROFILES = ['uniform', 'linear', 'quadratic',
-            'square-root', 'logarithmic', 'exponential',
-            '3-parameter', '4-parameter']
+PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
 # Supported filters
 FILTERS = svo.filters()
