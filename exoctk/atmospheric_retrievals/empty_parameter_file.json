@@ -1,0 +1,6 @@
+{"observatory": null, "wavenumber_min": null, "wavenumber_max": null, 
+    "chemistry_parameters": {"Metallicity": null, "CtoO": null, "logPQC": null, "logPQN": null}, 
+    "stellar_parameters": {"stellar_file": null, "temp": null, "logmh": null, "logg": null, "Rstar": null, "stellar_db": null}, 
+    "planetary_parameters": {"Rp": null, "M": null, "D": null, "Tirr": null, "logKir": null, "logg1": null, "Tint": null}, 
+    "gas_abundances": {"H2O": null, "CH4": null, "CO": null, "CO2": null, "NH3": null, "N2": null, "HCN": null, "H2S": null, "PH3": null, "C2H2": null, "C2H6": null, "Na": null, "K": null, "TiO": null, "VO": null, "FeH": null, "H": null, "H2": null, "He": null, "e-": null, "h-": null, "mmw": null}, 
+    "cloud_parameters": {"logKzz": null, "fsed": null, "logPbase": null, "logCldVMR": null, "logKcld": null, "logRayAmp": null, "RaySlope": null, "xRp": null}}

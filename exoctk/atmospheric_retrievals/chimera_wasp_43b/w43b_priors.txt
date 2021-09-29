@@ -1,0 +1,11 @@
+parameter min max
+Tirr 1000.0 2500.0
+logMet -2.0 3.0 
+logCtoO -2.0 0.3
+logKzz 5.0 11.0
+fsed 0.5 6.0
+logPbase -6.0 1.5
+logCldVMR -15.0 -2.0
+xRp 0.5 1.5
+logKir -3.0 0.0
+logg1 -3.0 0.0
