@@ -205,7 +205,6 @@ class GenerateModel():
 
             IF = sp.interpolate.RegularGridInterpolator((logCtoO, logMet, np.log10(Tarr),logParr), gas_to_interp, bounds_error=False)
             for i in range(len(self.atmosphere_grid['P'])):
-                print(np.log10(CtoO), np.log10(Met), np.log10(TT[i]), np.log10(self.atmosphere_grid['P'][i]))
                 gas[j,i] = 10**IF(np.array([np.log10(CtoO), np.log10(Met), np.log10(TT[i]), np.log10(self.atmosphere_grid['P'][i])]))*self.cross_sections.gas_scale[j]
 
         H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw=gas
