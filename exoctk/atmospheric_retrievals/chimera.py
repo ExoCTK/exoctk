@@ -35,7 +35,7 @@ class GenerateModel():
         """Initialize the class object."""
 
         self.cross_sections = cross_sections
-        self.load_spectral_data = (transmission_file, True)
+        self.load_spectral_data(transmission_file, unpack=True)
 
     def free_transit_model(self):
         self.fx_trans_free()
@@ -49,7 +49,7 @@ class GenerateModel():
         if transpose:
             self.wlgrid, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
         else:
-            self.wlgrid, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack)
+            self.wlgrid, self.y_meas, _, self.err = np.loadtxt(transmission_file, unpack=unpack)
 
 
     def make_plot(self):
@@ -163,12 +163,19 @@ class GenerateModel():
         #Setting up atmosphere grid****************************************
         
         self.atmosphere_grid = {}
-        self.atmosphere_grid['logP'] = np.arange(-6.8,1.5,0.1)+0.1
+        self.atmosphere_grid['logP'] = np.arange(-6.8, 1.5, 0.1) + 0.1
         self.atmosphere_grid['P'] = 10.0** self.atmosphere_grid['logP']
         self.atmosphere_grid['g0'] = 6.67384E-11*M*1.898E27/(Rp*71492.*1.E3)**2
-        self.atmosphere_grid['kv'] = 10.**(logg1+logKir)
+        self.atmosphere_grid['kv'] = 10.**(logg1 + logKir)
         self.atmosphere_grid['kth'] = 10.**logKir
         self.atmosphere_grid['alpha'] = 0.5
+
+        self.atmosphere_grid = {}
+        self.atmosphere_grid['logP'] = np.arange(-6.8, 1.5, 0.1) + 0.1
+        self.atmosphere_grid['P'] = 10.0** self.atmosphere_grid['logP']
+        self.atmosphere_grid['g0'] = 6.67384E-11*M*1.898E27/(Rp*71492.*1.E3)**2
+        self.atmosphere_grid['kv'] = 10.**(logg1 + logKir)
+        self.atmosphere_grid['kth'] = 10.**logKir
 
         tempurature, pressure = self.profile_tempeture_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
         self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
@@ -177,23 +184,15 @@ class GenerateModel():
         Tavg = 0.5*(self.T[1:] + self.T[:-1])
         Pavg = 0.5*(self.atmosphere_grid['P'][1:] + self.atmosphere_grid['P'][:-1])
 
-        self.atmosphere_grid = {}
-        self.atmosphere_grid['logP'] = np.arange(-6.8,1.5,0.1)+0.1
-        self.atmosphere_grid['P'] = 10.0** self.atmosphere_grid['logP']
-        self.atmosphere_grid['g0'] = 6.67384E-11*M*1.898E27/(Rp*71492.*1.E3)**2
-        self.atmosphere_grid['kv'] = 10.**(logg1+logKir)
-        self.atmosphere_grid['kth'] = 10.**logKir
-        self.atmosphere_grid['alpha'] = 0.5
-
         #interpolation chem
-        logCtoO = self.cross_sections.chemistry_parameters['CtoO']
-        logMet = self.cross_sections.chemistry_parameters['logMet']
-        Tarr = self.cross_sections.chemistry_parameters['Tarr']
-        logParr = self.cross_sections.chemistry_parameters['logParr']
-        loggas = self.cross_sections.chemistry_parameters['loggas']
+        logCtoO = self.cross_sections.logCtoO
+        logMet = self.cross_sections.logMet
+        Tarr = self.cross_sections.Tarr
+        logParr = self.cross_sections.logParr
+        loggas = self.cross_sections.loggas
 
         Ngas = loggas.shape[-2]
-        gas = np.zeros((Ngas,len(self.P)))+1E-20
+        gas = np.zeros((Ngas,len(self.atmosphere_grid['P'])))+1E-20
 
         #capping T at bounds
         TT = np.zeros(len(self.T))
@@ -203,28 +202,30 @@ class GenerateModel():
 
         for j in range(Ngas):
             gas_to_interp = loggas[:,:,:,j,:]
-            IF = sp.interpolate.RegularGridInterpolator((logCtoO, logMet, np.log10(Tarr),logParr),gas_to_interp,bounds_error=False)
-            for i in range(len(self.P)):
-                gas[j,i] = 10**IF(np.array([np.log10(CtoO), np.log10(Met), np.log10(TT[i]), np.log10(self.P[i])]))*self.gas_scale[j]
+
+            IF = sp.interpolate.RegularGridInterpolator((logCtoO, logMet, np.log10(Tarr),logParr), gas_to_interp, bounds_error=False)
+            for i in range(len(self.atmosphere_grid['P'])):
+                print(np.log10(CtoO), np.log10(Met), np.log10(TT[i]), np.log10(self.atmosphere_grid['P'][i]))
+                gas[j,i] = 10**IF(np.array([np.log10(CtoO), np.log10(Met), np.log10(TT[i]), np.log10(self.atmosphere_grid['P'][i])]))*self.cross_sections.gas_scale[j]
 
         H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr, C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr, FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw=gas
 
 
         # Super simplified non-self consistent quenching based on quench pressure
         # Carbon
-        PQC=10.**logPQC
-        loc=np.where(self.P <= PQC)
-        CH4arr[loc]=CH4arr[loc][-1]
-        COarr[loc]=COarr[loc][-1]
-        H2Oarr[loc]=H2Oarr[loc][-1]
-        CO2arr[loc]=CO2arr[loc][-1]
+        PQC = 10.**logPQC
+        loc = np.where(self.atmosphere_grid['P'] <= PQC)
+        CH4arr[loc] = CH4arr[loc][-1]
+        COarr[loc] = COarr[loc][-1]
+        H2Oarr[loc] = H2Oarr[loc][-1]
+        CO2arr[loc] = CO2arr[loc][-1]
 
         # Nitrogen
-        PQN=10.**logPQN
-        loc=np.where(self.P <= PQN)
-        NH3arr[loc]=NH3arr[loc][-1]
-        N2arr[loc]=N2arr[loc][-1]
-        t2=time.time()
+        PQN = 10.**logPQN
+        loc = np.where(self.atmosphere_grid['P'] <= PQN)
+        NH3arr[loc] = NH3arr[loc][-1]
+        N2arr[loc] = N2arr[loc][-1]
+        t2 = time.time()
 
         # hacked rainout (but all rainout is...).if a mixing ratio profile hits '0' (1E-12) set it to 1E-20 at all layers above that layer
         rain_val = 1E-8
@@ -253,14 +254,14 @@ class GenerateModel():
         mmw_cond = 100.39 # molecular weight of condensate (in AMU)  MgSiO3=100.39
         rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
         rr = 10**(np.arange(-2,2.6,0.1))  # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! iF YOU CHANGE THIS IT WILL BREAK
-        qc = self.cloud_profile(fsed,Cld_VMR, P,Pbase)
-        r_sed, r_eff, r_g, f_r = self.particle_radius(fsed,Kzz,mmw, self.T, self.P, self.g0, 
+        qc = self.cloud_profile(fsed,Cld_VMR, self.atmosphere_grid['P'], Pbase)
+        r_sed, r_eff, r_g, f_r = self.particle_radius(fsed,Kzz,mmw, self.T, self.atmosphere_grid['P'], self.atmosphere_grid['g0'], 
                                                  rho_cond,mmw_cond,qc, rr*1E-6)
     
         Pref=1.1 # 10.1  #reference pressure bar-keep fixed
         # computing transmission spectrum-----------
     
-        self.spec = self.tran(self.xsects, self.T, self.P, mmw, Pref, CldOpac, H2Oarr, CH4arr, 
+        self.spec = self.tran(self.cross_sections, self.T, self.atmosphere_grid['P'], mmw, Pref, CldOpac, H2Oarr, CH4arr, 
                          COarr, CO2arr, NH3arr, Naarr, Karr, TiOarr, VOarr,
                          C2H2arr, HCNarr, H2Sarr, FeHarr, Harr, earr, Hmarr, 
                          H2arr, Hearr, RayAmp, RaySlp, f_r, M, Rstar, Rp)
@@ -270,7 +271,7 @@ class GenerateModel():
         
         self.y_binned, _ = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
-        self.chemarr = np.array([self.P, self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
+        self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
                             FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
 
@@ -1100,10 +1101,11 @@ class GetRetrieval():
         self.Nlive = 500 # number of nested sampling live points
         self.outpath =  outpath
         self.outname = outpath + '.pic'  #dynesty output file name (saved as a pickle)
-        self.gas_scale = np.ones(len(x)) # can be made free params if desired (won't affect mmw)#can be made free
         self.priors_file = priors_file
         self.Nparams = len(self.read_priors_build_cube(self.priors_file))
-        # pymultinest.run(self._loglike, self._priors, self.Nparam, outputfiles_basename=self.outpath + '/template_',resume=False, verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
+        # pymultinest.run(self._loglike, self._priors, self.Nparam, 
+        #                   outputfiles_basename=self.outpath + '/template_',resume=False, 
+        #                   verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
 
         # self.pymultinest_results = pymultinest.Analyzer(n_params=self.Nparam, outputfiles_basename=self.outpath + '/template_')
         # self.pymultinest_statistics = pymultinest_results.get_stats()
@@ -1116,16 +1118,16 @@ class GetRetrieval():
 
         self.cube = self.read_priors_build_cube(self.priors)
 
-        y_binned, _ = fx_trans()
+        y_binned, _ = self.model.chemically_consitent_model()
 
-        loglikelihood = -0.5*np.sum((self.model.y_meas - model.y_binned)**2/self.model.err**2)
+        loglikelihood = -0.5*np.sum((self.model.y_meas - y_binned)**2/self.model.err**2)
 
         return loglikelihood
 
 
     def transform_uniform(self, x, hyperparameters):
         a, b = hyperparameters
-        return a + (b-a)*x
+        return a + (b - a)*x
 
 
     def read_priors_build_cube(self, priors_file):
@@ -1139,6 +1141,6 @@ class GetRetrieval():
 
             if transform == 'uniform':
                 scaled_parameter = self.transform_uniform(parameter_value, hyperparameters)
-            cube[prior] = scaled_parameter
+            # setattr(self., attrname, value)
 
         return cube
