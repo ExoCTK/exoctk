@@ -1101,11 +1101,16 @@ class GetRetrieval():
         self.Nlive = 500 # number of nested sampling live points
         self.outpath =  outpath
         self.outname = outpath + '.pic'  #dynesty output file name (saved as a pickle)
-        self.priors_file = priors_file
-        self.priors_meta = json.load(self.priors_file)
+
+        with open(priors_file, "r") as read_file:
+             self.priors_meta = json.load(read_file)
+
         self.Nparam = len(self.priors_meta) # number of priors to fit.
 
-        pymultinest.run(self._loglike, self._priors, self.Nparam, 
+
+    def pymultinest_retrieval(self):
+
+        pymultinest.run(self.loglike, self.read_priors_assign_priors, self.Nparam, 
                           outputfiles_basename=self.outpath + '/template_',resume=False, 
                           verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
 
@@ -1113,12 +1118,10 @@ class GetRetrieval():
         self.pymultinest_statistics = self.pymultinest_results.get_stats()
         self.pymultinest_output = self.pymultinest_results.get_equal_weighted_posterior()
 
-        # pickle.dump(self.pymultinest_output,open(self.outname, 'wb'))
+        pickle.dump(self.pymultinest_output,open(self.outname, 'wb'))
 
 
-    def _loglike(self):
-
-        self.read_priors_build_cube()
+    def loglike(self):
 
         y_binned, _ = self.model.chemically_consitent_model()
 
@@ -1145,7 +1148,7 @@ class GetRetrieval():
         return a + (b - a)*x
 
 
-    def read_priors_build_cube(self):
+    def read_priors_assign_priors(self):
         """ 
         Read priors file and assign member variables of
         cross section object.
@@ -1162,7 +1165,7 @@ class GetRetrieval():
             if transform == 'uniform':
               scaled_parameter = self.transform_uniform(parameter_value, hyperparameters)
             else:
-                raise ValueError('transform = {} not recognized, please enter valid transform in priors json file.')
+                raise ValueError('transform = {} not recognized, please enter valid transform in priors json file.'.format(transform))
 
             # Check the attributes of cross sections object 
             for attribute in vars(self.cross_sections):
