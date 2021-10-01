@@ -6,7 +6,7 @@ from matplotlib.ticker import FormatStrFormatter
 from numba import jit
 import numpy as np
 import os
-# import pickle5 as pickle
+import pickle
 import pymultinest
 import pysynphot as psyn
 import scipy as sp
