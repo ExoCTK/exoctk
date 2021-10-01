@@ -6,7 +6,8 @@ from matplotlib.ticker import FormatStrFormatter
 from numba import jit
 import numpy as np
 import os
-# import pymultinest
+# import pickle5 as pickle
+import pymultinest
 import pysynphot as psyn
 import scipy as sp
 import time
@@ -1101,21 +1102,23 @@ class GetRetrieval():
         self.outpath =  outpath
         self.outname = outpath + '.pic'  #dynesty output file name (saved as a pickle)
         self.priors_file = priors_file
-        self.Nparams = len(self.read_priors_build_cube(self.priors_file))
-        # pymultinest.run(self._loglike, self._priors, self.Nparam, 
-        #                   outputfiles_basename=self.outpath + '/template_',resume=False, 
-        #                   verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
+        self.priors_meta = json.load(self.priors_file)
+        self.Nparam = len(self.priors_meta) # number of priors to fit.
 
-        # self.pymultinest_results = pymultinest.Analyzer(n_params=self.Nparam, outputfiles_basename=self.outpath + '/template_')
-        # self.pymultinest_statistics = pymultinest_results.get_stats()
-        # self.pymultinest_output = pymultinest_results.get_equal_weighted_posterior()
+        pymultinest.run(self._loglike, self._priors, self.Nparam, 
+                          outputfiles_basename=self.outpath + '/template_',resume=False, 
+                          verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
 
-        # pickle.dump(pymultinest_output,open(outname, 'wb'))
+        self.pymultinest_results = pymultinest.Analyzer(n_params=self.Nparam, outputfiles_basename=self.outpath + '/template_')
+        self.pymultinest_statistics = self.pymultinest_results.get_stats()
+        self.pymultinest_output = self.pymultinest_results.get_equal_weighted_posterior()
+
+        # pickle.dump(self.pymultinest_output,open(self.outname, 'wb'))
 
 
     def _loglike(self):
 
-        self.cube = self.read_priors_build_cube(self.priors)
+        self.read_priors_build_cube()
 
         y_binned, _ = self.model.chemically_consitent_model()
 
@@ -1125,21 +1128,52 @@ class GetRetrieval():
 
 
     def transform_uniform(self, x, hyperparameters):
+        """
+        uniform transform
+
+        Parameters
+        ----------
+        x : float
+            Value of parameter
+        
+        hyperparameters : list
+            Min and Max values of parameter
+        """
+
         a, b = hyperparameters
+
         return a + (b - a)*x
 
 
-    def read_priors_build_cube(self, priors_file):
-        priors_meta = json.load(priors_file)
+    def read_priors_build_cube(self):
+        """ 
+        Read priors file and assign member variables of
+        cross section object.
+        """
 
-        cube = {}
-        for prior in priors_meta:
-            hyperparameters = priors_meta[prior]['hyper_params']
-            transform = priors_meta[prior]['transform']
-            parameter_value = priors_meta[prior]['value']
+        # For each defined prior, get the transform,
+        # value and hyper parameters
+        for prior in self.priors_meta:
+            hyperparameters = self.priors_meta[prior]['hyper_params']
+            transform = self.priors_meta[prior]['transform']
+            parameter_value = self.priors_meta[prior]['value']
 
+            # Check the value of the transform and apply it
             if transform == 'uniform':
-                scaled_parameter = self.transform_uniform(parameter_value, hyperparameters)
-            # setattr(self., attrname, value)
+              scaled_parameter = self.transform_uniform(parameter_value, hyperparameters)
+            else:
+                raise ValueError('transform = {} not recognized, please enter valid transform in priors json file.')
 
-        return cube
+            # Check the attributes of cross sections object 
+            for attribute in vars(self.cross_sections):
+                # The priors defined are nested into dictionaires broken up by the type of parameter.
+                # planetary_parameters, cloud_parameters, chemistry_parameters etc so here we are just
+                # checking to see if the attributes are dictionaries because thats where there keys for
+                # the priors are located.
+                if isinstance(vars(self.cross_sections)[attribute], dict):
+                    # if attribute is a dictionary, see if the prior key is an option in the dictionary.
+                    if prior in vars(self.cross_sections)[attribute].keys():
+                        # if prior is in dictionary keys, assign the prior to transformed value.
+                        vars(self.cross_sections)[attribute][prior] = scaled_parameter
+                    else:
+                        continue
