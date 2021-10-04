@@ -12,7 +12,6 @@ import pysynphot as psyn
 import scipy as sp
 import time
 
-from .chimera_utils import kcoeff_interp, CalcTauXsecCK
 
 class PlanetarySystem():
     """Class object defining the planetary system you wish to model with Chimera"""
@@ -505,19 +504,18 @@ class GenerateModel():
 
 
 
+    @jit(nopython=True)
     def tran(self, xsects, T, P, mmw,Ps,CldOpac,alphaH2O,alphaCH4,alphaCO,alphaCO2,alphaNH3,alphaNa,alphaK,alphaTiO,alphaVO, alphaC2H2, alphaHCN, alphaH2S,alphaFeH,fH,fe,fHm,fH2,fHe,amp,power,f_r,M,Rstar,Rp):
         """Runs all requisite routins for transmisison spectroscopy
         Returns
         -------
         wno
-            Wavenumber grid t
+            Wavenumber grid 
         F
             (rp/rs)^2
         Z
             height above ref pressure
         """
-        # t1=time.time()
-
         #renaming variables, bbecause why not
         fH2=fH2
         fHe=fHe
@@ -538,10 +536,9 @@ class GenerateModel():
         #pdb.set_trace()
         #Na and K are fixed in this model but can be made free parameter if desired
         #If T < 800 K set these equal to 0!!!--they condense out below this temperature (roughly)
-    
+
         
-        Fractions = np.array([fH2*fH2,fHe*fH2,fH2O, fCH4, fCO, fCO2, fNH3,fNa,fK,fTiO,fVO,fC2H2,fHCN,fH2S,fFeH,fH*fe, fHm])  #gas mole fraction profiles
-                            #H2Ray, HeRay  Ray General,
+        Fractions = np.array([fH2*fH2,fHe*fH2,fH2O, fCH4, fCO, fCO2, fNH3,fNa,fK,fTiO,fVO,fC2H2,fHCN,fH2S,fFeH,fH*fe, fHm])
         Frac_Cont = np.array([fH2,fHe,fH2*0.+1.,fH2*0.+1])  #continuum mole fraction profiles
         Frac_Cont=np.concatenate((Frac_Cont, f_r),axis=0)
 
@@ -603,7 +600,6 @@ class GenerateModel():
         #Interpolate values of measured cross-sections at their respective
         #temperatures pressures to the temperature and pressure of the
         #levels on which the optical depth will be computed
-        # t2=time.time()
         #print('Setup', t2-t1)
         #make sure   200 <T <4000 otherwise off cross section grid
         TT=np.zeros(len(Tavg))
@@ -615,7 +611,9 @@ class GenerateModel():
         PP[Pavg < 3E-6]=3E-6
         PP[Pavg >=300 ]=300
 
-        kcoeffs_interp=10**kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
+        for i in [Pgrid, Tgrid, PP, TT, wno, xsecarr]:
+            print(i)
+        kcoeffs_interp=10**self.kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
         
         t3=time.time()
         #print('Kcoeff Interp', t3-t2)
@@ -637,25 +635,28 @@ class GenerateModel():
         xsecContinuum=np.array([sigmaH2.T,sigmaHe.T,sigmaRay.T,sigmaCld.T]).T #building continuum xsec array (same order as cont_fracs)
         xsecContinuum=np.concatenate((xsecContinuum, sigmaMie),axis=2)
         #(add more continuum opacities here and in fractions)
-        # t4=time.time()
+        t4=time.time()
         #print("Continuum Xsec Setup ", t4-t3)
         #********************************************
         #Calculate transmissivity as a function of
         #wavenumber and height in the atmosphere
-        t=CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0, gord, wts, Frac_Cont, xsecContinuum)
-        # t5=time.time()
+        start = time.time()
+        t=self.CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
+        end = time.time()
+        print('TIME SPENT ON kcoeffs_interp: {}'.format(end-start))
+        t5=time.time()
         #print('Transmittance', t5-t4)    
 
         #Compute Integral to get (Rp/Rstar)^2 (equation in brown 2001, or tinetti 2012)
         F=((r0+np.min(Z))/(Rstar*6.95508E8))**2+2./(Rstar*6.95508E8)**2.*np.dot((1.-t),(r0+Z)*dZ)
-        # t6=time.time()
+        t6=time.time()
         #print('Total in Trans', t6-t1)
 
         return wno, F, Z#, TauOne
 
 
     @jit(nopython=True)
-    def CalcTauXsecCK(self, kcoeffs,Z,Pavg,Tavg, Fractions, r0,gord, wts, Fractions_Continuum, xsecContinuum):
+    def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0, gord, wts, Fractions_Continuum, xsecContinuum):
         """
         Calculate opacity using correlated-k tables 
         
@@ -724,6 +725,78 @@ class GenerateModel():
                 #'''
                 trans[v,i]=transfull
         return trans
+
+
+    @jit(nopython=True)
+    def kcoeff_interp(logPgrid, logTgrid, logPatm, logTatm, wnogrid, kcoeff):
+        """
+        This routine interpolates the correlated-K tables
+        to the appropriate atmospheric P & T for each wavenumber and 
+        g-ordinate for each gas. It uses a standard bi-linear 
+        interpolation scheme.
+        
+        Parameters
+        ---------- 
+        logPgrid : ndarray
+            pressure grid (log10) on which the CK coeff's are pre-computed (Npressure points)
+
+        logTgrid : ndarray
+            temperature grid (log10) on which the CK coeffs are pre-computed (Ntemperature points)
+
+        logPatm : ndarray 
+            atmospheric pressure grid (log10) 
+
+        logTatm : ndarray 
+            atmospheric temperature grid (log10)
+
+        wnogrid : ndarray 
+            CK wavenumber grid (Nwavenumber points) (actually, this doesn't need to be passed...it does nothing here...)
+
+        kcoeff : ndarray 
+            massive CK coefficient array (in log10)--Ngas x Npressure x Ntemperature x Nwavenumbers x Ngordinates
+        
+        Returns
+        ------- 
+        kcoeff_int 
+            the interpolated-to-atmosphere CK coefficients (in log). 
+            This will be Nlayers x Nwavenumber x Ngas x Ngordiantes
+        """
+
+        Ng, NP, NT, Nwno, Nord = kcoeff.shape
+
+        Natm=len(logTatm)
+
+        kcoeff_int=np.zeros((Natm,Nwno,Ng,Nord))
+
+        for i in range(Natm):  #looping through atmospheric layers
+
+            y=logPatm[i]
+            x=logTatm[i]
+
+            p_ind_hi=np.where(logPgrid>=y)[0][0]
+            p_ind_low=np.where(logPgrid<y)[0][-1]
+            T_ind_hi=np.where(logTgrid>=x)[0][0]
+            T_ind_low=np.where(logTgrid<x)[0][-1]
+
+            y2=logPgrid[p_ind_hi]
+            y1=logPgrid[p_ind_low]
+            x2=logTgrid[T_ind_hi]
+            x1=logTgrid[T_ind_low]
+        
+            for j in range(Ng): #looping through gases
+                for k in range(Nwno): #looping through wavenumber
+                    for l in range(Nord): #looping through g-ord
+                        arr=kcoeff[j,:,:,k,l]
+                        Q11=arr[p_ind_low,T_ind_low]
+                        Q12=arr[p_ind_hi,T_ind_low]
+                        Q22=arr[p_ind_hi,T_ind_hi]
+                        Q21=arr[p_ind_low,T_ind_hi]
+                        fxy1=(x2-x)/(x2-x1)*Q11+(x-x1)/(x2-x1)*Q21
+                        fxy2=(x2-x)/(x2-x1)*Q12+(x-x1)/(x2-x1)*Q22
+                        fxy=(y2-y)/(y2-y1)*fxy1 + (y-y1)/(y2-y1)*fxy2
+                        kcoeff_int[i,k,j,l]=fxy
+
+        return kcoeff_int
 
     def cloud_profile(self, fsed,cloud_VMR, Pavg, Pbase):
         """
