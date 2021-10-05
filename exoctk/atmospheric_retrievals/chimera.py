@@ -11,6 +11,8 @@ import pysynphot as psyn
 import scipy as sp
 import time
 
+from .chimera_utils import loglike, priors
+
 pwd, _ = os.path.split(__file__)
 EMPTY_PARAM_FILE = os.path.join(pwd, "empty_parameter_file.json")
 
@@ -1184,10 +1186,9 @@ class GetRetrieval():
 
 
     def pymultinest_retrieval(self):
-
-        pymultinest.run(self.loglike, self.read_priors_assign_priors, self.Nparam, 
-                          outputfiles_basename=self.outpath + '/template_',resume=False, 
-                          verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
+        pymultinest.run(self.loglike, self.prior, self.Nparam, 
+                        outputfiles_basename=self.outpath + '/template_', resume=False, 
+                        verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
 
         self.pymultinest_results = pymultinest.Analyzer(n_params=self.Nparam, outputfiles_basename=self.outpath + '/template_')
         self.pymultinest_statistics = self.pymultinest_results.get_stats()
@@ -1196,41 +1197,8 @@ class GetRetrieval():
         pickle.dump(self.pymultinest_output,open(self.outname, 'wb'))
 
 
-    def loglike(self):
+    def loglike(self, cube, ndim, nparams):
 
-        y_binned, _ = self.model.chemically_consitent_model()
-
-        loglikelihood = -0.5*np.sum((self.model.y_meas - y_binned)**2/self.model.err**2)
-
-        return loglikelihood
-
-
-    def transform_uniform(self, x, hyperparameters):
-        """
-        uniform transform
-
-        Parameters
-        ----------
-        x : float
-            Value of parameter
-        
-        hyperparameters : list
-            Min and Max values of parameter
-        """
-
-        a, b = hyperparameters
-
-        return a + (b - a)*x
-
-
-    def read_priors_assign_priors(self):
-        """ 
-        Read priors file and assign member variables of
-        cross section object.
-        """
-
-        # For each defined prior, get the transform,
-        # value and hyper parameters
         for prior in self.priors_meta:
             hyperparameters = self.priors_meta[prior]['hyper_params']
             transform = self.priors_meta[prior]['transform']
@@ -1255,3 +1223,32 @@ class GetRetrieval():
                         vars(self.cross_sections)[attribute][prior] = scaled_parameter
                     else:
                         continue
+
+        y_binned, _ = self.model.chemically_consitent_model()
+
+        loglikelihood=-0.5*np.sum((self.model.y_meas - y_binned)**2/self.model.err**2)  #nothing fancy here
+
+        return loglikelihood
+
+
+    def prior(self, cube, ndim, nparams):
+
+        print('AT THE PRIOR STEP')
+
+
+    def transform_uniform(self, x, hyperparameters):
+        """
+        uniform transform
+
+        Parameters
+        ----------
+        x : float
+            Value of parameter
+        
+        hyperparameters : list
+            Min and Max values of parameter
+        """
+
+        a, b = hyperparameters
+
+        return a + (b - a)*x
