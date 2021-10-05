@@ -11,8 +11,6 @@ import pysynphot as psyn
 import scipy as sp
 import time
 
-from .chimera_utils import loglike, priors
-
 pwd, _ = os.path.split(__file__)
 EMPTY_PARAM_FILE = os.path.join(pwd, "empty_parameter_file.json")
 
