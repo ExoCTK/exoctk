@@ -6,11 +6,13 @@ from matplotlib.ticker import FormatStrFormatter
 from numba import jit
 import numpy as np
 import os
-import pickle
 import pymultinest
 import pysynphot as psyn
 import scipy as sp
 import time
+
+pwd, _ = os.path.split(__file__)
+EMPTY_PARAM_FILE = os.path.join(pwd, "empty_parameter_file.json")
 
 
 class PlanetarySystem():
@@ -20,7 +22,7 @@ class PlanetarySystem():
         """Initialize the class object."""
 
         if not json_file:
-            json_file = '/Users/mfix/Desktop/exoctk/exoctk/atmospheric_retrievals/empty_parameter_file.json'
+            json_file = EMPTY_PARAM_FILE
 
         with open(json_file, "r") as read_file:
             self.json_data = json.load(read_file)
