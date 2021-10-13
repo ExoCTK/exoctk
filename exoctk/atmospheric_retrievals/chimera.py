@@ -1195,32 +1195,9 @@ class GetRetrieval():
         pickle.dump(self.pymultinest_output,open(self.outname, 'wb'))
 
 
-    def loglike(self, cube, ndim, nparams):
+    def loglike(self, cube, ndim=None, nparams=None):
 
-        for prior in self.priors_meta:
-            hyperparameters = self.priors_meta[prior]['hyper_params']
-            transform = self.priors_meta[prior]['transform']
-            parameter_value = self.priors_meta[prior]['value']
-
-            # Check the value of the transform and apply it
-            if transform == 'uniform':
-              scaled_parameter = self.transform_uniform(parameter_value, hyperparameters)
-            else:
-                raise ValueError('transform = {} not recognized, please enter valid transform in priors json file.'.format(transform))
-
-            # Check the attributes of cross sections object 
-            for attribute in vars(self.cross_sections):
-                # The priors defined are nested into dictionaires broken up by the type of parameter.
-                # planetary_parameters, cloud_parameters, chemistry_parameters etc so here we are just
-                # checking to see if the attributes are dictionaries because thats where there keys for
-                # the priors are located.
-                if isinstance(vars(self.cross_sections)[attribute], dict):
-                    # if attribute is a dictionary, see if the prior key is an option in the dictionary.
-                    if prior in vars(self.cross_sections)[attribute].keys():
-                        # if prior is in dictionary keys, assign the prior to transformed value.
-                        vars(self.cross_sections)[attribute][prior] = scaled_parameter
-                    else:
-                        continue
+        self.assign_priors(cube)
 
         y_binned, _ = self.model.chemically_consitent_model()
 
@@ -1229,9 +1206,34 @@ class GetRetrieval():
         return loglikelihood
 
 
-    def prior(self, cube, ndim, nparams):
+    def prior(self, cube, ndim=None, nparams=None):
+        """Prior transform for nested samplers
+        """
 
-        print('AT THE PRIOR STEP')
+        pcounter = 0
+        for pname in self.priors_meta:
+            if self.priors_meta[pname]['transform'] != 'fixed':
+                cube[pcounter] = self.transform_uniform(cube[pcounter], \
+                                 self.priors_meta[pname]['hyperparameters'])
+                pcounter += 1 
+
+    def assign_priors(self, cube):
+        """Assign Values sampled in cube to cross sections object
+        """
+        for pname, pvalue in zip(self.priors_meta.keys(), cube):
+            # Check the attributes of cross sections object 
+            for attribute in vars(self.cross_sections):
+                # The priors defined are nested into dictionaires broken up by the type of parameter.
+                # planetary_parameters, cloud_parameters, chemistry_parameters etc so here we are just
+                # checking to see if the attributes are dictionaries because thats where there keys for
+                # the priors are located.
+                if isinstance(vars(self.cross_sections)[attribute], dict):
+                    # if attribute is a dictionary, see if the prior key is an option in the dictionary.
+                    if pname in vars(self.cross_sections)[attribute].keys():
+                        # if prior is in dictionary keys, assign the prior to transformed value.
+                        vars(self.cross_sections)[attribute][pnaem] = pvalue
+                    else:
+                        continue
 
 
     def transform_uniform(self, x, hyperparameters):
