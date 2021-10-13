@@ -1231,7 +1231,7 @@ class GetRetrieval():
                     # if attribute is a dictionary, see if the prior key is an option in the dictionary.
                     if pname in vars(self.cross_sections)[attribute].keys():
                         # if prior is in dictionary keys, assign the prior to transformed value.
-                        vars(self.cross_sections)[attribute][pnaem] = pvalue
+                        vars(self.cross_sections)[attribute][pname] = pvalue
                     else:
                         continue
 
