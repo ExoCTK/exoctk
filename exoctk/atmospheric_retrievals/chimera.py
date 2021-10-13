@@ -1214,7 +1214,7 @@ class GetRetrieval():
         for pname in self.priors_meta:
             if self.priors_meta[pname]['transform'] != 'fixed':
                 cube[pcounter] = self.transform_uniform(cube[pcounter], \
-                                 self.priors_meta[pname]['hyperparameters'])
+                                 self.priors_meta[pname]['hyper_params'])
                 pcounter += 1 
 
     def assign_priors(self, cube):
