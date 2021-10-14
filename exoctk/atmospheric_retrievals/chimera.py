@@ -1184,6 +1184,7 @@ class GetRetrieval():
 
 
     def pymultinest_retrieval(self):
+        print(type(self.loglike), type(self.prior), type(self.Nparam))
         pymultinest.run(self.loglike, self.prior, self.Nparam, 
                         outputfiles_basename=self.outpath + '/template_', resume=False, 
                         verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
