@@ -74,7 +74,7 @@ def spam_objective_function(theta, params, m, params_twop, m_twop):
 
     return np.sum((m.light_curve(params) - m_twop.light_curve(params_twop))**2)
 
-def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None, ld_law = 'quadratic', ndatapoints = 1000, method = 'BFGS', u1_guess = 0.5, u2_guess = 0.5)
+def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None, ld_law = 'quadratic', ndatapoints = 1000, method = 'BFGS', u1_guess = 0.5, u2_guess = 0.5):
     """
     Given a set of non-linear limb-darkening coefficients (c1, c2, c3 and c4) and either a planet name ('planet_name') or a dictionary with 
     the planet's data ('planet_data'), this function returns the Synthetic-Photometry/Atmosphere-Model (SPAM; https://arxiv.org/abs/1106.4659) 
