@@ -157,7 +157,7 @@ def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None,
                 raise Exception("Input 'planet_data' does not have a '"+planet_property+"' key. This is a needed key for SPAM to work.")
 
     # User inputs check done. Now jump into the algorithm. First, define times around transit:
-    times = np.linspace(-planet_data['transit_duration']/2., planet_data['transit_duration']/2., n)
+    times = np.linspace(-planet_data['transit_duration']/2., planet_data['transit_duration']/2., ndatapoints)
 
     # Now initialize models:
     params, m = init_batman(times, 'nonlinear')
