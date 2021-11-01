@@ -29,7 +29,7 @@ pytest==6.2.5
 pyyaml==6.0
 scipy==1.7.1
 scp==0.14.1
-sphinx==4.1.2
+sphinx==4.2.0
 sphinx_astropy==1.5
 sphinx-automodapi==0.13
 svo_filters==0.4.1
