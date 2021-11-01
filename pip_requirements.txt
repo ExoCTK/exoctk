@@ -33,7 +33,7 @@ sphinx==4.2.0
 sphinx_astropy==1.6.0
 sphinx-automodapi==0.13
 svo_filters==0.4.1
-sqlalchemy==1.4.23
+sqlalchemy==1.4.26
 twine==3.4.2
 werkzeug>=2.0
 wtforms==2.3.3
