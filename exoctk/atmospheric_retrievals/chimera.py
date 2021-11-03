@@ -542,8 +542,8 @@ class GenerateModel():
         PP[Pavg < 3E-6]=3E-6
         PP[Pavg >=300 ]=300
 
-        for i in [Pgrid, Tgrid, PP, TT, wno, xsecarr]:
-            print(i)
+        # for i in [Pgrid, Tgrid, PP, TT, wno, xsecarr]:
+        #     print(i)
         kcoeffs_interp=10**kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
         
         t3=time.time()
@@ -574,7 +574,7 @@ class GenerateModel():
         start = time.time()
         t = CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
         end = time.time()
-        print('TIME SPENT ON kcoeffs_interp: {}'.format(end-start))
+        # print('TIME SPENT ON kcoeffs_interp: {}'.format(end-start))
         t5=time.time()
         #print('Transmittance', t5-t4)    
 
@@ -970,7 +970,7 @@ class GetRetrieval():
 
 
     def pymultinest_retrieval(self):
-        print(type(self.loglike), type(self.prior), type(self.Nparam))
+        # print(type(self.loglike), type(self.prior), type(self.Nparam))
         pymultinest.run(self.loglike, self.prior, self.Nparam, 
                         outputfiles_basename=self.outpath + '/template_', resume=False, 
                         verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
