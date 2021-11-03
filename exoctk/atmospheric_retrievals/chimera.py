@@ -11,6 +11,8 @@ import pysynphot as psyn
 import scipy as sp
 import time
 
+from .chimera_utils import cloud_profile, kcoeff_interp, particle_radius, CalcTauXsecCK
+
 pwd, _ = os.path.split(__file__)
 EMPTY_PARAM_FILE = os.path.join(pwd, "empty_parameter_file.json")
 
@@ -255,13 +257,13 @@ class GenerateModel():
         mmw_cond = 100.39 # molecular weight of condensate (in AMU)  MgSiO3=100.39
         rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
         rr = 10**(np.arange(-2,2.6,0.1))  # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! iF YOU CHANGE THIS IT WILL BREAK
-        qc = self.cloud_profile(fsed,Cld_VMR, self.atmosphere_grid['P'], Pbase)
-        r_sed, r_eff, r_g, f_r = self.particle_radius(fsed,Kzz,mmw, self.T, self.atmosphere_grid['P'], self.atmosphere_grid['g0'], 
+        qc = cloud_profile(fsed,Cld_VMR, self.atmosphere_grid['P'], Pbase)
+        r_sed, r_eff, r_g, f_r = particle_radius(fsed,Kzz,mmw, self.T, self.atmosphere_grid['P'], self.atmosphere_grid['g0'], 
                                                  rho_cond,mmw_cond,qc, rr*1E-6)
     
         Pref=1.1 # 10.1  #reference pressure bar-keep fixed
         # computing transmission spectrum-----------
-    
+
         self.spec = self.tran(self.cross_sections, self.T, self.atmosphere_grid['P'], mmw, Pref, CldOpac, H2Oarr, CH4arr, 
                          COarr, CO2arr, NH3arr, Naarr, Karr, TiOarr, VOarr,
                          C2H2arr, HCNarr, H2Sarr, FeHarr, Harr, earr, Hmarr, 
@@ -368,7 +370,7 @@ class GenerateModel():
         rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
         rr = 10** (np.arange(-2,2.6,0.1)) # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! IF YOU CHANGE THIS IT WILL BREAK
         qc = self.cloud_profile(fsed, Cld_VMR, self.atmosphere_grid['P'], Pbase)
-        r_sed, r_eff, r_g, f_r = self.particle_radius(fsed, Kzz, mmw, self.T, self.atmosphere_grid['P'], 
+        r_sed, r_eff, r_g, f_r = particle_radius(fsed, Kzz, mmw, self.T, self.atmosphere_grid['P'], 
                                             self.atmosphere_grid['g0'], rho_cond,mmw_cond, qc, rr*1E-6)
         #10.1  #reference pressure bar-keep fixed
         #computing transmission spectrum-----------
@@ -433,80 +435,6 @@ class GenerateModel():
             return Fratio_int, Fp
 
 
-    @jit(nopython=True)
-    def kcoeff_interp(self, logPgrid, logTgrid, logPatm, logTatm, wnogrid, kcoeff):
-        """
-        This routine interpolates the correlated-K tables
-        to the appropriate atmospheric P & T for each wavenumber and 
-        g-ordinate for each gas. It uses a standard bi-linear 
-        interpolation scheme.
-        
-        Parameters
-        ---------- 
-        logPgrid : ndarray
-            pressure grid (log10) on which the CK coeff's are pre-computed (Npressure points)
-
-        logTgrid : ndarray
-            temperature grid (log10) on which the CK coeffs are pre-computed (Ntemperature points)
-
-        logPatm : ndarray 
-            atmospheric pressure grid (log10) 
-
-        logTatm : ndarray 
-            atmospheric temperature grid (log10)
-
-        wnogrid : ndarray 
-            CK wavenumber grid (Nwavenumber points) (actually, this doesn't need to be passed...it does nothing here...)
-
-        kcoeff : ndarray 
-            massive CK coefficient array (in log10)--Ngas x Npressure x Ntemperature x Nwavenumbers x Ngordinates
-        
-        Returns
-        ------- 
-        kcoeff_int 
-            the interpolated-to-atmosphere CK coefficients (in log). 
-            This will be Nlayers x Nwavenumber x Ngas x Ngordiantes
-        """
-
-        Ng, NP, NT, Nwno, Nord = kcoeff.shape
-
-        Natm=len(logTatm)
-
-        kcoeff_int=np.zeros((Natm,Nwno,Ng,Nord))
-
-        for i in range(Natm):  #looping through atmospheric layers
-
-            y=logPatm[i]
-            x=logTatm[i]
-
-            p_ind_hi=np.where(logPgrid>=y)[0][0]
-            p_ind_low=np.where(logPgrid<y)[0][-1]
-            T_ind_hi=np.where(logTgrid>=x)[0][0]
-            T_ind_low=np.where(logTgrid<x)[0][-1]
-
-            y2=logPgrid[p_ind_hi]
-            y1=logPgrid[p_ind_low]
-            x2=logTgrid[T_ind_hi]
-            x1=logTgrid[T_ind_low]
-        
-            for j in range(Ng): #looping through gases
-                for k in range(Nwno): #looping through wavenumber
-                    for l in range(Nord): #looping through g-ord
-                        arr=kcoeff[j,:,:,k,l]
-                        Q11=arr[p_ind_low,T_ind_low]
-                        Q12=arr[p_ind_hi,T_ind_low]
-                        Q22=arr[p_ind_hi,T_ind_hi]
-                        Q21=arr[p_ind_low,T_ind_hi]
-                        fxy1=(x2-x)/(x2-x1)*Q11+(x-x1)/(x2-x1)*Q21
-                        fxy2=(x2-x)/(x2-x1)*Q12+(x-x1)/(x2-x1)*Q22
-                        fxy=(y2-y)/(y2-y1)*fxy1 + (y-y1)/(y2-y1)*fxy2
-                        kcoeff_int[i,k,j,l]=fxy
-
-        return kcoeff_int
-
-
-
-    @jit(nopython=True)
     def tran(self, xsects, T, P, mmw,Ps,CldOpac,alphaH2O,alphaCH4,alphaCO,alphaCO2,alphaNH3,alphaNa,alphaK,alphaTiO,alphaVO, alphaC2H2, alphaHCN, alphaH2S,alphaFeH,fH,fe,fHm,fH2,fHe,amp,power,f_r,M,Rstar,Rp):
         """Runs all requisite routins for transmisison spectroscopy
         Returns
@@ -520,6 +448,9 @@ class GenerateModel():
         """
         #renaming variables, bbecause why not
         fH2=fH2
+
+        print(type(fh2))
+
         fHe=fHe
         fH2O=alphaH2O
         fCH4=alphaCH4
@@ -615,7 +546,7 @@ class GenerateModel():
 
         for i in [Pgrid, Tgrid, PP, TT, wno, xsecarr]:
             print(i)
-        kcoeffs_interp=10**self.kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
+        kcoeffs_interp=10**kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
         
         t3=time.time()
         #print('Kcoeff Interp', t3-t2)
@@ -643,7 +574,7 @@ class GenerateModel():
         #Calculate transmissivity as a function of
         #wavenumber and height in the atmosphere
         start = time.time()
-        t=self.CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
+        t = CalcTauXsecCK(kcoeffs_interp,Z,Pavg,Tavg, Fractions, r0,gord,wts,Frac_Cont,xsecContinuum)
         end = time.time()
         print('TIME SPENT ON kcoeffs_interp: {}'.format(end-start))
         t5=time.time()
@@ -656,149 +587,6 @@ class GenerateModel():
 
         return wno, F, Z#, TauOne
 
-
-    @jit(nopython=True)
-    def CalcTauXsecCK(kcoeffs,Z,Pavg,Tavg, Fractions, r0, gord, wts, Fractions_Continuum, xsecContinuum):
-        """
-        Calculate opacity using correlated-k tables 
-        
-        Parameters
-        ----------
-        kcoeffs : ndarray 
-            correlated-k tables 
-        Z : ndarray
-            height above ref pressure
-        Pavg : ndarray
-            pressure grid 
-        Tavg : ndarray
-            temperature grid 
-        Fractions : ndarray
-            volume mixing ratios of species 
-        Fractions_Continuum : ndarray
-            volume mixing ratios of continuum species 
-        xsecContinuum : ndarray
-            cross sections for continuum
-        Returns
-        -------
-        transmission
-        """
-        ngas=Fractions.shape[0]
-        nlevels=len(Z)
-        nwno=kcoeffs.shape[1]
-        trans=np.zeros((nwno, nlevels))+1.
-        dlarr=np.zeros((nlevels,nlevels))
-        ncont=xsecContinuum.shape[-1]
-        uarr=np.zeros((nlevels,nlevels))
-        kb=1.38E-23
-        kbTavg=kb*Tavg
-        Pavg_pascal=1E5*Pavg
-        for i in range(nlevels):
-            for j in range(i):
-                index=i-j-1
-                r1=r0+Z[i]
-                r2=r0+Z[i-j]
-                r3=r0+Z[index]
-                dlarr[i,j]=(r3**2-r1**2)**0.5-(r2**2-r1**2)**0.5
-                uarr[i,j]=dlarr[i,j]*Pavg_pascal[index]/kbTavg[index]
-        
-        for v in range(nwno):
-            for i in range(nlevels):
-                transfull=1.
-                #for CK gases--try to do ALL gases as CK b/c of common interpolation
-                for k in range(ngas):
-                    transtmp=0.
-                    for l in range(len(wts)):
-                        tautmp=0.
-                        for j in range(i):
-                            index=i-j-1
-                            tautmp+=2.*Fractions[k,index]*kcoeffs[index,v,k,l]*uarr[i,j]
-                        transtmp+=np.exp(-tautmp)*wts[l]/2.
-                    transfull*=transtmp
-                #for continuum aborbers (gas rayligh, condensate scattering etc.--nlayers x nwno x ncont
-                #'''
-                for k in range(ncont):
-                    tautmp=0.
-                    for j in range(i):
-
-                        index=i-j-1
-                        tautmp+=2.*Fractions_Continuum[k,index]*xsecContinuum[index,v,k]*uarr[i,j]
-
-                    transfull*=np.exp(-tautmp)
-                #'''
-                trans[v,i]=transfull
-        return trans
-
-
-    @jit(nopython=True)
-    def kcoeff_interp(logPgrid, logTgrid, logPatm, logTatm, wnogrid, kcoeff):
-        """
-        This routine interpolates the correlated-K tables
-        to the appropriate atmospheric P & T for each wavenumber and 
-        g-ordinate for each gas. It uses a standard bi-linear 
-        interpolation scheme.
-        
-        Parameters
-        ---------- 
-        logPgrid : ndarray
-            pressure grid (log10) on which the CK coeff's are pre-computed (Npressure points)
-
-        logTgrid : ndarray
-            temperature grid (log10) on which the CK coeffs are pre-computed (Ntemperature points)
-
-        logPatm : ndarray 
-            atmospheric pressure grid (log10) 
-
-        logTatm : ndarray 
-            atmospheric temperature grid (log10)
-
-        wnogrid : ndarray 
-            CK wavenumber grid (Nwavenumber points) (actually, this doesn't need to be passed...it does nothing here...)
-
-        kcoeff : ndarray 
-            massive CK coefficient array (in log10)--Ngas x Npressure x Ntemperature x Nwavenumbers x Ngordinates
-        
-        Returns
-        ------- 
-        kcoeff_int 
-            the interpolated-to-atmosphere CK coefficients (in log). 
-            This will be Nlayers x Nwavenumber x Ngas x Ngordiantes
-        """
-
-        Ng, NP, NT, Nwno, Nord = kcoeff.shape
-
-        Natm=len(logTatm)
-
-        kcoeff_int=np.zeros((Natm,Nwno,Ng,Nord))
-
-        for i in range(Natm):  #looping through atmospheric layers
-
-            y=logPatm[i]
-            x=logTatm[i]
-
-            p_ind_hi=np.where(logPgrid>=y)[0][0]
-            p_ind_low=np.where(logPgrid<y)[0][-1]
-            T_ind_hi=np.where(logTgrid>=x)[0][0]
-            T_ind_low=np.where(logTgrid<x)[0][-1]
-
-            y2=logPgrid[p_ind_hi]
-            y1=logPgrid[p_ind_low]
-            x2=logTgrid[T_ind_hi]
-            x1=logTgrid[T_ind_low]
-        
-            for j in range(Ng): #looping through gases
-                for k in range(Nwno): #looping through wavenumber
-                    for l in range(Nord): #looping through g-ord
-                        arr=kcoeff[j,:,:,k,l]
-                        Q11=arr[p_ind_low,T_ind_low]
-                        Q12=arr[p_ind_hi,T_ind_low]
-                        Q22=arr[p_ind_hi,T_ind_hi]
-                        Q21=arr[p_ind_low,T_ind_hi]
-                        fxy1=(x2-x)/(x2-x1)*Q11+(x-x1)/(x2-x1)*Q21
-                        fxy2=(x2-x)/(x2-x1)*Q12+(x-x1)/(x2-x1)*Q22
-                        fxy=(y2-y)/(y2-y1)*fxy1 + (y-y1)/(y2-y1)*fxy2
-                        kcoeff_int[i,k,j,l]=fxy
-
-        return kcoeff_int
 
     def cloud_profile(self, fsed,cloud_VMR, Pavg, Pbase):
         """
