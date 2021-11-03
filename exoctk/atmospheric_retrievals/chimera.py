@@ -449,8 +449,6 @@ class GenerateModel():
         #renaming variables, bbecause why not
         fH2=fH2
 
-        print(type(fh2))
-
         fHe=fHe
         fH2O=alphaH2O
         fCH4=alphaCH4
