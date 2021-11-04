@@ -272,7 +272,7 @@ class GenerateModel():
         self.wno = self.spec[0]
         self.F = self.spec[1]
         
-        self.y_binned, _ = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
+        self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
@@ -391,14 +391,14 @@ class GenerateModel():
         self.wno = self.spec[0]
         self.F = self.spec[1]
 
-        self.y_binned, _ = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
+        self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, 
                         COarr, CO2arr, NH3arr, Naarr, Karr, TiOarr, VOarr, C2H2arr, 
                         HCNarr, H2Sarr, FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
 
 
-    def instrument_tran_non_uniform(self, wlgrid,wno, Fp):
+    def instrument_tran_non_uniform(self, wlgrid, wno, Fp):
         """
         Rebins transmission spectra on new wavelength grid 
         Parameters
