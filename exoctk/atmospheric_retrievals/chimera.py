@@ -280,7 +280,7 @@ class GenerateModel():
 
         print("spec = {}".format(self.spec))
         print("=============================================")
-        print("F = {}".format(self.f))
+        print("F = {}".format(self.F))
         print("=============================================")
         print("y_binned = {}".format(self.y_binned))
         print("=============================================")
