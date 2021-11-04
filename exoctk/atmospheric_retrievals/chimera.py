@@ -278,6 +278,14 @@ class GenerateModel():
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
                             FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
 
+        print("spec = {}".format(self.spec))
+        print("=============================================")
+        print("F = {}".format(self.f))
+        print("=============================================")
+        print("y_binned = {}".format(self.y_binned))
+        print("=============================================")
+        print("chemical array = {}".format(self.chemarr))
+        print("=============================================")
 
     def fx_trans_free(self):
         """Transmission spectrscopy with free chemistry
