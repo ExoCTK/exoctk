@@ -994,9 +994,9 @@ class GetRetrieval():
 
         self.assign_priors(cube)
 
-        y_binned, _ = self.model.chemically_consitent_model()
+        self.model.chemically_consitent_model()
 
-        loglikelihood=-0.5*np.sum((self.model.y_meas - y_binned)**2/self.model.err**2)  #nothing fancy here
+        loglikelihood=-0.5*np.sum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
         return loglikelihood
 
