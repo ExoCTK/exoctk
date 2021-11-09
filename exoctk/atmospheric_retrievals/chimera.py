@@ -996,12 +996,12 @@ class GetRetrieval():
 
         self.model.chemically_consitent_model()
 
-        print('data:',self.model.y_meas)
-        print('model:',self.model.y_binned)
+        #print('data:',self.model.y_meas)
+        #print('model:',self.model.y_binned)
 
         loglikelihood=-0.5*np.sum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
-        print(loglikelihood)
+        #print(loglikelihood)
         return loglikelihood
 
 
