@@ -53,7 +53,7 @@ class GenerateModel():
         if transpose:
             self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
         else:
-            self.wlgrid_lower, self.wlgrid_upper, self.y_meas, _, self.err = np.loadtxt(transmission_file, unpack=unpack)
+            self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack)
 
         # TODO: eventually we want to use upper and lower limits to define "bands" on 
         # which CHIMERA will integrate the models:
