@@ -1003,6 +1003,7 @@ class GetRetrieval():
                 cube[pcounter] = self.transform_uniform(cube[pcounter], \
                                  self.priors_meta[pname]['hyper_params'])
                 pcounter += 1 
+                print(cube[pcounter], self.priors_meta[pname]['hyper_params'])
 
     def assign_priors(self, cube):
         """Assign Values sampled in cube to cross sections object
