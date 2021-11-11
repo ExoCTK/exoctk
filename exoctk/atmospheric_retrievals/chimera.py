@@ -51,10 +51,18 @@ class GenerateModel():
 
     def load_spectral_data(self, transmission_file, unpack=False, transpose=False):
         if transpose:
-            self.wlgrid, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
+            self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
         else:
-            self.wlgrid, self.y_meas, _, self.err = np.loadtxt(transmission_file, unpack=unpack)
+            self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack)
 
+        # TODO: eventually we want to use upper and lower limits to define "bands" on 
+        # which CHIMERA will integrate the models:
+        self.wlgrid = (self.wlgrid_lower + self.wlgrid_upper) * 0.5
+        
+        # We are assuming that input data is transit depths in parts per million (CHIMERA works on 
+        # just transit depths):
+        self.y_meas = self.y_meas * 1e-6
+        self.err = self.err * 1e-6
 
     def make_plot(self):
         """Plot Model"""
@@ -988,8 +996,12 @@ class GetRetrieval():
 
         self.model.chemically_consitent_model()
 
+        #print('data:',self.model.y_meas)
+        #print('model:',self.model.y_binned)
+
         loglikelihood=-0.5*np.sum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
+        #print(loglikelihood)
         return loglikelihood
 
 
