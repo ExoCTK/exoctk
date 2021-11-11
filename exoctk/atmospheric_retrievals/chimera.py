@@ -1012,10 +1012,11 @@ class GetRetrieval():
         pcounter = 0
         for pname in self.priors_meta:
             if self.priors_meta[pname]['transform'] != 'fixed':
+                print(pname, cube[pcounter], self.priors_meta[pname]['hyper_params'])
                 cube[pcounter] = self.transform_uniform(cube[pcounter], \
                                  self.priors_meta[pname]['hyper_params'])
-                pcounter += 1 
                 print(pname, cube[pcounter], self.priors_meta[pname]['hyper_params'])
+                pcounter += 1
 
     def assign_priors(self, cube):
         """Assign Values sampled in cube to cross sections object
@@ -1050,5 +1051,5 @@ class GetRetrieval():
         """
 
         a, b = hyperparameters
-
+        print(x, a, b, a + (b - a)*x)
         return a + (b - a)*x
