@@ -1,30 +1,30 @@
-""" The contamVerify mini tool will be a companion to ExoCTK's Contamination
-Overlap tool, as it will visualize the Contaminaton Bokeh plots on the website.
+""" The contamVerify mini tool will be a companion to ExoCTK's
+Contamination Overlap tool, as it will visualize the Contaminaton Bokeh
+plots on the website.
 
 Functions are:
 plotTemps    - Plots the temperatures of stars according to color.
 traceLengths - Fine-tunes the trace lengths in the plot.
-contamVerify - The main mini tool. Outputs a .pdf file with one or more figures
-               showing the FOV in the science frame according to the input
-               Aperture Position Angle(s) it is fed.
+contamVerify - The main mini tool. Outputs a .pdf file with one or more
+               figures showing the FOV in the science frame according to
+               the input Aperture Position Angle(s) it is fed.
 
 Author(s)
 ---------
 Jennifer V. Medina, 2020
 
 """
+
 import astropy.coordinates as crd
+from astropy.io import fits
 import astropy.units as u
+from astroquery.irsa import Irsa
+from matplotlib import cm
+from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pysiaf
-
-from astropy.io import fits
-from astroquery.irsa import Irsa
-from matplotlib import cm
-from matplotlib.backends.backend_pdf import FigureCanvasPdf, PdfPages
-from matplotlib.figure import Figure
 from scipy.io import readsav
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
@@ -40,73 +40,10 @@ if not EXOCTK_DATA:
 TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
 
 
-def plotTemps(TEMPS, allRA, allDEC):
-    """ The stars' colors in the plot will be a function of effective stellar
-    temperatures when plotting with this function. """
-
-    # Getting the color palette
-    colors = cm.get_cmap('viridis', len(TEMPS))
-    colors_0 = np.asarray(colors.colors)
-
-    # Assigning index arrays to TEMPS array
-    i = TEMPS.argsort()
-    ii = TEMPS.argsort().argsort()
-
-    # Matching the colors to the corresponding magnitude
-    colors = colors_0
-    starsx, starsy = allRA[i], allDEC[i]
-
-    plt.style.use('dark_background')
-    for x, y, c in zip(starsx, starsy, colors):
-        plt.scatter(
-            x,
-            y,
-            marker='*',
-            s=150,
-            color=c,
-            picker=True,
-            lw=0.5,
-            edgecolor='white')
-
-    # Colorbar
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis,
-                               norm=plt.Normalize(vmin=TEMPS.min(),
-                                                  vmax=TEMPS.max()))
-    sm._A = []
-
-    cbar = plt.colorbar(sm, fraction=0.046, pad=0.04)
-    cbar.set_label('effective Temperature (K)', fontsize=20)
-
-
-def traceLength(inst):
-    """ For fine-tuning the trace lengths in the contamVerify output figures """
-
-    # Getting example trace to calculate rough estimate of trace lengths
-    if 'NIRCam' in inst:
-        FILE = 'rot_o1_6000.0.fits'
-    elif 'MIRI' in inst:
-        FILE = 'LOWbg_6000.0.fits'
-    elif 'NIRISS' in inst:
-        FILE = 'modelOrder12_teff6000.sav'
-
-    trFile = os.path.join(TRACES_PATH, inst.replace(' ', '_'), FILE)
-    trData = readsav(trFile)['modelo12'] if 'NIRISS' in inst \
-        else fits.getdata(trFile, 1)
-    trData = trData[0]
-    print(np.shape(trData))
-    ax = 1 if 'NIRCam' in inst else 0
-    peak = trData.max()
-
-    # the length of the trace
-    targ_trace_start = np.where(trData > 0.0001 * peak)[ax].min()
-    targ_trace_stop = np.where(trData > 0.0001 * peak)[ax].max()
-
-    return targ_trace_start, targ_trace_stop
-
-
 def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     """ Generates a PDF file of figures displaying a simulation
-    of the science image for any given observation using the parameters provided.
+    of the science image for any given observation using the parameters
+    provided.
 
     Parameter(s)
     ------------
@@ -119,7 +56,8 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
         The software currently supports:
         'MIRI', 'NIRISS', 'NIRCam F322W2', 'NIRCam F444W'
     APAlist : list
-        A list of Aperture Position Angle(s). Element(s) must be in integers.
+        A list of Aperture Position Angle(s). Element(s) must be in
+        integers.
         Example 1:
         [1, 25, 181, 205]
         Example 2:
@@ -130,23 +68,24 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
         [RA (arcseconds), DEC (arcseconds), J mag, H mag, K mag]
         [string, string, integer, integer, integer]
     PDF : string
-        The path to where the PDF file will be saved. If left blank, the PDF
-        file will be saved in your current working directory.
+        The path to where the PDF file will be saved. If left blank, the
+        PDF file will be saved in your current working directory.
         Example:
         'path/to/my/file.pdf'
     web : boolean
-        Makes it easier to integrate it onto the website. Leave this as false,
-        unless you're running this in app_exoctk.py
+        Makes it easier to integrate it onto the website. Leave this as
+        false, unless you're running this in app_exoctk.py
 
     Returns
     -------
     A .PDF file containing a simulation of the FOV of your target in the
-    science coordinate system. Some things to consider when reading the figures:
+    science coordinate system. Some things to consider when reading the
+    figures:
 
     1. The target is circled in red
     2. Stellar temperatures of all sources are plotted by color
-    3. The gray region oulined in blue represents the aperture for the given
-       instrument.
+    3. The gray region oulined in blue represents the aperture for the
+       given instrument.
     4. The blue square represents the readout region, or the "origin"
 
     """
@@ -194,11 +133,6 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     # Restoring model parameters
     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS', 'modelsInfo.sav'),
                          verbose=False)
-    models = modelParam['models']
-    modelPadX = modelParam['modelpadx']
-    modelPadY = modelParam['modelpady']
-    dimXmod = modelParam['dimxmod']
-    dimYmod = modelParam['dimymod']
     jhMod = modelParam['jhmod']
     hkMod = modelParam['hkmod']
     teffMod = modelParam['teffmod']
@@ -244,8 +178,6 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     xSweet, ySweet = aper.reference_point('det')
 
     v2targ, v3targ = aper.det_to_tel(xSweet, ySweet)
-
-    contam = {}
 
     if not web:
         filename = 'contam_{}_{}_{}.pdf'.format(RA, DEC, INSTRUMENT)
@@ -344,16 +276,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
                 XSCI[targetIndex])), str(
             round(
                 YSCI[targetIndex]))
-        plt.title(
-            'The FOV in SCIENCE coordinates at APA {}$^o$'.format(
-                str(APA)) +
-            '\n' +
-            '{}'.format(aperstr) +
-            '\n' +
-            'Target (X,Y): {}, {}'.format(
-                tx,
-                ty),
-            fontsize=20)
+        plt.title('The FOV in SCIENCE coordinates at APA {}$^o$'.format(str(APA)) + '\n' + '{}'.format(aperstr) + '\n' + 'Target (X,Y): {}, {}'.format(tx, ty), fontsize=20)
 
         # Adding to PDF
         pdfobj.savefig(fig, bbox_inches='tight')
@@ -362,3 +285,69 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
 
     if web:
         return PDF
+
+
+def plotTemps(TEMPS, allRA, allDEC):
+    """ The stars' colors in the plot will be a function of effective
+    stellar temperatures when plotting with this function."""
+
+    # Getting the color palette
+    colors = cm.get_cmap('viridis', len(TEMPS))
+    colors_0 = np.asarray(colors.colors)
+
+    # Assigning index arrays to TEMPS array
+    i = TEMPS.argsort()
+
+    # Matching the colors to the corresponding magnitude
+    colors = colors_0
+    starsx, starsy = allRA[i], allDEC[i]
+
+    plt.style.use('dark_background')
+    for x, y, c in zip(starsx, starsy, colors):
+        plt.scatter(
+            x,
+            y,
+            marker='*',
+            s=150,
+            color=c,
+            picker=True,
+            lw=0.5,
+            edgecolor='white')
+
+    # Colorbar
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis,
+                               norm=plt.Normalize(vmin=TEMPS.min(),
+                                                  vmax=TEMPS.max()))
+    sm._A = []
+
+    cbar = plt.colorbar(sm, fraction=0.046, pad=0.04)
+    cbar.set_label('effective Temperature (K)', fontsize=20)
+
+
+def traceLength(inst):
+    """ For fine-tuning the trace lengths in the contamVerify output
+    figures"""
+
+    # Getting example trace to calculate rough estimate of trace lengths
+    if 'NIRCam' in inst:
+        FILE = 'rot_o1_6000.0.fits'
+    elif 'MIRI' in inst:
+        FILE = 'LOWbg_6000.0.fits'
+    elif 'NIRISS' in inst:
+        FILE = 'modelOrder12_teff6000.sav'
+
+    trFile = os.path.join(TRACES_PATH, inst.replace(' ', '_'), FILE)
+    if 'NIRCam' in inst:
+        trFile = trFile.replace('NIRCam', 'NIRCam_F444W')
+    trData = readsav(trFile)['modelo12'] if 'NIRISS' in inst \
+        else fits.getdata(trFile, 1)
+    trData = trData[0]
+
+    ax = 1 if 'NIRCam' in inst else 0
+    peak = trData.max()
+
+    # the length of the trace
+    targ_trace_start = np.where(trData > 0.0001 * peak)[ax].min()
+    targ_trace_stop = np.where(trData > 0.0001 * peak)[ax].max()
+
+    return targ_trace_start, targ_trace_stop
