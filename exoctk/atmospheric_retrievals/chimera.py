@@ -282,6 +282,8 @@ class GenerateModel():
         
         self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
+        print(self.y_binned)
+
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
                             FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
@@ -996,7 +998,7 @@ class GetRetrieval():
 
         self.model.chemically_consitent_model()
 
-        #print('data:',self.model.y_meas)
+        print('data:',self.model.y_meas)
         #print('model:',self.model.y_binned)
 
         loglikelihood=-0.5*np.sum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
@@ -1012,10 +1014,8 @@ class GetRetrieval():
         pcounter = 0
         for pname in self.priors_meta:
             if self.priors_meta[pname]['transform'] != 'fixed':
-                print(pname, cube[pcounter], self.priors_meta[pname]['hyper_params'])
                 cube[pcounter] = self.transform_uniform(cube[pcounter], \
                                  self.priors_meta[pname]['hyper_params'])
-                print(pname, cube[pcounter], self.priors_meta[pname]['hyper_params'])
                 pcounter += 1
 
     def assign_priors(self, cube):
@@ -1051,5 +1051,4 @@ class GetRetrieval():
         """
 
         a, b = hyperparameters
-        print(x, a, b, a + (b - a)*x)
         return a + (b - a)*x
