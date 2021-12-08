@@ -156,7 +156,7 @@ class GenerateModel():
         
         #unpacking planet params
         xRp = self.cross_sections.cloud_parameters['xRp']
-        Rp = self.cross_sections.planetary_parameters['Rp'] #planet radius (in jupiter)
+        Rp = self.cross_sections.planetary_parameters['Rp'] * xRp #planet radius (in jupiter)
         Rstar = self.cross_sections.stellar_parameters['Rstar']   #stellar radius (in solar)
         M = self.cross_sections.planetary_parameters['M']   #planet mass (in jupiter)
         
@@ -975,3 +975,4 @@ class GetRetrieval():
 
         a, b = hyperparameters
         return a + (b - a)*x
+
