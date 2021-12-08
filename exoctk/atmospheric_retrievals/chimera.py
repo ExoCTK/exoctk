@@ -37,7 +37,6 @@ class GenerateModel():
 
     def __init__(self, cross_sections, transmission_file=None):
         """Initialize the class object."""
-
         self.cross_sections = cross_sections
         self.load_spectral_data(transmission_file, unpack=True)
 
@@ -189,8 +188,10 @@ class GenerateModel():
         self.atmosphere_grid['kv'] = 10.**(logg1 + logKir)
         self.atmosphere_grid['kth'] = 10.**logKir
 
-        tempurature, pressure = self.profile_tempeture_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
-        self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
+        temperature, pressure = self.profile_temperature_and_pressure(Tirr, Tint, self.atmosphere_grid['kv'], 
+                                        self.atmosphere_grid['kv'], self.atmosphere_grid['kth'], 0.5)
+
+        self.T = sp.interp(self.atmosphere_grid['logP'], np.log10(pressure), temperature)
 
         t1 = time.time()
         Tavg = 0.5*(self.T[1:] + self.T[:-1])
@@ -272,6 +273,11 @@ class GenerateModel():
         Pref=1.1 # 10.1  #reference pressure bar-keep fixed
         # computing transmission spectrum-----------
 
+        data_dictionary = {'T':self.T, 'P': self.atmosphere_grid['P'], 'mmw': mmw, 'Pref': Pref, 'CldOpac': CldOpac,
+        'H2Oarr' :H2Oarr, 'CH4arr':CH4arr, 'COarr':COarr, 'CO2arr':CO2arr, 'NH3arr':NH3arr, 'Naarr':Naarr, 'Karr':Karr, 'TiOarr':TiOarr, 
+        'VOarr':VOarr,'C2H2arr':C2H2arr, 'HCNarr':HCNarr, 'H2Sarr':H2Sarr, 'FeHarr':FeHarr,'Harr':Harr,'earr':earr, 'Hmarr':Hmarr, 'H2arr':H2arr, 
+        'Hearr':Hearr, 'RayAmp':RayAmp, 'RaySlp':RaySlp, 'f_r':f_r, 'M':M, 'Rstar':Rstar, 'Rp':Rp}
+
         self.spec = self.tran(self.cross_sections, self.T, self.atmosphere_grid['P'], mmw, Pref, CldOpac, H2Oarr, CH4arr, 
                          COarr, CO2arr, NH3arr, Naarr, Karr, TiOarr, VOarr,
                          C2H2arr, HCNarr, H2Sarr, FeHarr, Harr, earr, Hmarr, 
@@ -279,10 +285,9 @@ class GenerateModel():
 
         self.wno = self.spec[0]
         self.F = self.spec[1]
-        
-        self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
-        print(self.y_binned)
+
+        self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
 
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
@@ -346,7 +351,7 @@ class GenerateModel():
         self.atmosphere_grid['kth'] = 10.**logKir
         self.atmosphere_grid['alpha'] = 0.5
 
-        tempurature, pressure = self.profile_tempeture_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
+        tempurature, pressure = self.profile_temperature_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
         self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
         t1 = time.time()
 
@@ -362,7 +367,8 @@ class GenerateModel():
         mu = np.array([18.02,16.04,28.01,44.01,17.03,28.01,27.02,34.08,  34.,26.04, 30.07,22.99, 39.1, 63.87, 66.94, 56.85, 1.01, 2.02, 4.0,0.,1.01,0 ])
 
         self.cross_sections.gas_scale*=1E0
-        for i in range(Ngas): gas[i,:] = 10**self.cross_sections.gas_scale[i]
+        for i in range(Ngas): 
+            gas[i,:] = 10**self.cross_sections.gas_scale[i]
 
         H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr,C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr,FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw = gas
 
@@ -379,7 +385,7 @@ class GenerateModel():
         mmw_cond = 100.39 # molecular weight of condensate (in AMU)  MgSiO3=100.39
         rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
         rr = 10** (np.arange(-2,2.6,0.1)) # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! IF YOU CHANGE THIS IT WILL BREAK
-        qc = self.cloud_profile(fsed, Cld_VMR, self.atmosphere_grid['P'], Pbase)
+        qc = cloud_profile(fsed, Cld_VMR, self.atmosphere_grid['P'], Pbase)
         r_sed, r_eff, r_g, f_r = particle_radius(fsed, Kzz, mmw, self.T, self.atmosphere_grid['P'], 
                                             self.atmosphere_grid['g0'], rho_cond,mmw_cond, qc, rr*1E-6)
         #10.1  #reference pressure bar-keep fixed
@@ -596,99 +602,21 @@ class GenerateModel():
         return wno, F, Z#, TauOne
 
 
-    def cloud_profile(self, fsed,cloud_VMR, Pavg, Pbase):
-        """
-        A&M2001 eq 7., but in P-coordinates (using hydrostatic) and definition of f_sed
-        Parameters
-        ----------
-        fsed : float 
-            sedimentation efficiency 
-        cloud_VMR : float 
-            cloud base volume mixing ratio 
-        Pavg : ndarray
-            pressure grid 
-        Pbase : float 
-            location of cloud base
-        Returns
-        -------
-        Condensate mixing ratio as a function of pressure
-        """
-        cond=cloud_VMR
-        loc0=np.where(Pbase >= Pavg)[0][-1]
-        cond_mix=np.zeros(len(Pavg))+1E-50
-        cond_mix[0:loc0+1]=cond*(Pavg[0:loc0+1]/Pavg[loc0])**fsed
-        return cond_mix
-
-
-    def particle_radius(self, fsed, Kzz, mmw, Tavg, Pavg, g, rho_c, mmw_c, qc, rr):
-        """
-        Computes particle radius based on A&M2011
-        Parameters
-        ----------
-        fsed : float 
-            sedimentation efficiency 
-        Kzz : float 
-            vertical mixing 
-        mmw : float 
-            mean molecular weight of the atmosphere
-        Tavg : float
-            temperature 
-        Pavg : float 
-            pressure 
-        g : float 
-            gravity 
-        rho_c : float 
-            density of condensate 
-        mmw_c : float 
-            molecular weight of condensate 
-        qc : float 
-            mass mixing ratio of condensate 
-        rr : float 
-        """
-        dlnr=np.abs(np.log(rr[1])-np.log(rr[0]))
-        kb=1.38E-23  #boltzman constant
-        mu0=1.66E-27  #a.m.u.
-        d=2.827E-10  #bath gas molecule diameter (m)
-        alpha=1.4  #alpha factor from A&M 2001 (don't need to change this)
-        sig_eff=2  #log-normal particle size distribution width
-        
-        #atmosphere properties
-        H=kb*Tavg/(mmw*mu0*g)  #scale height
-        rho_a=Pavg*mmw*mu0*1E5/(kb*Tavg)  #atmospheric mass density
-        
-        wmix=Kzz/H  #vertical mixing velocity
-        mfp=kb*Tavg/(2**0.5*np.pi*d**2*Pavg*1E5)   #mean free path
-        eta=5./16.*np.sqrt(np.pi*2.3*mu0*kb*Tavg)*(Tavg/59.7)**.16/(1.22*np.pi*d**2) #dynamic viscosity of bath gas
-        
-        #computing varius radius profiles
-        r_sed=2./3.*mfp*((1.+10.125*eta*wmix*fsed/(g*(rho_c-rho_a)*mfp**2))**.5-1.)  #sedimentation radius
-        r_eff=r_sed*np.exp(-0.5*(alpha+1)*np.log(sig_eff)**2)  #A&M2011 equation 17 effective radius
-        r_g=r_sed*np.exp(-0.5*(alpha+6.)*np.log(sig_eff)**2) #A&M formula (13)--lognormal mean (USE THIS FOR RAD)
-        
-        #droplet VMR
-        f_drop=3.*mmw_c*mu0*qc/(4.*np.pi*rho_c*r_g**3)*np.exp(-4.5*np.log(sig_eff)**2)  #
-        prob_lnr=np.zeros((len(rr),len(r_g)))
-        for i in range(len(prob_lnr)): prob_lnr[i,:]=1./((2.*np.pi)**0.5*np.log(sig_eff))*np.exp(-0.5*np.log(rr[i]/r_g)**2/np.log(sig_eff)**2)*dlnr
-        f_r=prob_lnr*f_drop
-        
-        return r_sed, r_eff, r_g, f_r
-
-    def profile_tempeture_and_pressure(self, kv1, kv2, kth, alpha=0.5):
+    def profile_temperature_and_pressure(self, Teq, Teff, kv1, kv2, kth, alpha):
         """Guillot 2010 PT profile parameterization
         Returns
         -------
         temperature , pressure
         """
-        Teff = self.cross_sections.planetary_parameters['Tint']
+
         f = 1.0  # solar re-radiation factor
         A = 0.0  # planetary albedo
         g0 = self.atmosphere_grid['g0']
         
         # Compute equilibrium temperature and set up gamma's
-        T0 = self.cross_sections.planetary_parameters['Tirr']
+        T0 = Teq
         gamma1 = kv1/kth
         gamma2 = kv2/kth
-        
         # Initialize arrays
         logtau =np.arange(-10,20,.1)
         tau =10**logtau
@@ -980,7 +908,6 @@ class GetRetrieval():
 
 
     def pymultinest_retrieval(self):
-        # print(type(self.loglike), type(self.prior), type(self.Nparam))
         pymultinest.run(self.loglike, self.prior, self.Nparam, 
                         outputfiles_basename=self.outpath + '/template_', resume=False, 
                         verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
@@ -998,12 +925,8 @@ class GetRetrieval():
 
         self.model.chemically_consitent_model()
 
-        print('data:',self.model.y_meas)
-        #print('model:',self.model.y_binned)
+        loglikelihood=-0.5*np.nansum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
-        loglikelihood=-0.5*np.sum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
-
-        #print(loglikelihood)
         return loglikelihood
 
 
