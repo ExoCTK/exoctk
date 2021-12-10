@@ -35,10 +35,12 @@ class PlanetarySystem():
 
 class GenerateModel():
 
-    def __init__(self, cross_sections, transmission_file=None):
+    def __init__(self, cross_sections, model_type, transmission_file=None):
         """Initialize the class object."""
+        self.model_type = model_type
         self.cross_sections = cross_sections
         self.load_spectral_data(transmission_file, unpack=True)
+
 
     def free_transit_model(self):
         self.fx_trans_free()
@@ -46,6 +48,10 @@ class GenerateModel():
 
     def chemically_consitent_model(self):
         self.fx_trans()
+
+
+    def free_retrieval_model(self):
+        self.fx_trans_free()
 
 
     def load_spectral_data(self, transmission_file, unpack=False, transpose=False):
@@ -923,8 +929,10 @@ class GetRetrieval():
 
         self.assign_priors(cube)
 
-        self.model.chemically_consitent_model()
-
+        if self.model.type == 'free': 
+            self.model.free_retrieval_model()
+        else:
+            self.model.chemically_consitent_model()
         loglikelihood=-0.5*np.nansum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
         return loglikelihood
