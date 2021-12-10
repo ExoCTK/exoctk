@@ -1,4 +1,5 @@
 from astropy.io import ascii
+import pickle
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -913,10 +914,10 @@ class GetRetrieval():
         self.Nparam = len(self.priors_meta) # number of priors to fit.
 
 
-    def pymultinest_retrieval(self):
+    def pymultinest_retrieval(self, resume = False, verbose = True, importance_nested_sampling=False):
         pymultinest.run(self.loglike, self.prior, self.Nparam, 
-                        outputfiles_basename=self.outpath + '/template_', resume=False, 
-                        verbose=True, n_live_points=self.Nlive, importance_nested_sampling=False)
+                        outputfiles_basename=self.outpath + '/template_', resume=resume, 
+                        verbose=verbose, n_live_points=self.Nlive, importance_nested_sampling=importance_nested_sampling)
 
         self.pymultinest_results = pymultinest.Analyzer(n_params=self.Nparam, outputfiles_basename=self.outpath + '/template_')
         self.pymultinest_statistics = self.pymultinest_results.get_stats()
