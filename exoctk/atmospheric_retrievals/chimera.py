@@ -43,16 +43,12 @@ class GenerateModel():
         self.load_spectral_data(transmission_file, unpack=True)
 
 
-    def free_transit_model(self):
+    def free_retrieval_model(self):
         self.fx_trans_free()
 
 
     def chemically_consitent_model(self):
         self.fx_trans()
-
-
-    def free_retrieval_model(self):
-        self.fx_trans_free()
 
 
     def load_spectral_data(self, transmission_file, unpack=False, transpose=False):
@@ -146,7 +142,6 @@ class GenerateModel():
         chemarr = [P,T, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,FeHarr,H2arr,Hearr,Harr, earr, Hmarr,qc,r_eff,f_r])
         """
 
-        #print(x)
         #UNPACKING PARAMETER VECTOR.......
         #Unpacking Guillot 2010 TP profile params (3 params)
         # Unpacking Guillot 2010 TP profile params (3 params)
@@ -326,6 +321,7 @@ class GenerateModel():
         chemarr = [P,T, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,FeHarr,H2arr,Hearr,Harr, earr, Hmarr,qc,r_eff,f_r])
         """
 
+        print('IN fx_trans_free NAMESPACE')
         # Unpacking Guillot 2010 TP profile params (3 params)
         Tirr = self.cross_sections.planetary_parameters['Tirr']
         logKir = self.cross_sections.planetary_parameters['logKir']
@@ -358,7 +354,8 @@ class GenerateModel():
         self.atmosphere_grid['kth'] = 10.**logKir
         self.atmosphere_grid['alpha'] = 0.5
 
-        tempurature, pressure = self.profile_temperature_and_pressure(self.atmosphere_grid['kv'], self.atmosphere_grid['kv'], self.atmosphere_grid['kth'])
+        tempurature, pressure = self.profile_temperature_and_pressure(Tirr, Tint, self.atmosphere_grid['kv'], 
+                                        self.atmosphere_grid['kv'], self.atmosphere_grid['kth'], 0.5)
         self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
         t1 = time.time()
 
@@ -930,10 +927,11 @@ class GetRetrieval():
 
         self.assign_priors(cube)
 
-        if self.model.type == 'free': 
+        if self.model.model_type == 'free':
             self.model.free_retrieval_model()
         else:
             self.model.chemically_consitent_model()
+
         loglikelihood=-0.5*np.nansum((self.model.y_meas - self.model.y_binned)**2/self.model.err**2)  #nothing fancy here
 
         return loglikelihood
@@ -949,6 +947,7 @@ class GetRetrieval():
                 cube[pcounter] = self.transform_uniform(cube[pcounter], \
                                  self.priors_meta[pname]['hyper_params'])
                 pcounter += 1
+
 
     def assign_priors(self, cube):
         """Assign Values sampled in cube to cross sections object
