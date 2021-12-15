@@ -36,11 +36,11 @@ class PlanetarySystem():
 
 class GenerateModel():
 
-    def __init__(self, cross_sections, model_type, transmission_file=None):
+    def __init__(self, cross_sections, model_type, data_file=None):
         """Initialize the class object."""
         self.model_type = model_type
         self.cross_sections = cross_sections
-        self.load_spectral_data(transmission_file, unpack=True)
+        self.data_file = data_file
 
 
     def free_retrieval_model(self):
@@ -53,18 +53,18 @@ class GenerateModel():
 
     def load_spectral_data(self, transmission_file, unpack=False, transpose=False):
         if transpose:
-            self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
+            self.wlgrid, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack).T
         else:
             self.wlgrid_lower, self.wlgrid_upper, self.y_meas, self.err = np.loadtxt(transmission_file, unpack=unpack)
 
-        # TODO: eventually we want to use upper and lower limits to define "bands" on 
-        # which CHIMERA will integrate the models:
-        self.wlgrid = (self.wlgrid_lower + self.wlgrid_upper) * 0.5
-        
-        # We are assuming that input data is transit depths in parts per million (CHIMERA works on 
-        # just transit depths):
-        self.y_meas = self.y_meas * 1e-6
-        self.err = self.err * 1e-6
+            # TODO: eventually we want to use upper and lower limits to define "bands" on 
+            # which CHIMERA will integrate the models:
+            self.wlgrid = (self.wlgrid_lower + self.wlgrid_upper) * 0.5
+            
+            # We are assuming that input data is transit depths in parts per million (CHIMERA works on 
+            # just transit depths):
+            self.y_meas = self.y_meas * 1e-6
+            self.err = self.err * 1e-6
 
     def make_plot(self):
         """Plot Model"""
@@ -321,7 +321,6 @@ class GenerateModel():
         chemarr = [P,T, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,FeHarr,H2arr,Hearr,Harr, earr, Hmarr,qc,r_eff,f_r])
         """
 
-        print('IN fx_trans_free NAMESPACE')
         # Unpacking Guillot 2010 TP profile params (3 params)
         Tirr = self.cross_sections.planetary_parameters['Tirr']
         logKir = self.cross_sections.planetary_parameters['logKir']
