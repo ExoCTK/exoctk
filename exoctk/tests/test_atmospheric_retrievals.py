@@ -77,6 +77,7 @@ def initialize_platon_wrapper_object():
     return pw
 
 
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_apply_factors():
     """Test the ``_apply_factors()`` function in ``platon_wrapper``
     module.
@@ -93,6 +94,7 @@ def test_apply_factors():
     assert params['Rp'] == 100088800.0
 
 
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_get_config():
     """Tests the ``get_config`` function in ``aws_tools`` module."""
 
