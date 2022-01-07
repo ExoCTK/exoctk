@@ -10,40 +10,40 @@ dependencies:
   - docopt=0.6.2
   - flake8=3.9.0
   - flask=1.1.2
-  - h5py=2.10.0
-  - ipython=7.26.0
+  - h5py=3.6.0
+  - ipython=7.29.0
   - jupyter=1.0.0
   - matplotlib=3.3.4
   - numpy=1.19.2
   - numpydoc=1.1.0
   - pandas=1.3.2
-  - paramiko=2.7.2
+  - paramiko=2.8.1
   - pip=20.3.3
   - pytest=6.2.4
   - python=3.9.1
   - pyyaml
   - scipy=1.6.2
-  - scp=0.13.6
-  - sphinx=4.0.2
-  - sqlalchemy=1.4.22
+  - scp=0.14.1
+  - sphinx=4.2.0
+  - sqlalchemy=1.4.27
   - twine=3.2.0
   - wtforms=2.3.3
   - pip:
     - asteval==0.9.25
     - awscli
-    - bandit==1.7.0
+    - bandit==1.7.1
     - batman-package==2.4.8
     - bibtexparser==1.2.0
     - corner==2.2.1
-    - ddtrace==0.52.1
-    - docutils==0.15.2
-    - flask_wtf==0.14.3
+    - ddtrace==0.57.0
+    - docutils==0.17.1
+    - flask_wtf==1.0.0
     - gunicorn==20.0.4
     - lmfit==1.0.2
     - platon==4.0
     - pysiaf==0.10.0
-    - pysynphot==1.0.0
-    - sphinx_astropy==1.5
+    - pysynphot==2.0.0
+    - sphinx_astropy==1.6.0
     - svo-filters==0.4.1
     - werkzeug>=2.0
     - git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5
