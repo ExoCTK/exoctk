@@ -22,7 +22,6 @@ import os
 from platon.constants import R_sun, R_jup, M_jup
 import pytest
 
-from ..atmospheric_retrievals.aws_tools import get_config
 from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
@@ -96,6 +95,7 @@ def test_apply_factors():
 def test_get_config():
     """Tests the ``get_config`` function in ``aws_tools`` module."""
 
+    from ..atmospheric_retrievals.aws_tools import get_config
     settings = get_config()
 
     assert isinstance(settings, dict)
