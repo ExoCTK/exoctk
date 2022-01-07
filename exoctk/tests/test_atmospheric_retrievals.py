@@ -22,9 +22,6 @@ import os
 from platon.constants import R_sun, R_jup, M_jup
 import pytest
 
-from ..atmospheric_retrievals.platon_wrapper import _apply_factors
-from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
-
 ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
@@ -40,6 +37,8 @@ def initialize_platon_wrapper_object():
     pw : obj
         The ``PlatonWrapper`` object
     """
+
+    from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
     # Define the fit parameters
     params = {
@@ -82,6 +81,8 @@ def test_apply_factors():
     """Test the ``_apply_factors()`` function in ``platon_wrapper``
     module.
     """
+
+    from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 
     params = {'Rs': 1.19, 'Mp': 0.73, 'Rp': 1.4}
     params = _apply_factors(params)
