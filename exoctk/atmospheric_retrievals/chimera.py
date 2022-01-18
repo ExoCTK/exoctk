@@ -911,6 +911,7 @@ class GetRetrieval():
 
 
     def pymultinest_retrieval(self, resume = False, verbose = True, importance_nested_sampling=False):
+
         pymultinest.run(self.loglike, self.prior, self.Nparam, 
                         outputfiles_basename=self.outpath + '/template_', resume=resume, 
                         verbose=verbose, n_live_points=self.Nlive, importance_nested_sampling=importance_nested_sampling)
@@ -981,5 +982,6 @@ class GetRetrieval():
         """
 
         a, b = hyperparameters
+        print(a, b, x)
         return a + (b - a)*x
 

@@ -1,7 +1,7 @@
 {"Tirr": {"value":1400.0, "transform": "uniform", "hyper_params":[100.0, 1900.0]},
-"H20": {"value":-15.0, "transform": "uniform", "hyper_params":[-12.0, 12.0]},
+"H2O": {"value":-15.0, "transform": "uniform", "hyper_params":[-12.0, 12.0]},
 "CO": {"value":-15.0, "transform":"uniform", "hyper_params":[-12.0, 12.0]},
 "CO2":{"value":-15.0, "transform":"uniform", "hyper_params":[-12.0, 12.0]},
 "CH4":{"value":-15.0, "transform":"uniform", "hyper_params":[-12, 12.0]},
 "logKcld":{"value":-40.0 , "transform":"uniform", "hyper_params":[-45.0, 20.0]},
-"xRp":{"value":0.5, "transform":"uniform", "hyper_params":[0.5, 1.0]}}
+"xRp":{"value":0.991, "transform":"uniform", "hyper_params":[0.5, 1.0]}}
