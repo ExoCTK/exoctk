@@ -30,16 +30,30 @@ def generate_jwst_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=1
     modes = {'NIS_SUBSTRIP256': {'inst': 'niriss', 'mode': 'soss', 'subarray': 'substrip256'},
              'NIS_SUBSTRIP96': {'inst': 'niriss', 'mode': 'soss', 'subarray': 'substrip96'},
              'MIRIM_SLITLESSPRISM': {'inst': 'miri', 'mode': 'lrsslitless'},
+             'NRS_S1600A1_SLIT_PRISM_CLEAR': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'prism', 'filter': 'clear'},
+             'NRS_S1600A1_SLIT_G140M_F070LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g140m', 'filter': 'f070lp'},
+             'NRS_S1600A1_SLIT_G140M_F100LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g140m', 'filter': 'f100lp'},
+             'NRS_S1600A1_SLIT_G235M_F170LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g235m', 'filter': 'f170lp'},
+             'NRS_S1600A1_SLIT_G395M_F290LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g395m', 'filter': 'f290lp'},
+             'NRS_S1600A1_SLIT_G140H_F070LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g140h', 'filter': 'f070lp'},
+             'NRS_S1600A1_SLIT_G140H_F100LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g140h', 'filter': 'f100lp'},
+             'NRS_S1600A1_SLIT_G235H_F170LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g235h', 'filter': 'f170lp'},
+             'NRS_S1600A1_SLIT_G395H_F290LP': {'inst': 'nirspec', 'mode': 'bots', 'disperser': 'g395h', 'filter': 'f290lp'},
              'NRCA5_GRISM256_F322W2': {'inst': 'nircam', 'mode': 'wfgrism', 'filter': 'f322w2'},
+             'NRCA5_GRISM256_F356W': {'inst': 'nircam', 'mode': 'wfgrism', 'filter': 'f356w'},
+             'NRCA5_GRISM256_F277W': {'inst': 'nircam', 'mode': 'wfgrism', 'filter': 'f277w'},
              'NRCA5_GRISM256_F444W': {'inst': 'nircam', 'mode': 'wfgrism', 'filter': 'f444w'}}
 
     for name, mode in modes.items():
 
         # Configure the instrument
         configuration = build_default_calc("jwst", mode['inst'], mode['mode'])
-        configuration['configuration']['instrument']['filter'] = mode.get('filter')
-        subarray = mode.get('subarray', configuration['configuration']['detector']['subarray'])
-        configuration['configuration']['detector']['subarray'] = subarray
+        if 'filter' in mode:
+            configuration['configuration']['instrument']['filter'] = mode.get('filter')
+        if 'disperser' in mode:
+            configuration['configuration']['instrument']['disperser'] = mode.get('disperser')
+        if 'subarray' in mode:
+            configuration['configuration']['detector']['subarray'] = mode.get('subarray', configuration['configuration']['detector']['subarray'])
 
         # Set the scene
         scene = {}
