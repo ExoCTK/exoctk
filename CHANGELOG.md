@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Date format in hover tool of contam visibility plots
+- Logging issue with production server.
+
+### Changed
+
+- Removed support for "uniform" (constant) limb-darkening law.
+- Removed lmfit from requirements.
 
 ## [1.2.2] - 2021-07-09
 
