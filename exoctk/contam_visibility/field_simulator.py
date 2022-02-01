@@ -13,7 +13,13 @@ from scipy.io import readsav
 from exoctk import utils
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'traces')
+
+# If this is not checked, base ExoCTK does not go through. If None, 
+# users are warned by the import that contam_visibility will not work 
+# already in utils.py.
+if EXOCTK_DATA is not None:
+
+    TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'traces')
 
 
 def fieldSim(ra, dec, instrument, binComp='', testing=False):
