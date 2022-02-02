@@ -20,13 +20,12 @@ REQUIRES = ['asteval',
             'gunicorn',
             'h5py',
             'ipython',
-            'lmfit',
             'matplotlib',
             'numpy',
             'numpydoc',
             'pandas',
             'paramiko',
-            'platon',
+            'platon<=4.0',
             'pysiaf',
             'pysynphot',
             'pytest',
@@ -39,7 +38,7 @@ REQUIRES = ['asteval',
             'svo_filters',
             'twine',
             'wtforms',
-            'werkzeug==0.16.1',
+            'werkzeug>=2.0',
             'jwst_gtvt @ git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
 
 FILES = []
@@ -49,7 +48,7 @@ for root, _, files in os.walk("exoctk"):
 
 setup(
     name='exoctk',
-    version='1.2.2',
+    version='1.2.3',
     description='Observation reduction and planning tools for exoplanet science',
     packages=find_packages(
         ".",
