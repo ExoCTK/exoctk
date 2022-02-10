@@ -43,10 +43,6 @@ class GenerateModel():
         self.data_file = data_file
 
 
-    def free_retrieval_model(self):
-        self.fx_trans_free()
-
-
     def chemically_consitent_model(self):
         self.fx_trans()
 
@@ -294,119 +290,6 @@ class GenerateModel():
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, COarr, CO2arr, NH3arr,
                             Naarr, Karr, TiOarr, VOarr, C2H2arr, HCNarr, H2Sarr,
                             FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
-
-
-    def fx_trans_free(self):
-        """Transmission spectrscopy with free chemistry
-        Parameters
-        ----------
-        x : list 
-            See tutorials for description of list and order of list 
-        
-        wlgrid : ndarray
-            Array to regrid final specturm on (micron)
-        
-        gas_scale : ndarray
-            array to scale mixing ratio of gases 
-        
-        xsects : list 
-            cross section array from `xsecs` function 
-        
-        Returns
-        -------
-        y_binned,F,wno,chemarr
-        binned array of spectrum, high res spectrum, og wavenumber grid, chemistry array
-        which includes: 
-        
-        chemarr = [P,T, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,FeHarr,H2arr,Hearr,Harr, earr, Hmarr,qc,r_eff,f_r])
-        """
-
-        # Unpacking Guillot 2010 TP profile params (3 params)
-        Tirr = self.cross_sections.planetary_parameters['Tirr']
-        logKir = self.cross_sections.planetary_parameters['logKir']
-        logg1 = self.cross_sections.planetary_parameters['logg1']
-        Tint = self.cross_sections.planetary_parameters['Tint']
-
-        # unpacking planet params
-        xRp = self.cross_sections.planetary_parameters['xRp']
-        Rp = self.cross_sections.planetary_parameters['Rp'] * xRp #planet radius (in jupiter)
-        Rstar = self.cross_sections.stellar_parameters['Rstar']   #stellar radius (in solar)
-        M = self.cross_sections.planetary_parameters['M']   #planet mass (in jupiter)
-
-        # unpacking and converting A&M cloud params
-        Kzz = 10** self.cross_sections.cloud_parameters['logKzz'] *1E-4  #Kzz for A&M cloud
-        fsed = self.cross_sections.cloud_parameters['fsed']  #sedimentation factor for A&M cloud
-        Pbase = 10.** self.cross_sections.cloud_parameters['logPbase']  #cloud top pressure
-        Cld_VMR = 10** self.cross_sections.cloud_parameters['logCldVMR']  #Cloud Base Condensate Mixing ratio
-
-        # unpacking and converting simple cloud params
-        CldOpac=10** self.cross_sections.cloud_parameters['logKcld']
-        RayAmp=10** self.cross_sections.cloud_parameters['logRayAmp']
-        RaySlp = self.cross_sections.cloud_parameters['RaySlope']
-
-        # Setting up atmosphere grid
-        self.atmosphere_grid = {}
-        self.atmosphere_grid['logP'] = np.arange(-6.8,1.5,0.1)+0.1
-        self.atmosphere_grid['P'] = 10.0** self.atmosphere_grid['logP']
-        self.atmosphere_grid['g0'] = 6.67384E-11*M*1.898E27/(Rp*71492.*1.E3)**2
-        self.atmosphere_grid['kv'] = 10.**(logg1+logKir)
-        self.atmosphere_grid['kth'] = 10.**logKir
-        self.atmosphere_grid['alpha'] = 0.5
-
-        tempurature, pressure = self.profile_temperature_and_pressure(Tirr, Tint, self.atmosphere_grid['kv'], 
-                                        self.atmosphere_grid['kv'], self.atmosphere_grid['kth'], 0.5)
-        self.T = sp.interp(self.atmosphere_grid['logP'],np.log10(pressure),tempurature)
-        t1 = time.time()
-
-        Tavg = 0.5*(self.T[1:]+self.T[:-1])
-        Pavg = 0.5*(self.atmosphere_grid['P'][1:] + self.atmosphere_grid['P'][:-1])
-
-        #interpolation chem
-        # No need to unpack, trying to avoid passing big arrays around and just use class members in assignment.
-        # logCtoO, logMet, Tarr, logParr, loggas = self.cross_sections.xsecarr[9:]  #see xsects_HST/JWST routine...    
-        Ngas = self.cross_sections.loggas.shape[-2]
-        gas = np.zeros((Ngas,len(self.atmosphere_grid['P'])))+1E-20
-        #             H2O   CH4   CO    CO2    NH3   N2    HCN   H2S   PH3 C2H2   C2H6   Na     K    TiO    VO     FeH     H    H2   He   e  H-
-        mu = np.array([18.02,16.04,28.01,44.01,17.03,28.01,27.02,34.08,  34.,26.04, 30.07,22.99, 39.1, 63.87, 66.94, 56.85, 1.01, 2.02, 4.0,0.,1.01,0 ])
-
-        self.cross_sections.gas_scale*=1E0
-        for i in range(Ngas): 
-            gas[i,:] = 10**self.cross_sections.gas_scale[i]
-
-        H2Oarr, CH4arr, COarr, CO2arr, NH3arr, N2arr, HCNarr, H2Sarr,PH3arr,C2H2arr, C2H6arr, Naarr, Karr, TiOarr, VOarr,FeHarr, Harr,H2arr, Hearr,earr, Hmarr,mmw = gas
-
-        H2He = 1.-np.sum(gas,axis=0)
-        frac = 0.176471
-        H2arr = H2He/(1.+frac)
-        Hearr = frac*H2arr
-        gas[-5] = H2arr
-        gas[-4] = Hearr
-
-        mmw[:] = gas.T.dot(mu)
-
-        #ackerman & Marley cloud model here
-        mmw_cond = 100.39 # molecular weight of condensate (in AMU)  MgSiO3=100.39
-        rho_cond = 3250 # density of condensate (in kg/m3)           MgSiO3=3250.
-        rr = 10** (np.arange(-2,2.6,0.1)) # Droplet radii to compute on: MUST BE SAME AS MIE COEFF ARRAYS!!!!!!!!! IF YOU CHANGE THIS IT WILL BREAK
-        qc = cloud_profile(fsed, Cld_VMR, self.atmosphere_grid['P'], Pbase)
-        r_sed, r_eff, r_g, f_r = particle_radius(fsed, Kzz, mmw, self.T, self.atmosphere_grid['P'], 
-                                            self.atmosphere_grid['g0'], rho_cond,mmw_cond, qc, rr*1E-6)
-        #10.1  #reference pressure bar-keep fixed
-        #computing transmission spectrum-----------
-        Pref=1.1
-        
-        self.spec = self.tran(self.cross_sections.xsecarr, self.T, self.atmosphere_grid['P'], mmw, Pref,
-                CldOpac, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,
-                FeHarr,Harr,earr,Hmarr,H2arr,Hearr,RayAmp,RaySlp,f_r, M, Rstar, Rp)
-
-        self.wno = self.spec[0]
-        self.F = self.spec[1]
-
-        self.y_binned, self.Fp = self.instrument_tran_non_uniform(self.wlgrid, self.wno, self.F)
-
-        self.chemarr = np.array([self.atmosphere_grid['P'], self.T, H2Oarr, CH4arr, 
-                        COarr, CO2arr, NH3arr, Naarr, Karr, TiOarr, VOarr, C2H2arr, 
-                        HCNarr, H2Sarr, FeHarr, H2arr, Hearr, Harr, earr, Hmarr, qc, r_eff, f_r])
 
 
     def instrument_tran_non_uniform(self, wlgrid, wno, Fp):
