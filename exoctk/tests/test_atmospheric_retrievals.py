@@ -22,10 +22,6 @@ import os
 from platon.constants import R_sun, R_jup, M_jup
 import pytest
 
-from ..atmospheric_retrievals.aws_tools import get_config
-from ..atmospheric_retrievals.platon_wrapper import _apply_factors
-from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
-
 ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
@@ -41,6 +37,8 @@ def initialize_platon_wrapper_object():
     pw : obj
         The ``PlatonWrapper`` object
     """
+
+    from ..atmospheric_retrievals.platon_wrapper import PlatonWrapper
 
     # Define the fit parameters
     params = {
@@ -79,10 +77,13 @@ def initialize_platon_wrapper_object():
     return pw
 
 
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_apply_factors():
     """Test the ``_apply_factors()`` function in ``platon_wrapper``
     module.
     """
+
+    from ..atmospheric_retrievals.platon_wrapper import _apply_factors
 
     params = {'Rs': 1.19, 'Mp': 0.73, 'Rp': 1.4}
     params = _apply_factors(params)
@@ -93,9 +94,11 @@ def test_apply_factors():
     assert params['Rp'] == 100088800.0
 
 
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Test takes too long on Travis server.  Try testing locally.')
 def test_get_config():
     """Tests the ``get_config`` function in ``aws_tools`` module."""
 
+    from ..atmospheric_retrievals.aws_tools import get_config
     settings = get_config()
 
     assert isinstance(settings, dict)
