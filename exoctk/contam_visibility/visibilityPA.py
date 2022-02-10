@@ -302,10 +302,6 @@ def using_gtvt(
                                         panom=paNom,
                                         pamax=paMax,
                                         date=gd))
-    TOOLTIPS = [('Date', '@date{%F}'),
-                ('Maximum Aperture PA', '@pamax'),
-                ('Nominal Aperture PA', '@panom'),
-                ('Minimum Aperture PA', '@pamin')]
 
     # Time to plot
     if output == 'bokeh':
@@ -334,10 +330,11 @@ def using_gtvt(
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
-    fig.add_tools(HoverTool(renderers=[nom],
-                            tooltips=TOOLTIPS,
-                            formatters={'date': 'datetime'},
-                            mode='vline'))
+    fig.add_tools(HoverTool(tooltips=[('Date', '@date{%F}'),
+                                      ('Maximum Aperture PA', '@pamax'),
+                                      ('Nominal Aperture PA', '@panom'),
+                                      ('Minimum Aperture PA', '@pamin')],
+                            formatters={'@date': 'datetime'}))
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
