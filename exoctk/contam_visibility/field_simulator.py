@@ -76,7 +76,8 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
 
         # Full frame pixel positions
         rows, cols = full.corners('det')
-        aperture.pixel_pos = rows.min(), rows.max(), cols.min(), cols.max()
+        aperture.minrow, aperture.maxrow = rows.min(), rows.max()
+        aperture.mincol, aperture.maxcol = cols.min(), cols.max()
 
     # Get APA from V3PA
     APA = V3PA + aperture.V3IdlYAngle
@@ -114,11 +115,10 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
     xleft, xright, ybot, ytop = aper['trim']
 
     # Just stars in FOV (Should always have at least 1, the target)
-    # FOVstars = stars[(aperture.pixel_pos[2] < stars['xsci']) & (stars['xsci'] < aperture.pixel_pos[3]) & (aperture.pixel_pos[0] < stars['ysci']) & (stars['ysci'] < aperture.pixel_pos[1])]
-    FOVstars = stars[(aperture.pixel_pos[2] < stars['xdet']) & (stars['xdet'] < aperture.pixel_pos[3]) & (aperture.pixel_pos[0] < stars['ydet']) & (stars['ydet'] < aperture.pixel_pos[1])]
+    FOVstars = stars[(aperture.mincol < stars['xdet']) & (stars['xdet'] < aperture.maxcol) & (aperture.minrow < stars['ydet']) & (stars['ydet'] < aperture.maxrow)]
     if verbose:
         print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
-
+    return FOVstars
     # Make frame for the target and a frame for all the other stars
     targframe = np.zeros((subY, subX))
     starframe = np.zeros((subY, subX))
@@ -217,7 +217,7 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
         show(plot_frame(targframe, title='Target'))
         show(plot_frame(starframe, title='Contamination'))
 
-    return targframe, starframe
+    return targframe, starframe, stars
 
 
 def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True):
@@ -265,7 +265,8 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
 
     # Full frame pixel positions
     rows, cols = full.corners('det')
-    aper.pixel_pos = rows.min(), rows.max(), cols.min(), cols.max()
+    aper.minrow, aper.maxrow = rows.min(), rows.max()
+    aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
     stars = find_stars(ra, dec, radius=inst['rad'] * u.arcmin, binComp=binComp)
@@ -317,9 +318,9 @@ def find_stars(ra, dec, radius, binComp=''):
     Parameters
     ----------
     ra : float
-        The RA of the target
+        The RA of the target in decimal degrees
     dec : float
-        The Dec of the target
+        The Dec of the target in decimal degrees
     radius: astropy.units.quantity
         The search radius
 
@@ -329,7 +330,7 @@ def find_stars(ra, dec, radius, binComp=''):
         The table of stars
     """
     # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
+    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
     stars = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=radius)
 
     jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
@@ -350,8 +351,8 @@ def find_stars(ra, dec, radius, binComp=''):
         stars.add_row(star)
 
     # Find distance from target to each star
-    sindRA = (ra - stars['ra']) * np.cos(dec)
-    cosdRA = dec - stars['dec']
+    sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
+    cosdRA = stars['dec'][0] - stars['dec']
     stars.add_column(np.sqrt(sindRA ** 2 + cosdRA ** 2), name='distance')
     stars.sort('distance')
 
@@ -540,9 +541,9 @@ def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
 
     # STEP 1
     # Pulling stars from IRSA point-source catalog
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=(u.hour, u.deg))
-    targetRA = targetcrd.ra.value
-    targetDEC = targetcrd.dec.value
+    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
+    targetRA = targetcrd.ra.deg
+    targetDEC = targetcrd.dec.deg
     info = Irsa.query_region(targetcrd,
                              catalog='fp_psc',
                              spatial='Cone',
@@ -614,9 +615,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
     # Put field stars positions and magnitudes in structured array
     _ = dict(RA=allRA, DEC=allDEC, dRA=dRA, dDEC=dDEC, jmag=Jmag, T=starsT,
              x=np.empty(nStars), y=np.empty(nStars), dx=np.empty(nStars),
-             dy=np.empty(nStars))
-    stars = np.empty(nStars,
-                     dtype=[(key, val.dtype) for key, val in _.items()])
+             dy=np.empty(nStars), distance=distance)
+    stars = np.empty(nStars, dtype=[(key, val.dtype) for key, val in _.items()])
     for key, val in _.items():
         stars[key] = val
 
@@ -709,7 +709,7 @@ def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
     ff = plot_frame(fra.T)
     show(ff)
 
-    return simuCube, starsInFOV
+    return simuCube, Table(starsInFOV)
 
 
 if __name__ == '__main__':
