@@ -59,7 +59,6 @@ def nirissContam(cube, paRange=[0, 360]):
     nPA = cube.shape[0]
     rows = cube.shape[1]
     cols = cube.shape[2]
-    print('cols ', cols)
     dPA = 360 // nPA
     PA = np.arange(nPA) * dPA
 
@@ -272,10 +271,12 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     contamO1 = contamO1 if 'NRCA' in instrument else contamO1.T
     contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
+    # fig_data = np.clip(contamO1, 1.e-10, 1.)  # [:, :361] # might this
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))  # [:, :361] # might this
     # index have somethig to
     # do w the choppiness
     # of o1 in all instruments
+    # return(fig_data)
 
     X = xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim0
     DW = xlim0 - xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim1 - xlim0
@@ -290,7 +291,6 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     # Add bad PAs
     bad_PA_color = '#555555'
     bad_PA_alpha = 0.6
-    # for ybad0, ybad1 in badPA:
     if len(badPAs) > 0:
 
         tops, bottoms, lefts, rights = [], [], [], []
