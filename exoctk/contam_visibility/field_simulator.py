@@ -22,6 +22,7 @@ import pysiaf
 
 from ..utils import get_env_variables, check_for_data
 from .visibilityPA import using_gtvt
+from .contamination_figure import contam
 
 
 APERTURES = {'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [47, 46, 0, 1]},
@@ -33,7 +34,7 @@ APERTURES = {'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale
              'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
 
 
-def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
+def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -118,7 +119,7 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
     FOVstars = stars[(aperture.mincol < stars['xdet']) & (stars['xdet'] < aperture.maxcol) & (aperture.minrow < stars['ydet']) & (stars['ydet'] < aperture.maxrow)]
     if verbose:
         print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
-    return FOVstars
+
     # Make frame for the target and a frame for all the other stars
     targframe = np.zeros((subY, subX))
     starframe = np.zeros((subY, subX))
@@ -141,12 +142,12 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
         # Get the trace and shift into the correct subarray position
         trace = get_trace(aperture.AperName, star['Teff'])
         trace = trace[xleft:-xright, ybot:-ytop]
-        x, y = int(star['x{}'.format(ref)]), int(star['y{}'.format(ref)]) - 1
+        x, y = int(star['x{}'.format(ref)]), int(star['y{}'.format(ref)])
 
         if 'NIS' in aperture.AperName:
             trace = trace.T[::-1]
             height, width = trace.shape
-            x0 = x - width
+            x0 = x - width + 68
             y0 = y - height
 
         elif 'F322W2' in aperture.AperName:
@@ -179,6 +180,8 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
         else:
             pass
 
+        # print(star[['xdet', 'ydet', 'xsci', 'ysci']], width, height, x, y, subX, subY)
+
         # Scale flux
         trace[trace < np.nanmax(trace)/10000] = 0
         trace *= star['fluxscale']
@@ -186,13 +189,12 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
         # Add target trace to target frame...
         if idx == 0:
 
-            print(y, y0, x, x0, trace.shape)
             targframe[y0:y0 + height, x0:x0 + width] = trace
 
         # ..or star trace to star frame
         else:
 
-            # TODO: Simulate 256 subarray trace for 96 and trim  appropriately
+            # TODO: Simulate 256 subarray trace for 96 and trim appropriately
             # Add just the portion of this star that falls on the target frame
             f0x, f1x = max(0, x0), min(subX, x0 + width)
             f0y, f1y = max(0, y0), min(subY, y0 + height)
@@ -214,13 +216,13 @@ def calc_v3pa(V3PA, stars, aperture, ref='det', plot=False, verbose=True):
         fig.add_layout(color_bar, 'right')
         show(fig)
 
-        show(plot_frame(targframe, title='Target'))
-        show(plot_frame(starframe, title='Contamination'))
+        show(plot_frame(targframe + starframe, title='Target'))
+        # show(plot_frame(starframe, title='Contamination'))
 
-    return targframe, starframe, stars
+    return targframe, starframe
 
 
-def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True):
+def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True, multi=False):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -262,6 +264,7 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
     # Get the full and subarray apertures
     full = siaf.apertures[inst['full']]
     aper = siaf.apertures[aperture]
+    subX, subY = aper.XSciSize, aper.YSciSize
 
     # Full frame pixel positions
     rows, cols = full.corners('det')
@@ -286,18 +289,28 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
     pa_list = [pa for pa in pa_list if pa not in badPAs]
 
     # Calculate contamination of all stars at each PA
-    pl = pool.ThreadPool(n_jobs)
-    func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-    targframes, starframes = zip(*pl.map(func, pa_list))
-    pl.close()
-    pl.join()
+    # To multiprocess, or not to multiprocess. That is the question.
+    if multi:
+        pl = pool.ThreadPool(n_jobs)
+        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
+        targframes, starframes = zip(*pl.map(func, pa_list))
+        pl.close()
+        pl.join()
 
-    # Sum target and star cubes into single frames
+    else:
+        targframes = []
+        starframes = []
+        for pa in pa_list:
+            print(pa)
+            tarf, starf = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
+            targframes.append(tarf)
+            starframes.append(starf)
+
+    # We only need one target frame frames
     targframe = np.asarray(targframes[0])
 
     # Make sure starcube is of shape (PA, rows, cols)
-    rows, cols = aper.corners('det')
-    starcube = np.zeros((360, round(cols.max() - cols.min()), round(rows.max() - rows.min())))
+    starcube = np.zeros((360, subY, subX))
     for pa, starframe in zip(pa_list, starframes):
         starcube[pa, :, :] = starframe
 
@@ -306,7 +319,17 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
     # Make the contamination plot
     plt = None
     if plot:
-        plt = plot_contamination(targframe, starcube, inst['lam'], badPAs)
+
+        # Old plot
+        # starcube = np.concatenate([targframe[None, :, :], targframe[None, :, :], starcube], axis=0)
+        starcube = starcube.swapaxes(1, 2)
+        targframe = targframe.swapaxes(0, 1)
+        starcube = starcube[:, :2048, :256]
+        targframe = targframe[:2048, :256]
+        # plt = contam(starcube, 'NIS_SUBSTRIP256', targetName='Foo', badPAs=badPAs, fig='bokeh')
+
+        # New plot
+        plt = plot_contamination(targframe, starcube, [0, 2048], badPAs)
 
     return targframe, starcube, plt
 
@@ -428,9 +451,11 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
     bokeh.layouts.gridplot
         The contamination figure
     """
-    # # Data dimensions
-    nPA, rows, cols = starcube.shape
-    PA = np.arange(360)
+    # Data dimensions
+    PAs, rows, cols = starcube.shape
+
+    # Remove background values < 1 as it can blow up contamination
+    targframe = np.where(targframe < 1, 0, targframe)
 
     # The width of the target trace
     peak = targframe.max()
@@ -441,11 +466,28 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
     targ_trace_start = np.where(targframe > 0.0001 * peak)[0].min()
     targ_trace_stop = np.where(targframe > 0.0001 * peak)[0].max()
 
-    # Using the starcube of shape (row, wave, pa), make a frame of (wave, pa)
-    contam = np.zeros([rows, nPA])
+    # # Calculate limits of the target trace
+    # cutoff = targframe.max() / 0.0001
+    # row_starts = np.argmax(targframe > cutoff, axis=1)
+    # row_stops = -np.argmax(targframe[:, ::-1] > cutoff, axis=1)
+    #
+    # # Iterate over rows
+    # contam = np.zeros([rows, PAs])
+    # for row, (start, stop) in enumerate(zip(row_starts, row_stops)):
+    #
+    #     # Calculate weights
+    #     tr = targframe[row, start:stop]
+    #     wt = tr / np.sum(tr**2)
+    #     ww = np.tile(wt, PAs).reshape([PAs, tr.size])
+    #
+    #     # Add to contam figure
+    #     contam[row, :] = np.sum(starcube[:, row, start:stop] * ww, axis=1)
+
+    # Using the starcube of shape (PAs, rows, wave), make a frame of (wave, pa)
+    contam = np.zeros([rows, PAs])
     for row in np.arange(rows):
 
-        # Calculate limits
+        # Get the
         peakX = np.argmax(targframe[row, :])
         left = peakX - low_lim_col
         right = peakX + high_lim_col
@@ -453,23 +495,19 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
         # Calculate weights
         tr = targframe[row, left:right]
         wt = tr / np.sum(tr**2)
-        ww = np.tile(wt, nPA).reshape([nPA, tr.size])
+        ww = np.tile(wt, PAs).reshape([PAs, tr.size])
 
         # Add to contam figure
         contam[row, :] = np.sum(starcube[:, row, left:right] * ww, axis=1, where=~np.isnan(starcube[:, row, left:right] * ww))
 
     # Log plot contamination, clipping small values
     contam = np.log10(np.clip(contam, 1.e-10, 1.))
-
-    # Plot limits
-    xlim0, xlim1 = wlims
-    ylim0 = PA.min() - 0.5
-    ylim1 = PA.max() + 0.5
+    # contam = np.clip(contam, 1.e-10, 1.)
 
     # Hover tool
     hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], names=['contam'])
     tools = ['pan', 'box_zoom', 'crosshair', 'reset', hover]
-    trplot = figure(tools=tools, width=600, height=500, title=title, x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
+    trplot = figure(tools=tools, width=600, height=500, title=title, x_range=Range1d(*wlims), y_range=Range1d(0, PAs))
 
     # Colors
     color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:], low=-4, high=1)
@@ -478,7 +516,7 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
 
     # Make the trace plot
     source = dict(data=[contam])
-    trplot.image(source=source, image='data', x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper, name='contam')
+    trplot.image(source=source, image='data', x=wlims[0], y=0, dw=wlims[1] - wlims[0], dh=PAs, color_mapper=color_mapper, name='contam')
     trplot.xaxis.axis_label = 'Wavelength (um)'
     trplot.yaxis.axis_label = 'Aperture Position Angle (degrees)'
     color_bar = ColorBar(color_mapper=color_mapper, orientation="horizontal", location=(0, 0))
@@ -489,14 +527,14 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
     if nbadPA > 0:
         tops = [np.max(badPA) for badPA in badPAs]
         bottoms = [np.min(badPA) for badPA in badPAs]
-        left = [xlim0] * nbadPA
-        right = [xlim1] * nbadPA
+        left = [wlims[0]] * nbadPA
+        right = [wlims[1]] * nbadPA
         trplot.quad(top=tops, bottom=bottoms, left=left, right=right, color='#555555', alpha=0.6)
 
     # Make a figure summing the contamination at a given PA
     sumplot = figure(tools=tools, width=150, height=500, x_range=Range1d(0, 100), y_range=trplot.y_range, title=None)
-    sumplot.line(100 * np.sum(contam >= 0.001, axis=1) / rows, PA - 0.5, line_color='blue', legend_label='> 0.001')
-    sumplot.line(100 * np.sum(contam >= 0.01, axis=1) / rows, PA - 0.5, line_color='green', legend_label='> 0.01')
+    sumplot.line(100 * np.sum(contam >= 0.001, axis=1) / rows, np.arange(PAs) - 0.5, line_color='blue', legend_label='> 0.001')
+    sumplot.line(100 * np.sum(contam >= 0.01, axis=1) / rows, np.arange(PAs) - 0.5, line_color='green', legend_label='> 0.01')
     sumplot.xaxis.axis_label = '% channels contam.'
     sumplot.yaxis.major_label_text_font_size = '0pt'
 
@@ -643,7 +681,8 @@ def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
 
     # Big loop to generate a simulation at each instrument PA
 
-    for kPA in [frame]:  # range(PAtab.size):
+    # for kPA in [frame]:  # range(PAtab.size):
+    for kPA in range(PAtab.size):
         APA = PAtab[kPA]
         print('Generating field at APA : {}'.format(str(APA)))
 
@@ -702,12 +741,12 @@ def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
 
             if (intx != 0) or (inty != 0):
                 mod = models[k, my0:my1, mx0:mx1]
-                simuCube[kPA + 2, y0:y0 + my1 - my0,
-                x0:x0 + mx1 - mx0] += mod * fluxscale
+                simuCube[kPA + 2, y0:y0 + my1 - my0, x0:x0 + mx1 - mx0] += mod * fluxscale
 
-    fra = simuCube[frame + 2, :, :]
-    ff = plot_frame(fra.T)
-    show(ff)
+    # fra = simuCube[frame + 2, :, :]
+    # tar = simuCube[0, :, :]
+    # ff = plot_frame(fra.T + tar.T)
+    # show(ff)
 
     return simuCube, Table(starsInFOV)
 
