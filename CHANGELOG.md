@@ -5,6 +5,18 @@ This file tracks all major changes in each `exoctk` release.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2022-02-01
+
+### Fixed
+
+- Date format in hover tool of contam visibility plots
+- Logging issue with production server.
+
+### Changed
+
+- Removed support for "uniform" (constant) limb-darkening law.
+- Removed lmfit from requirements.
+
 ## [1.2.2] - 2021-07-09
 
 ### Added
