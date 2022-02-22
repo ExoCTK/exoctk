@@ -4,7 +4,7 @@ from flask_wtf import FlaskForm
 import numpy as np
 from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange
+from wtforms.validators import InputRequired, NumberRange, Optional
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
@@ -119,6 +119,22 @@ class LimbDarkeningForm(BaseForm):
     logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(logg_rng[0]), max=float(logg_rng[1]), message='Surface gravity must be between {} and {} for this model grid'.format(*logg_rng))])
     feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
+
+    # Planet parameters
+    td_rng = [0, 50]
+    transit_duration = DecimalField('transit_duration', default='',  validators=[Optional(), NumberRange(min=int(td_rng[0]), max=int(td_rng[1]), message='Transit duration must be between {} and {}'.format(*td_rng))])
+    op_rng = [0, 1000]
+    orbital_period = DecimalField('orbital_period', default='', validators=[Optional(), NumberRange(min=int(op_rng[0]), max=int(op_rng[1]), message='Orbital period must be between {} and {}'.format(*op_rng))])
+    rp_rng = [0, 1]
+    rp_rs = DecimalField('rp_rs', default='', validators=[Optional(), NumberRange(min=int(rp_rng[0]), max=int(rp_rng[1]), message='Planet radius must be between {} and {}'.format(*rp_rng))])
+    a_rng = [0, 100]
+    a_rs = DecimalField('a_rs', default='', validators=[Optional(), NumberRange(min=int(a_rng[0]), max=int(a_rng[1]), message='Semi-major axis must be between {} and {}'.format(*a_rng))])
+    inc_rng = [0, 180]
+    inclination = DecimalField('inclination', default='', validators=[Optional(), NumberRange(min=int(inc_rng[0]), max=int(inc_rng[1]), message='Inclination must be between {} and {}'.format(*inc_rng))])
+    ecc_rng = [0, 1]
+    eccentricity = DecimalField('eccentricity', default='', validators=[Optional(), NumberRange(min=int(ecc_rng[0]), max=int(ecc_rng[1]), message='Eccentricity must be between {} and {}'.format(*ecc_rng))])
+    w_rng = [0, 360]
+    omega = DecimalField('omega', default='', validators=[Optional(), NumberRange(min=int(w_rng[0]), max=int(w_rng[1]), message='Omega must be between {} and {}'.format(*w_rng))])
 
     # LD profile
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])

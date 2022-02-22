@@ -23,6 +23,7 @@ from exoctk.contam_visibility.miniTools import contamVerify
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
+from exoctk.limb_darkening import spam
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.throughputs import Throughput
@@ -546,6 +547,20 @@ def limb_darkening():
     # Load default form
     form = fv.LimbDarkeningForm()
 
+    # Planet properties
+    planet_properties = ['transit_duration', 'orbital_period', 'rp_rs', 'a_rs', 'inclination', 'eccentricity', 'omega']
+
+    def empty_fields(form):
+        form.transit_duration.data = form.transit_duration.data or ''
+        form.orbital_period.data = form.orbital_period.data or ''
+        form.rp_rs.data = form.rp_rs.data or ''
+        form.a_rs.data = form.a_rs.data or ''
+        form.inclination.data = form.inclination.data or ''
+        form.eccentricity.data = form.eccentricity.data or ''
+        form.omega.data = form.omega.data or ''
+
+        return form
+
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
@@ -557,15 +572,27 @@ def limb_darkening():
                 form.targname.data = get_canonical_name(form.targname.data)
                 data, target_url = get_target_data(form.targname.data)
 
-                # Update the form data
+                # Update the star data
                 form.feh.data = data.get('Fe/H')
                 form.teff.data = data.get('Teff')
                 form.logg.data = data.get('stellar_gravity')
                 form.target_url.data = str(target_url)
 
+                # Update the planet data
+                form.transit_duration.data = data.get('transit_duration')
+                form.orbital_period.data = data.get('orbital_period')
+                form.rp_rs.data = data.get('Rp/Rs')
+                form.a_rs.data = data.get('a/Rs')
+                form.inclination.data = data.get('inclination')
+                form.eccentricity.data = data.get('eccentricity')
+                form.omega.data = data.get('omega')
+
             except Exception:
                 form.target_url.data = ''
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+        # Ensure planet fields are not None
+        form = empty_fields(form)
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
@@ -586,6 +613,9 @@ def limb_darkening():
         # Update the form data
         form.wave_min.data = bandpass.wave_min.value
         form.wave_max.data = bandpass.wave_max.value
+
+        # Ensure planet fields are not None
+        form = empty_fields(form)
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
@@ -609,6 +639,9 @@ def limb_darkening():
         setattr(form.feh.validators[1], 'min', float(feh_rng[0]))
         setattr(form.feh.validators[1], 'max', float(feh_rng[1]))
         setattr(form.feh.validators[1], 'message', 'Metallicity must be between {} and {}'.format(*feh_rng))
+
+        # Ensure planet fields are not None
+        form = empty_fields(form)
 
         # Send it back to the main page
         return render_template('limb_darkening.html', form=form)
@@ -646,6 +679,21 @@ def limb_darkening():
         ld = lf.LDC(model_grid)
         for prof in form.profiles.data:
             ld.calculate(*star_params, prof, mu_min=float(form.mu_min.data), bandpass=bandpass)
+
+        # Check if spam coefficients can be calculated
+        planet_data = {param: getattr(form, param).data for param in planet_properties}
+        planet_data['Rp/Rs'] = planet_data['rp_rs']
+        planet_data['a/Rs'] = planet_data['a_rs']
+        spam_calc = all([val is not None and val != '' for key, val in planet_data.items()])
+        if spam_calc:
+
+            # Make sure non-linear profile is included for spam calculation if all planet parameters are provided
+            if '4-parameter' not in form.profiles.data:
+                ld.calculate(*star_params, '4-parameter', mu_min=float(form.mu_min.data), bandpass=bandpass)
+
+            # Calculate spam coeffs
+            planet_data = {key: float(val) for key, val in planet_data.items()}
+            ld.spam(planet_data=planet_data)
 
         # Draw tabbed figure
         final = ld.plot_tabs()
@@ -689,8 +737,41 @@ def limb_darkening():
         # Log the successful form inputs
         log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
 
+        # Make a table for each profile with a row for each wavelength bin
+        profile_spam_tables = ''
+        spam_file_as_string = ''
+        if ld.spam_results is not None:
+
+            # Store SPAM tables as string
+            keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'c2']
+            print_spam_table = ld.spam_results[[col for col in keep_cols if col in ld.spam_results.colnames]]
+            spam_file_as_string = '\n'.join(print_spam_table.pformat(max_lines=-1, max_width=-1))
+            profile_spam_tables = []
+            for profile in list(np.unique(ld.spam_results['profile'])):
+
+                # Make LaTeX for polynomials
+                latex = lf.ld_profile(profile, latex=True)
+                poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
+
+                # Make the table into LaTeX
+                table = filter_table(ld.spam_results, profile=profile)
+                co_cols = [c for c in ld.spam_results.colnames if c.startswith('c') and c not in ['coeffs', 'color']]
+                table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
+                table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
+                table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
+                table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
+
+                # Add the results to the lists
+                html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+
+                # Add the table title
+                header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
+                html_table = header + html_table
+                profile_spam_tables.append(html_table)
+
         return render_template('limb_darkening_results.html', form=form,
-                               table=profile_tables, script=script, plot=div,
+                               table=profile_tables, spam_table=profile_spam_tables,
+                               script=script, plot=div, spam_file_as_string=repr(spam_file_as_string),
                                file_as_string=repr(file_as_string),
                                filt_plot=filt_plot, filt_script=filt_script,
                                js=js_resources, css=css_resources)
