@@ -5,6 +5,7 @@ A module to calculate limb darkening coefficients from a grid of model
 spectra
 """
 
+from copy import copy
 import inspect
 import os
 import warnings
@@ -24,6 +25,7 @@ from svo_filters import svo
 
 from .. import modelgrid
 from .. import utils
+from . import spam
 
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
 rc('text', usetex=True)
@@ -126,7 +128,8 @@ class LDC:
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
     ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
-    ld.plot(show=True)
+    ld.spam(planet_name='WASP-12b', profiles=['quadratic', 'logarithmic'])
+    ld.plot_tabs(show=True)
     """
     def __init__(self, model_grid='ACES'):
         """Initialize an LDC object
@@ -155,6 +158,10 @@ class LDC:
         dtypes = ['|S20', float, float, float, '|S20', '|S20', '|S20', object, object, object, np.float16, np.float16, np.float16, object, object, np.float16, object, object, np.float16, object, object, object, '|S20']
         self.results = at.Table(names=columns, dtype=dtypes)
 
+        # Table for spam results
+        self.spam_results = None
+
+        # Colors for plotting
         self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink', 'uniform': 'purple'}
 
         self.count = 1
@@ -519,3 +526,61 @@ class LDC:
 
         # Save to file
         ii.write(results, filepath, format='fixed_width_two_line')
+
+    def spam(self, planet_name=None, planet_data=None, profiles=['quadratic'], **kwargs):
+        """
+        Calculates SPAM coefficients by transforming non-linear coefficients
+
+        Parameters
+        ----------
+        planet_name: string
+            The name of the input planet (e.g., 'WASP-19b'); this will be used to query the planet properties from MAST.
+        planet_data: dict
+            Dictionary containing the planet properties. Must include 'transit_duration', 'orbital_period' (days), 'Rp/Rs', 'a/Rs', 'inclination' (degrees), 'eccentricity' and 'omega' (degrees)
+        profiles: sequence
+            The profiles to calculate, ['quadratic', 'logarithmic', 'square-root']
+        """
+        # Profiles supported by SPAM transformation code
+        spam_supported = ['quadratic', 'square-root', 'logarithmic']
+
+        if not all([profile in spam_supported for profile in profiles]):
+            raise ValueError("{}: Supported profiles include {}".format(profiles, spam_supported))
+
+        # Require 4-parameter calculation
+        if '4-parameter' in self.results['profile']:
+
+            # For each desired profile...
+            for profile in profiles:
+
+                # Rows of non-linear calculations
+                nonlin = copy(self.results[self.results['profile'] == '4-parameter'])
+
+                # Update profile
+                nonlin['profile'] = profile
+
+                # ...and for each wavelength channel...
+                for row in nonlin:
+
+                    # Calculate SPAM coefficients
+                    (c1, c2), properties = spam.transform_coefficients(row['c1'], row['c2'], row['c3'], row['c4'], ld_law=profile, planet_name=planet_name, planet_data=planet_data, **kwargs)
+                    row['c1'], row['c2'] = c1.round(3), c2.round(3)
+
+                # Remove unused columns
+                omit_cols = ['c3', 'c4', 'e1', 'e2', 'e3', 'e4']
+                nonlin = nonlin[[col for col in nonlin.columns if col not in omit_cols]]
+
+                # Add planet properties to table
+                planet_properties = ['transit_duration', 'orbital_period', 'Rp/Rs', 'a/Rs', 'inclination', 'eccentricity', 'omega']
+                for prop in planet_properties:
+                    nonlin.add_column([round(properties[prop], 4)] * len(nonlin), name=prop)
+
+                # Add the results to the spam table
+                if self.spam_results is None:
+                    self.spam_results = nonlin
+                else:
+                    self.spam_results = at.vstack([self.spam_results, nonlin])
+
+        else:
+
+            print("Limb darkening coefficients must first be calculated using the 4-parameter profile to get SPAM coefficient transformations.")
+
