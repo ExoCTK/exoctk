@@ -46,7 +46,7 @@ def ld_profile(name='quadratic', latex=False):
     ----------
     name: str
         The name of the limb darkening profile function to use,
-        including 'uniform', 'linear', 'quadratic', 'square-root',
+        including 'linear', 'quadratic', 'square-root',
         'logarithmic', 'exponential', '3-parameter', and '4-parameter'
     latex: bool
         Return the function as a LaTeX formatted string
@@ -58,15 +58,10 @@ def ld_profile(name='quadratic', latex=False):
 
     """
     # Supported profiles a la BATMAN
-    names = ['uniform', 'linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
+    names = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
     # Check that the profile is supported
     if name in names:
-
-        # Uniform
-        if name == 'uniform':
-            def profile(m, c1):
-                return c1
 
         # Linear
         if name == 'linear':
@@ -162,7 +157,7 @@ class LDC:
         self.spam_results = None
 
         # Colors for plotting
-        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink', 'uniform': 'purple'}
+        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink'}
 
         self.count = 1
 
@@ -221,7 +216,7 @@ class LDC:
             The logarithm of the metallicity
         profile: str
             The name of the limb darkening profile function to use,
-            including 'uniform', 'linear', 'quadratic', 'square-root',
+            including 'linear', 'quadratic', 'square-root',
             'logarithmic', 'exponential', and '4-parameter'
         mu_min: float
             The minimum mu value to consider
