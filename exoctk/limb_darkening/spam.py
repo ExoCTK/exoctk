@@ -9,7 +9,8 @@ except:
 
 from .. import utils
 
-def init_batman(t, ld_law, nresampling = None, etresampling = None):
+
+def init_batman(t, ld_law, nresampling=None, etresampling=None):
     """  
     This function initializes the batman lightcurve generator object.
 
@@ -62,7 +63,8 @@ def init_batman(t, ld_law, nresampling = None, etresampling = None):
     else:
         m = batman.TransitModel(params, t, supersample_factor=nresampling, exp_time=etresampling)
 
-    return params,m
+    return params, m
+
 
 def spam_objective_function(theta, params, m, params_twop, m_twop):
     """
@@ -74,7 +76,8 @@ def spam_objective_function(theta, params, m, params_twop, m_twop):
 
     return np.sum((m.light_curve(params) - m_twop.light_curve(params_twop))**2)
 
-def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None, ld_law = 'quadratic', ndatapoints = 1000, method = 'BFGS', u1_guess = 0.5, u2_guess = 0.5):
+
+def transform_coefficients(c1, c2, c3, c4, planet_name=None, planet_data=None, ld_law='quadratic', ndatapoints=1000, method='BFGS', u1_guess=0.5, u2_guess=0.5):
     """
     Given a set of non-linear limb-darkening coefficients (c1, c2, c3 and c4) and either a planet name ('planet_name') or a dictionary with 
     the planet's data ('planet_data'), this function returns the Synthetic-Photometry/Atmosphere-Model (SPAM; https://arxiv.org/abs/1106.4659) 
@@ -125,45 +128,39 @@ def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None,
 
     planet_properties = ['transit_duration', 'orbital_period', 'Rp/Rs', 'a/Rs', 'inclination', 'eccentricity', 'omega']
 
-    if planet_name != '':
+    # Check if planet name is given
+    if planet_name is not None:
 
-        # If planet_name is given, retrieve MAST properties:
+        # If planet_name is given, retrieve MAST properties
         mast_planet_data, url = utils.get_target_data(planet_name)
 
-        # If planet properties also given, add the ones not in that dictinoary:
-        if planet_data is not None:
+        # Merge the dictionaries, prioritizing the manual input
+        mast_planet_data.update(planet_data or {})
+        planet_data = mast_planet_data
 
-            for planet_property in planet_properties:
+    if planet_data is None:
 
-                if planet_property not in list(planet_data.keys()):
+        raise Exception("User must input either 'planet_name' and/or 'planet_data' for SPAM to work. See details by doing exoctk.limb_darkening.spam.transform_coefficients?.")
 
-                    planet_data[planet_property] = mast_planet_data[planet_property]
+    # Check that all properties exist in the input dictionary
+    missing = [planet_property for planet_property in planet_properties if planet_data.get(planet_property) is None]
+    if len(missing) > 0:
 
-        else:
-
-            planet_data = mast_planet_data
-
-    else:
-    
-        if planet_data is None:
-            
-            raise Exception("User must input either 'planet_name' and/or 'planet_data' for SPAM to work. See details by doing exoctk.limb_darkening.spam.transform_coefficients?.")
-
-        # Check that all properties exist in the input dictionary:
+        # Print current data for user
+        print('{} properties'.format(planet_name or 'Planet'))
         for planet_property in planet_properties:
+            print('{}: {}'.format(planet_property, planet_data.get(planet_property)))
 
-            if planet_property not in list(planet_data.keys()):
+        raise ValueError("{} missing planet propert{} needed for SPAM to work. Please include this in the 'planet_data' input dictionary".format(len(missing), 'y is' if len(missing) == 1 else 'ies are'))
 
-                raise Exception("Input 'planet_data' does not have a '"+planet_property+"' key. This is a needed key for SPAM to work.")
-
-    # User inputs check done. Now jump into the algorithm. First, define times around transit:
+    # User inputs check done. Now jump into the algorithm. First, define times around transit
     times = np.linspace(-planet_data['transit_duration']/2., planet_data['transit_duration']/2., ndatapoints)
 
-    # Now initialize models:
+    # Now initialize models
     params, m = init_batman(times, 'nonlinear')
     params_twop, m_twop = init_batman(times, ld_law)
 
-    # Define params according to the planet_data dictionary:
+    # Define params according to the planet_data dictionary
     for par in [params, params_twop]:
 
         par.per = planet_data['orbital_period']
@@ -173,12 +170,11 @@ def transform_coefficients(c1, c2, c3, c4, planet_name = '', planet_data = None,
         par.ecc = planet_data['eccentricity']
         par.w = planet_data['omega']
 
-    # Set non-linear law coefficients:
+    # Set non-linear law coefficients
     params.u = [c1, c2, c3, c4]
 
     # Allright, now given these models, optimize u1 and u2 such that they match as good as possible the lightcurves of 
-    # the non-linear law. We use scipy.optimize for this:
-    results = minimize(spam_objective_function, [u1_guess, u2_guess], args=(params, m, params_twop, m_twop)) 
+    # the non-linear law. We use scipy.optimize for this
+    results = minimize(spam_objective_function, [u1_guess, u2_guess], args=(params, m, params_twop, m_twop), method=method.lower())
 
-    # Return SPAM coefficients:
-    return results.x
+    return results.x, {prop: val for prop, val in planet_data.items() if prop in planet_properties}
