@@ -61,7 +61,7 @@ def build_table():
     """ Fixture to build table for tests requiring table """
     column_names = ['wavelength', 'flux']
     wavelength = np.arange(3000, 5000)
-    flux = np.random.rand(wavelength.shape[0])*10e-13
+    flux = np.random.rand(wavelength.shape[0]) * 10e-13
 
     table = Table(data=[wavelength, flux], names=column_names)
 
