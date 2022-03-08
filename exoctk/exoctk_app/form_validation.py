@@ -9,6 +9,7 @@ from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.utils import get_env_variables, FILTERS_LIST, PROFILES
+from exoctk.throughputs import Throughput
 
 
 class BaseForm(FlaskForm):
@@ -140,12 +141,12 @@ class LimbDarkeningForm(BaseForm):
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
 
     # Bandpass
-    default_filter = 'Kepler.K'
-    defilt = svo.Filter(default_filter)
+    default_filter = 'NIRSpec.CLEAR.PRISM.S200A1'
+    defilt = Throughput(default_filter)
     bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in FILTERS_LIST], validators=[InputRequired('A filter is required!')])
     wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
     wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
-    n_bins = IntegerField('n_bins', default=1)
+    n_bins = IntegerField('n_bins', default=30)
 
     # Form submits
     calculate_submit = SubmitField('Calculate Coefficients')
