@@ -394,7 +394,7 @@ class GenerateModel():
         #10.1  #reference pressure bar-keep fixed
         #computing transmission spectrum-----------
         Pref=1.1
-        
+
         self.spec = self.tran(self.cross_sections.xsecarr, self.T, self.atmosphere_grid['P'], mmw, Pref,
                 CldOpac, H2Oarr, CH4arr,COarr,CO2arr,NH3arr,Naarr,Karr,TiOarr,VOarr,C2H2arr,HCNarr,H2Sarr,
                 FeHarr,Harr,earr,Hmarr,H2arr,Hearr,RayAmp,RaySlp,f_r, M, Rstar, Rp)
@@ -511,8 +511,8 @@ class GenerateModel():
         #transmissivity will be computed
         n = len(P)
         nv = len(wno)
-        
-        
+
+
         Z=np.zeros(n)  #level altitudes
         dZ=np.zeros(n)  #layer thickness array
         r0=Rp*71492.*1.E3  #converting planet radius to meters
@@ -521,7 +521,7 @@ class GenerateModel():
         G=6.67428E-11
         M=M*1.89852E27
 
-        
+
         #Compute avg Temperature at each grid
         Tavg = np.array([0.0]*(n-1))
         Pavg = np.array([0.0]*(n-1))
@@ -564,7 +564,7 @@ class GenerateModel():
         # for i in [Pgrid, Tgrid, PP, TT, wno, xsecarr]:
         #     print(i)
         kcoeffs_interp=10**kcoeff_interp(np.log10(Pgrid), np.log10(Tgrid), np.log10(PP), np.log10(TT), wno, xsecarr)
-        
+
         t3=time.time()
         #print('Kcoeff Interp', t3-t2)
         #continuum opacities (nlayers x nwnobins x ncont)***********
@@ -636,6 +636,7 @@ class GenerateModel():
         
         # Return TP profile
         return T, P
+
 
 class LoadCrossSections(PlanetarySystem):
     """Get correlated-K opacities, stellar spectrum, and chemistry 
