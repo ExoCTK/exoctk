@@ -403,7 +403,7 @@ class GenerateModel():
 
         self.chemarr = np.array([self.atmosphere_grid['P'], self.T, self.H2Oarr, self.CH4arr, 
                         self.COarr, self.CO2arr, self.NH3arr, self.Naarr, self.Karr, self.TiOarr, self.VOarr, self.C2H2arr, 
-                        self.HCNarr, self.H2Sarr, self.FeHarr, H2arr, Hearr, self.Harr, self.earr, self.xHmarr, qc, r_eff, f_r])
+                        self.HCNarr, self.H2Sarr, self.FeHarr, H2arr, Hearr, self.Harr, self.earr, self.Hmarr, qc, r_eff, f_r])
 
 
     def instrument_tran_non_uniform(self, wlgrid, wno, Fp):
