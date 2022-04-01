@@ -20,7 +20,7 @@ matplotlib==3.5.1
 numpy==1.22.3
 numpydoc==1.2.1
 pandas==1.4.1
-paramiko==2.7.2
+paramiko==2.10.3
 platon==4.0
 pysiaf==0.10.0
 pysynphot==2.0.0
