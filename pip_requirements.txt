@@ -21,7 +21,7 @@ numpy==1.22.3
 numpydoc==1.2.1
 pandas==1.4.1
 paramiko==2.10.3
-platon==4.0
+platon==5.3
 pysiaf==0.10.0
 pysynphot==2.0.0
 pytest==6.2.5
