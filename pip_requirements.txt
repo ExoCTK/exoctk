@@ -7,7 +7,7 @@ bokeh==2.4.2
 boto3==1.21.31
 corner==2.2.1
 cython==0.29.28
-ddtrace==0.57.0
+ddtrace==0.60.1
 docopt==0.6.2
 docutils==0.17.1
 flake8==4.0.1
