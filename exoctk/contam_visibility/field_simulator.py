@@ -222,7 +222,7 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
     return targframe, starframe
 
 
-def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True, multi=False):
+def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True, multi=True):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -248,6 +248,12 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
         of the target at every position angle (PA) of the instrument.
     plt: NoneType, bokeh.plotting.figure
         The plot of the contaminationas a function of PA
+
+    Example
+    -------
+    from exoctk.contam_visibility import field_simulator as fs
+    ra, dec = 91.872242, -25.594934
+    targ, data, plt = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
     # Check for contam tool data
     check_for_data('exoctk_contam')
@@ -289,7 +295,12 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
     pa_list = [pa for pa in pa_list if pa not in badPAs]
 
     # Calculate contamination of all stars at each PA
+    # -----------------------------------------------
     # To multiprocess, or not to multiprocess. That is the question.
+    # Whether 'tis nobler in the code to suffer
+    # The slings and arrows of outrageous list comprehensions,
+    # Or to take arms against a sea of troubles,
+    # And by multiprocessing end them?
     if multi:
         pl = pool.ThreadPool(n_jobs)
         func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
@@ -523,20 +534,20 @@ def plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
     trplot.add_layout(color_bar, 'below')
 
     # Shade bad position angles on the trace plot
-    nbadPA = len(badPAs)
-    if nbadPA > 0:
-        tops = [np.max(badPA) for badPA in badPAs]
-        bottoms = [np.min(badPA) for badPA in badPAs]
-        left = [wlims[0]] * nbadPA
-        right = [wlims[1]] * nbadPA
-        trplot.quad(top=tops, bottom=bottoms, left=left, right=right, color='#555555', alpha=0.6)
+    # nbadPA = len(badPAs)
+    # if nbadPA > 0:
+    #     tops = [np.max(badPA) for badPA in badPAs]
+    #     bottoms = [np.min(badPA) for badPA in badPAs]
+    #     left = [wlims[0]] * nbadPA
+    #     right = [wlims[1]] * nbadPA
+    #     trplot.quad(top=tops, bottom=bottoms, left=left, right=right, color='#555555', alpha=0.6)
 
     # Make a figure summing the contamination at a given PA
     sumplot = figure(tools=tools, width=150, height=500, x_range=Range1d(0, 100), y_range=trplot.y_range, title=None)
-    sumplot.line(100 * np.sum(contam >= 0.001, axis=1) / rows, np.arange(PAs) - 0.5, line_color='blue', legend_label='> 0.001')
-    sumplot.line(100 * np.sum(contam >= 0.01, axis=1) / rows, np.arange(PAs) - 0.5, line_color='green', legend_label='> 0.01')
-    sumplot.xaxis.axis_label = '% channels contam.'
-    sumplot.yaxis.major_label_text_font_size = '0pt'
+    # sumplot.line(100 * np.sum(contam >= 0.001, axis=1) / rows, np.arange(PAs) - 0.5, line_color='blue', legend_label='> 0.001')
+    # sumplot.line(100 * np.sum(contam >= 0.01, axis=1) / rows, np.arange(PAs) - 0.5, line_color='green', legend_label='> 0.01')
+    # sumplot.xaxis.axis_label = '% channels contam.'
+    # sumplot.yaxis.major_label_text_font_size = '0pt'
 
     return gridplot(children=[[trplot, sumplot]])
 
