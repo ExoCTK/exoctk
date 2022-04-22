@@ -948,38 +948,38 @@ def evaluate_model(wlgrid, model_parameters, model, cross_sections):
                 Dictionary of key, value pairs to update cross sections with.
             """
 
-            cross_sections = deepcopy(cross_sections)
+            cross_sections_copy = deepcopy(cross_sections)
             
             for pname, pvalue in model_params.items():
                 # Check the attributes of cross sections object 
-                for attribute in vars(cross_sections):
+                for attribute in vars(cross_sections_copy):
                     # The priors defined are nested into dictionaires broken up by the type of parameter.
                     # planetary_parameters, cloud_parameters, chemistry_parameters etc so here we are just
                     # checking to see if the attributes are dictionaries because thats where there keys for
                     # the priors are located.
-                    if isinstance(vars(cross_sections)[attribute], dict):
+                    if isinstance(vars(cross_sections_copy)[attribute], dict):
                         # if attribute is a dictionary, see if the prior key is an option in the dictionary.
-                        if pname in vars(cross_sections)[attribute].keys():
+                        if pname in vars(cross_sections_copy)[attribute].keys():
                             # if prior is in dictionary keys, assign the prior to transformed value.
-                            vars(cross_sections)[attribute][pname] = pvalue
+                            vars(cross_sections_copy)[attribute][pname] = pvalue
                         else:
                             continue
             
-            return cross_sections
+            return cross_sections_copy
 
 
         # Make a copy of the cross_sections obj to manipulate to evaluate model.
-        cross_sections = _assign_priors(model_parameters, cross_sections)
+        temp_cross_sections = _assign_priors(model_parameters, cross_sections)
         
-        model = deepcopy(model)
+        temp_model = deepcopy(model)
         
-        model.fx_trans_free()
+        temp_model.fx_trans_free()
 
-        spec = model.tran(cross_sections, model.T, model.atmosphere_grid['P'], model.mmw, model.Pref, model.CldOpac, model.H2Oarr, model.CH4arr, 
-                         model.COarr, model.CO2arr, model.NH3arr, model.Naarr, model.Karr, model.TiOarr, model.VOarr,
-                         model.C2H2arr, model.HCNarr, model.H2Sarr, model.FeHarr, model.Harr, model.earr, model.Hmarr, 
-                         model.H2arr, model.Hearr, model.RayAmp, model.RaySlp, model.f_r, cross_sections.planetary_parameters['M'], cross_sections.stellar_parameters['Rstar'], 
-                         cross_sections.planetary_parameters['Rp'])
+        spec = temp_model.tran(temp_cross_sections, temp_model.T, temp_model.atmosphere_grid['P'], temp_model.mmw, temp_model.Pref, temp_model.CldOpac, temp_model.H2Oarr, temp_model.CH4arr, 
+                                temp_model.COarr, temp_model.CO2arr, temp_model.NH3arr, temp_model.Naarr, temp_model.Karr, temp_model.TiOarr, temp_model.VOarr,
+                                temp_model.C2H2arr, temp_model.HCNarr, temp_model.H2Sarr, temp_model.FeHarr, temp_model.Harr, temp_model.earr, temp_model.Hmarr, 
+                                temp_model.H2arr, temp_model.Hearr, temp_model.RayAmp, temp_model.RaySlp, temp_model.f_r, temp_cross_sections.planetary_parameters['M'], temp_cross_sections.stellar_parameters['Rstar'], 
+                                temp_cross_sections.planetary_parameters['Rp'])
 
         wno = spec[0]
         F = spec[1]
