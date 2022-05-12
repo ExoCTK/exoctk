@@ -25,7 +25,8 @@ from .visibilityPA import using_gtvt
 from .contamination_figure import contam
 
 
-APERTURES = {'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [47, 46, 0, 1]},
+APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [127, 126, 252, 1]},
+             'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [47, 46, 0, 1]},
              'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [127, 126, 0, 1]},
              'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
@@ -34,7 +35,7 @@ APERTURES = {'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale
              'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
 
 
-def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
+def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -48,6 +49,8 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
         The aperture object for the given mode
     ref: str
         The reference frame to plot in, ['tel', 'det', 'sci']
+    floor: float
+        The noise floor to zero out
     plot: bool
         Plot the full frame and subarray bounds with all traces
     verbose: bool
@@ -147,8 +150,13 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
         if 'NIS' in aperture.AperName:
             trace = trace.T[::-1]
             height, width = trace.shape
-            x0 = x - width + 68
-            y0 = y - height
+            if aperture.AperName == 'NIS_SOSSFULL':
+                print(height, width)
+                x0 = x - width + 93
+                y0 = y - height + 849
+            else:
+                x0 = x - width + 68
+                y0 = y - height
 
         elif 'F322W2' in aperture.AperName:
             height, width = trace.shape
@@ -180,33 +188,49 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
         else:
             pass
 
-        # print(star[['xdet', 'ydet', 'xsci', 'ysci']], width, height, x, y, subX, subY)
+        # print(aperture.AperName, star[['xdet', 'ydet', 'xsci', 'ysci']], width, height, x, y, subX, subY)
 
         # Scale flux
-        trace[trace < np.nanmax(trace)/10000] = 0
         trace *= star['fluxscale']
+        trace[trace <= floor] = 0
 
-        # Add target trace to target frame...
-        if idx == 0:
+        # # Add target trace to target frame...
+        # if idx == 0:
+        #     # pass
+        #     # print(targframe.shape, y0, height)
+        #     targframe[y0:y0 + height, x0:x0 + width] = trace
+        #
+        # # ..or star trace to star frame
+        # else:
+        #
+        #     # TODO: Simulate 256 subarray trace for 96 and trim appropriately
+        #     # Add just the portion of this star that falls on the target frame
+        #     f0x, f1x = max(0, x0), min(subX, x0 + width)
+        #     f0y, f1y = max(0, y0), min(subY, y0 + height)
+        #     t0x, t1x = max(0, -x0), min(width, subX - x0)
+        #     t0y, t1y = max(0, -y0), min(height, subY - y0)
+        #     if t1y - t0y > 0 and t1x - t0x > 0:
+        #         if verbose:
+        #             print("{} x {} pixels of star {} fall on the target frame".format(t1y-t0y, t1x-t0x, idx))
+        #         starframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
 
-            targframe[y0:y0 + height, x0:x0 + width] = trace
+        # TODO: Simulate 256 subarray trace for 96 and trim appropriately
+        # Add just the portion of this star that falls on the target frame
+        f0x, f1x = max(0, x0), min(subX, x0 + width)
+        f0y, f1y = max(0, y0), min(subY, y0 + height)
+        t0x, t1x = max(0, -x0), min(width, subX - x0)
+        t0y, t1y = max(0, -y0), min(height, subY - y0)
+        if t1y - t0y > 0 and t1x - t0x > 0:
+            if verbose:
+                print("{} x {} pixels of star {} fall on the target frame".format(t1y - t0y, t1x - t0x, idx))
 
-        # ..or star trace to star frame
-        else:
-
-            # TODO: Simulate 256 subarray trace for 96 and trim appropriately
-            # Add just the portion of this star that falls on the target frame
-            f0x, f1x = max(0, x0), min(subX, x0 + width)
-            f0y, f1y = max(0, y0), min(subY, y0 + height)
-            t0x, t1x = max(0, -x0), min(width, subX - x0)
-            t0y, t1y = max(0, -y0), min(height, subY - y0)
-            if t1y - t0y > 0 and t1x - t0x > 0:
-                if verbose:
-                    print("{} x {} pixels of star {} fall on the target frame".format(t1y-t0y, t1x-t0x, idx))
+            if idx == 0:
+                targframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
+            else:
                 starframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
 
         if plot:
-            fig.image(image=[trace], x=x0, dw=width, y=y0, dh=height, alpha=0.5)
+            fig.image(image=[trace], x=x0, dw=width, y=y0, dh=height, alpha=0.2)
 
     if plot:
         mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=min(stars['Teff']), high=max(stars['Teff']))
@@ -214,6 +238,11 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', plot=True, verbose=True):
         fig.circle(FOVstars['x{}'.format(ref)][0], FOVstars['y{}'.format(ref)][0], size=12, fill_color=None, line_color='red')
         color_bar = ColorBar(color_mapper=mapper['transform'], width=10,  location=(0,0), title="Teff")
         fig.add_layout(color_bar, 'right')
+
+        # Add point showing the zeroth orders
+        # fig.circle(stars['xsci'], stars['ysci'], color='red', size=12)
+
+        # Show the figure
         show(fig)
 
         show(plot_frame(targframe + starframe, title='Target'))
@@ -423,7 +452,7 @@ def get_trace(aperture, teff):
         The 2D trace
     """
     # Get the path to the trace files
-    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/{}/*.fits'.format(aperture))
+    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/{}/*.fits'.format('NIS_SUBSTRIP256' if aperture == 'NIS_SOSSFULL' else aperture))
 
     # Glob the file names
     trace_files = glob.glob(traces_path)
@@ -434,6 +463,12 @@ def get_trace(aperture, teff):
 
     # Get data
     trace = fits.getdata(file)
+
+    # Expand to SUBSTRIP256 to FULL frame for NIS_SOSSFULL
+    if aperture == 'NIS_SOSSFULL':
+        full_trace = np.zeros((2301, 2301))
+        full_trace[:, -257:] = trace
+        trace = full_trace
 
     return trace.squeeze()[::-1]
 

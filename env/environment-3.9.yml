@@ -36,6 +36,7 @@ dependencies:
     - corner==2.2.1
     - docutils==0.15.2
     - flask_wtf==0.14.3
+    - hotsoss==0.1.7
     - gunicorn==20.0.4
     - lmfit==1.0.2
     - platon==5.1.2
