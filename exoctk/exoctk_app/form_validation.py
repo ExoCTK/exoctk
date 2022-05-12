@@ -4,11 +4,12 @@ from flask_wtf import FlaskForm
 import numpy as np
 from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange
+from wtforms.validators import InputRequired, NumberRange, Optional
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.utils import get_env_variables, FILTERS_LIST, PROFILES
+from exoctk.throughputs import Throughput
 
 
 class BaseForm(FlaskForm):
@@ -120,16 +121,32 @@ class LimbDarkeningForm(BaseForm):
     feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
     mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
 
+    # Planet parameters
+    td_rng = [0, 50]
+    transit_duration = DecimalField('transit_duration', default='',  validators=[Optional(), NumberRange(min=int(td_rng[0]), max=int(td_rng[1]), message='Transit duration must be between {} and {}'.format(*td_rng))])
+    op_rng = [0, 1000]
+    orbital_period = DecimalField('orbital_period', default='', validators=[Optional(), NumberRange(min=int(op_rng[0]), max=int(op_rng[1]), message='Orbital period must be between {} and {}'.format(*op_rng))])
+    rp_rng = [0, 1]
+    rp_rs = DecimalField('rp_rs', default='', validators=[Optional(), NumberRange(min=int(rp_rng[0]), max=int(rp_rng[1]), message='Planet radius must be between {} and {}'.format(*rp_rng))])
+    a_rng = [0, 100]
+    a_rs = DecimalField('a_rs', default='', validators=[Optional(), NumberRange(min=int(a_rng[0]), max=int(a_rng[1]), message='Semi-major axis must be between {} and {}'.format(*a_rng))])
+    inc_rng = [0, 180]
+    inclination = DecimalField('inclination', default='', validators=[Optional(), NumberRange(min=int(inc_rng[0]), max=int(inc_rng[1]), message='Inclination must be between {} and {}'.format(*inc_rng))])
+    ecc_rng = [0, 1]
+    eccentricity = DecimalField('eccentricity', default='', validators=[Optional(), NumberRange(min=int(ecc_rng[0]), max=int(ecc_rng[1]), message='Eccentricity must be between {} and {}'.format(*ecc_rng))])
+    w_rng = [0, 360]
+    omega = DecimalField('omega', default='', validators=[Optional(), NumberRange(min=int(w_rng[0]), max=int(w_rng[1]), message='Omega must be between {} and {}'.format(*w_rng))])
+
     # LD profile
     profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
 
     # Bandpass
-    default_filter = 'Kepler.K'
-    defilt = svo.Filter(default_filter)
+    default_filter = 'NIRSpec.CLEAR.PRISM.S200A1'
+    defilt = Throughput(default_filter)
     bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in FILTERS_LIST], validators=[InputRequired('A filter is required!')])
     wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
     wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
-    n_bins = IntegerField('n_bins', default=1)
+    n_bins = IntegerField('n_bins', default=30)
 
     # Form submits
     calculate_submit = SubmitField('Calculate Coefficients')
