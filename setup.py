@@ -48,7 +48,7 @@ for root, _, files in os.walk("exoctk"):
 
 setup(
     name='exoctk',
-    version='1.2.4',
+    version='1.2.5',
     description='Observation reduction and planning tools for exoplanet science',
     packages=find_packages(
         ".",
