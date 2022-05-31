@@ -147,6 +147,7 @@ class LDC:
 
         # Load the model grid
         self.model_grid = model_grid
+        self.model_cache = {}
 
         # Table for results
         columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'models', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
@@ -237,14 +238,21 @@ class LDC:
             raise ValueError("No such LD profile:", profile)
 
         # Get the grid point
-        grid_point = self.model_grid.get(Teff, logg, FeH)
+        grid_point = self.get_model(Teff, logg, FeH)
 
         # Retrieve the wavelength, flux, mu, and effective radius
         wave = grid_point.get('wave')
         flux = grid_point.get('flux')
         mu = grid_point.get('mu').squeeze()
 
-        # Use tophat oif no bandpass
+        # Try to get bandpass if it is a string
+        if isinstance(bandpass, str):
+            try:
+                bandpass = svo.Filter(bandpass, **kwargs)
+            except Exception:
+                raise ValueError("Could not find a bandpass named '{}'. Try passing a 'svo_filters.svo.Filter' object instead.".format(bandpass))
+
+        # Use tophat if no bandpass
         if bandpass is None:
             units = self.model_grid.wave_units
             bandpass = svo.Filter('tophat', wave_min=np.min(wave) * units, wave_max=np.max(wave) * units)
@@ -281,10 +289,10 @@ class LDC:
         wave = wave[None, :] if wave.ndim == 1 else wave
         flux = flux[None, :] if flux.ndim == 2 else flux
         mean_i = np.nanmean(flux, axis=-1)
-        mean_i[mean_i == 0] = np.nan
+        # mean_i[mean_i == 0] = np.nan
 
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i / mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
+        ld = mean_i / mean_i[:, np.where(mu == np.nanmax(mu))].squeeze(axis=-1)
 
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
@@ -366,8 +374,39 @@ class LDC:
                 result = {i: j for i, j in result.items() if i in self.results.colnames}
                 self.results.add_row(result)
 
-            except ValueError:
+            except IndexError:#ValueError:
                 print("Could not calculate coefficients at {}".format(wave_eff))
+
+    def get_model(self, teff, logg, feh):
+        """
+        Method to grab cached model or fetch new one
+
+        Parameters
+        ----------
+        teff: float
+            The effective temperature of the desired model
+        logg: float
+            The log surface gravity of the desired model
+        feh: float
+            The metallicity of the desired model
+
+        Returns
+        -------
+        dict
+            The stellar intensity model
+        """
+        # Check if it is stored
+        params = '{}_{}_{}_{}'.format(self.model_grid.path.split('/')[-2], teff, logg, feh)
+
+        # Get cached or get new model
+        if params in self.model_cache:
+            model = self.model_cache[params]
+        else:
+            model = self.model_grid.get(teff, logg, feh)
+            self.model_cache[params] = model
+            print("Saving model '{}'".format(params))
+
+        return model
 
     def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
