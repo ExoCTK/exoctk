@@ -19,7 +19,7 @@ ipython==8.4.0
 matplotlib==3.5.2
 numpy==1.23.0
 numpydoc==1.4.0
-pandas==1.3.5
+pandas==1.4.3
 paramiko==2.7.2
 platon==4.0
 pysiaf==0.10.0
