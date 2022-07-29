@@ -145,13 +145,14 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
         # Get the trace and shift into the correct subarray position
         trace = get_trace(aperture.AperName, star['Teff'])
         trace = trace[xleft:-xright, ybot:-ytop]
+        trace[trace <= np.nanmax(trace[1950:, 1950:])] = 0
         x, y = int(star['x{}'.format(ref)]), int(star['y{}'.format(ref)])
 
         if 'NIS' in aperture.AperName:
-            trace = trace.T[::-1]
+
+            trace = trace.T[:, ::-1]
             height, width = trace.shape
             if aperture.AperName == 'NIS_SOSSFULL':
-                print(height, width)
                 x0 = x - width + 93
                 y0 = y - height + 849
             else:
@@ -192,7 +193,6 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
 
         # Scale flux
         trace *= star['fluxscale']
-        trace[trace <= floor] = 0
 
         # # Add target trace to target frame...
         # if idx == 0:
@@ -232,23 +232,34 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
         if plot:
             fig.image(image=[trace], x=x0, dw=width, y=y0, dh=height, alpha=0.2)
 
+    # Trim to appropriate shape
+    targframe = targframe[:2048, :2048]
+    starframe = starframe[:2048, :2048]
+    if aperture.AperName in ['NIS_SUBSTRIP256', 'NIS_SUBSTRIP96']:
+        targframe = targframe[:256, :]
+        starframe = starframe[:256, :]
+    if aperture.AperName == 'NIS_SUBSTRIP96':
+        targframe = targframe[96:, :]
+        starframe = starframe[96:, :]
+
     if plot:
-        mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=min(stars['Teff']), high=max(stars['Teff']))
-        fig.star('x{}'.format(ref), 'y{}'.format(ref), color=mapper, size=12, name='stars', source=dict(stars[['Teff', 'x{}'.format(ref), 'y{}'.format(ref), 'ra', 'dec', 'name', 'j_m', 'h_m', 'k_m', 'xdet', 'ydet', 'xtel', 'ytel']]))
-        fig.circle(FOVstars['x{}'.format(ref)][0], FOVstars['y{}'.format(ref)][0], size=12, fill_color=None, line_color='red')
-        color_bar = ColorBar(color_mapper=mapper['transform'], width=10,  location=(0,0), title="Teff")
-        fig.add_layout(color_bar, 'right')
 
-        # Add point showing the zeroth orders
-        # fig.circle(stars['xsci'], stars['ysci'], color='red', size=12)
+        if verbose:
+            mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=min(stars['Teff']), high=max(stars['Teff']))
+            fig.star('x{}'.format(ref), 'y{}'.format(ref), color=mapper, size=12, name='stars', source=dict(stars[['Teff', 'x{}'.format(ref), 'y{}'.format(ref), 'ra', 'dec', 'name', 'j_m', 'h_m', 'k_m', 'xdet', 'ydet', 'xtel', 'ytel']]))
+            fig.circle(FOVstars['x{}'.format(ref)][0], FOVstars['y{}'.format(ref)][0], size=12, fill_color=None, line_color='red')
+            color_bar = ColorBar(color_mapper=mapper['transform'], width=10,  location=(0,0), title="Teff")
+            fig.add_layout(color_bar, 'right')
 
-        # Show the figure
-        show(fig)
+            # Add point showing the zeroth orders
+            # fig.circle(stars['xsci'], stars['ysci'], color='red', size=12)
 
-        show(plot_frame(targframe + starframe, title='Target'))
-        # show(plot_frame(starframe, title='Contamination'))
+            # Show the figure
+            show(fig)
 
-    return targframe, starframe
+        show(plot_frame(targframe + starframe, title='Target', scale='log'))
+
+    return targframe, starframe, FOVstars
 
 
 def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True, multi=True):
@@ -341,7 +352,6 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
         targframes = []
         starframes = []
         for pa in pa_list:
-            print(pa)
             tarf, starf = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
             targframes.append(tarf)
             starframes.append(starf)
