@@ -1,3 +1,4 @@
+from copy import copy
 from functools import partial
 import glob
 from multiprocessing import pool, cpu_count
@@ -7,8 +8,11 @@ import time
 
 import astropy.coordinates as crd
 import astropy.units as u
+from astropy.stats import sigma_clip
 from astropy.table import Table
 from astroquery.irsa import Irsa
+from astroquery.vizier import Vizier
+from astroquery.xmatch import XMatch
 from astropy.io import fits
 from bokeh.plotting import figure, show
 from bokeh.layouts import gridplot
@@ -17,12 +21,16 @@ from bokeh.models.widgets import Panel, Tabs
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from hotsoss.plotting import plot_frame
+from hotsoss.locate_trace import trace_polynomial
 import numpy as np
 import pysiaf
+import regions
 
 from ..utils import get_env_variables, check_for_data
 from .visibilityPA import using_gtvt
 from .contamination_figure import contam
+
+Vizier.columns = ["**", "+_r"]
 
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [127, 126, 252, 1]},
@@ -33,6 +41,109 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.835, 5.084], 'trim': [0, 1, 1250, 1]},
              'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
+
+
+def SOSS_trace_mask(radius=15):
+    """
+    Construct a trace mask for SOSS data
+
+    Parameters
+    ----------
+    radius: int
+        The radius in pixels of the trace
+
+    Returns
+    -------
+    np.ndarray
+        The SOSS trace mask
+    """
+    traces = trace_polynomial(evaluate=True)
+    mask = np.zeros((256, 2048))
+    x = np.arange(2048)
+    for col in np.arange(2048):
+        for order in [1, 2, 3]:
+            center = int(traces[order - 1][col])
+            mask[center - radius: center + radius, col] = 1
+
+    return mask
+
+
+def find_stars(ra, dec, radius, binComp='', **kwargs):
+    """
+    Find all the stars in the vicinity and estimate temperatures
+
+    Parameters
+    ----------
+    ra : float
+        The RA of the target in decimal degrees
+    dec : float
+        The Dec of the target in decimal degrees
+    radius: astropy.units.quantity
+        The search radius
+
+    Returns
+    -------
+    astropy.table.Table
+        The table of stars
+    """
+    # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
+    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
+
+    # # Get area to search
+    # area = regions.CircleSkyRegion(center=targetcrd, radius=radius)
+    #
+    # viz_cat = XMatch.query(cat1='vizier:I/350/gaiaedr3',
+    #                      cat2='vizier:II/246/out',
+    #                      max_distance=5 * u.arcsec, colRA1='RAJ2000',
+    #                      colDec1='DEJ2000', colRA2='RAJ2000', colDec2='DEJ2000',
+    #                      area=area)
+
+    viz_cat = Vizier.query_region(targetcrd, radius=radius, catalog=['I/350/gaiaedr3'], **kwargs)
+
+    return viz_cat
+
+
+
+    # # stars = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=radius)
+    #
+    # jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
+    # hkMod = np.array([0.313, 0.299, 0.284, 0.268, 0.257, 0.247, 0.24, 0.236, 0.229, 0.217,0.203, 0.188, 0.173, 0.159, 0.148, 0.138, 0.13, 0.123, 0.116, 0.112, 0.107, 0.102, 0.098, 0.094, 0.09, 0.086, 0.083, 0.079, 0.07, 0.067])
+    # teffMod = np.array([2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5800, 6000])
+    #
+    # # Make sure colors are calculated
+    # stars['j_h'] = stars['j_m'] - stars['h_m']
+    # stars['h_k'] = stars['h_m'] - stars['k_m']
+    # stars['j_k'] = stars['j_m'] - stars['k_m']
+    #
+    # # Add any missing companion (ra, dec, J, H, K)
+    # if binComp != '':
+    #     deg2rad = np.pi / 180
+    #     bb = binComp[0] / 3600 / np.cos(stars[0]['ra'] * deg2rad)
+    #     star = {'ra': stars['ra'][0] + bb, 'dec': stars['dec'][0] + binComp[1] / 3600, 'j_m': binComp[2], 'h_m': binComp[3], 'k_m': binComp[4], 'j_h': binComp[2] - binComp[3], 'h_k': binComp[3] - binComp[4]}
+    #     star['Teff'] = teffMod[np.argmin((star['j_h'] - jhMod) ** 2 + (star['h_k'] - hkMod) ** 2)]
+    #     stars.add_row(star)
+    #
+    # # Find distance from target to each star
+    # sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
+    # cosdRA = stars['dec'][0] - stars['dec']
+    # stars.add_column(np.sqrt(sindRA ** 2 + cosdRA ** 2), name='distance')
+    # stars.sort('distance')
+    #
+    # # Find Teff of each star from the color
+    # teffs = [teffMod[np.argmin((row['j_h'] - jhMod) ** 2 + (row['h_k'] - hkMod) ** 2)] for row in stars]
+    #
+    # # Add Teffs and detector location to the table
+    # stars.add_column(teffs, name='Teff')
+    # stars.add_columns(np.zeros((6, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci'])
+    #
+    # # Add names for tooltips
+    # stars.add_column([i.decode('UTF-8') for i in stars['designation']], name='name')
+    #
+    # # Calculate relative flux
+    # fluxscale = 10.0 ** (-0.4 * (stars['j_m'] - stars['j_m'][0]))
+    # stars.add_column(fluxscale, name='fluxscale')
+    #
+    # return stars
 
 
 def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True):
@@ -139,17 +250,24 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
         fig.patch(full.corners(ref)[0], full.corners(ref)[1], color="black", alpha=0.1)
         fig.patch(aperture.corners(ref)[0], aperture.corners(ref)[1], line_color="blue", fill_color='blue', fill_alpha=0.1)
 
+    # Get order 0
+    order0 = get_order0(aperture.AperName)
+
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
 
         # Get the trace and shift into the correct subarray position
-        trace = get_trace(aperture.AperName, star['Teff'])
-        trace = trace[xleft:-xright, ybot:-ytop]
-        trace[trace <= np.nanmax(trace[1950:, 1950:])] = 0
+        trace = np.load('/Users/jfilippazzo/exoctk_data/exoctk_contam/alt/t3000.npy')
+        trace *= SOSS_trace_mask()
+        trace = np.rot90(trace, k=1)
+
+        # Make pixels outside traces equal to 0
+        trace *= 1e7
         x, y = int(star['x{}'.format(ref)]), int(star['y{}'.format(ref)])
 
         if 'NIS' in aperture.AperName:
 
+            # Get position of traces
             trace = trace.T[:, ::-1]
             height, width = trace.shape
             if aperture.AperName == 'NIS_SOSSFULL':
@@ -194,27 +312,6 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
         # Scale flux
         trace *= star['fluxscale']
 
-        # # Add target trace to target frame...
-        # if idx == 0:
-        #     # pass
-        #     # print(targframe.shape, y0, height)
-        #     targframe[y0:y0 + height, x0:x0 + width] = trace
-        #
-        # # ..or star trace to star frame
-        # else:
-        #
-        #     # TODO: Simulate 256 subarray trace for 96 and trim appropriately
-        #     # Add just the portion of this star that falls on the target frame
-        #     f0x, f1x = max(0, x0), min(subX, x0 + width)
-        #     f0y, f1y = max(0, y0), min(subY, y0 + height)
-        #     t0x, t1x = max(0, -x0), min(width, subX - x0)
-        #     t0y, t1y = max(0, -y0), min(height, subY - y0)
-        #     if t1y - t0y > 0 and t1x - t0x > 0:
-        #         if verbose:
-        #             print("{} x {} pixels of star {} fall on the target frame".format(t1y-t0y, t1x-t0x, idx))
-        #         starframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
-
-        # TODO: Simulate 256 subarray trace for 96 and trim appropriately
         # Add just the portion of this star that falls on the target frame
         f0x, f1x = max(0, x0), min(subX, x0 + width)
         f0y, f1y = max(0, y0), min(subY, y0 + height)
@@ -228,6 +325,24 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
                 targframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
             else:
                 starframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
+
+        # Add just the portion of order 0 that falls on the target frame
+        # Order 0 for target should be at (1380, 850)
+        scale0 = copy(order0) * star['fluxscale'] * 1e5
+        xord0 = x - 575 - 25
+        yord0 = y - 349 - 25
+        f0x, f1x = max(0, xord0), min(subX, xord0 + 50)
+        f0y, f1y = max(0, yord0), min(subY, yord0 + 50)
+        t0x, t1x = max(0, -xord0), min(50, subX - xord0)
+        t0y, t1y = max(0, -yord0), min(50, subY - yord0)
+        if t1y - t0y > 0 and t1x - t0x > 0:
+            if verbose:
+                print("{} x {} pixels of star {} order 0 fall on the target frame".format(t1y - t0y, t1x - t0x, idx))
+
+            if idx == 0:
+                targframe[f0y:f1y, f0x:f1x] += scale0[t0y:t1y, t0x:t1x]
+            else:
+                starframe[f0y:f1y, f0x:f1x] += scale0[t0y:t1y, t0x:t1x]
 
         if plot:
             fig.image(image=[trace], x=x0, dw=width, y=y0, dh=height, alpha=0.2)
@@ -257,9 +372,234 @@ def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True
             # Show the figure
             show(fig)
 
-        show(plot_frame(targframe + starframe, title='Target', scale='log'))
+        show(plot_frame(targframe + starframe, title='Target'))
 
     return targframe, starframe, FOVstars
+
+
+# def calc_v3pa(V3PA, stars, aperture, ref='sci', floor=1, plot=True, verbose=True):
+#     """
+#     Calculate the V3 position angle for each target at the given PA
+#
+#     Parameters
+#     ----------
+#     V3PA: float
+#         The PA in V3
+#     stars: astropy.table.Table
+#         The table of stars in the target vicinity
+#     aperture: pysiaf.aperture.JwstAperture, str
+#         The aperture object for the given mode
+#     ref: str
+#         The reference frame to plot in, ['tel', 'det', 'sci']
+#     floor: float
+#         The noise floor to zero out
+#     plot: bool
+#         Plot the full frame and subarray bounds with all traces
+#     verbose: bool
+#         Print statements
+#
+#     Returns
+#     -------
+#     targframe, starframe
+#         The frame containing the target trace and a frame containing all contaminating star traces
+#     """
+#     if verbose:
+#         print("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
+#
+#     if isinstance(aperture, str):
+#
+#         # Aperture names
+#         if aperture not in APERTURES:
+#             raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
+#
+#         # Instantiate a pySIAF object
+#         inst = APERTURES[aperture]
+#         siaf = pysiaf.Siaf(inst['inst'])
+#
+#         # Get the full and subarray apertures
+#         full = siaf.apertures[inst['full']]
+#         aperture = siaf.apertures[aperture]
+#
+#         # Full frame pixel positions
+#         rows, cols = full.corners('det')
+#         aperture.minrow, aperture.maxrow = rows.min(), rows.max()
+#         aperture.mincol, aperture.maxcol = cols.min(), cols.max()
+#
+#     # Get APA from V3PA
+#     APA = V3PA + aperture.V3IdlYAngle
+#     if APA > 360:
+#         APA = APA - 360
+#     elif APA < 0:
+#         APA = APA + 360
+#
+#     # Get subarray dims
+#     subX, subY = aperture.XSciSize, aperture.YSciSize
+#
+#     # Calculate corresponding V2/V3 (TEL) coordinates for Sweetspot
+#     stars['xdet'][0], stars['ydet'][0] = aperture.reference_point('det')
+#     stars['xtel'][0], stars['ytel'][0] = aperture.det_to_tel(stars['xdet'][0], stars['ydet'][0])
+#     stars['xsci'][0], stars['ysci'][0] = aperture.det_to_sci(stars['xdet'][0], stars['ydet'][0])
+#
+#     # Get target's attitude matrix for each Position Angle
+#     attitude = pysiaf.utils.rotations.attitude_matrix(stars['xtel'][0], stars['ytel'][0], stars['ra'][0], stars['dec'][0], APA)
+#
+#     # Get relative coordinates of the stars based on target attitude
+#     for idx, star in enumerate(stars[1:]):
+#
+#         # Get the TEL coordinates (V2, V3) of the star
+#         V2, V3 = pysiaf.utils.rotations.sky_to_tel(attitude, star['ra'], star['dec'])
+#         star['xtel'], star['ytel'] = V2.to(u.arcsec).value, V3.to(u.arcsec).value
+#
+#         # Get the DET coordinates of the star
+#         star['xdet'], star['ydet'] = aperture.tel_to_det(star['xtel'], star['ytel'])
+#
+#         # Get the DET coordinates of the star
+#         star['xsci'], star['ysci'] = aperture.det_to_sci(star['xdet'], star['ydet'])
+#
+#     # Aperture info
+#     aper = APERTURES[aperture.AperName]
+#     xleft, xright, ybot, ytop = aper['trim']
+#
+#     # Just stars in FOV (Should always have at least 1, the target)
+#     FOVstars = stars[(aperture.mincol < stars['xdet']) & (stars['xdet'] < aperture.maxcol) & (aperture.minrow < stars['ydet']) & (stars['ydet'] < aperture.maxrow)]
+#     if verbose:
+#         print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
+#
+#     # Make frame for the target and a frame for all the other stars
+#     targframe = np.zeros((subY, subX))
+#     starframe = np.zeros((subY, subX))
+#
+#     if plot:
+#         # Set up hover tool
+#         tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('Jmag', '@j_m'), ('Hmag', '@h_m'), ('Kmag', '@k_m'), ('Teff', '@Teff'), ('Sci', '(@xsci{int}, @ysci{int})'), ('Det', '(@xdet{int}, @ydet{int})'), ('Tel', '(@xtel{int}, @ytel{int})')]
+#         hover = HoverTool(tooltips=tips, names=['stars'])
+#
+#         # Make the plot
+#         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save', hover]
+#         fig = figure(title='Generated FOV from 2MASS IRSA fp_psc', match_aspect=True, tools=tools)
+#         fig.title = 'The FOV in {} coordinates at APA {} for {}'.format(ref.upper(), V3PA, aperture.AperName)
+#         fig.patch(full.corners(ref)[0], full.corners(ref)[1], color="black", alpha=0.1)
+#         fig.patch(aperture.corners(ref)[0], aperture.corners(ref)[1], line_color="blue", fill_color='blue', fill_alpha=0.1)
+#
+#     # Get order 0
+#     order0 = get_order0(aperture.AperName)
+#
+#     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
+#     for idx, star in enumerate(FOVstars):
+#
+#         # Get the trace and shift into the correct subarray position
+#         trace = get_trace(aperture.AperName, star['Teff'])
+#         trace = trace[xleft:-xright, ybot:-ytop]
+#         trace[trace <= np.nanmax(trace[1950:, 1950:])] = 0
+#         x, y = int(star['x{}'.format(ref)]), int(star['y{}'.format(ref)])
+#
+#         if 'NIS' in aperture.AperName:
+#
+#             # Get position of traces
+#             trace = trace.T[:, ::-1]
+#             height, width = trace.shape
+#             if aperture.AperName == 'NIS_SOSSFULL':
+#                 x0 = x - width + 93
+#                 y0 = y - height + 849
+#             else:
+#                 x0 = x - width + 68
+#                 y0 = y - height
+#
+#         elif 'F322W2' in aperture.AperName:
+#             height, width = trace.shape
+#             x0 = x - width + 467  # 2048 - 1581
+#             y0 = y - round(height / 2)
+#
+#         elif 'F356W' in aperture.AperName:
+#             height, width = trace.shape
+#             x0 = x - width + 467  # 2048 - 1581
+#             y0 = y - round(height / 2)
+#
+#         elif 'F277W' in aperture.AperName:
+#             height, width = trace.shape
+#             x0 = x - width - 600
+#             y0 = y - round(height / 2)
+#
+#         elif 'F444W' in aperture.AperName:
+#             trace = trace.T[:, ::-1]
+#             height, width = trace.shape
+#             x0 = x - width + 1096  # 2048 - 952
+#             y0 = y - round(height / 2)
+#
+#         elif 'MIRI' in aperture.AperName:
+#             trace = trace[::-1]
+#             height, width = trace.shape
+#             x0 = x - round(width / 2)
+#             y0 = y - height + 113  # 529 - 416
+#
+#         else:
+#             pass
+#
+#         # print(aperture.AperName, star[['xdet', 'ydet', 'xsci', 'ysci']], width, height, x, y, subX, subY)
+#
+#         # Scale flux
+#         trace *= star['fluxscale']
+#
+#         # Add just the portion of this star that falls on the target frame
+#         f0x, f1x = max(0, x0), min(subX, x0 + width)
+#         f0y, f1y = max(0, y0), min(subY, y0 + height)
+#         t0x, t1x = max(0, -x0), min(width, subX - x0)
+#         t0y, t1y = max(0, -y0), min(height, subY - y0)
+#         if t1y - t0y > 0 and t1x - t0x > 0:
+#             if verbose:
+#                 print("{} x {} pixels of star {} fall on the target frame".format(t1y - t0y, t1x - t0x, idx))
+#
+#             if idx == 0:
+#                 targframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
+#             else:
+#                 starframe[f0y:f1y, f0x:f1x] += trace[t0y:t1y, t0x:t1x]
+#
+#         # Add just the portion of order 0 that falls on the target frame
+#         scale0 = copy(order0) * star['fluxscale']
+#         f0x, f1x = max(0, x), min(subX, x + 25)
+#         f0y, f1y = max(0, y), min(subY, y + 25)
+#         t0x, t1x = max(0, -x), min(25, subX - x)
+#         t0y, t1y = max(0, -y), min(25, subY - y)
+#         if t1y - t0y > 0 and t1x - t0x > 0:
+#             if verbose:
+#                 print("{} x {} pixels of star {} order 0 fall on the target frame".format(t1y - t0y, t1x - t0x, idx))
+#
+#             if idx == 0:
+#                 targframe[f0y:f1y, f0x:f1x] += scale0[t0y:t1y, t0x:t1x]
+#             else:
+#                 starframe[f0y:f1y, f0x:f1x] += scale0[t0y:t1y, t0x:t1x]
+#
+#         if plot:
+#             fig.image(image=[trace], x=x0, dw=width, y=y0, dh=height, alpha=0.2)
+#
+#     # Trim to appropriate shape
+#     targframe = targframe[:2048, :2048]
+#     starframe = starframe[:2048, :2048]
+#     if aperture.AperName in ['NIS_SUBSTRIP256', 'NIS_SUBSTRIP96']:
+#         targframe = targframe[:256, :]
+#         starframe = starframe[:256, :]
+#     if aperture.AperName == 'NIS_SUBSTRIP96':
+#         targframe = targframe[96:, :]
+#         starframe = starframe[96:, :]
+#
+#     if plot:
+#
+#         if verbose:
+#             mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=min(stars['Teff']), high=max(stars['Teff']))
+#             fig.star('x{}'.format(ref), 'y{}'.format(ref), color=mapper, size=12, name='stars', source=dict(stars[['Teff', 'x{}'.format(ref), 'y{}'.format(ref), 'ra', 'dec', 'name', 'j_m', 'h_m', 'k_m', 'xdet', 'ydet', 'xtel', 'ytel']]))
+#             fig.circle(FOVstars['x{}'.format(ref)][0], FOVstars['y{}'.format(ref)][0], size=12, fill_color=None, line_color='red')
+#             color_bar = ColorBar(color_mapper=mapper['transform'], width=10,  location=(0,0), title="Teff")
+#             fig.add_layout(color_bar, 'right')
+#
+#             # Add point showing the zeroth orders
+#             # fig.circle(stars['xsci'], stars['ysci'], color='red', size=12)
+#
+#             # Show the figure
+#             show(fig)
+#
+#         show(plot_frame(targframe + starframe, title='Target', scale='log'))
+#
+#     return targframe, starframe, FOVstars
 
 
 def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange(360), plot=True, multi=True):
@@ -384,66 +724,92 @@ def field_simulation(ra, dec, aperture, binComp='', n_jobs=-1, pa_list=np.arange
     return targframe, starcube, plt
 
 
-def find_stars(ra, dec, radius, binComp=''):
-    """
-    Find all the stars in the vicinity and estimate temperatures
+# def find_stars(ra, dec, radius, binComp=''):
+#     """
+#     Find all the stars in the vicinity and estimate temperatures
+#
+#     Parameters
+#     ----------
+#     ra : float
+#         The RA of the target in decimal degrees
+#     dec : float
+#         The Dec of the target in decimal degrees
+#     radius: astropy.units.quantity
+#         The search radius
+#
+#     Returns
+#     -------
+#     astropy.table.Table
+#         The table of stars
+#     """
+#     # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
+#     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
+#     stars = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=radius)
+#
+#     jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
+#     hkMod = np.array([0.313, 0.299, 0.284, 0.268, 0.257, 0.247, 0.24, 0.236, 0.229, 0.217,0.203, 0.188, 0.173, 0.159, 0.148, 0.138, 0.13, 0.123, 0.116, 0.112, 0.107, 0.102, 0.098, 0.094, 0.09, 0.086, 0.083, 0.079, 0.07, 0.067])
+#     teffMod = np.array([2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5800, 6000])
+#
+#     # Make sure colors are calculated
+#     stars['j_h'] = stars['j_m'] - stars['h_m']
+#     stars['h_k'] = stars['h_m'] - stars['k_m']
+#     stars['j_k'] = stars['j_m'] - stars['k_m']
+#
+#     # Add any missing companion (ra, dec, J, H, K)
+#     if binComp != '':
+#         deg2rad = np.pi / 180
+#         bb = binComp[0] / 3600 / np.cos(stars[0]['ra'] * deg2rad)
+#         star = {'ra': stars['ra'][0] + bb, 'dec': stars['dec'][0] + binComp[1] / 3600, 'j_m': binComp[2], 'h_m': binComp[3], 'k_m': binComp[4], 'j_h': binComp[2] - binComp[3], 'h_k': binComp[3] - binComp[4]}
+#         star['Teff'] = teffMod[np.argmin((star['j_h'] - jhMod) ** 2 + (star['h_k'] - hkMod) ** 2)]
+#         stars.add_row(star)
+#
+#     # Find distance from target to each star
+#     sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
+#     cosdRA = stars['dec'][0] - stars['dec']
+#     stars.add_column(np.sqrt(sindRA ** 2 + cosdRA ** 2), name='distance')
+#     stars.sort('distance')
+#
+#     # Find Teff of each star from the color
+#     teffs = [teffMod[np.argmin((row['j_h'] - jhMod) ** 2 + (row['h_k'] - hkMod) ** 2)] for row in stars]
+#
+#     # Add Teffs and detector location to the table
+#     stars.add_column(teffs, name='Teff')
+#     stars.add_columns(np.zeros((6, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci'])
+#
+#     # Add names for tooltips
+#     stars.add_column([i.decode('UTF-8') for i in stars['designation']], name='name')
+#
+#     # Calculate relative flux
+#     fluxscale = 10.0 ** (-0.4 * (stars['j_m'] - stars['j_m'][0]))
+#     stars.add_column(fluxscale, name='fluxscale')
+#
+#     return stars
+
+
+def get_order0(aperture):
+    """Get the order 0 image for the given aperture
 
     Parameters
     ----------
-    ra : float
-        The RA of the target in decimal degrees
-    dec : float
-        The Dec of the target in decimal degrees
-    radius: astropy.units.quantity
-        The search radius
+    aperture: str
+        The aperture to use
 
     Returns
     -------
-    astropy.table.Table
-        The table of stars
+    np.ndarray
+        The 2D order 0 image
     """
-    # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
-    stars = Irsa.query_region(targetcrd, catalog='fp_psc', spatial='Cone', radius=radius)
+    # Get file
+    # TODO: Add order 0 files for other modes
+    filename = 'NIS_order0.npy' #if 'NIS' in aperture
 
-    jhMod = np.array([0.545, 0.561, 0.565, 0.583, 0.596, 0.611, 0.629, 0.642, 0.66, 0.679, 0.696, 0.71, 0.717, 0.715, 0.706, 0.688, 0.663, 0.631, 0.601, 0.568, 0.537, 0.51, 0.482, 0.457, 0.433, 0.411, 0.39, 0.37, 0.314, 0.279])
-    hkMod = np.array([0.313, 0.299, 0.284, 0.268, 0.257, 0.247, 0.24, 0.236, 0.229, 0.217,0.203, 0.188, 0.173, 0.159, 0.148, 0.138, 0.13, 0.123, 0.116, 0.112, 0.107, 0.102, 0.098, 0.094, 0.09, 0.086, 0.083, 0.079, 0.07, 0.067])
-    teffMod = np.array([2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5800, 6000])
+    # Get the path to the trace files
+    trace_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/order0/{}'.format(filename))
 
-    # Make sure colors are calculated
-    stars['j_h'] = stars['j_m'] - stars['h_m']
-    stars['h_k'] = stars['h_m'] - stars['k_m']
-    stars['j_k'] = stars['j_m'] - stars['k_m']
+    # Make frame
+    trace = np.load(trace_path)
 
-    # Add any missing companion (ra, dec, J, H, K)
-    if binComp != '':
-        deg2rad = np.pi / 180
-        bb = binComp[0] / 3600 / np.cos(stars[0]['ra'] * deg2rad)
-        star = {'ra': stars['ra'][0] + bb, 'dec': stars['dec'][0] + binComp[1] / 3600, 'j_m': binComp[2], 'h_m': binComp[3], 'k_m': binComp[4], 'j_h': binComp[2] - binComp[3], 'h_k': binComp[3] - binComp[4]}
-        star['Teff'] = teffMod[np.argmin((star['j_h'] - jhMod) ** 2 + (star['h_k'] - hkMod) ** 2)]
-        stars.add_row(star)
-
-    # Find distance from target to each star
-    sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
-    cosdRA = stars['dec'][0] - stars['dec']
-    stars.add_column(np.sqrt(sindRA ** 2 + cosdRA ** 2), name='distance')
-    stars.sort('distance')
-
-    # Find Teff of each star from the color
-    teffs = [teffMod[np.argmin((row['j_h'] - jhMod) ** 2 + (row['h_k'] - hkMod) ** 2)] for row in stars]
-
-    # Add Teffs and detector location to the table
-    stars.add_column(teffs, name='Teff')
-    stars.add_columns(np.zeros((6, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci'])
-
-    # Add names for tooltips
-    stars.add_column([i.decode('UTF-8') for i in stars['designation']], name='name')
-
-    # Calculate relative flux (and make plot marker size proportional)
-    fluxscale = 10.0 ** (-0.4 * (stars['j_m'] - stars['j_m'][0]))
-    stars.add_column(fluxscale, name='fluxscale')
-
-    return stars
+    return trace
 
 
 def get_trace(aperture, teff):
