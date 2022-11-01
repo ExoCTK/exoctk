@@ -29,7 +29,7 @@ pyyaml==6.0
 scipy==1.9.3
 scp==0.14.4
 sphinx==5.3.0
-sphinx_astropy==1.6.0
+sphinx_astropy==1.7.0
 sphinx-automodapi==0.14.0
 svo_filters==0.4.1
 sqlalchemy==1.4.29
