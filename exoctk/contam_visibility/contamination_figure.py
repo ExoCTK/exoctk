@@ -53,7 +53,7 @@ def nirissContam(cube, paRange=[0, 360]):
     # Start calculations
     if not TRACES_PATH:
         return None
-    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS_old', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
     nPA = cube.shape[0]
@@ -219,7 +219,7 @@ def miriContam(cube, paRange=[0, 360]):
 def contam(cube, instrument, targetName='noName', paRange=[0, 360],
            badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
 
-    lam_file = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    lam_file = os.path.join(TRACES_PATH, 'NIRISS_old', 'lambda_order1-2.txt')
     ypix, lamO1, lamO2 = np.loadtxt(lam_file, unpack=True)
 
     nPA, rows, cols = cube.shape[0], cube.shape[1], cube.shape[2]
@@ -385,7 +385,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     # ~~~~~~ Plotting ~~~~~~
 
     if instrument.startswith('NIS'):
-        fig = gridplot(children=[[s6, s5, s2, s3]])
+        fig = gridplot(children=[[s3, s2], [s6, s5]])
     else:
         fig = gridplot(children=[[s2, s3]])
 

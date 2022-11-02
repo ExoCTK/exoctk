@@ -487,7 +487,7 @@ def contam_visibility():
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
-        instrument = fs.APERTURES[form.inst.data][0]
+        instrument = fs.APERTURES[form.inst.data]['inst']
 
         try:
 
@@ -511,15 +511,24 @@ def contam_visibility():
             # Contamination plot too
             if form.calculate_contam_submit.data:
 
+                # # First convert ra and dec to HH:MM:SS
+                # ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                # sc = SkyCoord(ra_deg, dec_deg, unit='deg')
+                # ra_dec = sc.to_string('hmsdms')
+                # ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
+                #
+                # # Make field simulation
+                # contam_cube = fs.field_simulation(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
+                # contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
+
                 # First convert ra and dec to HH:MM:SS
                 ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
-                sc = SkyCoord(ra_deg, dec_deg, unit='deg')
-                ra_dec = sc.to_string('hmsdms')
-                ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
 
                 # Make field simulation
-                contam_cube = fs.field_simulation(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
-                contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
+                targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, plot=False, multi=False)
+
+                # Make the plot
+                contam_plot = fs.contam_slider_plot(results)
 
                 # Get scripts
                 contam_js = INLINE.render_js()

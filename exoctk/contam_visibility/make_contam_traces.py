@@ -4,11 +4,9 @@ from astropy.io import fits
 from bokeh.plotting import figure, show
 from bokeh.io import output_notebook
 from hotsoss.plotting import plot_frame
-from pandeia.engine.calc_utils import build_default_calc
-from pandeia.engine.perform_calculation import perform_calculation
 
 
-def generate_jwst_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=10., outdir=None):
+def generate_pandeia_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=10., outdir=None):
     """
     Generate the precomputed traces for a range of Teff values
     to be used by the contamination tool
@@ -27,6 +25,9 @@ def generate_jwst_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=1
         The path for the generated files
 
     """
+    from pandeia.engine.calc_utils import build_default_calc
+    from pandeia.engine.perform_calculation import perform_calculation
+
     modes = {'NIS_SUBSTRIP256': {'inst': 'niriss', 'mode': 'soss', 'subarray': 'substrip256'},
              'NIS_SUBSTRIP96': {'inst': 'niriss', 'mode': 'soss', 'subarray': 'substrip96'},
              'MIRIM_SLITLESSPRISM': {'inst': 'miri', 'mode': 'lrsslitless'},
