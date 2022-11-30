@@ -3,7 +3,7 @@ import os
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
-from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError
+from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError, Optional
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
@@ -132,9 +132,11 @@ class ContamVisForm(BaseForm):
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
     inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
-    companion = StringField('companion', default='')
-    pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
-    pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])
+    teff = DecimalField('teff', default=None, validators=[Optional(), NumberRange(min=2300, max=12000, message='Teff must be between 2300K and 12000K')])
+    delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
+    dist = DecimalField('dist', default=None, validators=[Optional()])
+    pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
+    v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
 
 
 class PhaseConstraint(BaseForm):

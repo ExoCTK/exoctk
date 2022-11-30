@@ -245,7 +245,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         xlim0 = 5
         xlim1 = 12
 
-    TOOLS = 'pan, box_zoom, crosshair, reset, hover'
+    TOOLS = 'pan, box_zoom, crosshair, reset'
 
     y = np.array([0., 0.])
     y1 = 0.07
@@ -261,8 +261,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     # Contam plot
     ylim0 = PAmin - 0.5
     ylim1 = PAmax + 0.5
-    color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:],
-                                     low=-4, high=1)
+    color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:], low=-4, high=1)
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
 
@@ -273,7 +272,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
     # fig_data = np.clip(contamO1, 1.e-10, 1.)  # [:, :361] # might this
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))  # [:, :361] # might this
-    # index have somethig to
+    # index have something to
     # do w the choppiness
     # of o1 in all instruments
     # return(fig_data)
@@ -353,7 +352,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
             s5.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
 
         # Line plot
-        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range, x_range=Range1d(100, 0), title=None)
+        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range, x_range=Range1d(0, 100), title=None)
 
         try:
             s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
@@ -385,7 +384,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     # ~~~~~~ Plotting ~~~~~~
 
     if instrument.startswith('NIS'):
-        fig = gridplot(children=[[s3, s2], [s6, s5]])
+        fig = gridplot(children=[[s2, s3], [s5, s6]])
     else:
         fig = gridplot(children=[[s2, s3]])
 

@@ -19,7 +19,7 @@ from astroquery.gaia import Gaia
 from astropy.io import fits
 from bokeh.plotting import figure, show
 from bokeh.layouts import gridplot, column
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
@@ -51,7 +51,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
-def SOSS_trace_mask(aperture, radius=15):
+def SOSS_trace_mask(aperture, radius=20):
     """
     Construct a trace mask for SOSS data
 
@@ -94,7 +94,35 @@ def SOSS_trace_mask(aperture, radius=15):
     return mask1, mask2, mask3
 
 
-def find_stars(ra, dec, width=15*u.arcmin, catalog='Gaia', verbose=False):
+def trace_dict(teffs=None):
+    """
+    Load the trace data for all the given Teff values into a dictionary
+
+    Parameters
+    ----------
+    teffs: sequence
+        The teff values to fetch
+
+    Returns
+    -------
+    dict
+        The trace data for the given Teff values
+    """
+    teff_dict = {}
+
+    if teffs is None:
+        teffs = np.arange(2000, 12100, 100)
+
+    # Make sure they're ints
+    teffs = [int(teff) for teff in teffs]
+
+    for teff in teffs:
+        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, verbose=False)
+
+    return teff_dict
+
+
+def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -195,6 +223,14 @@ def find_stars(ra, dec, width=15*u.arcmin, catalog='Gaia', verbose=False):
     urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs=2&-out.orig=o'.format(cat, ra_deg, dec_deg) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
     stars.add_column(urls, name='url')
 
+    # Get traces
+    traces = trace_dict(teffs=np.unique(stars['Teff']))
+    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o1')
+    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o2')
+    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o3')
+    for star in stars:
+        star['trace_o1'], star['trace_o2'], star['trace_o3'] = traces[int(star['Teff'])]
+
     return stars
 
 
@@ -242,8 +278,11 @@ def add_star(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dis
         ra = newcoord.ra.degree
         dec = newcoord.dec.degree
 
+    # Get the trace
+    trace = get_trace('NIS_SUBSTRIP256', teff, verbose=False)
+
     # Add the row to the table
-    startable.add_row({'name': name, 'ra': ra, 'dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'distance': dist})
+    startable.add_row({'name': name, 'ra': ra, 'dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
     startable.sort('distance')
 
     return startable
@@ -279,6 +318,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         print("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
 
     if isinstance(aperture, str):
+
+        if verbose:
+            print("Getting aperture info from pysiaf...")
 
         # Aperture names
         if aperture not in APERTURES:
@@ -325,6 +367,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     attitude = pysiaf.utils.rotations.attitude_matrix(stars['xtel'][0], stars['ytel'][0], stars['ra'][0], stars['dec'][0], APA)
 
     # Get relative coordinates of the stars based on target attitude
+    if verbose:
+        print("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
     for idx, star in enumerate(stars[1:]):
 
         # Get the TEL coordinates (V2, V3) of the star
@@ -354,7 +398,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
 
     # Make frame for the target and a frame for all the other stars
-    targframe = np.zeros((subY, subX))
+    targframe_o1 = np.zeros((subY, subX))
+    targframe_o2 = np.zeros((subY, subX))
+    targframe_o3 = np.zeros((subY, subX))
     starframe = np.zeros((subY, subX))
 
     if plot:
@@ -417,8 +463,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
             t0y0 = dim0y - (f1y0 - f0y0) if f0y0 == aper['subarr_y'][0] else 0
             t1y0 = f1y0 - f0y0 if f1y0 == aper['subarr_y'][2] else dim0y
 
-            if verbose:
-                print("{} x {} pixels of star {} order 0 fall on {}".format(t1y0 - t0y0, t1x0 - t0x0, idx, aperture.AperName))
+            # if verbose:
+            #     print("{} x {} pixels of star {} order 0 fall on {}".format(t1y0 - t0y0, t1x0 - t0x0, idx, aperture.AperName))
 
             # Target order 0 is never on the subarray so add all order 0s to the starframe
             starframe[f0y0 - aper['subarr_y'][1]:f1y0 - aper['subarr_y'][1], f0x0 - aper['subarr_x'][1]:f1x0 - aper['subarr_x'][0]] += scale0[t0y0:t1y0, t0x0:t1x0]
@@ -426,25 +472,48 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         # Higher Orders ============================================================================
 
         # Get the appropriate trace
-        trace = get_trace(aperture.AperName, star['Teff'], verbose=verbose)
+        trace_o1 = star['trace_o1']
+        trace_o2 = star['trace_o2']
+        trace_o3 = star['trace_o3']
 
         # Orient trace if need be
         if 'NIS' in aperture.AperName:
-            trace = trace.T[:, ::-1] * 1.5 # Scaling factor based on observations
-            trace = np.rot90(trace, k=1)
+            trace_o1 = np.rot90(trace_o1.T[:, ::-1] * 1.5, k=1) # Scaling factor based on observations
+            trace_o2 = np.rot90(trace_o2.T[:, ::-1] * 1.5, k=1) # Scaling factor based on observations
+            trace_o3 = np.rot90(trace_o3.T[:, ::-1] * 1.5, k=1) # Scaling factor based on observations
 
             # Pad or trim SUBSTRIP256 simulation for SUBSTRIP96 or FULL frame
             if aperture.AperName == 'NIS_SOSSFULL':
-                trace = np.pad(trace, ((1792, 0), (0, 0)), 'constant')
+                trace_o1 = np.pad(trace_o1, ((1792, 0), (0, 0)), 'constant')
+                trace_o2 = np.pad(trace_o2, ((1792, 0), (0, 0)), 'constant')
+                trace_o3 = np.pad(trace_o3, ((1792, 0), (0, 0)), 'constant')
             elif aperture.AperName == 'NIS_SUBSTRIP96':
-                trace = trace[:96, :]
+                trace_o1 = trace_o1[:96, :]
+                trace_o2 = trace_o2[:96, :]
+                trace_o3 = trace_o3[:96, :]
 
         # Get the trace and shift into the correct subarray position
         # trace *= mask1 + mask2 + mask3
 
         # Scale the order 1, 2, 3 image and get dims
-        trace *= star['fluxscale'] * ord1scale
-        dimy, dimx = trace.shape
+        trace_o1 *= star['fluxscale'] * ord1scale
+        if aperture.AperName.startswith('NIS'):
+            trace_o2 *= star['fluxscale'] * ord1scale
+            trace_o3 *= star['fluxscale'] * ord1scale
+        dimy, dimx = trace_o1.shape
+
+        # Func to remove background
+        # def bkg(trc, cutoff=0.00001):
+        #     trc[trc < 0] = cutoff
+        #     trc[np.isnan(trc)] = cutoff
+        #     trc[np.isinf(trc)] = cutoff
+        #     return trc
+
+        # Trim background
+        # trace_o1 = bkg(trace_o1)
+        # if aperture.AperName.startswith('NIS'):
+        #     trace_o2 = bkg(trace_o2)
+        #     trace_o3 = bkg(trace_o3)
 
         # Location of full trace footprint
         fpx0 = int(star['xord1'])
@@ -465,29 +534,43 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
             t0y = dimy - (f1y - f0y) if f0y == aper['subarr_y'][0] else 0
             t1y = f1y - f0y if f1y == aper['subarr_y'][2] else dimy
 
-            if verbose:
-                print("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
+            # if verbose:
+            #     print("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
 
             # Box to show footprint of full trace
             # fig.patch([fpx0, fpx1, fpx1, fpx0], [fpy0, fpy0, fpy1, fpy1], line_color="black", fill_color='black', fill_alpha=0.1)
 
-            # Add all order 1, 2, 3s to the correct frame
+            # Add each order to it's own frame
             if idx == 0:
-                targframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace[t0y:t1y, t0x:t1x]
+
+                targframe_o1[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o1[t0y:t1y, t0x:t1x]
+                if aperture.AperName.startswith('NIS'):
+                    targframe_o2[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o2[t0y:t1y, t0x:t1x]
+                    targframe_o3[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o3[t0y:t1y, t0x:t1x]
+
+            # Add all orders to the same frame
             else:
-                starframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace[t0y:t1y, t0x:t1x]
+
+                starframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o1[t0y:t1y, t0x:t1x]
+                if aperture.AperName.startswith('NIS'):
+                    starframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o2[t0y:t1y, t0x:t1x]
+                    starframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace_o3[t0y:t1y, t0x:t1x]
 
     # Contam per order
-    simframe = targframe + starframe
-    simframe[simframe < 0] = 0.0001
+    simframe_o1 = targframe_o1 + starframe
+    simframe_o2 = targframe_o2 + starframe
+    simframe_o3 = targframe_o3 + starframe
+    simframe = targframe_o1 + targframe_o2 + targframe_o3 + starframe
 
     # Calculate contam/total counts in each detector column
-    pctframe = starframe / simframe
-    pctframe[np.isinf(pctframe)] = 0.0001
-    pctframe[np.isnan(pctframe)] = 0.0001
-    pctline1 = np.mean(pctframe * mask1, axis=0)
-    pctline2 = np.mean(pctframe * mask2, axis=0)
-    pctline3 = np.mean(pctframe * mask3, axis=0)
+    pctframe_o1 = starframe / simframe_o1
+    pctframe_o2 = starframe / simframe_o2
+    pctframe_o3 = starframe / simframe_o3
+    pctline_o1 = np.nanmean(pctframe_o1 * mask1, axis=0)
+    pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
+    pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
+
+    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': FOVstars, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
     if plot:
 
@@ -515,22 +598,21 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         fig.y_range = Range1d(aper['subarr_y'][1], aper['subarr_y'][2])
 
         # Source for ratio plot
-        rsource = ColumnDataSource(data=dict(x=np.arange(subX), zeros=np.zeros(subX), o1=pctline1, o2=pctline2, o3=pctline3))
+        rsource = ColumnDataSource(data=dict(x=np.arange(subX), zeros=np.zeros(subX), o1=pctline_o1, o2=pctline_o2, o3=pctline_o3))
 
         # Make plot
         rfig = figure(title='Target Contamination', width=900, height=200, match_aspect=True, tools=tools, x_range=fig.x_range)
-        rfig.line(np.arange(subX), pctline1, color='blue', legend_label='Order 1')
+        rfig.line(np.arange(subX), pctline_o1, color='blue', legend_label='Order 1')
         glyph1 = VArea(x='x', y1='zeros', y2='o1', fill_color="blue", fill_alpha=0.3)
         rfig.add_glyph(rsource, glyph1)
         if aperture.AperName not in ['NIS_SUBSTRIP96']:
-            rfig.line(np.arange(subX), pctline2, color='red', legend_label='Order 2')
+            rfig.line(np.arange(subX), pctline_o2, color='red', legend_label='Order 2')
             glyph2 = VArea(x='x', y1='zeros', y2='o2', fill_color="red", fill_alpha=0.3)
             rfig.add_glyph(rsource, glyph2)
-        if aperture.AperName not in ['NIS_SUBSTRIP96']:
-            rfig.line(np.arange(subX), pctline3, color='green', legend_label='Order 3')
+            rfig.line(np.arange(subX), pctline_o3, color='green', legend_label='Order 3')
             glyph3 = VArea(x='x', y1='zeros', y2='o3', fill_color="green", fill_alpha=0.3)
             rfig.add_glyph(rsource, glyph3)
-        rfig.y_range = Range1d(0, min(1, max(pctline1.max(), pctline2.max(), pctline3.max())))
+        rfig.y_range = Range1d(0, min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
 
@@ -541,9 +623,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         # Plot grid
         gp = gridplot([[fig], [rfig]])
 
-        show(gp)
+        return result, gp
 
-    return {'pa': V3PA, 'target': targframe, 'contaminants': starframe, 'sources': FOVstars, 'order1_contam': pctline1, 'order2_contam': pctline2, 'order3_contam': pctline3}
+    return result
 
 
 def plot_traces(star_table, fig, color='red'):
@@ -580,9 +662,9 @@ def plot_traces(star_table, fig, color='red'):
 
     for idx, star in enumerate(star_table):
         # Order 1/2/3 location relative to order 0
-        fig.line(xr0 + star['xord1'], yr0 + star['yord1'], color=color)
-        fig.line(xr1 + star['xord1'], yr1 + star['yord1'], color=color)
-        fig.line(xr2 + star['xord1'], yr2 + star['yord1'], color=color)
+        fig.line(xr0 + star['xord1'], yr0 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
+        fig.line(xr1 + star['xord1'], yr1 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
+        fig.line(xr2 + star['xord1'], yr2 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
 
     return fig
 
@@ -652,11 +734,6 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     if isinstance(binComp, dict):
         stars = add_star(stars, **binComp)
 
-    # Time it
-    if verbose:
-        print('Calculating target contamination from {} neighboring sources...'.format(len(stars)))
-        start = time.time()
-
     # Set the number of cores for multiprocessing
     max_cores = cpu_count()
     if n_jobs == -1 or n_jobs > max_cores:
@@ -665,6 +742,11 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     # List of PAs
     if pa_list is None:
         pa_list = np.arange(0, 360, 1)
+
+    # Time it
+    if verbose:
+        print('Calculating target contamination from {} neighboring sources at {} position angles...'.format(len(stars), len(pa_list)))
+        start = time.time()
 
     # Exclude PAs where target is not visible to speed up calculation
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
@@ -693,10 +775,13 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
             results.append(result)
 
     # We only need one target frame frames
-    targframe = np.asarray(results[0]['target'])
+    targframe_o1 = np.asarray(results[0]['target_o1'])
+    targframe_o2 = np.asarray(results[0]['target_o2'])
+    targframe_o3 = np.asarray(results[0]['target_o3'])
+    targframe = [targframe_o1, targframe_o2, targframe_o3]
 
     # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframe.shape[0], targframe.shape[1]))
+    starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
 
     # Make the contamination plot
     for result in results:
@@ -712,7 +797,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     return targframe, starcube, results
 
 
-def contam_slider_plot(contam_results, threshold=0.2, plot=False):
+def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     """
     Make the contamination plot with a slider
 
@@ -805,13 +890,21 @@ def contam_slider_plot(contam_results, threshold=0.2, plot=False):
     viz_plt.step(np.arange(360), np.mean(order1_contam, axis=1), color='blue', mode="center")
     viz_plt.step(np.arange(360), np.mean(order2_contam, axis=1), color='red', mode="center")
     viz_plt.step(np.arange(360), np.mean(order3_contam, axis=1), color='green', mode="center")
-    viz_plt.varea(x=np.arange(360), y1=np.zeros_like(viz_none), y2=viz_none, color='black', alpha=0.6)
-    viz_plt.varea(x=np.arange(360), y1=np.zeros_like(viz_none), y2=viz_ord1, color='blue', alpha=0.2)
-    viz_plt.varea(x=np.arange(360), y1=np.zeros_like(viz_none), y2=viz_ord2, color='red', alpha=0.2)
-    viz_plt.varea(x=np.arange(360), y1=np.zeros_like(viz_none), y2=viz_ord3, color='green', alpha=0.2)
+    c1 = viz_plt.vbar(x=np.arange(360), top=viz_ord1, line_color=None, fill_color='blue', alpha=0.2)
+    c2 = viz_plt.vbar(x=np.arange(360), top=viz_ord2, line_color=None, fill_color='red', alpha=0.2)
+    c3 = viz_plt.vbar(x=np.arange(360), top=viz_ord3, line_color=None, fill_color='green', alpha=0.2)
+    c0 = viz_plt.vbar(x=np.arange(360), top=viz_none, color='black', alpha=0.6)
     viz_plt.x_range = Range1d(0, 359)
     viz_plt.y_range = Range1d(0, 1)
     viz_plt.add_layout(span)
+
+    legend = Legend(items=[
+        ('Ord 1 > {}% Contaminated'.format(threshold * 100), [c1]),
+        ('Ord 2 > {}% Contaminated'.format(threshold * 100), [c2]),
+        ('Ord 3 > {}% Contaminated'.format(threshold * 100), [c3]),
+        ("Target not visible", [c0]),
+    ], location=(50, 0), orientation='horizontal', border_line_alpha=0)
+    viz_plt.add_layout(legend, 'below')
 
     # Put plot together
     slider.js_on_change('value', callback)
@@ -880,20 +973,30 @@ def get_trace(aperture, teff, verbose=False):
     # Get data
     if 'NIS' in aperture:
         # Orders stored separately just in case ;)
-        trace = (fits.getdata(file, ext=0) + fits.getdata(file, ext=1) + fits.getdata(file, ext=2))[::-1, :]
+        traceo1 = fits.getdata(file, ext=0)
+        traceo2 = fits.getdata(file, ext=1)
+        traceo3 = fits.getdata(file, ext=2)
+
+        # Zero out background
+        traceo1[traceo1 < 1] = 0
+        traceo2[traceo2 < 1] = 0
+        traceo3[traceo3 < 1] = 0
+
+        trace = [traceo1, traceo2, traceo3]
+
     else:
-        trace = fits.getdata(file)
+        trace = [fits.getdata(file)]
 
-    # Expand to SUBSTRIP256 to FULL frame for NIS_SOSSFULL
-    if aperture == 'NIS_SOSSFULL':
-        full_trace = np.zeros((2301, 2301))
-        full_trace[:, -257:] = trace
-        trace = full_trace
+    # # Expand to SUBSTRIP256 to FULL frame for NIS_SOSSFULL
+    # if aperture == 'NIS_SOSSFULL':
+    #     full_trace = np.zeros((2301, 2301))
+    #     full_trace[:, -257:] = trace
+    #     trace = full_trace
 
-    return trace.squeeze()[::-1]
+    return trace
 
 
-def old_plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
+def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, wlims, badPAs=[], title=''):
     """
     Plot the contamination
 
@@ -920,55 +1023,36 @@ def old_plot_contamination(targframe, starcube, wlims, badPAs=[], title=''):
     # Data dimensions
     PAs, rows, cols = starcube.shape
 
-    # Remove background values < 1 as it can blow up contamination
-    targframe = np.where(targframe < 1, 0, targframe)
+    for targframe in [targframe_o1, targframe_o2, targframe_o3]:
 
-    # The width of the target trace
-    peak = targframe.max()
-    low_lim_col = np.where(targframe > 0.0001 * peak)[1].min()
-    high_lim_col = np.where(targframe > 0.0001 * peak)[1].max()
 
-    # The length of the target trace
-    targ_trace_start = np.where(targframe > 0.0001 * peak)[0].min()
-    targ_trace_stop = np.where(targframe > 0.0001 * peak)[0].max()
+        # Remove background values < 1 as it can blow up contamination
+        targframe = np.where(targframe < 1, 0, targframe)
 
-    # # Calculate limits of the target trace
-    # cutoff = targframe.max() / 0.0001
-    # row_starts = np.argmax(targframe > cutoff, axis=1)
-    # row_stops = -np.argmax(targframe[:, ::-1] > cutoff, axis=1)
-    #
-    # # Iterate over rows
-    # contam = np.zeros([rows, PAs])
-    # for row, (start, stop) in enumerate(zip(row_starts, row_stops)):
-    #
-    #     # Calculate weights
-    #     tr = targframe[row, start:stop]
-    #     wt = tr / np.sum(tr**2)
-    #     ww = np.tile(wt, PAs).reshape([PAs, tr.size])
-    #
-    #     # Add to contam figure
-    #     contam[row, :] = np.sum(starcube[:, row, start:stop] * ww, axis=1)
+        # The width of the target trace
+        peak = targframe.max()
+        low_lim_col = np.where(targframe > 0.0001 * peak)[1].min()
+        high_lim_col = np.where(targframe > 0.0001 * peak)[1].max()
 
-    # Using the starcube of shape (PAs, rows, wave), make a frame of (wave, pa)
-    contam = np.zeros([rows, PAs])
-    for row in np.arange(rows):
+        # Using the starcube of shape (PAs, rows, wave), make a frame of (wave, pa)
+        contam = np.zeros([rows, PAs])
+        for row in np.arange(rows):
 
-        # Get the
-        peakX = np.argmax(targframe[row, :])
-        left = peakX - low_lim_col
-        right = peakX + high_lim_col
+            # Get the
+            peakX = np.argmax(targframe[row, :])
+            left = peakX - low_lim_col
+            right = peakX + high_lim_col
 
-        # Calculate weights
-        tr = targframe[row, left:right]
-        wt = tr / np.sum(tr**2)
-        ww = np.tile(wt, PAs).reshape([PAs, tr.size])
+            # Calculate weights
+            tr = targframe[row, left:right]
+            wt = tr / np.sum(tr**2)
+            ww = np.tile(wt, PAs).reshape([PAs, tr.size])
 
-        # Add to contam figure
-        contam[row, :] = np.sum(starcube[:, row, left:right] * ww, axis=1, where=~np.isnan(starcube[:, row, left:right] * ww))
+            # Add to contam figure
+            contam[row, :] = np.sum(starcube[:, row, left:right] * ww, axis=1, where=~np.isnan(starcube[:, row, left:right] * ww))
 
-    # Log plot contamination, clipping small values
-    contam = np.log10(np.clip(contam, 1.e-10, 1.))
-    # contam = np.clip(contam, 1.e-10, 1.)
+        # Log plot contamination, clipping small values
+        contam = np.log10(np.clip(contam, 1.e-10, 1.))
 
     # Hover tool
     hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], names=['contam'])

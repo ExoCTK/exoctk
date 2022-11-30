@@ -419,6 +419,19 @@ def groups_integrations():
     return render_template('groups_integrations.html', form=form, sat_data=sat_data)
 
 
+@app_exoctk.route('/pa_contam', methods=['GET', 'POST'])
+def pa_contam():
+    """The contamination and visibility form page
+
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the contamination and visibility page.
+
+    """
+    return render_template('pa_contam.html')
+
+
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
@@ -511,24 +524,61 @@ def contam_visibility():
             # Contamination plot too
             if form.calculate_contam_submit.data:
 
-                # # First convert ra and dec to HH:MM:SS
-                # ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
-                # sc = SkyCoord(ra_deg, dec_deg, unit='deg')
-                # ra_dec = sc.to_string('hmsdms')
-                # ra_hms, dec_dms = ra_dec.split(' ')[0], ra_dec.split(' ')[1]
-                #
-                # # Make field simulation
-                # contam_cube = fs.field_simulation(ra_hms, dec_dms, form.inst.data, binComp=form.companion.data)
-                # contam_plot = cf.contam(contam_cube, form.inst.data, targetName=str(title), paRange=[int(form.pa_min.data), int(form.pa_max.data)], badPAs=badPAs, fig='bokeh')
-
-                # First convert ra and dec to HH:MM:SS
+                # Get RA and Dec in degrees
                 ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
 
-                # Make field simulation
-                targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, plot=False, multi=False)
+                # Add companion
+                try:
+                    comp_teff = float(form.teff.data)
+                except TypeError:
+                    comp_teff = None
+                try:
+                    comp_mag = float(form.delta_mag.data)
+                except TypeError:
+                    comp_mag = None
+                try:
+                    comp_dist = float(form.dist.data)
+                except TypeError:
+                    comp_dist = None
+                try:
+                    comp_pa = float(form.pa.data)
+                except TypeError:
+                    comp_pa = None
 
-                # Make the plot
-                contam_plot = fs.contam_slider_plot(results)
+                # Get PA value
+                pa_val = float(form.v3pa.data)
+                if pa_val == -1:
+
+                    # Add a companion
+                    companion = None
+                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
+
+                    # Make field simulation
+                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, binComp=companion, plot=False, multi=False)
+
+                    # Make the plot
+                    # contam_plot = fs.contam_slider_plot(results)
+
+                    # Make old contam plot
+                    starCube = np.zeros((362, 2048, 256))
+                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
+                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
+                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+                    contam_plot = cf.contam(starCube, 'NIS_SUBSTRIP256', targetName=form.targname.data, badPAs=badPAs)
+
+                else:
+
+                    # Get stars
+                    stars = fs.find_stars(ra_deg, dec_deg, verbose=False)
+
+                    # Add companion
+                    print(comp_teff, comp_mag, comp_dist, comp_pa)
+                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                        stars = fs.add_star(stars, 'Companion', ra_deg, dec_deg, comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa)
+
+                    # Calculate contam
+                    result, contam_plot = fs.calc_v3pa(pa_val, stars, 'NIS_SUBSTRIP256', plot=True, verbose=False)
 
                 # Get scripts
                 contam_js = INLINE.render_js()
@@ -546,7 +596,7 @@ def contam_visibility():
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
                                    contam_js=contam_js,
-                                   contam_css=contam_css)
+                                   contam_css=contam_css, pa_val=pa_val)
 
         except Exception as e:
             err = 'The following error occurred: ' + str(e)
