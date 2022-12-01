@@ -74,10 +74,32 @@
     		<p>
                 {% if pa_val == -1 %}
                     <ul>
-                        <li>The top plot shows the fractional contamination of orders 1 (blue), 2 (red), and 3 (green) in each detector column.</li>
-                        <li>Drag the slider or use arrow keys to display the contamination at different position angles.</li>
-                        <li>The bottom plot shows the contamination at the selected PA as well as the positions angles where the target is not visible (grey).</li>
+                        <li>The larger panel shows, for each order, the contamination of the target star's spectrum due to orders 1 and 2 of its neighboring stars.</li>
+                        <li>The color scale denotes the contamination level (see scale below plot).</li>
+                        <li>The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
+                        <li>The smaller panel shows, for each order, the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
+                        <li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
                     </ul>
+                    <div style="border:1px solid black; width:164px; height:21px;">
+                        <div style="border:none; width:20px; height:20px; background-color:#ffffff; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#d0d1e6; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#a6bddb; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#74a9cf; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#3690c0; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#0570b0; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#034e7b; float:left;"></div>
+                        <div style="border:none; width:20px; height:20px; background-color:#000000; float:left;"></div>
+                    </div>
+                    <div style="width:164px; height:22px; text-align:center;">
+                    -4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>
+                    <div style="width:164px; height:22px; text-align:center;">
+                    good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
+                    <br><br>
+<!--                    <ul>-->
+<!--                        <li>The top plot shows the fractional contamination of orders 1 (blue), 2 (red), and 3 (green) in each detector column.</li>-->
+<!--                        <li>Drag the slider or use arrow keys to display the contamination at different position angles.</li>-->
+<!--                        <li>The bottom plot shows the contamination at the selected PA as well as the positions angles where the target is not visible (grey).</li>-->
+<!--                    </ul>-->
                 {% else %}
                     <ul>
                         <li>The top plot shows the simulated observation at the given position angle.</li>
@@ -89,35 +111,6 @@
             <br>
             {{ contam_plot | safe }}
             <br>
-
-<!--            <div style="width:164px; height:22px; text-align:center;">-->
-<!--            log(contam. level)-->
-<!--            </div>-->
-<!--            <div style="border:1px solid black; width:164px; height:21px;">-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#ffffff; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#d0d1e6; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#a6bddb; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#74a9cf; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#3690c0; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#0570b0; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#034e7b; float:left;"></div>-->
-<!--                <div style="border:none; width:20px; height:20px; background-color:#000000; float:left;"></div>-->
-<!--            </div>-->
-<!--            <div style="width:164px; height:22px; text-align:center;">-->
-<!-- -4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>-->
-<!--            <div style="width:164px; height:22px; text-align:center;">-->
-<!--good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>-->
-<!--            <br><br>-->
-
-<!--    		<p>Figure explication:</p>-->
-<!--    		<ul>-->
-<!--    			<li>The larger panel shows, for each order, the contamination of the target star's spectrum due to orders 1 and 2 of its neighboring stars.</li>-->
-<!--          <li>The color scale denotes the contamination level (see scale below plot).</li>-->
-<!--    			<li>The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>-->
-<!--    			<li>The smaller panel shows, for each order, the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>-->
-<!--    			<li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>-->
-<!--    		</ul>-->
-<!--        <br>-->
 
         {% endif %}
 

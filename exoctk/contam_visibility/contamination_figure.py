@@ -272,6 +272,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
     # fig_data = np.clip(contamO1, 1.e-10, 1.)  # [:, :361] # might this
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))  # [:, :361] # might this
+
     # index have something to
     # do w the choppiness
     # of o1 in all instruments
