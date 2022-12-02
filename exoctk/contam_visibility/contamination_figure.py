@@ -245,7 +245,11 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         xlim0 = 5
         xlim1 = 12
 
+<<<<<<< HEAD
     TOOLS = 'pan, box_zoom, crosshair, reset'
+=======
+    TOOLS = 'pan, box_zoom, crosshair, reset, hover'
+>>>>>>> 8896b019b83bb82cba37ecaa32f910271449aa6f
 
     y = np.array([0., 0.])
     y1 = 0.07
