@@ -189,27 +189,6 @@ def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
         # Catalog name
         cat = 'II/246/out'
 
-    # # XMatch
-    # area = regions.CircleSkyRegion(center=targetcrd, radius=5*u.arcmin)
-    # stars = XMatch.query(cat1='vizier:I/350/gaiaedr3',
-    #                      cat2='vizier:II/246/out',
-    #                      max_distance=5 * u.arcsec, colRA1='ra',
-    #                      colDec1='dec', area=area)
-
-
-    # x = np.linspace(0.39, 1.5, 100)
-    # fig = figure()
-    # fig.circle(x, np.polyval([-0.0395, -0.0020, 0.0192, -0.0353, 0.5092, 0.4929], x))
-    # show(fig)
-
-    # # Add any missing companion (ra, dec, J, H, K)
-    # if binComp != '':
-    #     deg2rad = np.pi / 180
-    #     bb = binComp[0] / 3600 / np.cos(stars[0]['ra'] * deg2rad)
-    #     star = {'ra': stars['ra'][0] + bb, 'dec': stars['dec'][0] + binComp[1] / 3600, 'j_m': binComp[2], 'h_m': binComp[3], 'k_m': binComp[4], 'j_h': binComp[2] - binComp[3], 'h_k': binComp[3] - binComp[4]}
-    #     star['Teff'] = teffMod[np.argmin((star['j_h'] - jhMod) ** 2 + (star['h_k'] - hkMod) ** 2)]
-    #     stars.add_row(star)
-
     # Find distance from target to each star
     sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
     cosdRA = stars['dec'][0] - stars['dec']
@@ -369,6 +348,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     # Get relative coordinates of the stars based on target attitude
     if verbose:
         print("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
+
     for idx, star in enumerate(stars[1:]):
 
         # Get the TEL coordinates (V2, V3) of the star
@@ -394,6 +374,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     # Just stars in FOV (Should always have at least 1, the target)
     lft, rgt, top, bot = 700, 5000, 2000, 1400
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
+
     if verbose:
         print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
 
@@ -712,6 +693,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     # Instantiate a pySIAF object
     if verbose:
         print('Getting info from pysiaf for {} aperture...'.format(aperture))
+
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     inst = APERTURES[aperture]
     siaf = pysiaf.Siaf(inst['inst'])
@@ -817,7 +799,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     pa_list = np.arange(360)
     goodPA_list = [result['pa'] for result in contam_results]
     badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
-    
+
     # Grab one target frame
     targframe = np.asarray(contam_results[0]['target'])
 
@@ -1089,216 +1071,6 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
     # sumplot.yaxis.major_label_text_font_size = '0pt'
 
     return trplot#gridplot(children=[[trplot, sumplot]])
-
-
-# import glob
-# import os
-# import pysiaf
-#
-# import astropy.coordinates as crd
-# from astropy.io import fits
-# from astroquery.irsa import Irsa
-# import astropy.units as u
-# import numpy as np
-# from pysiaf.utils import rotations
-# from scipy.io import readsav
-#
-# from exoctk import utils
-#
-# EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
-# TRACES_PATH = os.path.join(os.environ.get('EXOCTK_DATA'), 'exoctk_contam', 'traces')
-#
-#
-# def sossFieldSim(ra, dec, binComp='', dimX=256, frame=0):
-#     """ Produce a SOSS field simulation for a target.
-#     Parameters
-#     ----------
-#     ra: float
-#         The RA of the target.
-#     dec: float
-#         The Dec of the target.
-#     binComp: sequence
-#         The parameters of a binary companion.
-#     dimX: int
-#         The subarray size.
-#     Returns
-#     -------
-#     simuCub : np.ndarray
-#         The simulated data cube.
-#     """
-#
-#     # STEP 1
-#     # Pulling stars from IRSA point-source catalog
-#     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
-#     targetRA = targetcrd.ra.deg
-#     targetDEC = targetcrd.dec.deg
-#     info = Irsa.query_region(targetcrd,
-#                              catalog='fp_psc',
-#                              spatial='Cone',
-#                              radius=2.5 * u.arcmin)
-#
-#     # Coordinates of all stars in FOV, including target
-#     allRA = info['ra'].data.data
-#     allDEC = info['dec'].data.data
-#     Jmag = info['j_m'].data.data
-#     Hmag = info['h_m'].data.data
-#     Kmag = info['k_m'].data.data
-#
-#     # J-H band, H-K band. This will be used to derive the stellar Temps later
-#     J_Hobs = Jmag - Hmag
-#     H_Kobs = Hmag - Kmag
-#
-#     # Determining target index by calculating the relative distance between
-#     # each source and the target. The target will have the smallest distance
-#     # from itself (oof) so whatever that index is will be the targetIndex
-#     aa = ((targetRA - allRA) * np.cos(targetDEC))
-#     distance = np.sqrt(aa ** 2 + (targetDEC - allDEC) ** 2)
-#     targetIndex = np.argmin(distance)
-#
-#     # Add any missing companion
-#     if binComp != '':
-#         binComp = [float(i) for i in binComp.split(',')]
-#
-#         deg2rad = np.pi / 180
-#         bb = binComp[0] / 3600 / np.cos(allDEC[targetIndex] * deg2rad)
-#         allRA = np.append(allRA, (allRA[targetIndex] + bb))
-#         allDEC = np.append(allDEC, (allDEC[targetIndex] + binComp[1] / 3600))
-#         Jmag = np.append(Jmag, binComp[2])
-#         Hmag = np.append(Kmag, binComp[3])
-#         Kmag = np.append(Kmag, binComp[4])
-#         J_Hobs = Jmag - Hmag
-#         H_Kobs = Hmag - Kmag
-#
-#     # Number of stars
-#     nStars = allRA.size
-#
-#     # Restoring model parameters
-#     modelParam = readsav(os.path.join(TRACES_PATH, 'NIRISS_old', 'modelsInfo.sav'),
-#                          verbose=False)
-#     models = modelParam['models']
-#     modelPadX = modelParam['modelpadx']
-#     modelPadY = modelParam['modelpady']
-#     dimXmod = modelParam['dimxmod']
-#     dimYmod = modelParam['dimymod']
-#     jhMod = modelParam['jhmod']
-#     hkMod = modelParam['hkmod']
-#     teffMod = modelParam['teffmod']
-#
-#     # Find/assign Teff of each star
-#     starsT = np.empty(nStars)
-#     for j in range(nStars):
-#         color_separation = (J_Hobs[j] - jhMod) ** 2 + (H_Kobs[j] - hkMod) ** 2
-#         min_separation_ind = np.argmin(color_separation)
-#         starsT[j] = teffMod[min_separation_ind]
-#
-#     sweetSpot = dict(x=856, y=107, RA=allRA[targetIndex],
-#                      DEC=allDEC[targetIndex], jmag=Jmag[targetIndex])
-#
-#     radeg = 180 / np.pi
-#     niriss_pixel_scale = 0.065  # arcsec
-#     # offset between all stars and target
-#     dRA = (allRA - sweetSpot['RA']) * np.cos(sweetSpot['DEC'] / radeg) * 3600
-#     dDEC = (allDEC - sweetSpot['DEC']) * 3600
-#
-#     # Put field stars positions and magnitudes in structured array
-#     _ = dict(RA=allRA, DEC=allDEC, dRA=dRA, dDEC=dDEC, jmag=Jmag, T=starsT,
-#              x=np.empty(nStars), y=np.empty(nStars), dx=np.empty(nStars),
-#              dy=np.empty(nStars), distance=distance)
-#     stars = np.empty(nStars, dtype=[(key, val.dtype) for key, val in _.items()])
-#     for key, val in _.items():
-#         stars[key] = val
-#
-#     # Initialize final fits cube that contains the modelled traces
-#     # with contamination
-#     PAmin = 0  # instrument PA, degrees
-#     PAmax = 360
-#     dPA = 1  # degrees
-#
-#     # Set of IPA values to cover
-#     PAtab = np.arange(PAmin, PAmax, dPA)  # degrees
-#     nPA = len(PAtab)
-#
-#     dimY = 2048
-#     # cube of trace simulation at every degree of field rotation,
-#     # +target at O1 and O2
-#     simuCube = np.zeros([nPA + 2, dimY, dimX])
-#
-#     saveFiles = glob.glob(
-#         os.path.join(
-#             TRACES_PATH,
-#             'NIRISS_old',
-#             '*modelOrder12*.sav'))
-#
-#     # Big loop to generate a simulation at each instrument PA
-#
-#     # for kPA in [frame]:  # range(PAtab.size):
-#     for kPA in range(PAtab.size):
-#         APA = PAtab[kPA]
-#         print('Generating field at APA : {}'.format(str(APA)))
-#
-#         sindx = np.sin((np.pi / 2) + APA / radeg) * stars['dDEC']
-#         cosdx = np.cos((np.pi / 2) + APA / radeg) * stars['dDEC']
-#         nps = niriss_pixel_scale
-#         stars['dx'] = (np.cos((np.pi / 2) + APA / radeg) * stars['dRA'] - sindx) / nps
-#         stars['dy'] = (np.sin((np.pi / 2) + APA / radeg) * stars['dRA'] + cosdx) / nps
-#         stars['x'] = stars['dx'] + sweetSpot['x']
-#         stars['y'] = stars['dy'] + sweetSpot['y']
-#
-#         # Retain stars that are within the Direct Image NIRISS POM FOV
-#         ind, = np.where(
-#             (stars['x'] >= -162) & (stars['x'] <= 2047 + 185) & (stars['y'] >= -154) & (stars['y'] <= 2047 + 174))
-#         starsInFOV = stars[ind]
-#
-#         for i in range(len(ind)):
-#             intx = round(starsInFOV['dx'][i])
-#             inty = round(starsInFOV['dy'][i])
-#
-#             k = np.where(teffMod == starsInFOV['T'][i])[0][0]
-#
-#             fluxscale = 10.0 ** (-0.4 * (starsInFOV['jmag'][i] - sweetSpot['jmag']))
-#
-#             # deal with subection sizes.
-#             # these variables will determine where the
-#             # trace will land on the array based on the
-#             # neighbor's position relative to the target's position
-#             mx0 = int(modelPadX - intx)
-#             mx1 = int(modelPadX - intx + dimX)
-#             my0 = int(modelPadY - inty)
-#             my1 = int(modelPadY - inty + dimY)
-#
-#             if (mx0 > dimXmod) or (my0 > dimYmod):
-#                 continue
-#             if (mx1 < 0) or (my1 < 0):
-#                 continue
-#
-#             x0 = (mx0 < 0) * (-mx0)
-#             y0 = (my0 < 0) * (-my0)
-#             mx0 *= (mx0 >= 0)
-#             mx1 = dimXmod if mx1 > dimXmod else mx1
-#             my0 *= (my0 >= 0)
-#             my1 = dimYmod if my1 > dimYmod else my1
-#
-#             # if target and first kPA, add target traces of order 1 and 2
-#             # in output cube
-#             if (intx == 0) & (inty == 0) & (kPA == 0):
-#                 fNameModO12 = saveFiles[k]
-#
-#                 modelO12 = readsav(fNameModO12, verbose=False)['modelo12']
-#                 ord1 = modelO12[0, my0:my1, mx0:mx1] * fluxscale
-#                 ord2 = modelO12[1, my0:my1, mx0:mx1] * fluxscale
-#                 simuCube[0, y0:y0 + my1 - my0, x0:x0 + mx1 - mx0] = ord1
-#                 simuCube[1, y0:y0 + my1 - my0, x0:x0 + mx1 - mx0] = ord2
-#
-#             if (intx != 0) or (inty != 0):
-#                 mod = models[k, my0:my1, mx0:mx1]
-#                 simuCube[kPA + 2, y0:y0 + my1 - my0, x0:x0 + mx1 - mx0] += mod * fluxscale
-#
-#     # fra = simuCube[frame + 2, :, :]
-#     # tar = simuCube[0, :, :]
-#     # ff = plot_frame(fra.T + tar.T)
-#     # show(ff)
-#
-#     return simuCube, Table(starsInFOV)
 
 
 if __name__ == '__main__':
