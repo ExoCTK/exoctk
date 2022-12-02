@@ -399,6 +399,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
         grouped_badPAs = np.asarray(grouped_badPAs)
 
     else:  # Accounting for targets with 100% visibility
+
         grouped_badPAs = np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
