@@ -932,6 +932,7 @@ class GetRetrieval():
                     # if attribute is a dictionary, see if the prior key is an option in the dictionary.
                     if pname in vars(self.cross_sections)[attribute].keys():
                         # if prior is in dictionary keys, assign the prior to transformed value.
+                        print("PARAM: {}, VALUE: {}".format(pname, pvalue))
                         vars(self.cross_sections)[attribute][pname] = pvalue
                     else:
                         continue
@@ -951,5 +952,6 @@ class GetRetrieval():
         """
 
         a, b = hyperparameters
+
         return a + (b - a)*x
 
