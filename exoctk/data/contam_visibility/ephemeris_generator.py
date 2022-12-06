@@ -1,8 +1,8 @@
 """
 Script to generate ephemeris for contamination & visibility tool
 
-from exoctk.data.contam_visibility.ephemeris_generator import generate_ephemeris
-ephemeris_generator('ephemeris_name.csv')
+>>> from exoctk.data.contam_visibility.ephemeris_generator import generate_ephemeris
+>>> ephemeris_generator('2021-12-26', '2022-10-31', 'JWST_ephemeris_2021-2022.txt')
 """
 from datetime import datetime
 import numpy as np
