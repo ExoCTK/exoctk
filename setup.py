@@ -20,6 +20,7 @@ REQUIRES = ['asteval',
             'gunicorn',
             'h5py',
             'ipython',
+            'jinja2<3.1.0',
             'matplotlib',
             'numpy',
             'numpydoc',
@@ -39,7 +40,7 @@ REQUIRES = ['asteval',
             'twine',
             'wtforms',
             'werkzeug>=2.0',
-            'jwst_gtvt @ git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
+            'jwst_gtvt']
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
