@@ -45,6 +45,7 @@ for root, _, files in os.walk("exoctk"):
     FILES += [os.path.join(root.replace("exoctk/", ""), fname)
               for fname in files if not fname.endswith(".py") and not fname.endswith(".pyc")]
 
+<<<<<<< HEAD
 setup(
     name='exoctk',
     version='1.1.1',
@@ -62,3 +63,20 @@ setup(
     long_description='',
     zip_safe=True,
     use_2to3=False)
+=======
+setup(name='exoctk',
+      version='1.1.1',
+      description='Observation reduction and planning tools for exoplanet science',
+      packages=find_packages(".", exclude=["*.tests"]),
+      package_data={'exoctk': FILES},
+      install_requires=REQUIRES,
+      dependency_links=DEPENDENCY_LINKS,
+      author='The ExoCTK Group',
+      author_email='exoctk@gmail.com',
+      license='MIT',
+      url='https://github.com/ExoCTK/exoctk',
+      long_description='',
+      zip_safe=True,
+      use_2to3=False
+)
+>>>>>>> update version in setup.py
