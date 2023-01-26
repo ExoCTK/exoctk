@@ -51,6 +51,39 @@
                             <td>Models</td>
                             <td>{{ form.modeldir.data }}</td>
                         </tr>
+<<<<<<< HEAD
+=======
+                        {% if spam_table != '' %}
+                            <tr>
+                                <td>Transit Duration</td>
+                                <td>{{ form.transit_duration.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>Orbital Period</td>
+                                <td>{{ form.orbital_period.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>Rp/R*</td>
+                                <td>{{ form.rp_rs.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>a/R*</td>
+                                <td>{{ form.a_rs.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>Inclination</td>
+                                <td>{{ form.inclination.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>Eccentricity</td>
+                                <td>{{ form.eccentricity.data }}</td>
+                            </tr>
+                            <tr>
+                                <td>\( \omega \)</td>
+                                <td>{{ form.omega.data }}</td>
+                            </tr>
+                        {% endif %}
+>>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                     </table>
                 </div>
 
@@ -69,10 +102,15 @@
             </div>
 
             <br>
+<<<<<<< HEAD
+=======
+            <h4>Coefficients</h4>
+>>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
             <form id='exportform' method='post' action='download' >
                 <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
                 <input class="btn" type='submit' value='Download Coefficient Tables' />
             </form>
+<<<<<<< HEAD
 
             <br>
             {% for tab in table %}
@@ -80,6 +118,24 @@
             <br>
             {% endfor %}
 
+=======
+            {% for tab in table %}
+                {{ tab|safe }}
+            {% endfor %}
+
+            {% if spam_table != '' %}
+                <br>
+                <h4>SPAM Coefficients</h4>
+                <form id='exportform' method='post' action='download' >
+                    <div style='display:none;'><input name='file_as_string' type='text' value="{{spam_file_as_string|safe}}"></div>
+                    <input class="btn" type='submit' value='Download SPAM Coefficient Tables' />
+                </form>
+                {% for tab in spam_table %}
+                    {{ tab|safe }}
+                {% endfor %}
+            {% endif %}
+
+>>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
         </div>
         
     </body>
