@@ -1,20 +1,15 @@
-import numpy as np
 import os
 
 from flask_wtf import FlaskForm
+import numpy as np
+from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
 from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError, Optional
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
 from exoctk.utils import get_env_variables, FILTERS_LIST, PROFILES
-from svo_filters import svo
-
-
-class MultiCheckboxField(SelectMultipleField):
-    """Makes a list of checkbox inputs"""
-    widget = ListWidget(prefix_label=False)
-    option_widget = CheckboxInput()
+from exoctk.throughputs import Throughput
 
 
 class BaseForm(FlaskForm):
@@ -25,6 +20,28 @@ class BaseForm(FlaskForm):
 
     # Submit button
     resolve_submit = SubmitField('Resolve Target')
+
+
+class MultiCheckboxField(SelectMultipleField):
+    """Makes a list of checkbox inputs"""
+    widget = ListWidget(prefix_label=False)
+    option_widget = CheckboxInput()
+
+
+class ContamVisForm(BaseForm):
+    """Form validation for the contamination_visibility tool"""
+    # Form submits
+    calculate_submit = SubmitField('Calculate Visibility')
+    calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
+    mode_submit = SubmitField('Mode Selected')
+
+    # Form inputs
+    ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
+    dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
+    inst = SelectField('inst', choices=[('NIRISS', 'NIRISS - SOSS'), ('NIRCam F322W2', 'NIRCam - Grism Time Series (F322W2)'), ('NIRCam F444W', 'NIRCam - Grism Time Series (F444W)'), ('MIRI', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
+    companion = StringField('companion', default='')
+    pa_min = DecimalField('pa_min', default=0, validators=[NumberRange(min=0, max=360, message='Minimum PA must be between 0 and 360 degrees')])
+    pa_max = DecimalField('pa_max', default=360, validators=[NumberRange(min=0, max=360, message='Maximum PA must be between 0 and 360 degrees')])
 
 
 class FortneyModelForm(BaseForm):
@@ -42,40 +59,6 @@ class FortneyModelForm(BaseForm):
 
     # Form submits
     calculate_submit = SubmitField('Calculate Forward Model')
-
-
-class LimbDarkeningForm(BaseForm):
-    """Form validation for the limb_darkening tool"""
-    # Model grid
-    modelgrid_dir = get_env_variables()['modelgrid_dir']
-    default_modelgrid = os.path.join(modelgrid_dir, 'ATLAS9/')
-    mg = ModelGrid(default_modelgrid, resolution=500)
-    teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
-    logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
-    feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
-    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(modelgrid_dir, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(modelgrid_dir, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
-
-    # Stellar parameters
-    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
-    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(logg_rng[0]), max=float(logg_rng[1]), message='Surface gravity must be between {} and {} for this model grid'.format(*logg_rng))])
-    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
-    mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
-
-    # LD profile
-    profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
-
-    # Bandpass
-    default_filter = 'Kepler.K'
-    defilt = svo.Filter(default_filter)
-    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in FILTERS_LIST], validators=[InputRequired('A filter is required!')])
-    wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
-    wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
-    n_bins = IntegerField('n_bins', default=1)
-
-    # Form submits
-    calculate_submit = SubmitField('Calculate Coefficients')
-    filter_submit = SubmitField('Filter Selected')
-    modelgrid_submit = SubmitField('Model Grid Selected')
 
 
 class GroupsIntsForm(BaseForm):
@@ -121,22 +104,63 @@ class GroupsIntsForm(BaseForm):
     sat_max = DecimalField('sat_max', default=0.95, validators=[InputRequired('A saturation level is required!'), NumberRange(min=0.0, message='Saturation level must be positive.')])
 
 
-class ContamVisForm(BaseForm):
-    """Form validation for the contamination_visibility tool"""
-    # Form submits
-    calculate_submit = SubmitField('Calculate Visibility')
-    calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
-    mode_submit = SubmitField('Mode Selected')
+class LimbDarkeningForm(BaseForm):
+    """Form validation for the limb_darkening tool"""
+    # Model grid
+    modelgrid_dir = get_env_variables()['modelgrid_dir']
+    default_modelgrid = os.path.join(modelgrid_dir, 'ATLAS9/')
+    mg = ModelGrid(default_modelgrid, resolution=500)
+    teff_rng = mg.Teff_vals.min(), mg.Teff_vals.max()
+    logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
+    feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
+    modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(modelgrid_dir, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(modelgrid_dir, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
 
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
     inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
-    teff = DecimalField('teff', default=None, validators=[Optional(), NumberRange(min=2300, max=12000, message='Teff must be between 2300K and 12000K')])
     delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
     dist = DecimalField('dist', default=None, validators=[Optional()])
     pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
     v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
+
+    # Stellar parameters
+    teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
+    logg = DecimalField('logg', default=4.5, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(logg_rng[0]), max=float(logg_rng[1]), message='Surface gravity must be between {} and {} for this model grid'.format(*logg_rng))])
+    feh = DecimalField('feh', default=0.0, validators=[InputRequired('A surface gravity is required!'), NumberRange(min=float(feh_rng[0]), max=float(feh_rng[1]), message='Metallicity must be between {} and {} for this model grid'.format(*feh_rng))])
+    mu_min = DecimalField('mu_min', default=0.1, validators=[InputRequired('A minimum mu value is required!'), NumberRange(min=0.0, max=1.0, message='Minimum mu must be between 0 and 1')])
+
+    # Planet parameters
+    td_rng = [0, 50]
+    transit_duration = DecimalField('transit_duration', default='',  validators=[Optional(), NumberRange(min=int(td_rng[0]), max=int(td_rng[1]), message='Transit duration must be between {} and {}'.format(*td_rng))])
+    op_rng = [0, 1000]
+    orbital_period = DecimalField('orbital_period', default='', validators=[Optional(), NumberRange(min=int(op_rng[0]), max=int(op_rng[1]), message='Orbital period must be between {} and {}'.format(*op_rng))])
+    rp_rng = [0, 1]
+    rp_rs = DecimalField('rp_rs', default='', validators=[Optional(), NumberRange(min=int(rp_rng[0]), max=int(rp_rng[1]), message='Planet radius must be between {} and {}'.format(*rp_rng))])
+    a_rng = [0, 100]
+    a_rs = DecimalField('a_rs', default='', validators=[Optional(), NumberRange(min=int(a_rng[0]), max=int(a_rng[1]), message='Semi-major axis must be between {} and {}'.format(*a_rng))])
+    inc_rng = [0, 180]
+    inclination = DecimalField('inclination', default='', validators=[Optional(), NumberRange(min=int(inc_rng[0]), max=int(inc_rng[1]), message='Inclination must be between {} and {}'.format(*inc_rng))])
+    ecc_rng = [0, 1]
+    eccentricity = DecimalField('eccentricity', default='', validators=[Optional(), NumberRange(min=int(ecc_rng[0]), max=int(ecc_rng[1]), message='Eccentricity must be between {} and {}'.format(*ecc_rng))])
+    w_rng = [0, 360]
+    omega = DecimalField('omega', default='', validators=[Optional(), NumberRange(min=int(w_rng[0]), max=int(w_rng[1]), message='Omega must be between {} and {}'.format(*w_rng))])
+
+    # LD profile
+    profiles = MultiCheckboxField('profiles', choices=[(x, x) for x in PROFILES], validators=[InputRequired('At least one profile is required!')])
+
+    # Bandpass
+    default_filter = 'NIRSpec.CLEAR.PRISM.S200A1'
+    defilt = Throughput(default_filter)
+    bandpass = SelectField('bandpass', default=default_filter, choices=[('tophat', 'Top Hat')] + [(filt, filt) for filt in FILTERS_LIST], validators=[InputRequired('A filter is required!')])
+    wave_min = DecimalField('wave_min', default=defilt.wave_min.value, validators=[NumberRange(min=0, max=30, message='Minimum wavelength must be between 0 and 30 microns!')])
+    wave_max = DecimalField('wave_max', default=defilt.wave_max.value, validators=[NumberRange(min=0, max=30, message='Maximum wavelength must be between 0 and 30 microns!')])
+    n_bins = IntegerField('n_bins', default=30)
+
+    # Form submits
+    calculate_submit = SubmitField('Calculate Coefficients')
+    filter_submit = SubmitField('Filter Selected')
+    modelgrid_submit = SubmitField('Model Grid Selected')
 
 
 class PhaseConstraint(BaseForm):
@@ -144,7 +168,7 @@ class PhaseConstraint(BaseForm):
 
     calculate_submit = SubmitField('Calculate Phase Constraint')
 
-    orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')]) 
+    orbital_period = FloatField('orbital_period', validators=[InputRequired('Orbital period is a required field')])
     eccentricity = FloatField('eccentricity', default=np.nan)
     transit_type = SelectField('transit_type', choices=[('primary', 'primary'), ('secondary', 'secondary')])
     omega = FloatField('omega', default=np.nan)

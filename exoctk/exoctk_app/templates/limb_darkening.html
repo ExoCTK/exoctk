@@ -47,6 +47,9 @@
                           <div class="input-group-addon" style='width:60px'>K</div>
                         </div>
                         <span id="helpBlock" class="help-block">The stellar effective temperature ({{ form.teff.validators[1].min }} - {{ form.teff.validators[1].max }})</span>
+                        {% for error in form.teff.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
                         <br>
 
                         <div class="input-group">
@@ -55,6 +58,9 @@
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity ({{ form.logg.validators[1].min }} - {{ form.logg.validators[1].max }})</span>
+                        {% for error in form.logg.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
                         <br>
 
                         <div class="input-group">
@@ -63,20 +69,96 @@
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity ({{ form.feh.validators[1].min }} - {{ form.feh.validators[1].max }})</span>
-                        <br>
-
-                        {% for error in form.teff.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
-                        {% for error in form.logg.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
                         {% for error in form.feh.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
-                        {% for error in form.mu_min.errors[:1] %}
+                        <br>
+
+                    </div>
+                </div>
+
+                                <hr class="col-md-12">
+                <div class='form-group'>
+                    <label for="modeldir" class="col-sm-2 control-label">Specify the Planetary Parameters (Required for SPAM Coefficients Only)</label>
+                    <div class="col-sm-10">
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Transit Duration</div>
+                              {{ form.transit_duration(value=form.transit_duration.data, size=10, placeholder="0 - 50", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'>hour</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The transit duration ({{ form.transit_duration.validators[1].min }} - {{ form.transit_duration.validators[1].max }})</span>
+                        {% for error in form.transit_duration.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Orbital Period</div>
+                              {{ form.orbital_period(value=form.orbital_period.data, size=10, placeholder="0 - 1000", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'>day</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The orbital period ({{ form.orbital_period.validators[1].min }} - {{ form.orbital_period.validators[1].max }})</span>
+                        {% for error in form.orbital_period.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\(R_\text{p}/R_\text{*}\)</div>
+                              {{ form.rp_rs(value=form.rp_rs.data, size=10, placeholder="0 - 1.0", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'> </div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The ratio of the planet radius to the stellar radius ({{ form.rp_rs.validators[1].min }} - {{ form.rp_rs.validators[1].max }})</span>
+                        {% for error in form.rp_rs.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\(a/R_\text{*}\)</div>
+                              {{ form.a_rs(value=form.a_rs.data, size=10, placeholder="0 - 1.0", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'> </div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The ratio of the semi-major axis to the stellar radius ({{ form.a_rs.validators[1].min }} - {{ form.a_rs.validators[1].max }})</span>
+                        {% for error in form.a_rs.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Inclination</div>
+                              {{ form.inclination(value=form.inclination.data, size=10, placeholder="0 - 180", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'>deg</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The inclination of the orbit ({{ form.inclination.validators[1].min }} - {{ form.inclination.validators[1].max }})</span>
+                        {% for error in form.inclination.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>Eccentricity</div>
+                              {{ form.eccentricity(value=form.eccentricity.data, size=10, placeholder="0 - 1.0", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'> </div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The eccentricity of the orbit ({{ form.eccentricity.validators[1].min }} - {{ form.eccentricity.validators[1].max }})</span>
+                        {% for error in form.eccentricity.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
+                        <div class="input-group">
+                          <div class="input-group-addon" style='width:120px'>\(\omega \)</div>
+                              {{ form.omega(value=form.omega.data, size=10, placeholder="0 - 360", rows=1, class='form-control') }}
+                          <div class="input-group-addon" style='width:60px'>deg</div>
+                        </div>
+                        <span id="helpBlock" class="help-block">The longitude of the periapsis ({{ form.omega.validators[1].min }} - {{ form.omega.validators[1].max }})</span>
+                        {% for error in form.omega.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
+                        <br>
+
                     </div>
                 </div>
 
@@ -173,6 +255,9 @@
                                 </div>
                             {% endfor %}
                         </div>
+                        {% for error in form.profiles.errors %}
+                        <span style="color: red;">{{ error }}</span>
+                        {% endfor %}
                         <br>
 
                         <div class="input-group">
@@ -181,11 +266,11 @@
                           <div class="input-group-addon" style='width:60px'></div>
                         </div>
                         <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
+                        {% for error in form.mu_min.errors[:1] %}
+                            <p style="color: red;">{{ error }}</p>
+                        {% endfor %}
                         <br>
 
-                        {% for error in form.profiles.errors %}
-                        <span style="color: red;">{{ error }}</span>
-                        {% endfor %}
                     </div>
                 </div>
                 
