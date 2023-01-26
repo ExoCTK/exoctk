@@ -48,11 +48,7 @@ for root, _, files in os.walk("exoctk"):
 
 setup(
     name='exoctk',
-<<<<<<< HEAD
-    version='1.2.3',
-=======
     version='1.2.5',
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
     description='Observation reduction and planning tools for exoplanet science',
     packages=find_packages(
         ".",
@@ -66,8 +62,4 @@ setup(
     url='https://github.com/ExoCTK/exoctk',
     long_description='',
     zip_safe=True,
-<<<<<<< HEAD
     use_2to3=False)
-=======
-    use_2to3=False)
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
