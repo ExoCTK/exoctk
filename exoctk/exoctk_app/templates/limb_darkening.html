@@ -47,12 +47,9 @@
                           <div class="input-group-addon" style='width:60px'>K</div>
                         </div>
                         <span id="helpBlock" class="help-block">The stellar effective temperature ({{ form.teff.validators[1].min }} - {{ form.teff.validators[1].max }})</span>
-<<<<<<< HEAD
-=======
                         {% for error in form.teff.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                         <br>
 
                         <div class="input-group">
@@ -61,12 +58,9 @@
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar surface gravity ({{ form.logg.validators[1].min }} - {{ form.logg.validators[1].max }})</span>
-<<<<<<< HEAD
-=======
                         {% for error in form.logg.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                         <br>
 
                         <div class="input-group">
@@ -75,22 +69,6 @@
                           <div class="input-group-addon" style='width:60px'>dex</div>
                         </div>
                         <span id="helpBlock" class="help-block">The logarithm of the stellar metallicity ({{ form.feh.validators[1].min }} - {{ form.feh.validators[1].max }})</span>
-<<<<<<< HEAD
-                        <br>
-
-                        {% for error in form.teff.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
-                        {% for error in form.logg.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
-                        {% for error in form.feh.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
-                        {% for error in form.mu_min.errors[:1] %}
-                            <p style="color: red;">{{ error }}</p>
-                        {% endfor %}
-=======
                         {% for error in form.feh.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
@@ -181,7 +159,6 @@
                         {% endfor %}
                         <br>
 
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                     </div>
                 </div>
 
@@ -278,12 +255,9 @@
                                 </div>
                             {% endfor %}
                         </div>
-<<<<<<< HEAD
-=======
                         {% for error in form.profiles.errors %}
                         <span style="color: red;">{{ error }}</span>
                         {% endfor %}
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                         <br>
 
                         <div class="input-group">
@@ -292,19 +266,11 @@
                           <div class="input-group-addon" style='width:60px'></div>
                         </div>
                         <span id="helpBlock" class="help-block">The minimum angle to consider when fitting the LD profile</span>
-<<<<<<< HEAD
-                        <br>
-
-                        {% for error in form.profiles.errors %}
-                        <span style="color: red;">{{ error }}</span>
-                        {% endfor %}
-=======
                         {% for error in form.mu_min.errors[:1] %}
                             <p style="color: red;">{{ error }}</p>
                         {% endfor %}
                         <br>
 
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                     </div>
                 </div>
                 
