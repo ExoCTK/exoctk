@@ -90,7 +90,8 @@ def calc_exposure_time(num_integrations, ramp_time):
 
 
 def calc_frame_time(num_columns, num_rows, num_amps, instrument):
-    """Calculates the frame time for a given instrument/readmode/subarray.
+    """Calculates the frame time for a given
+    instrument/readmode/subarray.
 
     Parameters
     ----------
@@ -218,7 +219,8 @@ def calc_observation_efficiency(exposure_time, duration_time):
 
 
 def calc_ramp_time(integration_time, num_reset_frames, frame_time):
-    """Calculates the ramp time -- or the integration time plus overhead for resets.
+    """Calculates the ramp time -- or the integration time plus overhead
+    for resets.
 
     Parameters
     ----------

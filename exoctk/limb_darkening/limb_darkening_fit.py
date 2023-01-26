@@ -1,29 +1,31 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
 """
-A module to calculate limb darkening coefficients from a grid of model spectra
+A module to calculate limb darkening coefficients from a grid of model
+spectra
 """
-import copy
+
+from copy import copy
 import inspect
 import os
 import warnings
 
 from astropy.io import ascii as ii
 import astropy.table as at
-import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
+import bokeh.plotting as bkp
+from bokeh.models import Range1d
+from bokeh.models.widgets import Panel, Tabs
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
 from scipy.optimize import curve_fit
 from svo_filters import svo
-import bokeh.plotting as bkp
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
 
-from .. import utils
 from .. import modelgrid
+from .. import utils
+from . import spam
 
 rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
 rc('text', usetex=True)
@@ -44,7 +46,7 @@ def ld_profile(name='quadratic', latex=False):
     ----------
     name: str
         The name of the limb darkening profile function to use,
-        including 'uniform', 'linear', 'quadratic', 'square-root',
+        including 'linear', 'quadratic', 'square-root',
         'logarithmic', 'exponential', '3-parameter', and '4-parameter'
     latex: bool
         Return the function as a LaTeX formatted string
@@ -56,15 +58,10 @@ def ld_profile(name='quadratic', latex=False):
 
     """
     # Supported profiles a la BATMAN
-    names = ['uniform', 'linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
+    names = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
     # Check that the profile is supported
     if name in names:
-
-        # Uniform
-        if name == 'uniform':
-            def profile(m, c1):
-                return c1
 
         # Linear
         if name == 'linear':
@@ -126,7 +123,8 @@ class LDC:
     bp = Filter('WFC3_IR.G141', n_bins=5)
     ld.calculate(4000, 4.5, 0.0, 'quadratic', bandpass=bp)
     ld.calculate(4000, 4.5, 0.0, '4-parameter', bandpass=bp)
-    ld.plot(show=True)
+    ld.spam(planet_name='WASP-12b', profiles=['quadratic', 'logarithmic'])
+    ld.plot_tabs(show=True)
     """
     def __init__(self, model_grid='ACES'):
         """Initialize an LDC object
@@ -134,8 +132,8 @@ class LDC:
         Parameters
         ----------
         model_grid: exoctk.modelgrid.ModelGrid
-            The grid of synthetic spectra from which the coefficients will
-            be calculated
+            The grid of synthetic spectra from which the coefficients
+            will be calculated
         """
         # Try ACES or ATLAS
         if model_grid == 'ACES':
@@ -149,13 +147,18 @@ class LDC:
 
         # Load the model grid
         self.model_grid = model_grid
+        self.model_cache = {}
 
         # Table for results
         columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'models', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
         dtypes = ['|S20', float, float, float, '|S20', '|S20', '|S20', object, object, object, np.float16, np.float16, np.float16, object, object, np.float16, object, object, np.float16, object, object, object, '|S20']
         self.results = at.Table(names=columns, dtype=dtypes)
 
-        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink', 'uniform': 'purple'}
+        # Table for spam results
+        self.spam_results = None
+
+        # Colors for plotting
+        self.ld_color = {'quadratic': 'blue', '4-parameter': 'red', 'exponential': 'green', 'linear': 'orange', 'square-root': 'cyan', '3-parameter': 'magenta', 'logarithmic': 'pink'}
 
         self.count = 1
 
@@ -198,8 +201,8 @@ class LDC:
                   bandpass=None, name=None, color=None, **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
-        spectrum. If the model grid does not contain a spectrum of the given
-        parameters, the grid is interpolated to those parameters.
+        spectrum. If the model grid does not contain a spectrum of the
+        given parameters, the grid is interpolated to those parameters.
 
         Reference for limb-darkening laws:
         http://www.astro.ex.ac.uk/people/sing/David_Sing/Limb_Darkening.html
@@ -214,7 +217,7 @@ class LDC:
             The logarithm of the metallicity
         profile: str
             The name of the limb darkening profile function to use,
-            including 'uniform', 'linear', 'quadratic', 'square-root',
+            including 'linear', 'quadratic', 'square-root',
             'logarithmic', 'exponential', and '4-parameter'
         mu_min: float
             The minimum mu value to consider
@@ -235,14 +238,21 @@ class LDC:
             raise ValueError("No such LD profile:", profile)
 
         # Get the grid point
-        grid_point = self.model_grid.get(Teff, logg, FeH)
+        grid_point = self.get_model(Teff, logg, FeH)
 
         # Retrieve the wavelength, flux, mu, and effective radius
         wave = grid_point.get('wave')
         flux = grid_point.get('flux')
         mu = grid_point.get('mu').squeeze()
 
-        # Use tophat oif no bandpass
+        # Try to get bandpass if it is a string
+        if isinstance(bandpass, str):
+            try:
+                bandpass = svo.Filter(bandpass, **kwargs)
+            except Exception:
+                raise ValueError("Could not find a bandpass named '{}'. Try passing a 'svo_filters.svo.Filter' object instead.".format(bandpass))
+
+        # Use tophat if no bandpass
         if bandpass is None:
             units = self.model_grid.wave_units
             bandpass = svo.Filter('tophat', wave_min=np.min(wave) * units, wave_max=np.max(wave) * units)
@@ -279,10 +289,10 @@ class LDC:
         wave = wave[None, :] if wave.ndim == 1 else wave
         flux = flux[None, :] if flux.ndim == 2 else flux
         mean_i = np.nanmean(flux, axis=-1)
-        mean_i[mean_i == 0] = np.nan
+        # mean_i[mean_i == 0] = np.nan
 
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i / mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
+        ld = mean_i / mean_i[:, np.where(mu == np.nanmax(mu))].squeeze(axis=-1)
 
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
@@ -294,12 +304,14 @@ class LDC:
         imu, = np.where(mu > mu_min)
         scaled_mu, scaled_ld = mu[imu], ld[:, imu]
 
+        # Get effective wavelengths
+        wave_effs = np.mean(bandpass.wave, axis=1)
+
         # Fit limb darkening coefficients for each wavelength bin
         for n, ldarr in enumerate(scaled_ld):
 
             # Get effective wavelength of bin
-
-            wave_eff = np.mean(bandpass.wave[n]).value.round(5)
+            wave_eff = wave_effs[n]
 
             try:
 
@@ -315,8 +327,9 @@ class LDC:
                 # Check the count
                 result['name'] = name or 'Calculation {}'.format(self.count)
                 self.count += 1
-                if len(bandpass.wave) == len(scaled_ld) and name is None:
-                    result['name'] = '{} {}'.format(str(round(wave_eff, 2)), self.model_grid.wave_units)
+
+                if bandpass.wave.shape[0] == len(scaled_ld) and name is None:
+                    result['name'] = '{:.3f}'.format(wave_eff)
 
                 # Set a color if possible
                 result['color'] = color or self.ld_color[profile]
@@ -364,47 +377,36 @@ class LDC:
             except ValueError:
                 print("Could not calculate coefficients at {}".format(wave_eff))
 
-    def plot_tabs(self, show=False, **kwargs):
-        """Plot the LDCs in a tabbed figure
+    def get_model(self, teff, logg, feh):
+        """
+        Method to grab cached model or fetch new one
 
         Parameters
         ----------
-        fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
-            An existing figure to plot on
-        show: bool
-            Show the figure
+        teff: float
+            The effective temperature of the desired model
+        logg: float
+            The log surface gravity of the desired model
+        feh: float
+            The metallicity of the desired model
+
+        Returns
+        -------
+        dict
+            The stellar intensity model
         """
-        # Change names to reflect ld profile
-        old_names = self.results['name']
-        for n, row in enumerate(self.results):
-            self.results[n]['name'] = row['profile']
+        # Check if it is stored
+        params = '{}_{}_{}_{}'.format(self.model_grid.path.split('/')[-2], teff, logg, feh)
 
-        # Draw a figure for each wavelength bin
-        tabs = []
-        for wav in np.unique(self.results['wave_eff']):
-
-            # Plot it
-            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
-            self.plot(wave_eff=wav, fig=fig)
-
-            # Plot formatting
-            fig.legend.location = 'bottom_right'
-            fig.xaxis.axis_label = 'mu'
-            fig.yaxis.axis_label = 'Intensity'
-
-            tabs.append(Panel(child=fig, title=str(wav)))
-
-        # Make the final tabbed figure
-        final = Tabs(tabs=tabs)
-
-        # Put the names back
-        self.results['name'] = old_names
-
-        if show:
-            bkp.show(final)
+        # Get cached or get new model
+        if params in self.model_cache:
+            model = self.model_cache[params]
         else:
-            return final
+            model = self.model_grid.get(teff, logg, feh)
+            self.model_cache[params] = model
+            print("Saving model '{}'".format(params))
+
+        return model
 
     def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
@@ -493,6 +495,48 @@ class LDC:
         else:
             return fig
 
+    def plot_tabs(self, show=False, **kwargs):
+        """Plot the LDCs in a tabbed figure
+
+        Parameters
+        ----------
+        fig: matplotlib.pyplot.figure, bokeh.plotting.figure (optional)
+            An existing figure to plot on
+        show: bool
+            Show the figure
+        """
+        # Change names to reflect ld profile
+        old_names = self.results['name']
+        for n, row in enumerate(self.results):
+            self.results[n]['name'] = row['profile']
+
+        # Draw a figure for each wavelength bin
+        tabs = []
+        for wav in np.unique(self.results['wave_eff']):
+
+            # Plot it
+            TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
+            self.plot(wave_eff=wav, fig=fig)
+
+            # Plot formatting
+            fig.legend.location = 'bottom_right'
+            fig.xaxis.axis_label = 'mu'
+            fig.yaxis.axis_label = 'Intensity'
+
+            tabs.append(Panel(child=fig, title=str(wav)))
+
+        # Make the final tabbed figure
+        final = Tabs(tabs=tabs)
+
+        # Put the names back
+        self.results['name'] = old_names
+
+        if show:
+            bkp.show(final)
+        else:
+            return final
+
     def save(self, filepath):
         """
         Save the LDC results to file
@@ -516,3 +560,60 @@ class LDC:
 
         # Save to file
         ii.write(results, filepath, format='fixed_width_two_line')
+
+    def spam(self, planet_name=None, planet_data=None, profiles=['quadratic'], **kwargs):
+        """
+        Calculates SPAM coefficients by transforming non-linear coefficients
+
+        Parameters
+        ----------
+        planet_name: string
+            The name of the input planet (e.g., 'WASP-19b'); this will be used to query the planet properties from MAST.
+        planet_data: dict
+            Dictionary containing the planet properties. Must include 'transit_duration', 'orbital_period' (days), 'Rp/Rs', 'a/Rs', 'inclination' (degrees), 'eccentricity' and 'omega' (degrees)
+        profiles: sequence
+            The profiles to calculate, ['quadratic', 'logarithmic', 'square-root']
+        """
+        # Profiles supported by SPAM transformation code
+        spam_supported = ['quadratic', 'square-root', 'logarithmic']
+
+        if not all([profile in spam_supported for profile in profiles]):
+            raise ValueError("{}: Supported profiles include {}".format(profiles, spam_supported))
+
+        # Require 4-parameter calculation
+        if '4-parameter' in self.results['profile']:
+
+            # For each desired profile...
+            for profile in profiles:
+
+                # Rows of non-linear calculations
+                nonlin = copy(self.results[self.results['profile'] == '4-parameter'])
+
+                # Update profile
+                nonlin['profile'] = profile
+
+                # ...and for each wavelength channel...
+                for row in nonlin:
+
+                    # Calculate SPAM coefficients
+                    (c1, c2), properties = spam.transform_coefficients(row['c1'], row['c2'], row['c3'], row['c4'], ld_law=profile, planet_name=planet_name, planet_data=planet_data, **kwargs)
+                    row['c1'], row['c2'] = c1.round(3), c2.round(3)
+
+                # Remove unused columns
+                omit_cols = ['c3', 'c4', 'e1', 'e2', 'e3', 'e4']
+                nonlin = nonlin[[col for col in nonlin.columns if col not in omit_cols]]
+
+                # Add planet properties to table
+                planet_properties = ['transit_duration', 'orbital_period', 'Rp/Rs', 'a/Rs', 'inclination', 'eccentricity', 'omega']
+                for prop in planet_properties:
+                    nonlin.add_column([round(properties[prop], 4)] * len(nonlin), name=prop)
+
+                # Add the results to the spam table
+                if self.spam_results is None:
+                    self.spam_results = nonlin
+                else:
+                    self.spam_results = at.vstack([self.spam_results, nonlin])
+
+        else:
+
+            print("Limb darkening coefficients must first be calculated using the 4-parameter profile to get SPAM coefficient transformations.")
