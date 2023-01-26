@@ -24,7 +24,7 @@ dependencies:
   - pyyaml
   - scipy=1.6.2
   - scp=0.14.1
-  - sphinx>5.0
+  - sphinx>=4.2.0
   - sqlalchemy=1.4.27
   - twine=3.2.0
   - wtforms=2.3.3
