@@ -45,6 +45,7 @@ dependencies:
     - pysiaf==0.10.0
     - pysynphot==2.0.0
     - PyYAML>=5.4
+    - regions==0.5
     - sphinx_astropy==1.6.0
     - svo-filters==0.4.1
     - werkzeug>=2.0
