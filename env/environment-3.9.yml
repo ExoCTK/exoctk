@@ -43,6 +43,7 @@ dependencies:
     - platon==5.3
     - pysiaf==0.10.0
     - pysynphot==2.0.0
+    - regions==0.5
     - sphinx_astropy==1.6.0
     - svo-filters==0.4.1
     - werkzeug>=2.0
