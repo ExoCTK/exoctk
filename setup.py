@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
-            'astropy<4.1',
+            'astropy=4.2',
             'astroquery',
             'bandit',
             'bibtexparser',
@@ -13,7 +13,7 @@ REQUIRES = ['asteval',
             'cython',
             'ddtrace',
             'docopt',
-            'docutils==0.17.1',
+            'docutils==0.18.1',
             'flake8',
             'flask',
             'flask_wtf',
