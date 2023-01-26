@@ -51,8 +51,6 @@
                             <td>Models</td>
                             <td>{{ form.modeldir.data }}</td>
                         </tr>
-<<<<<<< HEAD
-=======
                         {% if spam_table != '' %}
                             <tr>
                                 <td>Transit Duration</td>
@@ -83,7 +81,6 @@
                                 <td>{{ form.omega.data }}</td>
                             </tr>
                         {% endif %}
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
                     </table>
                 </div>
 
@@ -102,23 +99,11 @@
             </div>
 
             <br>
-<<<<<<< HEAD
-=======
             <h4>Coefficients</h4>
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
             <form id='exportform' method='post' action='download' >
                 <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
                 <input class="btn" type='submit' value='Download Coefficient Tables' />
             </form>
-<<<<<<< HEAD
-
-            <br>
-            {% for tab in table %}
-                {{ tab|safe }}
-            <br>
-            {% endfor %}
-
-=======
             {% for tab in table %}
                 {{ tab|safe }}
             {% endfor %}
@@ -135,7 +120,6 @@
                 {% endfor %}
             {% endif %}
 
->>>>>>> a09666d46d10db21a7313ee5e0929b2160b258f4
         </div>
         
     </body>
