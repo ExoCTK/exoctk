@@ -3,39 +3,14 @@
 Author: Joe Filippazzo
 Email: jfilippazzo@stsci.edu
 """
+
+from bokeh.plotting import figure, show
 import numpy as np
 import pandas as pd
-from bokeh.plotting import figure, show
 
-from .models import Model, CompositeModel
 from .fitters import lmfitter
+from .models import Model, CompositeModel
 from ..utils import COLORS
-
-
-class LightCurveFitter:
-    def __init__(self, time, flux, model):
-        """Fit the model to the flux cube
-
-        Parameters
-        ----------
-        time:
-            1D or 2D time axes
-        flux:
-            2D flux
-        """
-        self.flux = np.ones(100)
-        self.time = np.arange(100)
-        self.results = pd.DataFrame(names=('fit_number', 'wavelength', 'P',
-                                           'Tc', 'a/Rs', 'b', 'd', 'ldcs',
-                                           'e', 'w', 'model_name', 'chi2'))
-
-    def run(self):
-        """Run the model fits"""
-        pass
-
-    # Method to return sliced results table
-    def master_slicer(self, value, param_name='wavelength'):
-        return self.results.iloc[self.results[param_name] == value]
 
 
 class LightCurve(Model):
@@ -74,7 +49,7 @@ class LightCurve(Model):
             self.unc = unc
 
         else:
-            self.unc = np.array([np.nan]*len(self.time))
+            self.unc = np.array([np.nan] * len(self.time))
 
         # Set the time and flux axes
         self.time = time
@@ -155,3 +130,29 @@ class LightCurve(Model):
     def reset(self):
         """Reset the results"""
         self.results = []
+
+
+class LightCurveFitter:
+    def __init__(self, time, flux, model):
+        """Fit the model to the flux cube
+
+        Parameters
+        ----------
+        time:
+            1D or 2D time axes
+        flux:
+            2D flux
+        """
+        self.flux = np.ones(100)
+        self.time = np.arange(100)
+        self.results = pd.DataFrame(names=('fit_number', 'wavelength', 'P',
+                                           'Tc', 'a/Rs', 'b', 'd', 'ldcs',
+                                           'e', 'w', 'model_name', 'chi2'))
+
+    def run(self):
+        """Run the model fits"""
+        pass
+
+    # Method to return sliced results table
+    def master_slicer(self, value, param_name='wavelength'):
+        return self.results.iloc[self.results[param_name] == value]

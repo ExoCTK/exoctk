@@ -15,9 +15,8 @@ import pkg_resources
 
 from astropy.table import Table
 from astropy.time import Time
-from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool, ranges
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.plotting import figure, ColumnDataSource
 import matplotlib.dates as mdates
 import numpy as np
 
@@ -36,9 +35,11 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     Parameters
     ----------
     ra: str
-        The RA of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The RA of the target in hh:mm:ss.s or dd:mm:ss.s or representing
+        a float
     dec: str
-        The Dec of the target in hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The Dec of the target in hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     targetName: str
         The target name
     ephFileName: str
@@ -210,16 +211,19 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     Parameters
     ----------
     ra : str
-        The RA of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The RA of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     dec : str
-        The Dec of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or representing a float
+        The Dec of the target (in degrees) hh:mm:ss.s or dd:mm:ss.s or
+        representing a float
     instrument : str
         Name of the instrument. Can either be (case-sensitive):
         'NIRISS', 'NIRCam', 'MIRI', 'FGS', or 'NIRSpec'
     ephFileName : str
         The filename of the ephemeris file.
     output : str
-        Switches on plotting with Bokeh. Parameter value must be 'bokeh'.
+        Switches on plotting with Bokeh. Parameter value must be
+        'bokeh'.
 
     Returns
     -------
@@ -279,10 +283,6 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
                                         panom=paNom,
                                         pamax=paMax,
                                         date=gd))
-    TOOLTIPS = [('Date', '@date{%F}'),
-                ('Maximum Aperture PA', '@pamax'),
-                ('Nominal Aperture PA', '@panom'),
-                ('Minimum Aperture PA', '@pamin')]
 
     # Time to plot
     if output == 'bokeh':
@@ -311,10 +311,11 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     fig.circle('date', 'pamax', color=COLOR, size=1, source=SOURCE)
 
     # Adding HoverTool
-    fig.add_tools(HoverTool(renderers=[nom],
-                            tooltips=TOOLTIPS,
-                            formatters={'date': 'datetime'},
-                            mode='vline'))
+    fig.add_tools(HoverTool(tooltips=[('Date', '@date{%F}'),
+                                      ('Maximum Aperture PA', '@pamax'),
+                                      ('Nominal Aperture PA', '@panom'),
+                                      ('Minimum Aperture PA', '@pamin')],
+                            formatters={'@date': 'datetime'}))
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
@@ -323,8 +324,7 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     # Making the output table
     # Creating new lists w/o the NaN values
-    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan, mjds = \
-        [], [], [], [], [], [], []
+    v3minnan, v3maxnan, paNomnan, paMinnan, paMaxnan, gdnan = [], [], [], [], [], []
 
     for vmin, vmax, pnom, pmin, pmax, date in zip(
             v3min, v3max, paNom, paMin, paMax, gd):

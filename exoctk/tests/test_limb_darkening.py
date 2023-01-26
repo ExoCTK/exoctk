@@ -17,7 +17,6 @@ Use
         pytest -s test_limb_darkening.py
 """
 
-import os
 from pkg_resources import resource_filename
 
 from svo_filters import Filter
@@ -28,48 +27,6 @@ from exoctk.limb_darkening import limb_darkening_fit as ldf
 
 # Load local modelgrid
 MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/'))
-
-
-def test_ldc_object():
-    """Test to see that an LDC object can be loaded"""
-    print('Testing LDC object creation...')
-
-    ld_session = ldf.LDC(MODELGRID)
-
-    assert isinstance(ld_session, ldf.LDC)
-
-
-def test_ldc_plot():
-    """Test that the LDC plots work"""
-    print('Testing LDC object plotting...')
-
-    ld_session = ldf.LDC(MODELGRID)
-
-    # Run the calculations
-    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
-
-    # Regular plot
-    fig = ld_session.plot()
-    assert str(type(fig)) == "<class 'bokeh.plotting.figure.Figure'>"
-
-    # Tabbed plot
-    fig = ld_session.plot_tabs()
-    assert str(type(fig)) in ["<class 'bokeh.models.widgets.panels.Tabs'>", "<class 'bokeh.models.layouts.Tabs'>"]
-
-
-def test_ldc_calculation_no_filter():
-    """Test to see if a calculation can be performed with no filter and
-    that they are appended to the results table"""
-    print('Testing LDC calculation with no filter bandpass...')
-
-    # Make the session
-    ld_session = ldf.LDC(MODELGRID)
-
-    # Run the calculations
-    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
-    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='4-parameter')
-
-    assert len(ld_session.results) == 2
 
 
 def test_ldc_calculation_filter():
@@ -134,3 +91,45 @@ def test_ldc_calculation_interpolation():
     ld_session.calculate(Teff=4023, logg=4.1, FeH=-0.1, profile='quadratic')
 
     assert len(ld_session.results) == 7
+
+
+def test_ldc_calculation_no_filter():
+    """Test to see if a calculation can be performed with no filter and
+    that they are appended to the results table"""
+    print('Testing LDC calculation with no filter bandpass...')
+
+    # Make the session
+    ld_session = ldf.LDC(MODELGRID)
+
+    # Run the calculations
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='4-parameter')
+
+    assert len(ld_session.results) == 2
+
+
+def test_ldc_object():
+    """Test to see that an LDC object can be loaded"""
+    print('Testing LDC object creation...')
+
+    ld_session = ldf.LDC(MODELGRID)
+
+    assert isinstance(ld_session, ldf.LDC)
+
+
+def test_ldc_plot():
+    """Test that the LDC plots work"""
+    print('Testing LDC object plotting...')
+
+    ld_session = ldf.LDC(MODELGRID)
+
+    # Run the calculations
+    ld_session.calculate(Teff=4000, logg=4.5, FeH=0, profile='quadratic')
+
+    # Regular plot
+    fig = ld_session.plot()
+    assert str(type(fig)) == "<class 'bokeh.plotting.figure.Figure'>"
+
+    # Tabbed plot
+    fig = ld_session.plot_tabs()
+    assert str(type(fig)) in ["<class 'bokeh.models.widgets.panels.Tabs'>", "<class 'bokeh.models.layouts.Tabs'>"]

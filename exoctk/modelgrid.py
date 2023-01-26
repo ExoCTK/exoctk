@@ -3,6 +3,7 @@
 """
 A module for creating and managing grids of model spectra
 """
+
 from functools import partial
 from glob import glob
 import multiprocessing
@@ -13,9 +14,9 @@ import time
 import warnings
 
 from astropy.io import fits
-from astropy.utils.exceptions import AstropyWarning
 import astropy.table as at
 import astropy.units as q
+from astropy.utils.exceptions import AstropyWarning
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -26,6 +27,8 @@ from . import utils
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=FutureWarning)
 
+ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
+
 
 class ModelGrid(object):
     """
@@ -35,7 +38,8 @@ class ModelGrid(object):
     Attributes
     ----------
     path: str
-        The path to the directory of FITS files used to create the ModelGrid
+        The path to the directory of FITS files used to create the
+        ModelGrid
     refs: list, str
         The references for the data contained in the ModelGrid
     teff_rng: tuple
@@ -77,7 +81,9 @@ class ModelGrid(object):
             of the grid spectra
         wave_units: astropy.units.quantity
         """
-        utils.check_for_data('modelgrid')
+
+        if not ON_GITHUB_ACTIONS:
+            utils.check_for_data('modelgrid')
 
         # Make sure we can use glob if a directory
         # is given without a wildcard
@@ -226,6 +232,89 @@ class ModelGrid(object):
         # Customize from the get-go
         if kwargs:
             self.customize(**kwargs)
+
+    def customize(self, Teff_rng=(2300, 8000), logg_rng=(0, 6),
+                  FeH_rng=(-2, 1), wave_rng=(0 * q.um, 40 * q.um), n_bins=''):
+        """
+        Trims the model grid by the given ranges in effective
+        temperature, surface gravity, and metallicity. Also sets the
+        wavelength range and number of bins for retrieved model spectra.
+
+        Parameters
+        ----------
+        Teff_rng: array-like
+            The lower and upper inclusive bounds for the effective
+            temperature (K)
+        logg_rng: array-like
+            The lower and upper inclusive bounds for the logarithm of
+            the surface gravity (dex)
+        FeH_rng: array-like
+            The lower and upper inclusive bounds for the logarithm of
+            the ratio of the metallicity and solar metallicity (dex)
+        wave_rng: array-like
+            The lower and upper inclusive bounds for the wavelength
+            (microns)
+        n_bins: int
+            The number of bins for the wavelength axis
+
+        """
+        # Make a copy of the grid
+        grid = self.data.copy()
+        self.wave_rng = wave_rng
+        self.n_bins = n_bins or self.n_bins
+
+        # Filter grid by given parameters
+        self.data = grid[[(grid['Teff'] >= Teff_rng[0]) &
+                          (grid['Teff'] <= Teff_rng[1]) &
+                          (grid['logg'] >= logg_rng[0]) &
+                          (grid['logg'] <= logg_rng[1]) &
+                          (grid['FeH'] >= FeH_rng[0]) &
+                          (grid['FeH'] <= FeH_rng[1])]]
+
+        # Print a summary of the returned grid
+        print('{}/{}'.format(len(self.data), len(grid)),
+              'spectra in parameter range',
+              'Teff: ', Teff_rng, ', logg: ', logg_rng,
+              ', FeH: ', FeH_rng, ', wavelength: ', wave_rng)
+
+        # Do nothing if he cut leaves the grid empty
+        if len(self.data) == 0:
+            self.data = grid
+            print('The given param ranges would leave 0 models in the grid.')
+            print('The model grid has not been updated. Please try again.')
+            return
+
+        # Update the wavelength and flux attributes
+        if isinstance(self.wavelength, np.ndarray):
+            w = self.wavelength
+            W_idx, = np.where((w >= wave_rng[0]) & (w <= wave_rng[1]))
+            T_idx, = np.where((self.Teff_vals >= Teff_rng[0]) &
+                              (self.Teff_vals <= Teff_rng[1]))
+            G_idx, = np.where((self.logg_vals >= logg_rng[0]) &
+                              (self.logg_vals <= logg_rng[1]))
+            M_idx, = np.where((self.FeH_vals >= FeH_rng[0]) &
+                              (self.FeH_vals <= FeH_rng[1]))
+
+            # Trim arrays
+            self.wavelength = w[W_idx]
+            self.flux = self.flux[T_idx[0]: T_idx[-1] + 1,
+                                  G_idx[0]: G_idx[-1] + 1,
+                                  M_idx[0]: M_idx[-1] + 1,
+                                  :, W_idx[0]: W_idx[-1] + 1]
+            self.mu = self.mu[T_idx[0]: T_idx[-1] + 1,
+                              G_idx[0]: G_idx[-1] + 1,
+                              M_idx[0]: M_idx[-1] + 1]
+
+        # Update the parameter attributes
+        self.Teff_vals = np.unique(self.data['Teff'])
+        self.logg_vals = np.unique(self.data['logg'])
+        self.FeH_vals = np.unique(self.data['FeH'])
+
+        # Reload the flux array with the new grid parameters
+        self.load_flux(reset=True)
+
+        # Clear the grid copy from memory
+        del grid
 
     def export(self, filepath, **kwargs):
         """Export the model with the given parameters to a FITS file
@@ -531,88 +620,6 @@ class ModelGrid(object):
         else:
             print('Data already loaded.')
 
-    def customize(self, Teff_rng=(2300, 8000), logg_rng=(0, 6),
-                  FeH_rng=(-2, 1), wave_rng=(0 * q.um, 40 * q.um), n_bins=''):
-        """
-        Trims the model grid by the given ranges in effective temperature,
-        surface gravity, and metallicity. Also sets the wavelength range
-        and number of bins for retrieved model spectra.
-
-        Parameters
-        ----------
-        Teff_rng: array-like
-            The lower and upper inclusive bounds for the effective
-            temperature (K)
-        logg_rng: array-like
-            The lower and upper inclusive bounds for the logarithm of the
-            surface gravity (dex)
-        FeH_rng: array-like
-            The lower and upper inclusive bounds for the logarithm of the
-            ratio of the metallicity and solar metallicity (dex)
-        wave_rng: array-like
-            The lower and upper inclusive bounds for the wavelength (microns)
-        n_bins: int
-            The number of bins for the wavelength axis
-
-        """
-        # Make a copy of the grid
-        grid = self.data.copy()
-        self.wave_rng = wave_rng
-        self.n_bins = n_bins or self.n_bins
-
-        # Filter grid by given parameters
-        self.data = grid[[(grid['Teff'] >= Teff_rng[0]) &
-                          (grid['Teff'] <= Teff_rng[1]) &
-                          (grid['logg'] >= logg_rng[0]) &
-                          (grid['logg'] <= logg_rng[1]) &
-                          (grid['FeH'] >= FeH_rng[0]) &
-                          (grid['FeH'] <= FeH_rng[1])]]
-
-        # Print a summary of the returned grid
-        print('{}/{}'.format(len(self.data), len(grid)),
-              'spectra in parameter range',
-              'Teff: ', Teff_rng, ', logg: ', logg_rng,
-              ', FeH: ', FeH_rng, ', wavelength: ', wave_rng)
-
-        # Do nothing if he cut leaves the grid empty
-        if len(self.data) == 0:
-            self.data = grid
-            print('The given param ranges would leave 0 models in the grid.')
-            print('The model grid has not been updated. Please try again.')
-            return
-
-        # Update the wavelength and flux attributes
-        if isinstance(self.wavelength, np.ndarray):
-            w = self.wavelength
-            W_idx, = np.where((w >= wave_rng[0]) & (w <= wave_rng[1]))
-            T_idx, = np.where((self.Teff_vals >= Teff_rng[0]) &
-                              (self.Teff_vals <= Teff_rng[1]))
-            G_idx, = np.where((self.logg_vals >= logg_rng[0]) &
-                              (self.logg_vals <= logg_rng[1]))
-            M_idx, = np.where((self.FeH_vals >= FeH_rng[0]) &
-                              (self.FeH_vals <= FeH_rng[1]))
-
-            # Trim arrays
-            self.wavelength = w[W_idx]
-            self.flux = self.flux[T_idx[0]: T_idx[-1] + 1,
-                                  G_idx[0]: G_idx[-1] + 1,
-                                  M_idx[0]: M_idx[-1] + 1,
-                                  :, W_idx[0]: W_idx[-1] + 1]
-            self.mu = self.mu[T_idx[0]: T_idx[-1] + 1,
-                              G_idx[0]: G_idx[-1] + 1,
-                              M_idx[0]: M_idx[-1] + 1]
-
-        # Update the parameter attributes
-        self.Teff_vals = np.unique(self.data['Teff'])
-        self.logg_vals = np.unique(self.data['logg'])
-        self.FeH_vals = np.unique(self.data['FeH'])
-
-        # Reload the flux array with the new grid parameters
-        self.load_flux(reset=True)
-
-        # Clear the grid copy from memory
-        del grid
-
     def info(self):
         """
         Print a table of info about the current ModelGrid
@@ -659,7 +666,8 @@ class ModelGrid(object):
 
 
 class ACES(ModelGrid):
-    """A convenience function to load the ACES model grid from the EXOCTK_DATA directory"""
+    """A convenience function to load the ACES model grid from the
+    EXOCTK_DATA directory"""
     def __init__(self, **kwargs):
         """Initialize the ModelGrid object with the ACES models"""
         # Get the ACES model directory from the EXOCTK_DATA directory
@@ -670,7 +678,8 @@ class ACES(ModelGrid):
 
 
 class ATLAS9(ModelGrid):
-    """A convenience function to load the ATLAS9 model grid from the EXOCTK_DATA directory"""
+    """A convenience function to load the ATLAS9 model grid from the
+    EXOCTK_DATA directory"""
     def __init__(self, **kwargs):
         """Initialize the ModelGrid object with the ACES models"""
         # Get the ACES model directory from the EXOCTK_DATA directory

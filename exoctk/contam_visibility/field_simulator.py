@@ -8,6 +8,8 @@ import time
 from pkg_resources import resource_filename
 
 import astropy.coordinates as crd
+from astropy.io import fits
+from astroquery.irsa import Irsa
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -38,6 +40,7 @@ Vizier.columns = ["**", "+_r"]
 Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
 Gaia.ROW_LIMIT = 100
 
+from exoctk import utils
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1]},
              'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1]},
@@ -1074,5 +1077,6 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
 
 
 if __name__ == '__main__':
+
     ra, dec = "04 25 29.0162", "-30 36 01.603"  # Wasp 79
     field_simulation(ra, dec, 'NIS_SUBSTRIP256')

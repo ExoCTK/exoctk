@@ -1,7 +1,8 @@
-"""Module to hold our forward models that until now have been floating in the
-web application.
+"""Module to hold our forward models that until now have been floating
+in the web application.
 
-Right now this includes database interaction and model rescaling software.
+Right now this includes database interaction and model rescaling
+software.
 
 
 Authors
@@ -13,30 +14,24 @@ Hannah Wakeford
 
 Use
 ---
-This is meant to be run through the Flask application, or can be run manually
-with a provided list or arguments.
+This is meant to be run through the Flask application, or can be run
+manually with a provided list or arguments.
 """
 
-## -- IMPORTS
-import os
 import io
+import os
 
 import astropy.constants as constants
 import astropy.table as at
 import astropy.units as u
-from bokeh.resources import INLINE
-from bokeh.embed import components
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
 from bokeh.plotting import figure, output_file, save
 import h5py
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 
-from exoctk.utils import get_env_variables
+from exoctk import utils
 
-## -- FUNCTIONS
 
 def fortney_grid(args, write_plot=False, write_table=False):
     """
@@ -72,10 +67,9 @@ def fortney_grid(args, write_plot=False, write_table=False):
     utils.check_for_data('fortney')
 
     # Check for Fortney Grid database
-    print(os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
+    print(os.path.join(utils.get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
     try:
-        db = create_engine('sqlite:///' +
-                os.path.join(get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
+        db = create_engine('sqlite:///' + os.path.join(utils.get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
         header = pd.read_sql_table('header', db)
     except:
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
@@ -114,9 +108,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
 
         fort_grav = 25.0 * u.m / u.s**2
 
-        df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) &
-                        (header.noTiO == noTiO) & (header.ray == ray) &
-                        (header.flat == flat)]
+        df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) & (header.noTiO == noTiO) & (header.ray == ray) & (header.flat == flat)]
 
         wave_planet = np.array(pd.read_sql_table(df['name'].values[0], db)['wavelength'])[::-1]
         r_lambda = np.array(pd.read_sql_table(df['name'].values[0], db)['radius']) * u.km
@@ -209,7 +201,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
     utils.check_for_data('generic')
 
     # Find path to the database.
-    database_path = os.path.join(get_env_variables()['exoctk_data'], 'generic/generic_grid_db.hdf5')
+    database_path = os.path.join(utils.get_env_variables()['exoctk_data'], 'generic/generic_grid_db.hdf5')
 
     # Build rescaled model
     solution, inputs, closest_match, error_message = rescale_generic_grid(input_args, database_path)
@@ -277,7 +269,7 @@ def rescale_generic_grid(input_args, database_path):
         # Parameter validation
         # Set up some nasty tuples first
         scaling_space = [('r_star', [0.05, 10000]),
-                         ('r_planet', [0.0,  10000]),
+                         ('r_planet', [0.0, 10000]),
                          ('gravity', [.5, 50]),
                          ('temperature', [400, 2600])]
 
@@ -310,7 +302,7 @@ def rescale_generic_grid(input_args, database_path):
                        ('metallicity', ['+0.0', '+1.0', '+1.7', '+2.0', '+2.3']),
                        ('c_o', ['0.35', '0.56', '0.70', '1.00']),
                        ('haze', ['0001', '0010', '0150', '1100']),
-                       ('cloud', ['0.00', '0.06', '0.20','1.00'])]
+                       ('cloud', ['0.00', '0.06', '0.20', '1.00'])]
 
         model_key = ''
         for tup in model_space:
@@ -323,13 +315,12 @@ def rescale_generic_grid(input_args, database_path):
                 break
         model_key = model_key[:-1]
 
-
         # Define constants
-        boltzmann = 1.380658E-16 # gm*cm^2/s^2 * Kelvin
-        permitivity = 1.6726E-24 * 2.3 #g  cgs  Hydrogen + Helium Atmosphere
+        boltzmann = 1.380658E-16  # gm*cm^2/s^2 * Kelvin
+        permitivity = 1.6726E-24 * 2.3  # g  cgs  Hydrogen + Helium Atmosphere
         optical_depth = 0.56
-        r_sun = 69580000000 # cm
-        r_jupiter = 6991100000 # cm
+        r_sun = 69580000000  # cm
+        r_jupiter = 6991100000  # cm
 
         closest_match = {'model_key': model_key, 'model_gravity': model_grav,
                          'model_temperature': model_temp}
@@ -339,7 +330,7 @@ def rescale_generic_grid(input_args, database_path):
             model_wv = f['/wavelength'][...][:-1]
             model_spectra = f['/spectra/{}'.format(model_key)][...][:-1]
 
-        radius_ratio = np.sqrt(model_spectra) * inputs['r_planet']/inputs['r_star']
+        radius_ratio = np.sqrt(model_spectra) * inputs['r_planet'] / inputs['r_star']
         r_star = inputs['r_star'] * r_sun
         r_planet = inputs['r_planet'] * r_jupiter
         model_grav = model_grav * 1e2
@@ -348,34 +339,28 @@ def rescale_generic_grid(input_args, database_path):
         # Start with baseline based on model parameters
         scale_height = (boltzmann * model_temp) / (permitivity * model_grav)
         r_planet_base = np.sqrt(radius_ratio) * r_sun
-        altitude = r_planet_base - (np.sqrt(radius_ratio[2000])*r_sun)
-        opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / \
-                                          (2 * np.pi * r_planet_base)) * \
-                                  np.exp(altitude / scale_height)
+        altitude = r_planet_base - (np.sqrt(radius_ratio[2000]) * r_sun)
+        opacity = optical_depth * np.sqrt((boltzmann * model_temp * permitivity * model_grav) / (2 * np.pi * r_planet_base)) * np.exp(altitude / scale_height)
         # Now rescale from baseline
         solution = {}
         solution['scale_height'] = (boltzmann * inputs['temperature']) / (permitivity * inputs['gravity'])
-        solution['altitude'] = solution['scale_height'] * \
-                               np.log10(opacity/optical_depth * \
-                                        np.sqrt((2 * np.pi * r_planet) / \
-                                                (boltzmann * inputs['temperature'] * inputs['gravity'])))
+        solution['altitude'] = solution['scale_height'] * np.log10(opacity / optical_depth * np.sqrt((2 * np.pi * r_planet) / (boltzmann * inputs['temperature'] * inputs['gravity'])))
         solution['radius'] = solution['altitude'] + r_planet
 
         # Sort data
         sort = np.argsort(model_wv)
         solution['wv'] = model_wv[sort]
         solution['radius'] = solution['radius'][sort]
-        solution['spectra'] = (solution['radius']/r_star)**2
+        solution['spectra'] = (solution['radius'] / r_star)**2
 
-    except (KeyError, ValueError) as e:
+    except (KeyError, ValueError):
         error_message = 'One of the parameters to make up the model was missing or out of range.'
         model_key = 'rainout_0400_50_+0.0_0.70_0010_1.00'
         solution = {}
         with h5py.File(database_path) as f:
             solution['wv'] = f['/wavelength'][...][:-1]
             solution['spectra'] = f['/spectra/{}'.format(model_key)][...][:-1]
-        closest_match = {'model_key': model_key, 'model_temperature': 400,
-                'model_gravity': 50}
+        closest_match = {'model_key': model_key, 'model_temperature': 400, 'model_gravity': 50}
         inputs = input_args
 
     return solution, inputs, closest_match, error_message
