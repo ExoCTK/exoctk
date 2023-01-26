@@ -24,7 +24,7 @@ dependencies:
   - pyyaml
   - scipy=1.6.2
   - scp=0.14.1
-  - sphinx=4.2.0
+  - sphinx
   - sqlalchemy=1.4.27
   - twine=3.2.0
   - wtforms=2.3.3
@@ -37,7 +37,7 @@ dependencies:
     - corner==2.2.1
     - hotsoss==0.1.7
     - ddtrace==0.57.0
-    - docutils==0.17.1
+    - docutils==0.18.1
     - flask_wtf==1.0.0
     - gunicorn==20.0.4
     - platon==5.3
