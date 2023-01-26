@@ -9,7 +9,7 @@ corner==2.2.1
 cython==0.29.26
 ddtrace==0.57.0
 docopt==0.6.2
-docutils==0.18.1
+docutils==0.17.1
 flake8==4.0.1
 flask==2.0.2
 flask_wtf==1.0.0
@@ -29,7 +29,7 @@ pyyaml==6.0
 regions==0.5
 scipy==1.7.3
 scp==0.14.2
-sphinx>=4.2.0
+sphinx==4.3.2
 sphinx_astropy==1.6.0
 sphinx-automodapi==0.14.0
 svo_filters==0.4.1
