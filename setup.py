@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
-            'astropy==4.2',
+            'astropy>=5.0.1',
             'astroquery',
             'bandit',
             'bibtexparser',
