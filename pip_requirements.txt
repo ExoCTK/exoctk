@@ -31,7 +31,7 @@ scp==0.14.5
 sphinx==6.1.3
 sphinx_astropy==1.8.0
 sphinx-automodapi==0.14.1
-svo_filters==0.4.1
+svo_filters==0.4.4
 sqlalchemy==1.4.29
 twine==3.7.1
 werkzeug>=2.0
