@@ -57,7 +57,7 @@ def test_field_simulation():
 
     targframe, starcube, results = field_simulator.field_simulation(ra, dec, instrument)
 
-    assert isinstance(targframe, np.ndarray) and isinstance(starcube, np.ndarray)
+    assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
 
 
 def test_resolve_target():

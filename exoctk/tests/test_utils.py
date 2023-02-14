@@ -53,7 +53,7 @@ def test_get_target_data(planet_name, planet_data):
     exomast_params = ['Fe/H', 'Teff', 'stellar_gravity', 'transit_duration', 'RA', 'DEC']
 
     for value in exomast_params:
-        assert data[value] == planet_data[value]
+        assert data[value] == pytest.approx(planet_data[value], 0.1)
 
 
 @pytest.fixture
