@@ -47,7 +47,7 @@ def test_model_getter_on_grid():
 
     assert isinstance(model.get('flux'), np.ndarray)
 
-    
+
 def test_model_getter_off_grid():
     """Test to see that an off-grid model can be pulled from a ModelGrid
     object"""
