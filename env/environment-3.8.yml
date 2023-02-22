@@ -38,9 +38,10 @@ dependencies:
     - bibtexparser==1.2.0
     - corner==2.2.1
     - ddtrace==0.57.0
-    - hotsoss==0.1.7
+    - hotsoss==0.1.8
     - flask_wtf==1.0.0
     - lmfit==1.0.2
+    - markupsafe==2.0.1
     - platon==4.0
     - pysiaf==0.10.0
     - pysynphot==2.0.0

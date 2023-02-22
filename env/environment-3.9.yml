@@ -3,7 +3,7 @@ channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
 dependencies:
-  - astropy=4.2
+  - astropy<4.1
   - bokeh=2.3.3
   - boto3
   - cython=0.29.22
@@ -37,9 +37,10 @@ dependencies:
     - corner==2.2.1
     - ddtrace==0.57.0
     - docutils==0.17.1
-    - hotsoss==0.1.7
+    - hotsoss==0.1.8
     - flask_wtf==1.0.0
     - gunicorn==20.0.4
+    - markupsafe==2.0.1
     - platon==5.3
     - pysiaf==0.10.0
     - pysynphot==2.0.0
