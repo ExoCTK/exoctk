@@ -11,6 +11,7 @@ import re
 import requests
 import shutil
 import urllib
+import sys
 
 from astropy.io import fits
 import bokeh.palettes as bpal
@@ -77,6 +78,15 @@ if not ON_GITHUB_ACTIONS_OR_RTD:
         GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
 
+def blockPrint():
+    """Function to suppress print statements"""
+    sys.stdout = open(os.devnull, 'w')
+
+
+def enablePrint():
+    """Function to enable print statements"""
+    sys.stdout = sys.__stdout__
+
 
 def build_target_url(target_name):
     """Build restful api url based on target name.
@@ -139,7 +149,6 @@ def check_for_data(tool):
     # Make a path and glob the files
     path = os.path.join(EXOCTK_DATA, tool)
     files = glob.glob(os.path.join(path, '*'))
-    print(path, files)
 
     if len(files) == 0:
         raise IOError("This tool requires the '{0}' data. Try downloading with exoctk.utils.download_exoctk_data('{0}')".format(tool))
@@ -263,6 +272,37 @@ def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
             shutil.rmtree(path)
 
     print('Completed!')
+
+
+def fill_between(fig, xdata, ymin, ymax, **kwargs):
+    """Function to emulate matplotlib fill_between in bokeh
+
+    Parameters
+    ----------
+    fig: bokeh.plotting.figure
+        The figure to draw on
+    xdata: sequence
+        The x-axis data
+    ymin: int
+        The lower y-bound
+    ymax: int
+        The upper y-bound
+
+    Returns
+    -------
+    bokeh.plotting.figure
+        The figure
+    """
+    nanbot = np.where([np.isnan(i) for i in ymin])[0]
+    nantop = np.where([np.isnan(i) for i in ymax])[0]
+    yb = np.split(ymin, nanbot)
+    xs = np.split(xdata, nanbot)
+    yt = np.split(ymax, nantop)
+    for x, bot, top in zip(xs, yb, yt):
+        x = np.append(x, x[::-1])
+        y = np.append(bot, top[::-1])
+        fig.patch(x, y, **kwargs)
+    return fig
 
 
 def filter_table(table, **kwargs):
