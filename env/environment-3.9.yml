@@ -14,6 +14,7 @@ dependencies:
   - ipython=7.22.0
   - jupyter=1.0.0
   - matplotlib=3.3.4
+  - numpy=1.19.2
   - numpydoc=1.1.0
   - pandas=1.2.3
   - paramiko=2.7.2
@@ -37,7 +38,6 @@ dependencies:
     - flask_wtf==0.14.3
     - hotsoss==0.1.8
     - gunicorn==20.0.4
-    - numpy==1.19.2
     - platon==5.1.2
     - pyerfa>=1.7
     - pysiaf==0.10.0
