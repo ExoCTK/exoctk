@@ -44,11 +44,6 @@ jobs:
           echo " "
           python setup.py develop
 
-          # echo " "
-          # echo "Reinstall numpy to fix numpy.core.multiarray error"
-          # echo " "
-          pip install -U numpy
-
           echo " "
           echo "Testing package installation"
           echo " "
