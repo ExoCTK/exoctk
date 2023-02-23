@@ -34,6 +34,7 @@ dependencies:
     - bibtexparser==1.2.0
     - corner==2.2.1
     - docutils==0.15.2
+    - erfa>=1.7
     - flask_wtf==0.14.3
     - hotsoss==0.1.8
     - gunicorn==20.0.4
