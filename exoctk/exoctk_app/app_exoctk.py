@@ -514,6 +514,211 @@ def groups_integrations():
     return render_template('groups_integrations.html', form=form, sat_data=sat_data)
 
 
+@app_exoctk.route('/pa_contam', methods=['GET', 'POST'])
+def pa_contam():
+    """The contamination and visibility form page
+
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the contamination and visibility page.
+
+    """
+    return render_template('pa_contam.html')
+
+
+@app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
+def contam_visibility():
+    """The contamination and visibility form page
+    
+    Returns
+    -------
+    ``flask.render_template`` obj
+        The rendered template for the contamination and visibility page.
+
+    """
+    # Load default form
+    form = fv.ContamVisForm()
+    form.calculate_contam_submit.disabled = False
+
+    if request.method == 'GET':
+
+        # http://0.0.0.0:5000/contam_visibility?ra=24.354208334287005&dec=-45.677930555343636&target=WASP-18%20b
+        target_name = request.args.get('target')
+        form.targname.data = target_name
+
+        ra = request.args.get('ra')
+        form.ra.data = ra
+
+        dec = request.args.get('dec')
+        form.dec.data = dec
+
+        return render_template('contam_visibility.html', form=form)
+
+    # Reload page with stellar data from ExoMAST
+    if form.resolve_submit.data:
+
+        if form.targname.data.strip() != '':
+
+            # Resolve the target in exoMAST
+            try:
+                form.targname.data = get_canonical_name(form.targname.data)
+                data, url = get_target_data(form.targname.data)
+
+                # Update the coordinates
+                ra_deg = data.get('RA')
+                dec_deg = data.get('DEC')
+
+                # Set the form values
+                form.ra.data = ra_deg
+                form.dec.data = dec_deg
+                form.target_url.data = url
+
+            except Exception:
+                form.target_url.data = ''
+                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+
+        # Send it back to the main page
+        return render_template('contam_visibility.html', form=form)
+
+    # Reload page with appropriate mode data
+    if form.mode_submit.data:
+
+        # Update the button
+        if form.inst.data == 'NIRSpec':
+            form.calculate_contam_submit.disabled = True
+        else:
+            form.calculate_contam_submit.disabled = False
+
+        # Send it back to the main page
+        return render_template('contam_visibility.html', form=form)
+
+    if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
+
+        instrument = fs.APERTURES[form.inst.data]['inst']
+
+        try:
+
+            # Log the form inputs
+            log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+
+            # Make plot
+            title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
+
+            # Make output table
+            fh = io.StringIO()
+            table.write(fh, format='csv', delimiter=',')
+            visib_table = fh.getvalue()
+
+            # Get scripts
+            vis_js = INLINE.render_js()
+            vis_css = INLINE.render_css()
+            vis_script, vis_div = components(vis_plot)
+
+            # Contamination plot too
+            if form.calculate_contam_submit.data:
+
+                # Get RA and Dec in degrees
+                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+
+                # Add companion
+                try:
+                    comp_teff = float(form.teff.data)
+                except TypeError:
+                    comp_teff = None
+                try:
+                    comp_mag = float(form.delta_mag.data)
+                except TypeError:
+                    comp_mag = None
+                try:
+                    comp_dist = float(form.dist.data)
+                except TypeError:
+                    comp_dist = None
+                try:
+                    comp_pa = float(form.pa.data)
+                except TypeError:
+                    comp_pa = None
+
+                # Get PA value
+                pa_val = float(form.v3pa.data)
+                if pa_val == -1:
+
+                    # Add a companion
+                    companion = None
+                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
+
+                    # Make field simulation
+                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, binComp=companion, plot=False, multi=False)
+
+                    # Make the plot
+                    # contam_plot = fs.contam_slider_plot(results)
+
+                    # Make old contam plot
+                    starCube = np.zeros((362, 2048, 256))
+                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
+                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
+                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+                    contam_plot = cf.contam(starCube, 'NIS_SUBSTRIP256', targetName=form.targname.data, badPAs=badPAs)
+
+                else:
+
+                    # Get stars
+                    stars = fs.find_stars(ra_deg, dec_deg, verbose=False)
+
+                    # Add companion
+                    print(comp_teff, comp_mag, comp_dist, comp_pa)
+                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                        stars = fs.add_star(stars, 'Companion', ra_deg, dec_deg, comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa)
+
+                    # Calculate contam
+                    result, contam_plot = fs.calc_v3pa(pa_val, stars, 'NIS_SUBSTRIP256', plot=True, verbose=False)
+
+                # Get scripts
+                contam_js = INLINE.render_js()
+                contam_css = INLINE.render_css()
+                contam_script, contam_div = components(contam_plot)
+
+            else:
+
+                contam_script = contam_div = contam_js = contam_css = ''
+
+            return render_template('contam_visibility_results.html',
+                                   form=form, vis_plot=vis_div,
+                                   vis_table=visib_table,
+                                   vis_script=vis_script, vis_js=vis_js,
+                                   vis_css=vis_css, contam_plot=contam_div,
+                                   contam_script=contam_script,
+                                   contam_js=contam_js,
+                                   contam_css=contam_css, pa_val=pa_val)
+
+        except Exception as e:
+            err = 'The following error occurred: ' + str(e)
+            return render_template('groups_integrations_error.html', err=err)
+
+    return render_template('contam_visibility.html', form=form)
+
+
+@app_exoctk.route('/visib_result', methods=['POST'])
+def save_visib_result():
+    """Save the results of the Visibility Only calculation
+    
+    Returns
+    -------
+    ``flask.Response`` obj
+        flask.Response object with the results of the visibility only calculation.
+
+    """
+
+    visib_table = flask.request.form['data_file']
+    targname = flask.request.form['targetname']
+    targname = targname.replace(' ', '_') # no spaces
+    instname = flask.request.form['instrumentname']
+
+    return flask.Response(visib_table, mimetype="text/dat",
+                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+
 # Redirect to the index
 @app_exoctk.route('/')
 @app_exoctk.route('/index')

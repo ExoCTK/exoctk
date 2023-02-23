@@ -34,7 +34,7 @@
     	</p>
       <p>Potential caveats:</p>
       <ul>
-        <li>The field stars used for this analysis are retrieved from the 2MASS point source catalogue. Contamination from stars missing from the 2MASS PSC is thus not modelled; this may be important for faint targets.</li>
+        <li>The field stars used for this analysis are retrieved from the Gaia EDR3 point source catalogue. Contamination from stars missing from this catalog are thus not modelled; this may be important for faint targets.</li>
         <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.</li>
         <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>
       </ul>
@@ -76,13 +76,38 @@
                 {% endfor %}
             </div>
         </div>
+
+        <hr class="col-md-12">
+
+        <div class='form-group'>
+
+            <label class="col-sm-2 control-label">Position Angle</label>
+
+            <div class="col-sm-10">
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>PA</div>
+                      {{ form.v3pa(value=form.v3pa.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
+                </div>
+                <span id="helpBlock" class="help-block">The position angle of the telescope</span>
+                <span id="helpBlock" class="help-block">Enter -1 to calculate ALL position angles.</span>
+                <span id="helpBlock" class="help-block">Enter any float between 0 - 360 for a single position angle.</span>
+                <br>
+                {% for error in form.v3pa.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+
+            </div>
+        </div>
+
 		<hr class="col-md-12">
 
 		<div class='form-group'>
 
 				<label class="col-sm-2 control-label">Instrument - Mode</label>
                 <div class="col-sm-10">
-                    <select class='form-control' name="inst" id="inst" style='width:200px;'>
+                    <select class='form-control' name="inst" id="inst" style='width:400px;'>
                         {% for option in form.inst %}
                             <div class='radio'>
                                 {{ option }}
@@ -97,15 +122,55 @@
 
         <div class='form-group'>
 
-            <label for='' class="col-sm-2 control-label">Add a close binary companion not present in 2MASS (optional)</label>
+            <label for='' class="col-sm-2 control-label">Add a close binary companion not present in Gaia EDR3 (optional)</label>
+
+
             <div class="col-sm-10">
-                {{ form.companion(value=form.companion.data, size=50, rows=1, class='form-control') }}
-                <span id="helpBlock" class="help-block">RA offset (&quot;), DEC offset (&quot;), 2MASS J (mag), H (mag) and Ks (mag) [comma separated, no spaces]</span>
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>\(T_\text{eff}\)</div>
+                      {{ form.teff(size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Kelvin</div>
+                </div>
+                <span id="helpBlock" class="help-block">The effective temperature of the companion</span>
+                <br>
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>\(\Delta\) Gmag</div>
+                      {{ form.delta_mag(size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'></div>
+                </div>
+                <span id="helpBlock" class="help-block">\(\Delta\) Gmag = Gmag\(_\text{Target}\) - Gmag\(_\text{Companion}\)</span>
+                <br>
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>Distance</div>
+                      {{ form.dist(size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>arcseconds</div>
+                </div>
+                <span id="helpBlock" class="help-block">The distance of the companion from the target</span>
+                <br>
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>PA</div>
+                      {{ form.pa(size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Degrees</div>
+                </div>
+                <span id="helpBlock" class="help-block">The position angle of the companion relative to the target</span>
+                <br>
+                {% for error in form.teff.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.delta_mag.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.dist.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.pa.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
             </div>
-            <br>
-            {% for error in form.companion.errors %}
-                <p style="color: red;">{{ error }}</p>
-            {% endfor %}
         </div>
 
         <hr class="col-md-12">

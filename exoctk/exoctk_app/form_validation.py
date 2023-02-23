@@ -4,7 +4,7 @@ from flask_wtf import FlaskForm
 import numpy as np
 from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange, Optional
+from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, ValidationError, Optional
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
@@ -114,6 +114,15 @@ class LimbDarkeningForm(BaseForm):
     logg_rng = mg.logg_vals.min(), mg.logg_vals.max()
     feh_rng = mg.FeH_vals.min(), mg.FeH_vals.max()
     modeldir = RadioField('modeldir', default=default_modelgrid, choices=[(os.path.join(modelgrid_dir, 'ATLAS9/'), 'Kurucz ATLAS9'), (os.path.join(modelgrid_dir, 'ACES/'), 'Phoenix ACES')], validators=[InputRequired('A model grid is required!')])
+
+    # Form inputs
+    ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
+    dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
+    inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
+    delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
+    dist = DecimalField('dist', default=None, validators=[Optional()])
+    pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
+    v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
 
     # Stellar parameters
     teff = DecimalField('teff', default=3500, validators=[InputRequired('An effective temperature is required!'), NumberRange(min=float(teff_rng[0]), max=float(teff_rng[1]), message='Effective temperature must be between {} and {} for this model grid'.format(*teff_rng))])
