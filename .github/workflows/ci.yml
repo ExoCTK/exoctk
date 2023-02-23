@@ -42,7 +42,7 @@ jobs:
           echo " "
           echo "Installing exoctk package"
           echo " "
-          python setup.py develop
+          python setup.py develop --no-deps
 
           echo " "
           echo "Testing package installation"
