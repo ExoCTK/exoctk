@@ -1,6 +1,9 @@
 channels:
     - astropy
 
+python:
+  version: 3.8
+
 dependencies:
     - astropy
     - matplotlib
