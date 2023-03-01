@@ -16,7 +16,7 @@ gunicorn==20.1.0
 h5py==3.8.0
 hotsoss==0.1.8
 ipython==8.11.0
-matplotlib==3.4.1
+matplotlib==3.7.0
 numpy==1.19.2
 numpydoc==1.1.0
 pandas==1.2.3
