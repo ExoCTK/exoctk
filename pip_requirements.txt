@@ -27,7 +27,7 @@ pysynphot==2.0.0
 pytest==7.2.1
 pyvo==1.4
 pyyaml==6.0
-regions==0.5
+regions==0.7
 scipy==1.6.2
 scp==0.13.3
 sphinx==3.5.3
