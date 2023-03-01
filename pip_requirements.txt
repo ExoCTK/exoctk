@@ -24,7 +24,7 @@ paramiko==3.0.0
 platon==5.4
 pysiaf==0.19.1
 pysynphot==2.0.0
-pytest==6.2.2
+pytest==7.2.1
 pyvo==1.1
 pyyaml==5.4.1
 regions==0.5
