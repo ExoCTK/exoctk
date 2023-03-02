@@ -1,5 +1,5 @@
 asteval==0.9.16
-astropy>=5.1
+astropy>=5.0.0
 bandit==1.7.0
 batman-package==2.4.8
 bibtexparser==1.2.0
