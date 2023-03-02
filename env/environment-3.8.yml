@@ -16,7 +16,7 @@ dependencies:
   - ipython=7.22.0
   - jupyter=1.0.0
   - matplotlib=3.3.4
-  - numpy=1.19.2
+  - numpy>1.22.0
   - numpydoc=1.1.0
   - pandas=1.2.3
   - paramiko=2.7.2
