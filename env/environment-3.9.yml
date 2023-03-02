@@ -3,11 +3,12 @@ channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
 dependencies:
-  - astropy>5.1
+  - astropy
   - bokeh=2.3.0
   - boto3
   - cython=0.29.22
   - docopt=0.6.2
+  - docutils=0.16
   - flake8=3.9.0
   - flask=1.1.2
   - h5py=2.10.0
