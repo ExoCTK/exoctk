@@ -36,5 +36,5 @@ sphinx-automodapi==0.13
 svo_filters==0.4.1
 sqlalchemy==1.4.4
 wtforms==2.3.3
-jwst_gtvt==0.3.1
+git+https://github.com/spacetelescope/jwst_gtvt.git@7013b58
 astroquery>=0.4.2
