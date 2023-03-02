@@ -38,7 +38,7 @@ requirements:
 # requires private repo permissions, even on public repos
 # default: empty
 assignees:
-  - bourque
+  - hover2pi
 
 # configure the branch prefix the bot is using
 # default: pyup-

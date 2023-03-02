@@ -17,7 +17,7 @@ h5py==3.2.1
 hotsoss==0.1.8
 ipython==7.22.0
 matplotlib==3.4.1
-numpy>=1.22.0
+numpy==1.22.4
 numpydoc==1.1.0
 pandas==1.2.3
 paramiko==2.7.2
