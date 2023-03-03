@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
-            'astropy<4.1',
+            'astropy',
             'astroquery',
             'bandit',
             'bibtexparser',
@@ -12,7 +12,7 @@ REQUIRES = ['asteval',
             'corner',
             'cython',
             'docopt',
-            'docutils==0.15.2',
+            'docutils',
             'flake8',
             'flask',
             'flask_wtf',
@@ -39,8 +39,8 @@ REQUIRES = ['asteval',
             'sqlalchemy',
             'svo_filters',
             'wtforms',
-            'werkzeug==0.16.1',
-            'jwst_gtvt @ git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
+            'werkzeug',
+            'jwst_gtvt']
 
 
 FILES = []
