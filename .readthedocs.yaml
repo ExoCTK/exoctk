@@ -1,0 +1,8 @@
+version: 2
+
+python:
+  install:
+    - requirements: pip_requirements.txt
+    - method: pip
+      path: .
+  system_packages: true
