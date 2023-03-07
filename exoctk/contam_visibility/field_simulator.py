@@ -73,11 +73,11 @@ def SOSS_trace_mask(aperture, radius=20):
     ydim = APERTURES[aperture]['subarr_y'][2] - APERTURES[aperture]['subarr_y'][1]
     mask1 = np.zeros((ydim, 2048))
     mask2 = np.zeros((ydim, 2048))
-    # mask3 = np.zeros((ydim, 2048))
+    mask3 = np.zeros((ydim, 2048))
     for col in np.arange(2048):
         mask1[int(traces[0][col]) - radius: int(traces[0][col]) + radius, col] = 1
         mask2[int(traces[1][col]) - radius: int(traces[1][col]) + radius, col] = 1
-        # mask3[int(traces[2][col]) - radius: int(traces[2][col]) + radius, col] = 1
+        mask3[int(traces[2][col]) - radius: int(traces[2][col]) + radius, col] = 1
 
     # Right referecnce pixels
     mask1[:, :4] = 0
@@ -85,17 +85,17 @@ def SOSS_trace_mask(aperture, radius=20):
     # Left reference pixels
     mask1[:, -4:] = 0
     mask2[:, :4] = 0
-    # mask3[:, :4] = 0
+    mask3[:, :4] = 0
 
     # Top reference pixels
     mask1[-5:, :] = 0
     mask2[-5:, :] = 0
-    # mask3[-5:, :] = 0
+    mask3[-5:, :] = 0
 
     # Order 3 cutoff
     mask3[:, 823:] = 0
 
-    return mask1, mask2#, mask3
+    return mask1, mask2, mask3
 
 
 def trace_dict(teffs=None):
@@ -654,7 +654,7 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, plot=True, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, plot=False, multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters

@@ -38,6 +38,26 @@
 
                 <hr class="col-md-12">
                 <div class='form-group'>
+                    <label for="modeldir" class="col-sm-2 control-label">Choose a Model Grid</label>
+                    <div class="col-sm-10">
+                        {% for subfield in form.modeldir %}
+                            <div class='radio'>
+                                {% if subfield.label.text == 'Kurucz ATLAS9' %}
+                                    {{ subfield(style='margin-left:0px;', id='atlas9', checked='checked') }}{{ subfield.label }}
+                                {% else %}
+                                    {{ subfield(style='margin-left:0px;', id='aces') }}{{ subfield.label }}
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% for error in form.modeldir.errors %}
+                        <span style="color: red;">{{ error }}</span>
+                    {% endfor %}
+                    {{ form.modelgrid_submit(id='modelgridsubmit', style="visibility: hidden;") }}
+                </div>
+
+                <hr class="col-md-12">
+                <div class='form-group'>
                     <label for="modeldir" class="col-sm-2 control-label">Specify the Stellar Parameters</label>
                     <div class="col-sm-10">
 
@@ -160,26 +180,6 @@
                         <br>
 
                     </div>
-                </div>
-
-                <hr class="col-md-12">
-                <div class='form-group'>
-                    <label for="modeldir" class="col-sm-2 control-label">Choose a Model Grid</label>
-                    <div class="col-sm-10">
-                        {% for subfield in form.modeldir %}
-                            <div class='radio'>
-                                {% if subfield.label.text == 'Kurucz ATLAS9' %}
-                                    {{ subfield(style='margin-left:0px;', id='atlas9', checked='checked') }}{{ subfield.label }}
-                                {% else %}
-                                    {{ subfield(style='margin-left:0px;', id='aces') }}{{ subfield.label }}
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% for error in form.modeldir.errors %}
-                        <span style="color: red;">{{ error }}</span>
-                    {% endfor %}
-                    {{ form.modelgrid_submit(id='modelgridsubmit', style="visibility: hidden;") }}
                 </div>
 
                 <hr class="col-md-12">
