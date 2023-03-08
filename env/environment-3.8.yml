@@ -19,6 +19,7 @@ dependencies:
   - numpydoc=1.1.0
   - pandas=1.2.3
   - paramiko=2.7.2
+  - pip
   - pytest=6.2.3
   - python=3.8.5
   - pyyaml
