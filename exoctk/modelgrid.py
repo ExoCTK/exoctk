@@ -388,9 +388,9 @@ class ModelGrid(object):
         if in_grid:
 
             # See if the model with the desired parameters is a true grid point
-            on_grid = self.data[[(self.data['Teff'] == Teff) &
-                                 (self.data['logg'] == logg) &
-                                 (self.data['FeH'] == FeH)]] in self.data
+            on_grid = self.data[(self.data['Teff'] == Teff) &
+                                (self.data['logg'] == logg) &
+                                (self.data['FeH'] == FeH)] in self.data
 
             # Grab the data if the point is on the grid
             if on_grid:
