@@ -195,8 +195,6 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     berr_x = np.concatenate([gdMaskednum[i0_bot:i1_bot + 1],
                              gdMaskednum[i0_bot:i1_bot + 1][::-1]])
     fig.patch(berr_x, berr_y, color='red', fill_alpha=0.2, line_alpha=0)
-    from bokeh.plotting import show
-    show(fig)
 
     # Plot formatting
     fig.xaxis.axis_label = 'Date'
@@ -396,11 +394,11 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
             elif ((badPAs[idx - 1] + 1) < badPAs[idx]):
                 grouped_badPAs.append([badPAs[idx]])
 
-        grouped_badPAs = np.asarray(grouped_badPAs)
+        # grouped_badPAs = np.asarray(grouped_badPAs)
 
     else:  # Accounting for targets with 100% visibility
 
-        grouped_badPAs = np.asarray([])
+        grouped_badPAs = [] #np.asarray([])
 
     return paMin, paMax, gd, fig, table, grouped_badPAs
 
