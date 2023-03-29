@@ -554,7 +554,7 @@ def contam_visibility():
 
             else:
 
-                contam_script = contam_div = contam_js = contam_css = ''
+                contam_script = contam_div = contam_js = contam_css = pa_val = ''
 
             return render_template('contam_visibility_results.html',
                                    form=form, vis_plot=vis_div,
