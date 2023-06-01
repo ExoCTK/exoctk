@@ -32,7 +32,7 @@ scipy==1.10.1
 scp==0.14.5
 sphinx==7.0.1
 sphinx_astropy==1.8.0
-sphinx-automodapi==0.13
+sphinx-automodapi==0.15.0
 svo_filters==0.4.1
 sqlalchemy==1.4.4
 wtforms==2.3.3
