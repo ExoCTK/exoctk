@@ -36,17 +36,17 @@ def build_visibility_plot(target_name, instrument, ra, dec):
 
     exoplanet_df['times'] = Time(exoplanet_df['MJD'], format='mjd').datetime
 
+    source = ColumnDataSource(exoplanet_df)
+
     # define bokeh figure
     TOOLTIPS = [
-    ("Date", "$times"),
+    ("Date", "@times{%F}"),
     ("Nominal Position Angle", "@{}".format(nominal_angle_column_name)),
     ("Min Position Angle", "@{}".format(min_pa_column_name)),
     ("Max Position Angle", "@{}".format(max_pa_column_name)),]
 
     p = figure(title=f"{target_name} Visibility with {instrument}",
                plot_height=400, plot_width=800, x_axis_type='datetime')
-
-    p.add_tools(HoverTool(tooltips=TOOLTIPS))
 
     p.xaxis.axis_label = 'Date'
     p.yaxis.axis_label = 'Available Aperture Position Angles (Degrees)'
@@ -58,9 +58,11 @@ def build_visibility_plot(target_name, instrument, ra, dec):
         p.line("times", instrument + "_nominal_angle", line_dash=(10, 7), line_width=1, source=source, legend_label="Nominal Angle")
 
         band = Band(base='times', lower=instrument + '_min_pa_angle', upper=instrument + '_max_pa_angle', source=source, 
-                    level='underlay', fill_alpha=1.0, line_width=2, line_color='green')
+                    level='underlay', fill_alpha=1.0, line_width=4, line_color='green')
 
         p.add_layout(band)
         p.xaxis.major_label_orientation = 3.14/4
+
+        p.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@times': 'datetime'}))
 
     show(p)
