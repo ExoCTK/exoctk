@@ -65,4 +65,4 @@ def build_visibility_plot(target_name, instrument, ra, dec):
 
         p.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@times': 'datetime'}))
 
-    show(p)
+    return p
