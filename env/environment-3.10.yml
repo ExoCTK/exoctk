@@ -1,7 +1,6 @@
 name: exoctk-3.10
 channels:
   - defaults
-  - http://ssb.stsci.edu/astroconda
 dependencies:
   - astropy>=5.3.1
   - bokeh=2.4.3
