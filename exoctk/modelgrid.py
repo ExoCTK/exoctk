@@ -17,6 +17,7 @@ from astropy.io import fits
 import astropy.table as at
 import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
+from bokeh.plotting import figure
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -29,6 +30,105 @@ warnings.simplefilter('ignore', category=FutureWarning)
 
 ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
+
+def model_atmosphere(teff_float, logg_float=5., feh_float=0., atlas='ACES', air=False, plot=False):
+    """
+    Get the spectrum of a model atmosphere with the closest atmospheric parameters
+
+    Parameters
+    ----------
+    teff_float: float
+        The effective temperature
+    logg_float: float
+        The log surface gravity
+    feh_float: float
+        The metallicity
+    aplha_float: float
+        The alpha element enhancement
+    atlas: str
+        The atlas to use
+    air: bool
+        Convert vacuum wavelengths (default) to air
+    plot: bool
+        Plot the spectra
+
+    Returns
+    -------
+
+    """
+    # Glob all files in the given atlas directory
+    atlas_path = '/Users/jfilippazzo/Desktop/{}/'.format(atlas)
+    file_paths = glob(os.path.join(atlas_path, '*'))
+    filenames = [os.path.basename(i) for i in file_paths]
+
+    # List of available model parameters by parsing filenames
+    teff_lst = np.sort(np.unique([float(i[3:8]) for i in filenames]))
+    logg_lst = np.sort(np.unique([float(i[9:12]) for i in filenames]))
+    feh_lst = np.sort(np.unique([float(i[13:17]) for i in filenames]))
+
+    # Get closest value
+    teff = min(teff_lst, key=lambda x: abs(x - teff_float))
+    logg = min(logg_lst, key=lambda x: abs(x - logg_float))
+    feh = min(feh_lst, key=lambda x: abs(x - feh_float))
+
+    # Generate the correct filename from the given parameters with format 'lte03000-4.50-0.0.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits'
+    teff_str = str(int(teff)).zfill(5)
+    logg_str = '{:.2f}'.format(logg)
+    feh_str = ('+' if feh > 0 else '')+'{:.1f}'.format(feh)
+    filepath = os.path.join(atlas_path, 'lte{}-{}{}.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits'.format(teff_str, logg_str, feh_str))
+
+    # Get the data
+    hdul = fits.open(filepath)
+    mu = hdul[1].data
+    flux = hdul[0].data
+    head = hdul[0].header
+    hdul.close()
+    wave = np.arange(head['CRVAL1'], head['CRVAL1']+(head['NAXIS1']*head['CDELT1']), head['CDELT1'])
+
+    def nrefrac(wavelength, density=1.0):
+        """Calculate refractive index of air from Cauchy formula.
+
+        Note that Phoenix delivers synthetic spectra in the vaccum and that a line
+        shift is necessary to adapt these synthetic spectra for comparisons to
+        observations from the ground. For this, divide the vacuum wavelengths by
+        (1+1.e-6*nrefrac) as returned from the function below to get the air
+        wavelengths (or use the equation for AIR from it).
+
+        Input: wavelength in Angstrom, density of air in amagat (relative to STP,
+        e.g. ~10% decrease per 1000m above sea level).
+        Returns N = (n-1) * 1.e6.
+        """
+
+        # The IAU standard for conversion from air to vacuum wavelengths is given
+        # in Morton (1991, ApJS, 77, 119). For vacuum wavelengths (VAC) in
+        # Angstroms, convert to air wavelength (AIR) via:
+
+        #  AIR = VAC / (1.0 + 2.735182E-4 + 131.4182 / VAC^2 + 2.76249E8 / VAC^4)
+        wl2inv = (1.e4/wavelength)**2
+        refracstp = 272.643 + 1.2288 * wl2inv  + 3.555e-2 * wl2inv**2
+
+        return density * refracstp
+
+    # Vacuum or air?
+    wave = nrefrac(wave) if air else wave
+
+    # Put data into dict that works with LDC code
+    spec_dict = {}
+    spec_dict['wave'] = wave / 10000. # Convert from A to um
+    spec_dict['flux'] = flux
+    spec_dict['mu'] = mu
+    spec_dict['filename'] = filepath
+
+    # Make a plot... or don't. See if I care.
+    if plot:
+        fig = figure(title="Teff={}, log(g)={}, [Fe/H]={}".format(teff, logg, feh))
+        colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'purple']
+        for idx, mu_val in enumerate(mu[::10][:7]):
+            fig.line(wave, 10**flux[idx], legend_label='mu = {}'.format(mu_val), color=colors[idx])
+        return spec_dict, fig
+
+    else:
+        return spec_dict
 
 class ModelGrid(object):
     """
