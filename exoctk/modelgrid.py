@@ -17,7 +17,6 @@ from astropy.io import fits
 import astropy.table as at
 import astropy.units as q
 from astropy.utils.exceptions import AstropyWarning
-from bokeh.plotting import figure
 import h5py
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
@@ -31,7 +30,7 @@ warnings.simplefilter('ignore', category=FutureWarning)
 ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
-def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False):
+def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False):
     """
     Get the spectrum of a model atmosphere with the closest atmospheric parameters
 
@@ -47,8 +46,6 @@ def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False)
         The atlas to use
     air: bool
         Convert vacuum wavelengths (default) to air
-    plot: bool
-        Plot the spectra
 
     Returns
     -------
@@ -122,16 +119,19 @@ def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False)
     spec_dict['mu'] = mu
     spec_dict['filename'] = filepath
 
-    # Make a plot... or don't. See if I care.
-    if plot:
-        fig = figure(title="Teff={}, log(g)={}, [Fe/H]={}".format(teff_val, logg_val, feh_val))
-        colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'purple']
-        for idx, mu_val in enumerate(mu[::10][:7]):
-            fig.line(wave, 10**flux[idx], legend_label='mu = {}'.format(mu_val), color=colors[idx])
-        return spec_dict, fig
+    # # Make a plot... or don't. See if I care.
+    # if plot:
+    #     fig = figure(title="Teff={}, log(g)={}, [Fe/H]={}".format(teff_val, logg_val, feh_val))
+    #     colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'purple']
+    #     for idx, mu_val in enumerate(mu[::10][:7]):
+    #         fig.line(wave, 10**flux[idx], legend_label='mu = {}'.format(mu_val), color=colors[idx])
+    #     return spec_dict, fig
+    #
+    # else:
+    #     return spec_dict
 
-    else:
-        return spec_dict
+    return spec_dict
+
 
 class ModelGrid(object):
     """
@@ -551,11 +551,22 @@ class ModelGrid(object):
 
             # If not on the grid, interpolate to it
             else:
+
                 # Call grid_interp method
                 if interp:
                     spec_dict = self.grid_interp(Teff, logg, FeH)
+
+                # If no interpolation, just get the closest
                 else:
-                    return
+
+                    # Find the closest of each parameter
+                    teff_val = min(self.Teff_vals, key=lambda x: abs(x - Teff))
+                    logg_val = min(self.logg_vals, key=lambda x: abs(x - logg))
+                    feh_val = min(self.FeH_vals, key=lambda x: abs(x - FeH))
+                    print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(Teff, logg, FeH, teff_val, logg_val, feh_val))
+
+                    # Run `get` method again with on-grid points
+                    spec_dict = self.get(teff_val, logg_val, feh_val)
 
             return spec_dict
 
@@ -564,7 +575,7 @@ class ModelGrid(object):
                   ' model not in grid.')
             return
 
-    def grid_interp(self, Teff, logg, FeH, plot=False):
+    def grid_interp(self, Teff, logg, FeH):
         """
         Interpolate the grid to the desired parameters
 
@@ -577,9 +588,6 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity
             and solar metallicity (dex)
-        plot: bool
-            Plot the interpolated spectrum along
-            with the 8 neighboring grid spectra
 
         Returns
         -------
