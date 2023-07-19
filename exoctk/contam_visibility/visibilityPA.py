@@ -236,9 +236,9 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     """
     # Getting calculations from GTVT (General Target Visibility Tool)
-    blockPrint()
+    # blockPrint()
     tab = get_table(ra, dec)
-    enablePrint()
+    # enablePrint()
 
     gd = tab['Date']
     paMin = tab[str(instrument) + ' min']
