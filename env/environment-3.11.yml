@@ -1,4 +1,4 @@
-name: exoctk-3.9
+name: exoctk-3.11
 channels:
   - defaults
   - http://ssb.stsci.edu/astroconda
@@ -18,7 +18,7 @@ dependencies:
   - paramiko>=2.8.1
   - pip>=23.1.2
   - pytest>=7.3.1
-  - python=3.9.1
+  - python=3.11.0
   - pyyaml>=6.0.0
   - scp>=0.14.1
   - sphinx>=5.0.2
