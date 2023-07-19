@@ -52,7 +52,8 @@ def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False)
 
     Returns
     -------
-
+    dict, bokeh.plotting.figure
+        A dictionary of the spectra and optionally a plot
     """
     # Glob all files in the given atlas directory
     atlas_path = '/Users/jfilippazzo/Desktop/{}/'.format(atlas)
@@ -68,6 +69,7 @@ def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False)
     teff_val = min(teff_lst, key=lambda x: abs(x - teff))
     logg_val = min(logg_lst, key=lambda x: abs(x - logg))
     feh_val = min(feh_lst, key=lambda x: abs(x - feh))
+    print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(teff, logg, feh, teff_val, logg_val, feh_val))
 
     # Generate the correct filename from the given parameters with format 'lte03000-4.50-0.0.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits'
     teff_str = str(int(teff_val)).zfill(5)
