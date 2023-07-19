@@ -31,20 +31,18 @@ warnings.simplefilter('ignore', category=FutureWarning)
 ON_GITHUB_ACTIONS = os.path.expanduser('~') in ['/home/runner', '/Users/runner']
 
 
-def model_atmosphere(teff_float, logg_float=5., feh_float=0., atlas='ACES', air=False, plot=False):
+def model_atmosphere(teff, logg=5., feh=0., atlas='ACES', air=False, plot=False):
     """
     Get the spectrum of a model atmosphere with the closest atmospheric parameters
 
     Parameters
     ----------
-    teff_float: float
+    teff: float
         The effective temperature
-    logg_float: float
+    logg: float
         The log surface gravity
-    feh_float: float
+    feh: float
         The metallicity
-    aplha_float: float
-        The alpha element enhancement
     atlas: str
         The atlas to use
     air: bool
@@ -67,14 +65,14 @@ def model_atmosphere(teff_float, logg_float=5., feh_float=0., atlas='ACES', air=
     feh_lst = np.sort(np.unique([float(i[13:17]) for i in filenames]))
 
     # Get closest value
-    teff = min(teff_lst, key=lambda x: abs(x - teff_float))
-    logg = min(logg_lst, key=lambda x: abs(x - logg_float))
-    feh = min(feh_lst, key=lambda x: abs(x - feh_float))
+    teff_val = min(teff_lst, key=lambda x: abs(x - teff))
+    logg_val = min(logg_lst, key=lambda x: abs(x - logg))
+    feh_val = min(feh_lst, key=lambda x: abs(x - feh))
 
     # Generate the correct filename from the given parameters with format 'lte03000-4.50-0.0.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits'
-    teff_str = str(int(teff)).zfill(5)
-    logg_str = '{:.2f}'.format(logg)
-    feh_str = ('+' if feh > 0 else '')+'{:.1f}'.format(feh)
+    teff_str = str(int(teff_val)).zfill(5)
+    logg_str = '{:.2f}'.format(logg_val)
+    feh_str = ('+' if feh_val > 0 else '')+'{:.1f}'.format(feh_val)
     filepath = os.path.join(atlas_path, 'lte{}-{}{}.PHOENIX-ACES-AGSS-COND-SPECINT-2011.fits'.format(teff_str, logg_str, feh_str))
 
     # Get the data
@@ -114,6 +112,9 @@ def model_atmosphere(teff_float, logg_float=5., feh_float=0., atlas='ACES', air=
 
     # Put data into dict that works with LDC code
     spec_dict = {}
+    spec_dict['Teff'] = teff_val
+    spec_dict['logg'] = logg_val
+    spec_dict['FeH'] = feh_val
     spec_dict['wave'] = wave / 10000. # Convert from A to um
     spec_dict['flux'] = flux
     spec_dict['mu'] = mu
@@ -121,7 +122,7 @@ def model_atmosphere(teff_float, logg_float=5., feh_float=0., atlas='ACES', air=
 
     # Make a plot... or don't. See if I care.
     if plot:
-        fig = figure(title="Teff={}, log(g)={}, [Fe/H]={}".format(teff, logg, feh))
+        fig = figure(title="Teff={}, log(g)={}, [Fe/H]={}".format(teff_val, logg_val, feh_val))
         colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'purple']
         for idx, mu_val in enumerate(mu[::10][:7]):
             fig.line(wave, 10**flux[idx], legend_label='mu = {}'.format(mu_val), color=colors[idx])
