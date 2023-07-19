@@ -1,5 +1,6 @@
 name: exoctk-3.9
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - astropy>=5.3.1
