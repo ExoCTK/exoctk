@@ -25,7 +25,7 @@ platon==5.4
 pysiaf==0.20.0
 pysynphot==2.0.0
 pytest==7.4.0
-pyvo==1.1
+pyvo==1.4.1
 pyyaml==5.4.1
 regions==0.5
 scipy==1.6.2
