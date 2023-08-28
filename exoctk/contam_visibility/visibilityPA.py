@@ -21,7 +21,7 @@ import matplotlib.dates as mdates
 import numpy as np
 
 from . import ephemeris_old2x as EPH
-from jwst_gtvt.find_tgt_info import get_table
+# from jwst_gtvt.find_tgt_info import get_table
 from ..utils import blockPrint, enablePrint
 
 
