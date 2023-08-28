@@ -16,6 +16,7 @@ import form_validation as fv
 import numpy as np
 
 from exoctk import log_exoctk
+from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
@@ -476,11 +477,13 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
+            # pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
 
+            vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+            table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
             # Make output table
             fh = io.StringIO()
-            table.write(fh, format='csv', delimiter=',')
+            table.to_csv(fh, index=False)
             visib_table = fh.getvalue()
 
             # Get scripts
