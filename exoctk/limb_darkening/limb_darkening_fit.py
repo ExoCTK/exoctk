@@ -14,8 +14,7 @@ from astropy.io import ascii as ii
 import astropy.table as at
 from astropy.utils.exceptions import AstropyWarning
 import bokeh.plotting as bkp
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.models import Range1d, TabPanel, Tabs
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -541,7 +540,7 @@ class LDC:
             fig.xaxis.axis_label = 'mu'
             fig.yaxis.axis_label = 'Intensity'
 
-            tabs.append(Panel(child=fig, title=str(wav)))
+            tabs.append(TabPanel(child=fig, title=str(wav)))
 
         # Make the final tabbed figure
         final = Tabs(tabs=tabs)
