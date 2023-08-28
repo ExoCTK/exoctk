@@ -22,7 +22,6 @@ from astropy.io import fits
 from bokeh.plotting import figure, show
 from bokeh.layouts import gridplot, column
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
-from bokeh.models.widgets import Panel, Tabs
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from hotsoss.plotting import plot_frame
