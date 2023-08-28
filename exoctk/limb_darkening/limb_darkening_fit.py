@@ -532,7 +532,7 @@ class LDC:
 
             # Plot it
             TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), width=800, height=400)
             self.plot(wave_eff=wav, fig=fig)
 
             # Plot formatting
@@ -546,7 +546,7 @@ class LDC:
         final = Tabs(tabs=tabs)
 
         # Put the names back
-        self.results['name'] = old_names
+        self.results['name'] =  old_names
 
         if show:
             bkp.show(final)

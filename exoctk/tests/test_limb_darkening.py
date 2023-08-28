@@ -128,8 +128,8 @@ def test_ldc_plot():
 
     # Regular plot
     fig = ld_session.plot()
-    assert str(type(fig)) == "<class 'bokeh.plotting.figure.Figure'>"
+    assert str(type(fig)) == "<class 'bokeh.plotting._figure.figure'>"
 
     # Tabbed plot
     fig = ld_session.plot_tabs()
-    assert str(type(fig)) in ["<class 'bokeh.models.widgets.panels.Tabs'>", "<class 'bokeh.models.layouts.Tabs'>"]
+    assert str(type(fig)) in ["<class 'bokeh.models.layouts.TabPanel'>", "<class 'bokeh.models.layouts.Tabs'>"]
