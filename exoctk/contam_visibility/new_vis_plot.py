@@ -7,15 +7,15 @@ from jwst_gtvt.jwst_tvt import Ephemeris
 from jwst_gtvt.plotting import get_visibility_windows
 
 
-def get_exoplanet_positions(ra, dec):
+def get_exoplanet_positions(ra, dec, in_FOR=True):
     """Use the jwst_gtvt to obtain positions of exoplanet.
     """
 
     eph = Ephemeris()
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
-    data_in_FOR = exoplanet_data.loc[exoplanet_data['in_FOR']==True]
+    exo_data = exoplanet_data.loc[exoplanet_data['in_FOR']==in_FOR]
 
-    return data_in_FOR
+    return exo_data
 
 def build_visibility_plot(target_name, instrument, ra, dec):
     """Build bokeh figure for visibility windows
@@ -46,7 +46,7 @@ def build_visibility_plot(target_name, instrument, ra, dec):
     ("Max Position Angle", "@{}".format(max_pa_column_name)),]
 
     p = figure(title=f"{target_name} Visibility with {instrument}",
-               plot_height=400, plot_width=800, x_axis_type='datetime')
+               height=400, width=800, x_axis_type='datetime')
 
     p.xaxis.axis_label = 'Date'
     p.yaxis.axis_label = 'Available Aperture Position Angles (Degrees)'
