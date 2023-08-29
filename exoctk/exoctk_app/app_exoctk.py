@@ -480,8 +480,7 @@ def contam_visibility():
             # pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
             vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
             table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
-            badPAs = table[~'in_FOR']
-            print(badPAs)
+            badPAs = list(get_exoplanet_positions(str(form.ra.data), str(form.dec.data), in_FOR=False)['V3PA'])
 
             # Make output table
             fh = io.StringIO()
