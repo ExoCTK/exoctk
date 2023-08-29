@@ -727,8 +727,8 @@ def limb_darkening():
         # Make filter object and plot
         bandpass = Throughput(form.bandpass.data, **kwargs)
         bk_plot = bandpass.plot(draw=False)
-        bk_plot.plot_width = 580
-        bk_plot.plot_height = 280
+        bk_plot.width = 580
+        bk_plot.height = 280
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
         filt_script, filt_plot = components(bk_plot)
