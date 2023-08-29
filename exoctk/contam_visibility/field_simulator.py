@@ -685,7 +685,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     -------
     from exoctk.contam_visibility import field_simulator as fs
     ra, dec = 91.872242, -25.594934
-    targ, data, plt = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
+    targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
     # Check for contam tool data
     check_for_data('exoctk_contam')
@@ -736,13 +736,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
 
     # Exclude PAs where target is not visible to speed up calculation
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    # minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
-    # badPA_list = np.concatenate([np.array(i) for i in badPAs])
-
-    # Exclude PAs where target is not visible to speed up calculation
-    table = get_exoplanet_positions(ra_hms, dec_dms)
-    badPA_list = table[~table['in_FOR']]
-
+    badPA_list = list(get_exoplanet_positions(ra_hms, dec_dms, in_FOR=False)['V3PA'])
     good_pa_list = [pa for pa in pa_list if pa not in badPA_list]
 
     # Calculate contamination of all stars at each PA
@@ -833,7 +827,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     source_available = ColumnDataSource(data=contam_dict)
 
     # Define plot elements
-    plt = figure(plot_width=900, plot_height=300, tools=['reset', 'box_zoom', 'wheel_zoom', 'save'])
+    plt = figure(width=900, height=300, tools=['reset', 'box_zoom', 'wheel_zoom', 'save'])
     plt.line('col', 'contam1', source=source_visible, color='blue', line_width=2, line_alpha=0.6,
              legend_label='Order 1')
     plt.line('col', 'contam2', source=source_visible, color='red', line_width=2, line_alpha=0.6, legend_label='Order 2')
@@ -877,7 +871,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     viz_ord3 = np.array([1 if i > threshold else 0 for i in np.nanmax(order3_contam, axis=1)])
 
     # Make the plot
-    viz_plt = figure(plot_width=900, plot_height=200, x_range=Range1d(0, 359))
+    viz_plt = figure(width=900, height=200, x_range=Range1d(0, 359))
     viz_plt.step(np.arange(360), np.mean(order1_contam, axis=1), color='blue', mode="center")
     viz_plt.step(np.arange(360), np.mean(order2_contam, axis=1), color='red', mode="center")
     viz_plt.step(np.arange(360), np.mean(order3_contam, axis=1), color='green', mode="center")
