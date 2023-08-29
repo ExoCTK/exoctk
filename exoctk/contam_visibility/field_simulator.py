@@ -32,7 +32,8 @@ import pysiaf
 import regions
 
 from ..utils import get_env_variables, check_for_data
-from .visibilityPA import using_gtvt
+# from .visibilityPA import using_gtvt
+from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 
 Vizier.columns = ["**", "+_r"]
@@ -735,8 +736,13 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
 
     # Exclude PAs where target is not visible to speed up calculation
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
-    badPA_list = np.concatenate([np.array(i) for i in badPAs])
+    # minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
+    # badPA_list = np.concatenate([np.array(i) for i in badPAs])
+
+    # Exclude PAs where target is not visible to speed up calculation
+    table = get_exoplanet_positions(ra_hms, dec_dms)
+    badPA_list = table[~table['in_FOR']]
+
     good_pa_list = [pa for pa in pa_list if pa not in badPA_list]
 
     # Calculate contamination of all stars at each PA
@@ -995,10 +1001,6 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
         The wavelength min and max
     badPAs: list
         The list of position angles with no visibility
-    minPA: int
-        The minimum position angle to plot
-    maxPA: int
-        The maximum position angle to plot
 
     Returns
     -------
