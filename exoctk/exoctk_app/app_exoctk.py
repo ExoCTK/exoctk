@@ -483,7 +483,7 @@ def contam_visibility():
             badPAs = list(get_exoplanet_positions(str(form.ra.data), str(form.dec.data), in_FOR=False)['V3PA'])
 
             # Make output table
-            visib_table = Table.from_pandas(table)
+            visib_table = at.Table.from_pandas(table)
             file_as_string = '\n'.join(visib_table.pformat(max_lines=-1, max_width=-1))
 
             # Get scripts
@@ -1016,7 +1016,7 @@ def save_visib_result():
     targname = targname.replace(' ', '_')  # no spaces
     instname = flask.request.form['instrumentname']
 
-    return flask.Response(visib_table, mimetype="text/dat", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+    return flask.Response(visib_table, mimetype="text/dat", headers={"Content-disposition": "attachment; filename={}_{}_visibility.dat".format(targname, instname)})
 
 
 @app_exoctk.route('/admin')
