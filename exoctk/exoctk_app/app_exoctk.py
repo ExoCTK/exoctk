@@ -483,9 +483,9 @@ def contam_visibility():
             badPAs = list(get_exoplanet_positions(str(form.ra.data), str(form.dec.data), in_FOR=False)['V3PA'])
 
             # Make output table
-            fh = io.StringIO()
+            # fh = io.StringIO()
             table.to_csv(fh, index=False)
-            visib_table = fh.getvalue()
+            # visib_table = fh.getvalue()
 
             # Get scripts
             vis_js = INLINE.render_js()
