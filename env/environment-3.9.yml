@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - astropy>=5.3.1
-  - bokeh>=3.2.1
+  - bokeh>=3.2.2
   - cython>=0.29.35
   - docopt>=0.6.2
   - docutils>=0.16
@@ -37,6 +37,7 @@ dependencies:
     - h5py>=3.9.0
     - hotsoss>=0.1.9
     - gunicorn>=21.1.0
+    - markupsafe==2.0.1
     - numpy>=1.25.1
     - platon>=5.4
     - pyerfa>=2.0.0
@@ -47,6 +48,6 @@ dependencies:
     - scipy>=1.11.1
     - sphinx_astropy>=1.9.1
     - svo-filters>=0.4.4
-    - werkzeug>=2.3.6
+    - werkzeug>=2.2.2
     - jwst_gtvt>=1.0.0
     - astroquery>=0.4.6
