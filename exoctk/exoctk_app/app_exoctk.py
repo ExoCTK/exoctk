@@ -484,7 +484,7 @@ def contam_visibility():
 
             # Make output table
             visib_table = at.Table.from_pandas(table)
-            file_as_string = '\n'.join(visib_table.pformat(max_lines=-1, max_width=-1))
+            vis_table = '\n'.join(visib_table.pformat(max_lines=-1, max_width=-1))
 
             # Get scripts
             vis_js = INLINE.render_js()
@@ -561,7 +561,7 @@ def contam_visibility():
 
             return render_template('contam_visibility_results.html',
                                    form=form, vis_plot=vis_div,
-                                   vis_table=file_as_string,
+                                   vis_table=vis_table,
                                    vis_script=vis_script, vis_js=vis_js,
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
@@ -1010,13 +1010,16 @@ def save_visib_result():
         flask.Response object with the results of the visibility only
         calculation.
     """
-
-    visib_table = flask.request.form['data_file']
-    targname = flask.request.form['targetname']
+    visib_table = request.form['vis_table']
+    targname = request.form['targetname']
     targname = targname.replace(' ', '_')  # no spaces
-    instname = flask.request.form['instrumentname']
+    instname = request.form['instrumentname']
 
-    return flask.Response(visib_table, mimetype="text/dat", headers={"Content-disposition": "attachment; filename={}_{}_visibility.dat".format(targname, instname)})
+    resp = make_response(visib_table)
+    resp.headers["Content-Disposition"] = "attachment; filename={}_{}_visibility.dat".format(targname, instname)
+    resp.headers["Content-Type"] = "text/dat"
+
+    return resp
 
 
 @app_exoctk.route('/admin')
