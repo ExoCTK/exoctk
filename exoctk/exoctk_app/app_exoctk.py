@@ -1013,12 +1013,12 @@ def save_visib_result():
     """
 
     visib_table = flask.request.form['data_file']
-    targname = flask.request.form['targetname']
-    targname = targname.replace(' ', '_')  # no spaces
-    instname = flask.request.form['instrumentname']
+    # targname = flask.request.form['targetname']
+    # targname = targname.replace(' ', '_')  # no spaces
+    # instname = flask.request.form['instrumentname']
 
-    return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
-
+    # return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+    return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename=target_visibility.csv"})
 
 @app_exoctk.route('/admin')
 @requires_auth
