@@ -54,8 +54,8 @@
     		{{ vis_plot | safe }}
             <br>
 
-        <br action="/visib_result" method="post">
-            <input type="hidden" name="data_file" value="{{ vis_table }}" />
+        <form action="/visib_result" method="post">
+            <input type="hidden" name="vis_table" value="{{ vis_table }}" />
             <input class="btn btn-success" type='submit' value='Download CSV'>
         <form action="/visib_result" method="post">
             <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
