@@ -1017,8 +1017,7 @@ def save_visib_result():
     targname = targname.replace(' ', '_')  # no spaces
     instname = flask.request.form['instrumentname']
 
-    return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+    return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
 
 
 @app_exoctk.route('/admin')
