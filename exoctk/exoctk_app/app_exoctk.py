@@ -483,9 +483,8 @@ def contam_visibility():
             badPAs = list(get_exoplanet_positions(str(form.ra.data), str(form.dec.data), in_FOR=False)['V3PA'])
 
             # Make output table
-            # fh = io.StringIO()
-            table.to_csv(fh, index=False)
-            # visib_table = fh.getvalue()
+            visib_table = Table.from_pandas(table)
+            file_as_string = '\n'.join(visib_table.pformat(max_lines=-1, max_width=-1))
 
             # Get scripts
             vis_js = INLINE.render_js()
@@ -562,7 +561,7 @@ def contam_visibility():
 
             return render_template('contam_visibility_results.html',
                                    form=form, vis_plot=vis_div,
-                                   vis_table=visib_table,
+                                   vis_table=file_as_string,
                                    vis_script=vis_script, vis_js=vis_js,
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
@@ -1013,12 +1012,12 @@ def save_visib_result():
     """
 
     visib_table = flask.request.form['data_file']
-    # targname = flask.request.form['targetname']
-    # targname = targname.replace(' ', '_')  # no spaces
-    # instname = flask.request.form['instrumentname']
+    targname = flask.request.form['targetname']
+    targname = targname.replace(' ', '_')  # no spaces
+    instname = flask.request.form['instrumentname']
 
-    # return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
-    return flask.Response(visib_table, mimetype="text/csv", headers={"Content-disposition": "attachment; filename=target_visibility.csv"})
+    return flask.Response(visib_table, mimetype="text/dat", headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+
 
 @app_exoctk.route('/admin')
 @requires_auth
