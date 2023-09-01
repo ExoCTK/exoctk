@@ -721,7 +721,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
         stars = add_star(stars, **binComp)
 
     # Set the number of cores for multiprocessing
-    max_cores = cpu_count()
+    max_cores = 8
     if n_jobs == -1 or n_jobs > max_cores:
         n_jobs = max_cores
 
