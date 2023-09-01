@@ -391,7 +391,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     if plot:
         # Set up hover tool
         tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
-        hover = HoverTool(tooltips=tips, names=['stars'])
+        hover = HoverTool(tooltips=tips, name='stars')
         crosshair = CrosshairTool(dimensions="height")
 
         # Make the plot
@@ -1057,7 +1057,7 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
         contam = np.log10(np.clip(contam, 1.e-10, 1.))
 
     # Hover tool
-    hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], names=['contam'])
+    hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], name='contam')
     tools = ['pan', 'box_zoom', 'crosshair', 'reset', hover]
     trplot = figure(tools=tools, width=600, height=500, title=title, x_range=Range1d(*wlims), y_range=Range1d(0, PAs))
 
