@@ -654,7 +654,7 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, plot=False, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, plot=False, multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -669,8 +669,6 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     n_jobs: int
         Number of cores to use (-1 = All)
-    pa_list: sequence
-        The position angles to consider
 
     Returns
     -------
@@ -724,10 +722,6 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     max_cores = 8
     if n_jobs == -1 or n_jobs > max_cores:
         n_jobs = max_cores
-
-    # List of PAs
-    if pa_list is None:
-        pa_list = np.arange(0, 360, 1)
 
     # Get full list from ephemeris
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
