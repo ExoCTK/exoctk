@@ -7,15 +7,18 @@ from jwst_gtvt.jwst_tvt import Ephemeris
 from jwst_gtvt.plotting import get_visibility_windows
 
 
-def get_exoplanet_positions(ra, dec, in_FOR=True):
+def get_exoplanet_positions(ra, dec, in_FOR=None):
     """Use the jwst_gtvt to obtain positions of exoplanet.
     """
 
     eph = Ephemeris()
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
-    exo_data = exoplanet_data.loc[exoplanet_data['in_FOR']==in_FOR]
 
-    return exo_data
+    if in_FOR is None:
+        return exoplanet_data
+    else:
+        return exoplanet_data.loc[exoplanet_data['in_FOR']==in_FOR]
+
 
 def build_visibility_plot(target_name, instrument, ra, dec):
     """Build bokeh figure for visibility windows
@@ -31,7 +34,7 @@ def build_visibility_plot(target_name, instrument, ra, dec):
     max_pa_column_name = instrument + '_max_pa_angle'
 
     # obtain exoplanet data and filter visibility windows
-    exoplanet_df = get_exoplanet_positions(ra, dec)
+    exoplanet_df = get_exoplanet_positions(ra, dec, in_FOR=True)
     window_indices = get_visibility_windows(exoplanet_df.index.tolist())
 
     exoplanet_df['times'] = Time(exoplanet_df['MJD'], format='mjd').datetime

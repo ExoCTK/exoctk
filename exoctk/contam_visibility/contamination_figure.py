@@ -1,9 +1,10 @@
 import os
 import sys
+from itertools import groupby, count
 
 from astropy.io import fits
 from bokeh.layouts import gridplot
-from bokeh.models import Range1d, LinearColorMapper
+from bokeh.models import Range1d, LinearColorMapper, CrosshairTool, HoverTool, Span
 from bokeh.palettes import PuBu
 from bokeh.plotting import figure
 import numpy as np
@@ -214,8 +215,7 @@ def miriContam(cube, paRange=[0, 360]):
     return contamO1
 
 
-def contam(cube, instrument, targetName='noName', paRange=[0, 360],
-           badPAs=np.asarray([]), tmpDir="", fig='', to_html=True):
+def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     rows, cols = cube.shape[1], cube.shape[2]
 
@@ -241,10 +241,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         xlim0 = 5
         xlim1 = 12
 
-    TOOLS = 'pan, box_zoom, crosshair, reset'
-
-    bad_PA_color = '#dddddd'
-    bad_PA_alpha = 0.7
+    TOOLS = 'pan, box_zoom, reset'
     dPA = 1
 
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,22 +252,17 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     color_mapper = LinearColorMapper(palette=PuBu[8][::-1][2:], low=-4, high=1)
     color_mapper.low_color = 'white'
     color_mapper.high_color = 'black'
+    width = Span(dimension="width", line_width=1)
+    height = Span(dimension="height", line_width=1)
 
     orders = 'Orders 1 & 2' if instrument.startswith('NRCA') else 'Order 1'
-    s2 = figure(tools=TOOLS, width=500, height=500, title='{} {} Contamination with {}'.format(orders, targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
+    s2 = figure(tools=TOOLS, width=800, height=600, title='{} {} Contamination with {}'.format(orders, targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=Range1d(ylim0, ylim1))
+    o1_crosshair = CrosshairTool(overlay=[width, height])
+    s2.add_tools(o1_crosshair)
 
     contamO1 = contamO1 if 'NRCA' in instrument else contamO1.T
     contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
-    # fig_data = np.clip(contamO1, 1.e-10, 1.)  # [:, :361] # might this
-    fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))  # [:, :361] # might this
-
-    # index have something to
-    # do w the choppiness
-    # of o1 in all instruments
-    # return(fig_data)
-
-    X = xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim0
-    DW = xlim0 - xlim1 if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else xlim1 - xlim0
+    fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))
 
     # Begin plotting ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -279,30 +271,11 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
     if not instrument.startswith('NIS'):
         s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
-    # Add bad PAs
-    bad_PA_color = '#555555'
-    bad_PA_alpha = 0.6
-    if len(badPAs) > 0:
-
-        tops, bottoms, lefts, rights = [], [], [], []
-        for idx in range(0, len(badPAs)):
-            PAgroup = badPAs[idx]
-            top_idx = np.max(PAgroup)
-            bot_idx = np.min(PAgroup)
-
-            tops.append(top_idx)
-            bottoms.append(bot_idx)
-            lefts.append(xlim0)
-            rights.append(xlim1)
-
-        s2.quad(top=tops, bottom=bottoms,
-                left=lefts, right=rights,
-                color=bad_PA_color, alpha=bad_PA_alpha)
-
     # Line plot
     #ax = 1 if 'NIRCam' in instrument else 0
     channels = cols if 'NRCA' in instrument else rows
-    s3 = figure(tools=TOOLS, width=150, height=500, x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
+    s3 = figure(tools=TOOLS, width=150, height=600, x_range=Range1d(0, 100), y_range=s2.y_range, title=None)
+    s3.add_tools(o1_crosshair)
 
     try:
         s3.line(100 * np.sum(contamO1 >= 0.001, axis=1) / channels, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
@@ -313,8 +286,34 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
+    s3.ygrid.grid_line_color = None
+
+    # Add shaded region for bad PAs
+    bad_PA_color = '#555555'
+    bad_PA_alpha = 0.6
+    if len(badPAs) > 0:
+
+        # Group bad PAs
+        badPA_groups = [list(map(int, g)) for _, g in groupby(badPAs, lambda n, c=count(): n-next(c))]
+
+        tops, bottoms, lefts, rights, lefts_line, rights_line = [], [], [], [], [], []
+        for idx in range(0, len(badPA_groups)):
+            PAgroup = badPA_groups[idx]
+            top_idx = np.max(PAgroup)
+            bot_idx = np.min(PAgroup)
+
+            tops.append(top_idx)
+            bottoms.append(bot_idx)
+            lefts.append(xlim0)
+            rights.append(xlim1)
+            lefts_line.append(0)
+            rights_line.append(100)
+
+        s2.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
+        s3.quad(top=tops, bottom=bottoms, left=lefts_line, right=rights_line, color=bad_PA_color, alpha=bad_PA_alpha)
 
     # ~~~~~~ Order 2 ~~~~~~
+
     # Contam plot
     if instrument.startswith('NIS'):
         xlim0 = lamO2.min()
@@ -322,29 +321,17 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
         ylim0 = PA.min() - 0.5 * dPA
         ylim1 = PA.max() + 0.5 * dPA
         xlim0 = 0.614
-        s5 = figure(tools=TOOLS, width=500, height=500, title='Order 2 {} Contamination with {}'.format(targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
+        s5 = figure(tools=TOOLS, width=800, height=600, title='Order 2 {} Contamination with {}'.format(targetName, instrument), x_range=Range1d(xlim0, xlim1), y_range=s2.y_range)
         fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
         s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
         s5.xaxis.axis_label = 'Wavelength (um)'
         s5.yaxis.axis_label = 'Aperture Position Angle (degrees)'
-
-        if len(badPAs) > 0:
-
-            tops, bottoms, lefts, rights = [], [], [], []
-            for idx in range(0, len(badPAs)):
-                PAgroup = badPAs[idx]
-                top_idx = np.max(PAgroup)
-                bot_idx = np.min(PAgroup)
-
-                tops.append(top_idx)
-                bottoms.append(bot_idx)
-                lefts.append(xlim0)
-                rights.append(xlim1)
-
-            s5.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
+        o2_crosshair = CrosshairTool(overlay=[width, height])
+        s5.add_tools(o2_crosshair)
 
         # Line plot
-        s6 = figure(tools=TOOLS, width=150, height=500, y_range=s2.y_range, x_range=Range1d(0, 100), title=None)
+        s6 = figure(tools=TOOLS, width=150, height=600, y_range=s2.y_range, x_range=Range1d(0, 100), title=None)
+        s6.add_tools(o2_crosshair)
 
         try:
             s6.line(100 * np.sum(contamO2 >= 0.001, axis=0) / rows, PA - dPA / 2, line_color='blue', legend_label='> 0.001')
@@ -355,23 +342,30 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360],
 
         s6.xaxis.axis_label = '% channels contam.'
         s6.yaxis.major_label_text_font_size = '0pt'
+        s6.ygrid.grid_line_color = None
 
-    if len(badPAs) > 0:
+        # Add shaded region for bad PAs
+        if len(badPAs) > 0:
 
-        tops, bottoms, lefts, rights = [], [], [], []
-        for idx in range(0, len(badPAs)):
-            PAgroup = badPAs[idx]
-            top_idx = np.max(PAgroup)
-            bot_idx = np.min(PAgroup)
+            # Group bad PAs
+            badPA_groups = [list(map(int, g)) for _, g in groupby(badPAs, lambda n, c=count(): n - next(c))]
 
-            tops.append(top_idx)
-            bottoms.append(bot_idx)
-            lefts.append(0)
-            rights.append(100)
+            tops, bottoms, lefts, rights, lefts_line, rights_line = [], [], [], [], [], []
+            for idx in range(0, len(badPA_groups)):
+                PAgroup = badPA_groups[idx]
+                top_idx = np.max(PAgroup)
+                bot_idx = np.min(PAgroup)
 
-        s3.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
-        if instrument.startswith('NIS'):
-            s6.quad(top=tops, bottom=bottoms, left=rights, right=lefts, color=bad_PA_color, alpha=bad_PA_alpha)
+                tops.append(top_idx)
+                bottoms.append(bot_idx)
+                lefts.append(xlim0)
+                rights.append(xlim1)
+                lefts_line.append(0)
+                rights_line.append(100)
+
+            s5.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
+            s6.quad(top=tops, bottom=bottoms, left=lefts_line, right=rights_line, color=bad_PA_color,
+                    alpha=bad_PA_alpha)
 
     # ~~~~~~ Plotting ~~~~~~
 
