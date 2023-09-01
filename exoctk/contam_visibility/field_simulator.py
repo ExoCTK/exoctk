@@ -670,7 +670,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     n_jobs: int
         Number of cores to use (-1 = All)
     pa_list: sequence
-        The position angles to calculate
+        The position angles to consider
 
     Returns
     -------
@@ -729,15 +729,36 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     if pa_list is None:
         pa_list = np.arange(0, 360, 1)
 
+    # Get full list from ephemeris
+    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
+    goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
+
+    # Get all observable PAs and convert to ints
+    goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
+    goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
+
+    # Group good PAs to find gaps in visibility
+    good_groups = []
+    current_group = [goodPA_ints[0]]
+    max_gap = 7 # Biggest PA gap considered to still be observable
+    for i in range(1, len(goodPA_ints)):
+        if goodPA_ints[i] - current_group[-1] <= max_gap:
+            current_group.append(goodPA_ints[i])
+        else:
+            good_groups.append(current_group)
+            current_group = [goodPA_ints[i]]
+
+    good_groups.append(current_group)
+    good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
+    goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
+
+    # Flatten list and check against 360 angles to get all bad PAs
+    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
+
     # Time it
     if verbose:
-        print('Calculating target contamination from {} neighboring sources at {} position angles...'.format(len(stars), len(pa_list)))
+        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
         start = time.time()
-
-    # Exclude PAs where target is not visible to speed up calculation
-    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    badPA_list = list(get_exoplanet_positions(ra_hms, dec_dms, in_FOR=False)['V3PA'])
-    good_pa_list = [pa for pa in pa_list if pa not in badPA_list]
 
     # Calculate contamination of all stars at each PA
     # -----------------------------------------------
@@ -749,13 +770,13 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     if multi:
         pl = pool.ThreadPool(n_jobs)
         func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-        results = pl.map(func, good_pa_list)
+        results = pl.map(func, goodPA_list)
         pl.close()
         pl.join()
 
     else:
         results = []
-        for pa in good_pa_list:
+        for pa in goodPA_list:
             result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
             results.append(result)
 
