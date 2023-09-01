@@ -477,14 +477,11 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            # pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
             vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
             table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
-            badPAs = list(get_exoplanet_positions(str(form.ra.data), str(form.dec.data), in_FOR=False)['V3PA'])
 
             # Make output table
-            visib_table = at.Table.from_pandas(table)
-            vis_table = '\n'.join(visib_table.pformat(max_lines=-1, max_width=-1))
+            vis_table = table.to_csv()
 
             # Get scripts
             vis_js = INLINE.render_js()
@@ -529,6 +526,9 @@ def contam_visibility():
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
+
+                    # Get bad PA list from missing angles between 0 and 360
+                    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
 
                     # Make old contam plot
                     starCube = np.zeros((362, 2048, 256))
@@ -1016,8 +1016,8 @@ def save_visib_result():
     instname = request.form['instrumentname']
 
     resp = make_response(visib_table)
-    resp.headers["Content-Disposition"] = "attachment; filename={}_{}_visibility.dat".format(targname, instname)
-    resp.headers["Content-Type"] = "text/dat"
+    resp.headers["Content-Disposition"] = "attachment; filename={}_{}_visibility.csv".format(targname, instname)
+    resp.headers["Content-Type"] = "text/csv"
 
     return resp
 
