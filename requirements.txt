@@ -14,7 +14,7 @@ flask==2.3.3
 flask_wtf==1.1.1
 gunicorn==21.2.0
 h5py==3.9.0
-hotsoss==0.1.8
+hotsoss==0.1.9
 ipython==7.22.0
 matplotlib==3.4.1
 numpy>=1.21.4
