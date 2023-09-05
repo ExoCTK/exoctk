@@ -376,7 +376,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         star['yord1'] = star['yord0'] - y_sweet + aper['subarr_y'][1] + y_shift
 
     # Just stars in FOV (Should always have at least 1, the target)
-    lft, rgt, top, bot = 700, 5000, 2000, 1400
+    lft, rgt, top, bot = 700, 5100, 1940, 1400
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
     if verbose:
@@ -393,16 +393,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
         hover = HoverTool(tooltips=tips, name='stars')
         crosshair = CrosshairTool(dimensions="height")
+        taptool = TapTool(behavior='select', callback=OpenURL(url="@url"))
 
         # Make the plot
-        tools = ['pan', crosshair, 'reset', 'box_zoom', 'wheel_zoom', 'save', hover]
+        tools = ['pan', crosshair, 'reset', 'box_zoom', 'wheel_zoom', 'save', taptool, hover]
         fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
-
-        # Add clickable order 0
-        taptool = fig.select(type=TapTool)
-        taptool.behavior = 'select'
-        taptool.callback = OpenURL(url="@url")
 
         # Plot config
         scale = 'log'
