@@ -6,6 +6,7 @@ subpackage.
 Authors
 -------
 
+    Joe Filippazzo
     Matthew Bourque
     Ben Falk
 
@@ -26,25 +27,23 @@ import numpy as np
 import pytest
 
 from exoctk.contam_visibility import field_simulator
-from exoctk.contam_visibility import miniTools
 from exoctk.contam_visibility import resolve
-from exoctk.contam_visibility import visibilityPA
+from exoctk.contam_visibility import new_vis_plot
 
 # Determine if tests are being run on Github Actions
 ON_GITHUB_ACTIONS = '/home/runner' in os.path.expanduser('~') or '/Users/runner' in os.path.expanduser('~')
 
 
-def test_checkVisPA():
-    """Tests the ``checkVisPA`` function in the ``visibilityPA`` module"""
+def test_new_vis_plot():
+    """Tests the `new_vis_plot.py` module"""
+    ra, dec = '24.3544618', '-45.6777937' # WASP-18
+    table = new_vis_plot.get_exoplanet_positions(ra, dec)
 
-    ra = '24.3544618'
-    dec = '-45.6777937'
-    pa_good, pa_bad, gd, figure = visibilityPA.checkVisPA(ra, dec)
+    assert str(type(table)) == "<class 'pandas.core.frame.DataFrame'>"
 
-    assert isinstance(pa_good, list) and len(pa_good) > 0
-    assert isinstance(pa_bad, list) and len(pa_bad) > 0
-    assert isinstance(gd, list) and len(gd) > 0
-    assert isinstance(figure, object)
+    plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
+
+    assert str(type(plt)) == "<class 'bokeh.plotting._figure.figure'>"
 
 
 @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Need access to trace data FITS files.  Please try running locally')
@@ -67,27 +66,3 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
-
-
-@pytest.mark.skipif(sys.version_info > (3, 9), reason='jwst_gtvt does not currently support python>=3.9.')
-def test_using_gtvt():
-    """Test to see that gtvt works for all instruments"""
-    for instrument in ['NIRISS', 'NIRCam', 'NIRSpec', 'MIRI']:
-
-        # this ra/dec has bad PAs
-        ra = "-66"
-        dec = "44"
-        paMin, paMax, gd, fig, table, grouped_badPAs = visibilityPA.using_gtvt(ra, dec, instrument, targetName="Target", output="bokeh")
-        assert grouped_badPAs is not None
-
-        # this ra/dec has 100% coverage (no bad PAs)
-        ra = '88'
-        dec = '-64'
-        output = visibilityPA.using_gtvt(ra, dec, instrument, targetName="Target", output="bokeh")
-
-        assert output is not None
-        assert len(output) == 6
-
-        paMin, paMax, gd, fig, table, grouped_badPAs = output
-
-        assert len(grouped_badPAs) == 0

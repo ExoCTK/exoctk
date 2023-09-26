@@ -17,7 +17,7 @@ import numpy as np
 
 from exoctk import log_exoctk
 from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exoplanet_positions
-from exoctk.contam_visibility import visibilityPA as vpa
+#from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
@@ -477,14 +477,11 @@ def contam_visibility():
 
             # Make plot
             title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            # pG, pB, dates, vis_plot, table, badPAs = vpa.using_gtvt(str(form.ra.data), str(form.dec.data), instrument, targetName=str(title))
-
             vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
             table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+
             # Make output table
-            fh = io.StringIO()
-            table.to_csv(fh, index=False)
-            visib_table = fh.getvalue()
+            vis_table = table.to_csv()
 
             # Get scripts
             vis_js = INLINE.render_js()
@@ -530,6 +527,9 @@ def contam_visibility():
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
 
+                    # Get bad PA list from missing angles between 0 and 360
+                    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
+
                     # Make old contam plot
                     starCube = np.zeros((362, 2048, 256))
                     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
@@ -561,7 +561,7 @@ def contam_visibility():
 
             return render_template('contam_visibility_results.html',
                                    form=form, vis_plot=vis_div,
-                                   vis_table=visib_table,
+                                   vis_table=vis_table,
                                    vis_script=vis_script, vis_js=vis_js,
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
@@ -726,8 +726,8 @@ def limb_darkening():
         # Make filter object and plot
         bandpass = Throughput(form.bandpass.data, **kwargs)
         bk_plot = bandpass.plot(draw=False)
-        bk_plot.plot_width = 580
-        bk_plot.plot_height = 280
+        bk_plot.width = 580
+        bk_plot.height = 280
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
         filt_script, filt_plot = components(bk_plot)
@@ -1010,14 +1010,16 @@ def save_visib_result():
         flask.Response object with the results of the visibility only
         calculation.
     """
-
-    visib_table = flask.request.form['data_file']
-    targname = flask.request.form['targetname']
+    visib_table = request.form['vis_table']
+    targname = request.form['targetname']
     targname = targname.replace(' ', '_')  # no spaces
-    instname = flask.request.form['instrumentname']
+    instname = request.form['instrumentname']
 
-    return flask.Response(visib_table, mimetype="text/dat",
-                          headers={"Content-disposition": "attachment; filename={}_{}_visibility.csv".format(targname, instname)})
+    resp = make_response(visib_table)
+    resp.headers["Content-Disposition"] = "attachment; filename={}_{}_visibility.csv".format(targname, instname)
+    resp.headers["Content-Type"] = "text/csv"
+
+    return resp
 
 
 @app_exoctk.route('/admin')
