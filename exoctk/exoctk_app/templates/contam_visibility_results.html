@@ -54,8 +54,8 @@
     		{{ vis_plot | safe }}
             <br>
 
-        <br action="/visib_result" method="post">
-            <input type="hidden" name="data_file" value="{{ vis_table }}" />
+        <form action="/visib_result" method="post">
+            <input type="hidden" name="vis_table" value="{{ vis_table }}" />
             <input class="btn btn-success" type='submit' value='Download CSV'>
         <form action="/visib_result" method="post">
             <input type="hidden" name="targetname" value="{{ form.targname.data }}" />
@@ -103,6 +103,7 @@
                 {% else %}
                     <ul>
                         <li>The top plot shows the simulated observation at the given position angle.</li>
+                        <li>The circles show the detector location of the 0th order, which you can click to resolve in Vizier.</li>
                         <li>Red lines show the predicted order 1, 2, and 3 trace positions for the target (solid) as well as all contaminant sources (dashed).</li>
                         <li>The bottom plot shows the fractional contamination of orders 1 (blue), 2 (red), and 3 (green) in each detector column.</li>
                     </ul>

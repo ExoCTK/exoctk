@@ -135,7 +135,7 @@ def checkVisPA(ra, dec, targetName=None, ephFileName=None, fig=None):
     if fig is None or fig:
         tools = 'crosshair, reset, hover, save'
         radec = ', '.join([str(ra), str(dec)])
-        fig = figure(tools=tools, plot_width=800, plot_height=400,
+        fig = figure(tools=tools, width=800, height=400,
                      x_axis_type='datetime',
                      title=targetName or radec)
 
@@ -236,9 +236,9 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
 
     """
     # Getting calculations from GTVT (General Target Visibility Tool)
-    blockPrint()
+    # blockPrint()
     tab = get_table(ra, dec)
-    enablePrint()
+    # enablePrint()
 
     gd = tab['Date']
     paMin = tab[str(instrument) + ' min']
@@ -285,8 +285,8 @@ def using_gtvt(ra, dec, instrument, targetName='noName', ephFileName=None, outpu
     # Time to plot
     if output == 'bokeh':
         fig = figure(tools=TOOLS,
-                     plot_width=800,
-                     plot_height=400,
+                     width=800,
+                     height=400,
                      x_axis_type='datetime',
                      title='{} Visibility with {}'.format(targetName,
                                                           instrument))
