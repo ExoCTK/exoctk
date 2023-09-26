@@ -32,7 +32,8 @@ import pysiaf
 import regions
 
 from ..utils import get_env_variables, check_for_data
-from .visibilityPA import using_gtvt
+# from .visibilityPA import using_gtvt
+from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 
 Vizier.columns = ["**", "+_r"]
@@ -375,7 +376,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         star['yord1'] = star['yord0'] - y_sweet + aper['subarr_y'][1] + y_shift
 
     # Just stars in FOV (Should always have at least 1, the target)
-    lft, rgt, top, bot = 700, 5000, 2000, 1400
+    lft, rgt, top, bot = 700, 5100, 1940, 1400
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
     if verbose:
@@ -390,18 +391,14 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     if plot:
         # Set up hover tool
         tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
-        hover = HoverTool(tooltips=tips, names=['stars'])
+        hover = HoverTool(tooltips=tips, name='stars')
         crosshair = CrosshairTool(dimensions="height")
+        taptool = TapTool(behavior='select', callback=OpenURL(url="@url"))
 
         # Make the plot
-        tools = ['pan', crosshair, 'reset', 'box_zoom', 'wheel_zoom', 'save', hover]
+        tools = ['pan', crosshair, 'reset', 'box_zoom', 'wheel_zoom', 'save', taptool, hover]
         fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
-
-        # Add clickable order 0
-        taptool = fig.select(type=TapTool)
-        taptool.behavior = 'select'
-        taptool.callback = OpenURL(url="@url")
 
         # Plot config
         scale = 'log'
@@ -653,7 +650,7 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, plot=False, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, plot=False, multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -668,8 +665,6 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     n_jobs: int
         Number of cores to use (-1 = All)
-    pa_list: sequence
-        The position angles to calculate
 
     Returns
     -------
@@ -684,7 +679,7 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     -------
     from exoctk.contam_visibility import field_simulator as fs
     ra, dec = 91.872242, -25.594934
-    targ, data, plt = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
+    targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
     # Check for contam tool data
     check_for_data('exoctk_contam')
@@ -720,24 +715,40 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
         stars = add_star(stars, **binComp)
 
     # Set the number of cores for multiprocessing
-    max_cores = cpu_count()
+    max_cores = 8
     if n_jobs == -1 or n_jobs > max_cores:
         n_jobs = max_cores
 
-    # List of PAs
-    if pa_list is None:
-        pa_list = np.arange(0, 360, 1)
+    # Get full list from ephemeris
+    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
+    goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
+
+    # Get all observable PAs and convert to ints
+    goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
+    goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
+
+    # Group good PAs to find gaps in visibility
+    good_groups = []
+    current_group = [goodPA_ints[0]]
+    max_gap = 7 # Biggest PA gap considered to still be observable
+    for i in range(1, len(goodPA_ints)):
+        if goodPA_ints[i] - current_group[-1] <= max_gap:
+            current_group.append(goodPA_ints[i])
+        else:
+            good_groups.append(current_group)
+            current_group = [goodPA_ints[i]]
+
+    good_groups.append(current_group)
+    good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
+    goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
+
+    # Flatten list and check against 360 angles to get all bad PAs
+    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
     if verbose:
-        print('Calculating target contamination from {} neighboring sources at {} position angles...'.format(len(stars), len(pa_list)))
+        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
         start = time.time()
-
-    # Exclude PAs where target is not visible to speed up calculation
-    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    minPA, maxPA, _, _, _, badPAs = using_gtvt(ra_hms[:-1], dec_dms[:-1], inst['inst'])
-    badPA_list = np.concatenate([np.array(i) for i in badPAs])
-    good_pa_list = [pa for pa in pa_list if pa not in badPA_list]
 
     # Calculate contamination of all stars at each PA
     # -----------------------------------------------
@@ -749,13 +760,13 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, pa_list=None, p
     if multi:
         pl = pool.ThreadPool(n_jobs)
         func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-        results = pl.map(func, good_pa_list)
+        results = pl.map(func, goodPA_list)
         pl.close()
         pl.join()
 
     else:
         results = []
-        for pa in good_pa_list:
+        for pa in goodPA_list:
             result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
             results.append(result)
 
@@ -827,7 +838,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     source_available = ColumnDataSource(data=contam_dict)
 
     # Define plot elements
-    plt = figure(plot_width=900, plot_height=300, tools=['reset', 'box_zoom', 'wheel_zoom', 'save'])
+    plt = figure(width=900, height=300, tools=['reset', 'box_zoom', 'wheel_zoom', 'save'])
     plt.line('col', 'contam1', source=source_visible, color='blue', line_width=2, line_alpha=0.6,
              legend_label='Order 1')
     plt.line('col', 'contam2', source=source_visible, color='red', line_width=2, line_alpha=0.6, legend_label='Order 2')
@@ -871,7 +882,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     viz_ord3 = np.array([1 if i > threshold else 0 for i in np.nanmax(order3_contam, axis=1)])
 
     # Make the plot
-    viz_plt = figure(plot_width=900, plot_height=200, x_range=Range1d(0, 359))
+    viz_plt = figure(width=900, height=200, x_range=Range1d(0, 359))
     viz_plt.step(np.arange(360), np.mean(order1_contam, axis=1), color='blue', mode="center")
     viz_plt.step(np.arange(360), np.mean(order2_contam, axis=1), color='red', mode="center")
     viz_plt.step(np.arange(360), np.mean(order3_contam, axis=1), color='green', mode="center")
@@ -995,10 +1006,6 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
         The wavelength min and max
     badPAs: list
         The list of position angles with no visibility
-    minPA: int
-        The minimum position angle to plot
-    maxPA: int
-        The maximum position angle to plot
 
     Returns
     -------
@@ -1040,7 +1047,7 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
         contam = np.log10(np.clip(contam, 1.e-10, 1.))
 
     # Hover tool
-    hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], names=['contam'])
+    hover = HoverTool(tooltips=[("Wavelength", "$x"), ("PA", "$y"), ('Value', '@data')], name='contam')
     tools = ['pan', 'box_zoom', 'crosshair', 'reset', hover]
     trplot = figure(tools=tools, width=600, height=500, title=title, x_range=Range1d(*wlims), y_range=Range1d(0, PAs))
 

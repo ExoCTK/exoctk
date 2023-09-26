@@ -14,8 +14,7 @@ from astropy.io import ascii as ii
 import astropy.table as at
 from astropy.utils.exceptions import AstropyWarning
 import bokeh.plotting as bkp
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.models import Range1d, TabPanel, Tabs
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -198,7 +197,7 @@ class LDC:
         return dn_err, up_err
 
     def calculate(self, Teff, logg, FeH, profile, mu_min=0.05, ld_min=0.01,
-                  bandpass=None, name=None, color=None, **kwargs):
+                  bandpass=None, name=None, color=None, interp=False, **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
         spectrum. If the model grid does not contain a spectrum of the
@@ -230,6 +229,8 @@ class LDC:
             A name for the calculation
         color: str (optional)
             A color for the plotted result
+        interp: bool
+            Interpolate spectra to given model parameters
         """
         # Define the limb darkening profile function
         ldfunc = ld_profile(profile)
@@ -237,8 +238,11 @@ class LDC:
         if not ldfunc:
             raise ValueError("No such LD profile:", profile)
 
-        # Get the grid point
-        grid_point = self.get_model(Teff, logg, FeH)
+        # Get the grid point (and update parameters if no interpolation)
+        grid_point = self.get_model(Teff, logg, FeH, interp=interp)
+        Teff = grid_point['Teff']
+        logg = grid_point['logg']
+        FeH = grid_point['FeH']
 
         # Retrieve the wavelength, flux, mu, and effective radius
         wave = grid_point.get('wave')
@@ -377,7 +381,7 @@ class LDC:
             except ValueError:
                 print("Could not calculate coefficients at {}".format(wave_eff))
 
-    def get_model(self, teff, logg, feh):
+    def get_model(self, teff, logg, feh, interp=False):
         """
         Method to grab cached model or fetch new one
 
@@ -389,12 +393,24 @@ class LDC:
             The log surface gravity of the desired model
         feh: float
             The metallicity of the desired model
+        interp: bool
+            Interpolate the model spectra to the given parameters
 
         Returns
         -------
         dict
             The stellar intensity model
         """
+        if not interp:
+
+            teff_val, logg_val, feh_val = teff, logg, feh
+
+            # Find the closest of each parameter
+            teff = min(self.model_grid.Teff_vals, key=lambda x: abs(x - teff))
+            logg = min(self.model_grid.logg_vals, key=lambda x: abs(x - logg))
+            feh = min(self.model_grid.FeH_vals, key=lambda x: abs(x - feh))
+            print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(teff_val, logg_val, feh_val, teff, logg, feh))
+
         # Check if it is stored
         params = '{}_{}_{}_{}'.format(self.model_grid.path.split('/')[-2], teff, logg, feh)
 
@@ -402,7 +418,7 @@ class LDC:
         if params in self.model_cache:
             model = self.model_cache[params]
         else:
-            model = self.model_grid.get(teff, logg, feh)
+            model = self.model_grid.get(teff, logg, feh, interp=interp)
             self.model_cache[params] = model
             print("Saving model '{}'".format(params))
 
@@ -516,7 +532,7 @@ class LDC:
 
             # Plot it
             TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), width=800, height=400)
             self.plot(wave_eff=wav, fig=fig)
 
             # Plot formatting
@@ -524,13 +540,13 @@ class LDC:
             fig.xaxis.axis_label = 'mu'
             fig.yaxis.axis_label = 'Intensity'
 
-            tabs.append(Panel(child=fig, title=str(wav)))
+            tabs.append(TabPanel(child=fig, title=str(wav)))
 
         # Make the final tabbed figure
         final = Tabs(tabs=tabs)
 
         # Put the names back
-        self.results['name'] = old_names
+        self.results['name'] =  old_names
 
         if show:
             bkp.show(final)
