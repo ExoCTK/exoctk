@@ -1,11 +1,11 @@
+"""
+Module to calculate SPAM coefficients in LDC tool
+
+Author: Nestor Espinoza
+"""
 import numpy as np
 from scipy.optimize import minimize
-
-try:
-    import batman
-
-except:
-    print('Batman library not installed. Install it by doing "pip install batman-package" to use exoctk.limb_darkening.spam.')
+from batman import TransitModel, TransitParams
 
 from .. import utils
 
@@ -37,7 +37,7 @@ def init_batman(t, ld_law, nresampling=None, etresampling=None):
 
     """
 
-    params = batman.TransitParams()
+    params = TransitParams()
     params.t0 = 0. 
     params.per = 1. 
     params.rp = 0.1
@@ -58,10 +58,10 @@ def init_batman(t, ld_law, nresampling=None, etresampling=None):
     params.limb_dark = ld_law
 
     if nresampling is None or etresampling is None:
-        m = batman.TransitModel(params, t)
+        m = TransitModel(params, t)
 
     else:
-        m = batman.TransitModel(params, t, supersample_factor=nresampling, exp_time=etresampling)
+        m = TransitModel(params, t, supersample_factor=nresampling, exp_time=etresampling)
 
     return params, m
 

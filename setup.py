@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 REQUIRES = ['asteval',
-            'astropy<4.1',
+            'astropy',
             'astroquery',
             'bandit',
             'bibtexparser',
@@ -11,35 +11,37 @@ REQUIRES = ['asteval',
             'boto3',
             'corner',
             'cython',
-            'ddtrace',
             'docopt',
-            'docutils==0.15.2',
+            'docutils',
             'flake8',
             'flask',
             'flask_wtf',
             'gunicorn',
             'h5py',
+            'hotsoss',
             'ipython',
             'matplotlib',
             'numpy',
             'numpydoc',
             'pandas',
             'paramiko',
-            'platon<=4.0',
+            'platon',
             'pysiaf',
             'pysynphot',
             'pytest',
             'pyyaml',
+            'pyvo',
+            'regions',
             'scipy',
             'scp',
             'sphinx',
             'sphinx_astropy',
             'sqlalchemy',
             'svo_filters',
-            'twine',
             'wtforms',
-            'werkzeug>=2.0',
-            'jwst_gtvt @ git+https://github.com/spacetelescope/jwst_gtvt.git@cd6bc76f66f478eafbcc71834d3e735c73e03ed5']
+            'werkzeug',
+            'jwst_gtvt']
+
 
 FILES = []
 for root, _, files in os.walk("exoctk"):
@@ -48,7 +50,7 @@ for root, _, files in os.walk("exoctk"):
 
 setup(
     name='exoctk',
-    version='1.2.4',
+    version='1.2.5',
     description='Observation reduction and planning tools for exoplanet science',
     packages=find_packages(
         ".",
