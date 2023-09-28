@@ -148,7 +148,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
     if write_table:
         tab.write('fortney.dat', format='ascii.no_header')
 
-    fig = figure(plot_width=1100, plot_height=400)
+    fig = figure(width=1100, height=400)
     fig.line(x, 1e6 * (y - np.mean(y)), color='Black', line_width=0.5)
     fig.xaxis.axis_label = 'Wavelength (um)'
     fig.yaxis.axis_label = 'Rel. Transit Depth (ppm)'
@@ -215,7 +215,7 @@ def generic_grid(input_args, write_plot=False, write_table=False):
         tab.write('generic.dat')
 
     # Plot
-    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), plot_width=1100, plot_height=400)
+    fig = figure(title='Rescaled Generic Grid Transmission Spectra'.upper(), width=1100, height=400)
     fig.x_range.start = 0.3
     fig.x_range.end = 5
     fig.line(solution['wv'], solution['spectra'], color='Black', line_width=1)
