@@ -14,8 +14,7 @@ from astropy.io import ascii as ii
 import astropy.table as at
 from astropy.utils.exceptions import AstropyWarning
 import bokeh.plotting as bkp
-from bokeh.models import Range1d
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.models import Range1d, TabPanel, Tabs
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -147,6 +146,7 @@ class LDC:
 
         # Load the model grid
         self.model_grid = model_grid
+        self.model_cache = {}
 
         # Table for results
         columns = ['name', 'Teff', 'logg', 'FeH', 'profile', 'filter', 'models', 'coeffs', 'errors', 'wave', 'wave_min', 'wave_eff', 'wave_max', 'scaled_mu', 'raw_mu', 'mu_min', 'scaled_ld', 'raw_ld', 'ld_min', 'ldfunc', 'flux', 'bandpass', 'color']
@@ -197,7 +197,7 @@ class LDC:
         return dn_err, up_err
 
     def calculate(self, Teff, logg, FeH, profile, mu_min=0.05, ld_min=0.01,
-                  bandpass=None, name=None, color=None, **kwargs):
+                  bandpass=None, name=None, color=None, interp=False, **kwargs):
         """
         Calculates the limb darkening coefficients for a given synthetic
         spectrum. If the model grid does not contain a spectrum of the
@@ -229,6 +229,8 @@ class LDC:
             A name for the calculation
         color: str (optional)
             A color for the plotted result
+        interp: bool
+            Interpolate spectra to given model parameters
         """
         # Define the limb darkening profile function
         ldfunc = ld_profile(profile)
@@ -236,15 +238,25 @@ class LDC:
         if not ldfunc:
             raise ValueError("No such LD profile:", profile)
 
-        # Get the grid point
-        grid_point = self.model_grid.get(Teff, logg, FeH)
+        # Get the grid point (and update parameters if no interpolation)
+        grid_point = self.get_model(Teff, logg, FeH, interp=interp)
+        Teff = grid_point['Teff']
+        logg = grid_point['logg']
+        FeH = grid_point['FeH']
 
         # Retrieve the wavelength, flux, mu, and effective radius
         wave = grid_point.get('wave')
         flux = grid_point.get('flux')
         mu = grid_point.get('mu').squeeze()
 
-        # Use tophat oif no bandpass
+        # Try to get bandpass if it is a string
+        if isinstance(bandpass, str):
+            try:
+                bandpass = svo.Filter(bandpass, **kwargs)
+            except Exception:
+                raise ValueError("Could not find a bandpass named '{}'. Try passing a 'svo_filters.svo.Filter' object instead.".format(bandpass))
+
+        # Use tophat if no bandpass
         if bandpass is None:
             units = self.model_grid.wave_units
             bandpass = svo.Filter('tophat', wave_min=np.min(wave) * units, wave_max=np.max(wave) * units)
@@ -281,10 +293,10 @@ class LDC:
         wave = wave[None, :] if wave.ndim == 1 else wave
         flux = flux[None, :] if flux.ndim == 2 else flux
         mean_i = np.nanmean(flux, axis=-1)
-        mean_i[mean_i == 0] = np.nan
+        # mean_i[mean_i == 0] = np.nan
 
         # Calculate limb darkening, I[mu]/I[1] vs. mu
-        ld = mean_i / mean_i[:, np.where(mu == max(mu))].squeeze(axis=-1)
+        ld = mean_i / mean_i[:, np.where(mu == np.nanmax(mu))].squeeze(axis=-1)
 
         # Rescale mu values to make f(mu=0)=ld_min
         # for the case where spherical models extend beyond limb
@@ -368,6 +380,49 @@ class LDC:
 
             except ValueError:
                 print("Could not calculate coefficients at {}".format(wave_eff))
+
+    def get_model(self, teff, logg, feh, interp=False):
+        """
+        Method to grab cached model or fetch new one
+
+        Parameters
+        ----------
+        teff: float
+            The effective temperature of the desired model
+        logg: float
+            The log surface gravity of the desired model
+        feh: float
+            The metallicity of the desired model
+        interp: bool
+            Interpolate the model spectra to the given parameters
+
+        Returns
+        -------
+        dict
+            The stellar intensity model
+        """
+        if not interp:
+
+            teff_val, logg_val, feh_val = teff, logg, feh
+
+            # Find the closest of each parameter
+            teff = min(self.model_grid.Teff_vals, key=lambda x: abs(x - teff))
+            logg = min(self.model_grid.logg_vals, key=lambda x: abs(x - logg))
+            feh = min(self.model_grid.FeH_vals, key=lambda x: abs(x - feh))
+            print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(teff_val, logg_val, feh_val, teff, logg, feh))
+
+        # Check if it is stored
+        params = '{}_{}_{}_{}'.format(self.model_grid.path.split('/')[-2], teff, logg, feh)
+
+        # Get cached or get new model
+        if params in self.model_cache:
+            model = self.model_cache[params]
+        else:
+            model = self.model_grid.get(teff, logg, feh, interp=interp)
+            self.model_cache[params] = model
+            print("Saving model '{}'".format(params))
+
+        return model
 
     def plot(self, fig=None, show=False, **kwargs):
         """Plot the LDCs
@@ -477,7 +532,7 @@ class LDC:
 
             # Plot it
             TOOLS = 'box_zoom, box_select, crosshair, reset, hover'
-            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), plot_width=800, plot_height=400)
+            fig = bkp.figure(tools=TOOLS, x_range=Range1d(0, 1), y_range=Range1d(0, 1), width=800, height=400)
             self.plot(wave_eff=wav, fig=fig)
 
             # Plot formatting
@@ -485,13 +540,13 @@ class LDC:
             fig.xaxis.axis_label = 'mu'
             fig.yaxis.axis_label = 'Intensity'
 
-            tabs.append(Panel(child=fig, title=str(wav)))
+            tabs.append(TabPanel(child=fig, title=str(wav)))
 
         # Make the final tabbed figure
         final = Tabs(tabs=tabs)
 
         # Put the names back
-        self.results['name'] = old_names
+        self.results['name'] =  old_names
 
         if show:
             bkp.show(final)
@@ -578,4 +633,3 @@ class LDC:
         else:
 
             print("Limb darkening coefficients must first be calculated using the 4-parameter profile to get SPAM coefficient transformations.")
-

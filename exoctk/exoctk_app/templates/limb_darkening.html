@@ -4,7 +4,7 @@
 
 {% block content %}
         
-        <script>
+        <script type="text/javascript">
             $(document).ready(function(){
 
                 $('#filterselect').on('change', function() {
@@ -27,14 +27,35 @@
             <br>
             <p>
 
-            The Limb Darkening Calculator calculates limb-darkening coefficients for a specified stellar model, plotting results versus intensity ratio and wavelength. It uses high
-            spectral resolution stellar atmospheric models, which are a necessity given JWST's expected precision. 
+            The Limb Darkening Calculator calculates limb-darkening coefficients for a specified stellar model, plotting results versus intensity ratio and wavelength. If planetary orbital parameters are included, SPAM coefficients will also be returned.
             </p>
 
             <form class='form-horizontal' id='searchform' method='POST', novalidate>
                 {{ form.hidden_tag() }}
 
                 {% include 'target_resolve.html' %}
+
+                <hr class="col-md-12">
+                <div class='form-group'>
+                    <label for="modeldir" class="col-sm-2 control-label">Choose a Model Grid</label>
+                    <div class="col-sm-10">
+                        {% for subfield in form.modeldir %}
+                            <div class='radio'>
+                                {% if subfield.label.text == 'Kurucz ATLAS9' %}
+                                    {{ subfield(style='margin-left:0px;', id='atlas9', checked='checked') }}{{ subfield.label }}
+                                    <span id="helpBlock" class="help-block">Wavelength Range: 0.1\(\mu\)m - 30.0\(\mu\)m</span>
+                                {% else %}
+                                    {{ subfield(style='margin-left:0px;', id='aces') }}{{ subfield.label }}
+                                    <span id="helpBlock" class="help-block">Wavelength Range: 0.1\(\mu\)m - 2.6\(\mu\)m</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% for error in form.modeldir.errors %}
+                        <span style="color: red;">{{ error }}</span>
+                    {% endfor %}
+                    {{ form.modelgrid_submit(id='modelgridsubmit', style="visibility: hidden;") }}
+                </div>
 
                 <hr class="col-md-12">
                 <div class='form-group'>
@@ -160,26 +181,6 @@
                         <br>
 
                     </div>
-                </div>
-
-                <hr class="col-md-12">
-                <div class='form-group'>
-                    <label for="modeldir" class="col-sm-2 control-label">Choose a Model Grid</label>
-                    <div class="col-sm-10">
-                        {% for subfield in form.modeldir %}
-                            <div class='radio'>
-                                {% if subfield.label.text == 'Kurucz ATLAS9' %}
-                                    {{ subfield(style='margin-left:0px;', id='atlas9', checked='checked') }}{{ subfield.label }}
-                                {% else %}
-                                    {{ subfield(style='margin-left:0px;', id='aces') }}{{ subfield.label }}
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                    {% for error in form.modeldir.errors %}
-                        <span style="color: red;">{{ error }}</span>
-                    {% endfor %}
-                    {{ form.modelgrid_submit(id='modelgridsubmit', style="visibility: hidden;") }}
                 </div>
 
                 <hr class="col-md-12">
