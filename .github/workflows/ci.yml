@@ -17,29 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: mamba-org/provision-with-micromamba@v15
+      - uses: actions/setup-python@v4
         with:
-          environment-file: ./env/environment-${{ matrix.python-version }}.yml
-          cache-env: true
-          cache-downloads: true
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-      - run: |
+      - name: set useful environment variables
+        run: |
+          echo PYTHONVERSION=${{ matrix.python-version }} >> $GITHUB_ENV
+          echo EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/ >> $GITHUB_ENV
 
-          echo "Setting useful environment variables:"
-          echo " "
-          export PYTHONVERSION=${{ matrix.python-version }}
-          echo "PYTHONVERSION: $PYTHONVERSION"
-          export EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/
-          echo $EXOCTK_DATA
-
-          echo " "
-          echo "Installing exoctk conda environment"
-          echo " "
-          cd $RUNNER_WORKSPACE/
-          cd exoctk/
-          $CONDA/bin/conda env update -f env/environment-${{ matrix.python-version }}.yml -n exoctk-${{ matrix.python-version }}
-          $CONDA/bin/conda env export
-
-      - run: pip install .
+      - run: pip freeze
+      
+      - run: pip install .[test]
 
       - run: pytest exoctk/tests/
