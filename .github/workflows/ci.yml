@@ -15,15 +15,15 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: mamba-org/provision-with-micromamba@v15
         with:
-          activate-environment: exoctk-${{ matrix.python-version }}
+          environment-file: ./env/environment-${{ matrix.python-version }}.yml
+          cache-env: true
+          cache-downloads: true
 
-      - name: Build exoctk conda environment and run tests
-        shell: bash -l {0}
-        run: |
+      - run: |
 
           echo "Setting useful environment variables:"
           echo " "
@@ -39,22 +39,8 @@ jobs:
           cd exoctk/
           $CONDA/bin/conda env update -f env/environment-${{ matrix.python-version }}.yml -n exoctk-${{ matrix.python-version }}
 
-          echo " "
-          echo "Installing exoctk package"
-          echo " "
-          python setup.py develop --no-deps
+      - run: pip install -e .[test]
 
-          echo " "
-          echo "Testing package installation"
-          echo " "
-          python -c "import exoctk; print('Version: ' + exoctk.__version__); print('Path: ' + exoctk.__path__[0])"
+      - run: conda env export
 
-          echo " "
-          echo "The conda environment being used:"
-          echo " "
-          $CONDA/bin/conda env export
-
-          echo " "
-          echo "Running pytests"
-          echo " "
-          pytest exoctk/tests/
+      - run: pytest exoctk/tests/
