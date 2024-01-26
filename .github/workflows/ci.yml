@@ -38,9 +38,8 @@ jobs:
           cd $RUNNER_WORKSPACE/
           cd exoctk/
           $CONDA/bin/conda env update -f env/environment-${{ matrix.python-version }}.yml -n exoctk-${{ matrix.python-version }}
+          $CONDA/bin/conda env export
 
-      - run: pip install -e .[test]
-
-      - run: conda env export
+      - run: pip install .
 
       - run: pytest exoctk/tests/
