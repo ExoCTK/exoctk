@@ -1,4 +1,4 @@
-name: ExoCTK CI
+name: test
 
 on: [pull_request]
 
@@ -8,7 +8,7 @@ concurrency:
 
 jobs:
 
-  ExoCTK-CI:
+  test:
 
     name: Python - ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
