@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use ExoCTK for work/research presented in a publication (whether directly, or as a dependency to another package), we recommend and encourage the following citation."
+message: "If you use ExoCTK for work/research presented in a publication (whether directly, or as a dependency to another package), we recommend and encourage the following acknowledgement: This research made use of the open source Python package exoctk, the Exoplanet Characterization Toolkit (Bourque et al, 2021)."
 authors:
 - family-names: "Bourque"
   given-names: "Matthew"
