@@ -17,4 +17,3 @@ from . import phase_constraint_overlap
 from . import lightcurve_fitting
 from . import log_exoctk
 
-from _version import __version__

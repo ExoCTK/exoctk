@@ -124,7 +124,6 @@ package = setup_py['name']
 # The short X.Y version.
 version = setup_py['version']
 # The full version, including alpha/beta/rc tags.
-#release = package.__version__
 
 
 # -- Options for HTML output --------------------------------------------------
