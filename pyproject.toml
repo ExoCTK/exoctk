@@ -81,6 +81,9 @@ docs = [
 file = "LICENSE"
 content-type = "text/plain"
 
+[project.urls]
+Repository = "https://github.com/ExoCTK/exoctk"
+
 [build-system]
 requires = ["setuptools>=68.0.0", "numpy", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
