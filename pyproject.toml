@@ -92,6 +92,7 @@ include-package-data = true
 namespaces = false
 
 [tool.setuptools_scm]
+version_file = "exoctk/_version.py"
 
 [tool.pytest]
 junit_family = "xunit2"
