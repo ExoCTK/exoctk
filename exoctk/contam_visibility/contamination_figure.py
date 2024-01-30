@@ -241,7 +241,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
         xlim0 = 5
         xlim1 = 12
 
-    TOOLS = 'pan, box_zoom, reset'
+    TOOLS = 'pan, box_zoom, reset, save'
     dPA = 1
 
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
