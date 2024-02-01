@@ -38,3 +38,14 @@ jobs:
       - run: pip install .[test]
 
       - run: pytest exoctk/tests/
+
+      - run: pip freeze > requirements-py${{ matrix.python-version }}-${{ matrix.os }}.txt
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          path: requirements-py${{ matrix.python-version }}-${{ matrix.os }}.txt
+
+      - if: (github.event_name == 'release' && github.event.action == 'published')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: requirements-py${{ matrix.python-version }}-${{ matrix.os }}.txt
