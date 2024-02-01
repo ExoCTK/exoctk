@@ -1,50 +1,52 @@
 name: test
 
-on: [pull_request]
+on: 
+  pull_request:
+  release:
+    types:
+      - created
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-
   test:
-
-    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 5
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11']
+        runs-on: 
+          - ubuntu-latest
+          - macos-latest
+        python-version: 
+          - '3.9'
+          - '3.10'
+          - '3.11'
       fail-fast: false
-
+    runs-on: ${{ matrix.runs-on }}
+    name: Python ${{ matrix.python-version }} (${{ matrix.runs-on }})
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
-
       - name: set useful environment variables
         run: |
           echo PYTHONVERSION=${{ matrix.python-version }} >> $GITHUB_ENV
           echo EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/ >> $GITHUB_ENV
-
-      - run: pip freeze
-      
-      - run: pip install .[test]
-
-      - run: pytest exoctk/tests/
-
+      - run: pip install .
       - run: pip freeze > requirements-py${{ matrix.python-version }}-${{ matrix.os }}.txt
-      
+      - run: pip install .[test]
+      - run: pytest exoctk/tests/ --cov ./ --cov-report term-missing --cov xml -n auto 
+      - uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - uses: actions/upload-artifact@v3
         with:
           path: requirements-py${{ matrix.python-version }}-${{ matrix.os }}.txt
-
       - if: (github.event_name == 'release' && github.event.action == 'published')
         uses: svenstaro/upload-release-action@v2
         with:
