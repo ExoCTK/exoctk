@@ -99,7 +99,7 @@ environment, run the `exoctk` setup script:
 
 ::
 
-  python setup.py [install|develop]
+  pip install -e .
 
 
 Obtain the ``exoctk`` Data
