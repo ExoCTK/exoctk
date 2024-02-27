@@ -76,22 +76,6 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 
   source/exoctk.limb_darkening
 
-**Atmospheric Retrievals**
-
-The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/ExoCTK/exoctk/blob/master/exoctk/notebooks/atmospheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/ExoCTK/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
-
-Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_ for further details.
-
-.. toctree::
-  :maxdepth: 1
-
-  tutorials/exoctk.AtmosphericRetrivals
-
-.. toctree::
-  :maxdepth: 1
-
-  source/exoctk.atmospheric_retrievals
-
 **Phase Constraint Calculator**
 
 The Phase Constraint Calculator provides a simple interface for calculating JWST observation start windows in phase-space for both, transits and eclipse observations. This allows the user to quickly calculate minimum and maximum phase values that serve as inputs for the APT special requirements section when planning your observations.
