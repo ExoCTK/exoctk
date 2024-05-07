@@ -70,6 +70,7 @@ dynamic = ["version"]
 test = [
   "pytest",
   "pytest-cov",
+  "pytest-xdist",
 ]
 docs = [
   "sphinx",
