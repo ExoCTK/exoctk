@@ -589,11 +589,11 @@ def index():
     return render_template('index.html')
 
 
-@app_exoctk.route('/lightcurve_fitting')
-def lightcurve_fitting():
-    """A landing page for the lightcurve_fitting tool"""
-
-    return render_template('lightcurve_fitting.html')
+# @app_exoctk.route('/lightcurve_fitting')
+# def lightcurve_fitting():
+#     """A landing page for the lightcurve_fitting tool"""
+#
+#     return render_template('lightcurve_fitting.html')
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
