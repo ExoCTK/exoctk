@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: latin-1 -*-
+"""
+A module to calculate the contamination and visibility of a target on a JWST detector
+"""
+
 from copy import copy
 from functools import partial
 import glob
