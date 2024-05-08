@@ -592,14 +592,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
 
     if plot:
 
-        # Set up hover tool
-        tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
-        hover = HoverTool(tooltips=tips, name='stars')
-        crosshair = CrosshairTool(dimensions="height")
-        taptool = TapTool(behavior='select', callback=OpenURL(url="@url"))
-
         # Make the plot
-        tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save', taptool, hover]
+        tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
+        tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('order', '@order{int}'), ('scale', '@fluxscale'), ('Teff [K]', '@Teff'), ('distance [mas]', '@distance')]
         fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
         fig.add_tools(CrosshairTool(dimensions='height'))
@@ -610,6 +605,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
 
         # Plot the obs data if possible
         if data is not None:
+            imgsource = ColumnDataSource(data={'data': [data]})
             vmax = np.nanmax(data)
             if scale == 'log':
                 mapper = LogColorMapper(palette=color_map, low=1, high=vmax)
@@ -617,7 +613,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
                 mapper = LinearColorMapper(palette=color_map, low=0, high=vmax)
             data[data < 0] = 0
             data = rotate(data, tilt)
-            fig.image([data], x=0, y=2048 - data.shape[0], dh=data.shape[0], dw=2048, color_mapper=mapper)
+            fig.image(image='data', x=0, y=2048 - data.shape[0], dh=data.shape[0], dw=2048, color_mapper=mapper, source=imgsource)
 
         # Plot the simulated frame
         vmax = np.nanmax(simframe)
@@ -628,12 +624,16 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
 
         # Only plot the simulation if no data is available to plot
         if data is None:
-            fig.image(image=[simframe], x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, color_mapper=mapper)
+            imgsource = ColumnDataSource(data={'sim': [simframe]})
+            fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, color_mapper=mapper, source=imgsource)
 
         mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=np.nanmin(FOVstars['Teff']), high=np.nanmax(FOVstars['Teff']))
 
         # Plot order 0 locations
-        fig.circle('xord0', 'yord0', color=mapper, size=15, line_width=3, fill_color=None, name='stars', source=dict(FOVstars[['Teff', 'xord0', 'yord0', 'ra', 'dec', 'name', 'url', 'fluxscale', 'xdet', 'ydet', 'xtel', 'ytel']]))
+        source0 = ColumnDataSource(data={'Teff': FOVstars['Teff'], 'distance': FOVstars['distance'], 'xord0': FOVstars['xord0'],
+                                         'yord0': FOVstars['yord0'], 'ra': FOVstars['ra'], 'dec': FOVstars['dec'], 'name': FOVstars['name'],
+                                         'url': FOVstars['url'], 'fluxscale': FOVstars['fluxscale'], 'order': [0] * len(FOVstars)})
+        order0s = fig.circle('xord0', 'yord0', color=mapper, size=15, line_width=3, fill_color=None, name='order0', source=source0)
         fig.circle([x_sweet], [y_sweet], size=10, line_width=3, fill_color=None, line_color='black')
 
         # fig = plot_traces(FOVstars, fig)
@@ -653,11 +653,33 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         yr1 = np.polyval(polys[1], xr1)
         yr2 = np.polyval(polys[2], xr2)
 
+        lines = []
         for idx, star in enumerate(FOVstars):
+
             # Order 1/2/3 location relative to order 0
-            fig.line(xr0 + star['xord1'], yr0 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
-            fig.line(xr1 + star['xord1'], yr1 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
-            fig.line(xr2 + star['xord1'], yr2 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
+            for order in [1, 2, 3]:
+                source = ColumnDataSource(data={'x1': xr0 + star['xord1'], 'y1': yr0 + star['yord1'],
+                                                'x2': xr1 + star['xord1'], 'y2': yr1 + star['yord1'],
+                                                'x3': xr2 + star['xord1'], 'y3': yr2 + star['yord1'],
+                                                'name': ['Target' if idx == 0 else star['designation']] * len(xr0),
+                                                'ra': [star['ra']] * len(xr0), 'dec': [star['dec']] * len(xr0),
+                                                'fluxscale': [star['fluxscale']] * len(xr0),
+                                                'Teff': [star['Teff']] * len(xr0),
+                                                'distance': [star['distance']] * len(xr0),
+                                                'order': [order] * len(xr0),
+                                                'url': [star['url']] * len(xr0)
+                                                })
+
+                line = fig.line('x{}'.format(order), 'y{}'.format(order), source=source, color=color, name='traces', line_dash='solid' if idx == 0 else 'dashed')
+                lines.append(line)
+
+        # Add order 0 hover and taptool
+        fig.add_tools(HoverTool(renderers=[order0s], tooltips=tips, name='order0', mode='mouse'))
+        fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
+
+        # Add traces hover and taptool
+        fig.add_tools(HoverTool(renderers=lines, tooltips=tips, name='traces', mode='mouse'))
+        fig.add_tools(TapTool(behavior='select', name='traces', callback=OpenURL(url="@url")))
 
         # Show the figure
         fig.x_range = Range1d(aper['subarr_x'][0], aper['subarr_x'][1])
