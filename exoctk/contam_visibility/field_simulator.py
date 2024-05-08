@@ -10,15 +10,16 @@ from pkg_resources import resource_filename
 import astropy.coordinates as crd
 from astropy.io import fits
 from astroquery.irsa import Irsa
+from astropy.table import join
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
+from astropy.time import Time
 from astroquery.irsa import Irsa
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
 from astroquery.gaia import Gaia
-from astropy.io import fits
 from bokeh.plotting import figure, show
 from bokeh.layouts import gridplot, column
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
@@ -126,7 +127,7 @@ def trace_dict(teffs=None):
     return teff_dict
 
 
-def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
+def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -155,8 +156,16 @@ def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
 
         stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
 
+        # Perform XMatch between Gaia and SDSS DR16
+        xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
+
+        # Join Gaia results with XMatch results based on source_id
+        merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
+
+        # Extract SDSS DR16 source types from XMatch results
+        stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+
         # Derived from K. Volk
-        # TODO: What to do for sources with no bp-rp color? Uses 2300K if missing.
         stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
 
         # Calculate relative flux
@@ -187,11 +196,22 @@ def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
         # Calculate relative flux
         stars['fluxscale'] = 10.0 ** (-0.4 * (stars['j_m'] - stars['j_m'][0]))
 
+        # Determine source type (not sure how to do this with 2MASS)
+        stars['source_type'] = ['STAR'] * len(stars)
+
         # Star names
         stars['name'] = [str(i) for i in stars['designation']]
 
         # Catalog name
         cat = 'II/246/out'
+
+    # Update RA and Dec using proper motion data
+    for row in stars:
+        new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=Time.now())
+        if not hasattr(new_ra, 'mask'):
+            row['ra'] = new_ra
+        if not hasattr(new_dec, 'mask'):
+            row['dec'] = new_dec
 
     # Find distance from target to each star
     sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
@@ -217,7 +237,43 @@ def find_stars(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
     return stars
 
 
-def add_star(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dist=None, pa=None):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
+    """
+    Get the proper motion corrected coordinates of a source
+
+    Parameters
+    ----------
+    ra: float
+        The RA of the source
+    dec: float
+        The Dec of the source
+    pm_ra: float
+        The RA proper motion
+    pm_dec: float
+        The Dec proper motion
+    epoch: float
+        The epoch of the observation
+    target_date: float,
+
+    Returns
+    -------
+    new_ra, new_dec
+        The corrected RA and Dec for the source
+    """
+    # Convert observation year to Time object
+    date_obs = Time('{}-01-01'.format(int(epoch)))
+
+    # Calculate time difference in years
+    dt_years = (target_date - date_obs).to(u.year).value
+
+    # Calculate new coordinates
+    new_ra = ra + pm_ra * dt_years / np.cos(np.deg2rad(dec))
+    new_dec = dec + pm_dec * dt_years
+
+    return new_ra, new_dec
+
+
+def add_source(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dist=None, pa=None, type='STAR'):
     """
     Add a star to the star table
 
@@ -241,6 +297,8 @@ def add_star(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dis
         The distance of the new star from the given RA and Dec in arcseconds
     pa: float
         The position angle of the new star relative to the given RA and Dec in degrees
+    type: str
+        The source type, ['STAR', 'GALAXY']
 
     Returns
     -------
@@ -265,7 +323,7 @@ def add_star(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dis
     trace = get_trace('NIS_SUBSTRIP256', teff, verbose=False)
 
     # Add the row to the table
-    startable.add_row({'name': name, 'ra': ra, 'dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
+    startable.add_row({'name': name, 'ra': ra, 'dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
     startable.sort('distance')
 
     return startable
@@ -387,33 +445,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
     targframe_o2 = np.zeros((subY, subX))
     targframe_o3 = np.zeros((subY, subX))
     starframe = np.zeros((subY, subX))
-
-    if plot:
-        # Set up hover tool
-        tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
-        hover = HoverTool(tooltips=tips, name='stars')
-        crosshair = CrosshairTool(dimensions="height")
-        taptool = TapTool(behavior='select', callback=OpenURL(url="@url"))
-
-        # Make the plot
-        tools = ['pan', crosshair, 'reset', 'box_zoom', 'wheel_zoom', 'save', taptool, hover]
-        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
-        fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
-
-        # Plot config
-        scale = 'log'
-        color_map = 'Viridis256'
-
-        # Plot the obs data if possible
-        if data is not None:
-            vmax = np.nanmax(data)
-            if scale == 'log':
-                mapper = LogColorMapper(palette=color_map, low=1, high=vmax)
-            else:
-                mapper = LinearColorMapper(palette=color_map, low=0, high=vmax)
-            data[data < 0] = 0
-            data = rotate(data, tilt)
-            fig.image([data], x=0, y=2048 - data.shape[0], dh=data.shape[0], dw=2048, color_mapper=mapper)
 
     # Get order 0
     order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
@@ -555,6 +586,33 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
 
     if plot:
 
+        # Set up hover tool
+        tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('scale', '@fluxscale'), ('Teff', '@Teff'), ('ord0', '@xord0{int}, @yord0{int}')]
+        hover = HoverTool(tooltips=tips, name='stars')
+        crosshair = CrosshairTool(dimensions="height")
+        taptool = TapTool(behavior='select', callback=OpenURL(url="@url"))
+
+        # Make the plot
+        tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save', taptool, hover]
+        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
+        fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
+        fig.add_tools(CrosshairTool(dimensions='height'))
+
+        # Plot config
+        scale = 'log'
+        color_map = 'Viridis256'
+
+        # Plot the obs data if possible
+        if data is not None:
+            vmax = np.nanmax(data)
+            if scale == 'log':
+                mapper = LogColorMapper(palette=color_map, low=1, high=vmax)
+            else:
+                mapper = LinearColorMapper(palette=color_map, low=0, high=vmax)
+            data[data < 0] = 0
+            data = rotate(data, tilt)
+            fig.image([data], x=0, y=2048 - data.shape[0], dh=data.shape[0], dw=2048, color_mapper=mapper)
+
         # Plot the simulated frame
         vmax = np.nanmax(simframe)
         if scale == 'log':
@@ -572,7 +630,28 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         fig.circle('xord0', 'yord0', color=mapper, size=15, line_width=3, fill_color=None, name='stars', source=dict(FOVstars[['Teff', 'xord0', 'yord0', 'ra', 'dec', 'name', 'url', 'fluxscale', 'xdet', 'ydet', 'xtel', 'ytel']]))
         fig.circle([x_sweet], [y_sweet], size=10, line_width=3, fill_color=None, line_color='black')
 
-        fig = plot_traces(FOVstars, fig)
+        # fig = plot_traces(FOVstars, fig)
+        # Trace extends in dispersion direction further than 2048 subarray edges
+        blue_ext = 150
+        red_ext = 200
+        color = 'red'
+
+        # Get the new x-ranges
+        xr0 = np.linspace(-blue_ext, 2048 + red_ext, 1000)
+        xr1 = np.linspace(-blue_ext, 1820 + red_ext, 1000)
+        xr2 = np.linspace(-blue_ext, 1130 + red_ext, 1000)
+
+        # Add the y-intercept to the c0 coefficient
+        polys = trace_polynomial()
+        yr0 = np.polyval(polys[0], xr0)
+        yr1 = np.polyval(polys[1], xr1)
+        yr2 = np.polyval(polys[2], xr2)
+
+        for idx, star in enumerate(FOVstars):
+            # Order 1/2/3 location relative to order 0
+            fig.line(xr0 + star['xord1'], yr0 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
+            fig.line(xr1 + star['xord1'], yr1 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
+            fig.line(xr2 + star['xord1'], yr2 + star['yord1'], color=color, line_dash='solid' if idx == 0 else 'dashed')
 
         # Show the figure
         fig.x_range = Range1d(aper['subarr_x'][0], aper['subarr_x'][1])
@@ -708,11 +787,11 @@ def field_simulation(ra, dec, aperture, binComp=None, n_jobs=-1, plot=False, mul
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
-    stars = find_stars(ra, dec, verbose=verbose)
+    stars = find_sources(ra, dec, verbose=verbose)
 
     # Add stars manually
     if isinstance(binComp, dict):
-        stars = add_star(stars, **binComp)
+        stars = add_source(stars, **binComp)
 
     # Set the number of cores for multiprocessing
     max_cores = 8
