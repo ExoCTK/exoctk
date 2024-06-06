@@ -128,12 +128,12 @@ def trace_dict(teffs=None):
     teffs = [int(teff) for teff in teffs]
 
     for teff in teffs:
-        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, verbose=False)
+        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR', verbose=False)
 
     return teff_dict
 
 
-def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
+def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False, pm_corr=True):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -169,7 +169,10 @@ def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
         merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
         # Extract SDSS DR16 source types from XMatch results
-        stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+        # stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+
+        # Or infer galaxy from parallax
+        stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
 
         # Derived from K. Volk
         stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
@@ -211,13 +214,24 @@ def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
         # Catalog name
         cat = 'II/246/out'
 
+    # Add URL (before PM correcting coordinates)
+    search_radius = 1
+    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs={}&-out.orig=o'.format(cat, ra_deg, dec_deg, search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
+    # urls = ['https://vizier.cds.unistra.fr/viz-bin/VizieR-S?Gaia+EDR3+{}'.format(source_id) for source_id in stars['source_id']]
+    stars.add_column(urls, name='url')
+
+    # Cope coordinates to new column
+    stars.add_column(stars['ra'], name='obs_ra')
+    stars.add_column(stars['dec'], name='obs_dec')
+
     # Update RA and Dec using proper motion data
-    for row in stars:
-        new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=Time.now())
-        if not hasattr(new_ra, 'mask'):
-            row['ra'] = new_ra
-        if not hasattr(new_dec, 'mask'):
-            row['dec'] = new_dec
+    if pm_corr:
+        for row in stars:
+            new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=Time.now(), verbose=verbose)
+            if not hasattr(new_ra, 'mask'):
+                row['ra'] = new_ra
+            if not hasattr(new_dec, 'mask'):
+                row['dec'] = new_dec
 
     # Find distance from target to each star
     sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
@@ -227,10 +241,6 @@ def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
 
     # Add detector location to the table
     stars.add_columns(np.zeros((10, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci', 'xord0', 'yord0', 'xord1', 'yord1'])
-
-    # Add URL
-    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs=2&-out.orig=o'.format(cat, ra_deg, dec_deg) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
-    stars.add_column(urls, name='url')
 
     # Get traces
     traces = trace_dict(teffs=np.unique(stars['Teff']))
@@ -243,7 +253,7 @@ def find_sources(ra, dec, width=5*u.arcmin, catalog='Gaia', verbose=False):
     return stars
 
 
-def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now(), verbose=False):
     """
     Get the proper motion corrected coordinates of a source
 
@@ -259,7 +269,10 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
         The Dec proper motion
     epoch: float
         The epoch of the observation
-    target_date: float,
+    target_date: float
+        The target epoch
+    verbose: bool
+        Print extra stuff
 
     Returns
     -------
@@ -272,14 +285,23 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
     # Calculate time difference in years
     dt_years = (target_date - date_obs).to(u.year).value
 
+    # Convert proper motion from mas/yr to degrees/yr
+    pm_RA_deg_per_year = pm_ra / (3600 * 1000)  # 1 degree = 3600 * 1000 mas
+    pm_Dec_deg_per_year = pm_dec / (3600 * 1000)
+
     # Calculate new coordinates
-    new_ra = ra + pm_ra * dt_years / np.cos(np.deg2rad(dec))
-    new_dec = dec + pm_dec * dt_years
+    new_ra = ra + (pm_RA_deg_per_year * dt_years / np.cos(np.deg2rad(dec)))
+    new_dec = dec + (pm_Dec_deg_per_year * dt_years)
+
+    if verbose:
+        print(f"delta_T = {dt_years} years")
+        print(f'RA: {ra} + {pm_ra} mas/yr => {new_ra}')
+        print(f'Dec: {dec} + {pm_dec} mas/yr => {new_dec}')
 
     return new_ra, new_dec
 
 
-def add_source(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, dist=None, pa=None, type='STAR'):
+def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=None, dist=None, pa=None, type='STAR'):
     """
     Add a star to the star table
 
@@ -326,10 +348,10 @@ def add_source(startable, name, ra, dec, teff, fluxscale=None, delta_mag=None, d
         dec = newcoord.dec.degree
 
     # Get the trace
-    trace = get_trace('NIS_SUBSTRIP256', teff, verbose=False)
+    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type, verbose=False)
 
     # Add the row to the table
-    startable.add_row({'name': name, 'ra': ra, 'dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
+    startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
     startable.sort('distance')
 
     return startable
@@ -439,12 +461,15 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         star['xord1'] = star['xord0'] - x_sweet + aper['subarr_x'][0] + x_shift
         star['yord1'] = star['yord0'] - y_sweet + aper['subarr_y'][1] + y_shift
 
-    # Just stars in FOV (Should always have at least 1, the target)
-    lft, rgt, top, bot = 700, 5100, 1940, 1400
+    # Just sources in FOV (Should always have at least 1, the target)
+    lft, rgt, top, bot = 700, 5100, 2050, 1400
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
+    # Remove Teff value for GALAXY type
+    FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
+
     if verbose:
-        print("Calculating contamination from {} other stars in the FOV".format(len(FOVstars) - 1))
+        print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
 
     # Make frame for the target and a frame for all the other stars
     targframe_o1 = np.zeros((subY, subX))
@@ -595,9 +620,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         # Make the plot
         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
         tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('order', '@order{int}'), ('scale', '@fluxscale'), ('Teff [K]', '@Teff'), ('distance [mas]', '@distance')]
-        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=subY, match_aspect=True, tools=tools)
+        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=max(subY, 120), match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
-        fig.add_tools(CrosshairTool(dimensions='height'))
 
         # Plot config
         scale = 'log'
@@ -625,7 +649,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         # Only plot the simulation if no data is available to plot
         if data is None:
             imgsource = ColumnDataSource(data={'sim': [simframe]})
-            fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, color_mapper=mapper, source=imgsource)
+            fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, color_mapper=mapper, source=imgsource, name="image")
 
         mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=np.nanmin(FOVstars['Teff']), high=np.nanmax(FOVstars['Teff']))
 
@@ -633,14 +657,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
         source0 = ColumnDataSource(data={'Teff': FOVstars['Teff'], 'distance': FOVstars['distance'], 'xord0': FOVstars['xord0'],
                                          'yord0': FOVstars['yord0'], 'ra': FOVstars['ra'], 'dec': FOVstars['dec'], 'name': FOVstars['name'],
                                          'url': FOVstars['url'], 'fluxscale': FOVstars['fluxscale'], 'order': [0] * len(FOVstars)})
-        order0s = fig.circle('xord0', 'yord0', color=mapper, size=15, line_width=3, fill_color=None, name='order0', source=source0)
-        fig.circle([x_sweet], [y_sweet], size=10, line_width=3, fill_color=None, line_color='black')
+        order0s = fig.circle('xord0', 'yord0', color=mapper, size=20, line_width=3, fill_color=None, name='order0', source=source0)
+        fig.circle([x_sweet], [y_sweet], size=8, line_width=3, fill_color=None, line_color='black')
 
-        # fig = plot_traces(FOVstars, fig)
         # Trace extends in dispersion direction further than 2048 subarray edges
         blue_ext = 150
         red_ext = 200
-        color = 'red'
 
         # Get the new x-ranges
         xr0 = np.linspace(-blue_ext, 2048 + red_ext, 1000)
@@ -670,7 +692,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
                                                 'url': [star['url']] * len(xr0)
                                                 })
 
-                line = fig.line('x{}'.format(order), 'y{}'.format(order), source=source, color=color, name='traces', line_dash='solid' if idx == 0 else 'dashed')
+                line = fig.line('x{}'.format(order), 'y{}'.format(order), source=source, color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
                 lines.append(line)
 
         # Add order 0 hover and taptool
@@ -700,7 +722,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, c0x0=885, c0y0=1462, c1x0=-0.11,
             rfig.line(np.arange(subX), pctline_o3, color='green', legend_label='Order 3')
             glyph3 = VArea(x='x', y1='zeros', y2='o3', fill_color="green", fill_alpha=0.3)
             rfig.add_glyph(rsource, glyph3)
-        rfig.y_range = Range1d(0, min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
+        rfig.y_range = Range1d(0, 1)#min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
 
@@ -1046,7 +1068,7 @@ def get_order0(aperture):
     return trace
 
 
-def get_trace(aperture, teff, verbose=False):
+def get_trace(aperture, teff, stype, verbose=False):
     """Get the trace for the given aperture at the given temperature
 
     Parameters
@@ -1055,6 +1077,8 @@ def get_trace(aperture, teff, verbose=False):
         The aperture to use
     teff: int
         The temperature [K]
+    stype: str
+        The source type, ['STAR', 'GALAXY']
 
     Returns
     -------
@@ -1084,6 +1108,11 @@ def get_trace(aperture, teff, verbose=False):
         traceo1[traceo1 < 1] = 0
         traceo2[traceo2 < 1] = 0
         traceo3[traceo3 < 1] = 0
+
+        if stype == 'GALAXY':
+
+            # Just mask trace area
+            traceo1, traceo2, traceo2 = SOSS_trace_mask(aperture)
 
         trace = [traceo1, traceo2, traceo3]
 
