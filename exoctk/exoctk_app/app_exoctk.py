@@ -520,12 +520,12 @@ def contam_visibility():
                     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
                     starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
                     starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, 'NIS_SUBSTRIP256', targetName=form.targname.data, badPAs=badPAs)
+                    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
 
                 else:
 
                     # Get stars
-                    stars = fs.find_stars(ra_deg, dec_deg, verbose=False)
+                    stars = fs.find_sources(ra_deg, dec_deg, verbose=False)
 
                     # Add companion
                     print(comp_teff, comp_mag, comp_dist, comp_pa)
@@ -533,7 +533,7 @@ def contam_visibility():
                         stars = fs.add_star(stars, 'Companion', ra_deg, dec_deg, comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa)
 
                     # Calculate contam
-                    result, contam_plot = fs.calc_v3pa(pa_val, stars, 'NIS_SUBSTRIP256', plot=True, verbose=False)
+                    result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True, verbose=False)
 
                 # Get scripts
                 contam_js = INLINE.render_js()
