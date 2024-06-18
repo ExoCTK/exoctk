@@ -1,6 +1,7 @@
 import os
 
 from flask_wtf import FlaskForm
+from astropy.time import Time
 import numpy as np
 from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
@@ -39,6 +40,7 @@ class ContamVisForm(BaseForm):
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
     v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
+    epoch = IntegerField('epoch', default=Time.now().value.year, validators=[NumberRange(min=2000, max=2050, message='Epoch must be between 2000 and 2050')])
     inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2 (Visibility Only)'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W (Visibility Only)'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS (Visibility Only)'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
     delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
     dist = DecimalField('dist', default=None, validators=[Optional()])
