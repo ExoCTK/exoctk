@@ -507,7 +507,7 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, binComp=companion, plot=False, multi=False)
+                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
@@ -525,7 +525,7 @@ def contam_visibility():
                 else:
 
                     # Get stars
-                    stars = fs.find_sources(ra_deg, dec_deg, verbose=False)
+                    stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
 
                     # Add companion
                     print(comp_teff, comp_mag, comp_dist, comp_pa)
@@ -551,7 +551,7 @@ def contam_visibility():
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
                                    contam_js=contam_js,
-                                   contam_css=contam_css, pa_val=pa_val)
+                                   contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
 
         except Exception as e:
             err = 'The following error occurred: ' + str(e)
