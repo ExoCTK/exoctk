@@ -173,11 +173,15 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
         # Perform XMatch between Gaia and SDSS DR16
         xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
 
-        # Join Gaia results with XMatch results based on source_id
-        merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
+        try:
+            # Join Gaia results with XMatch results based on source_id
+            merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
-        # Extract SDSS DR16 source types from XMatch results
-        # stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+            # Extract SDSS DR16 source types from XMatch results
+            stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+
+        except ValueError:
+            pass
 
         # Or infer galaxy from parallax
         stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
@@ -288,7 +292,7 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
         The corrected RA and Dec for the source
     """
     # Convert observation year to Time object
-    if isinstance(target_date, (int, float)):
+    if isinstance(target_date, (int, float, str)):
         target_date = Time('{}-01-01'.format(int(target_date)))
 
     # Convert observation year to Time object
@@ -369,7 +373,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=885, c0y0=1462,
+def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=905, c0y0=1467,
               c1x0=-0.013, c1y0=-0.1, c1y1=0.12, c1x1=-0.03, c2y1=-0.011, tilt=0, ord0scale=1,
               ord1scale=1, plot=False, verbose=False):
     """
@@ -700,6 +704,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
 
         # Plot order 0 locations of galaxies
         FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
+        order0_gal = None
         if len(FOVstars_gal) > 0:
             source0_gal = ColumnDataSource(
                 data={'Teff': FOVstars_gal['Teff'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
@@ -755,7 +760,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
                 lines.append(line)
 
         # Add order 0 hover and taptool
-        fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
+        if order0_gal is not None:
+            fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
         fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
 
         # Add traces hover and taptool
