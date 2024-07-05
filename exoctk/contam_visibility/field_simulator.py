@@ -14,7 +14,7 @@ import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from astroquery.irsa import Irsa
+from astroquery.ipac.irsa import Irsa
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
 from astroquery.gaia import Gaia
