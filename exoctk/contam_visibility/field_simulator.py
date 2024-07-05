@@ -9,7 +9,6 @@ from pkg_resources import resource_filename
 
 import astropy.coordinates as crd
 from astropy.io import fits
-from astroquery.irsa import Irsa
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
