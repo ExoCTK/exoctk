@@ -18,7 +18,6 @@ The subpackages currently included are:
 
 Contamination and Visibility Calculators
 Groups and Intrgrations Calculator
-Transit Light-­Curve Fitting Tools
 Limb-­Darkening Calculator
 Phase Constraint Calculator
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
@@ -58,14 +57,6 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 
   source/exoctk.groups_integrations
 
-**Lightcurve Fitting Tool**
-
-The light-curve fitting tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
-
-.. toctree::
-  :maxdepth: 1
-
-  source/exoctk.lightcurve_fitting
 
 **Limb Darkening Calculator**
 
