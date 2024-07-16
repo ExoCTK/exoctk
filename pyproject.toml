@@ -1,0 +1,100 @@
+[project]
+name = "exoctk"
+description = "Exoplanet Characterization Toolkit"
+readme = "README.md"
+authors = [
+  { name= "Matthew Bourque" },
+  { name="Néstor Espinoza" },
+  { name="Joseph Filippazzo"},
+  { name="Mees Fix" },
+  { name="Teagan King" },
+  { name="Catherine Martlin" },
+  { name="Jennifer Medina" },
+  { name="Natasha Batalha" },
+  { name="Michael Fox" },
+  { name="Jules Fowler" },
+  { name="Jonathan Fraine" },
+  { name="Matthew Hill" },
+  { name="Nikole Lewis" },
+  { name="Kevin Stevenson" },
+  { name="Jeff Valenti" },
+  { name="Hannah Wakeford" },
+]
+keywords = ["astronomy", "python"]
+classifiers = ["Programming Language :: Python"]
+dependencies = [
+  'asteval',
+  'astropy',
+  'astroquery',
+  'bandit',
+  'batman-package',
+  'bibtexparser',
+  'bokeh>=3.0,<=3.2.1',
+  'boto3',
+  'corner',
+  'cython',
+  'docopt',
+  'docutils',
+  'flake8',
+  'flask',
+  'flask_wtf',
+  'gunicorn',
+  'h5py',
+  'hotsoss',
+  'ipython',
+  'matplotlib',
+  'numpy<2.0',
+  'numpydoc',
+  'pandas',
+  'paramiko',
+  'platon',
+  'pysiaf',
+  'pysynphot',
+  'pytest',
+  'pyyaml',
+  'pyvo',
+  'regions',
+  'scipy',
+  'scp',
+  'sphinx',
+  'sphinx_astropy',
+  'sqlalchemy',
+  'svo_filters',
+  'wtforms',
+  'werkzeug',
+  'jwst_gtvt',
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+]
+docs = [
+  "sphinx",
+  "sphinx_rtd_theme",
+  "stsci_rtd_theme",
+]
+
+[project.license]
+file = "LICENSE"
+content-type = "text/plain"
+
+[project.urls]
+Repository = "https://github.com/ExoCTK/exoctk"
+
+[build-system]
+requires = ["setuptools>=68.0.0", "numpy", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+namespaces = false
+
+[tool.setuptools_scm]
+
+[tool.pytest]
+junit_family = "xunit2"

@@ -1,0 +1,40 @@
+name: test
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  test:
+
+    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 5
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: set useful environment variables
+        run: |
+          echo PYTHONVERSION=${{ matrix.python-version }} >> $GITHUB_ENV
+          echo EXOCTK_DATA=$RUNNER_WORKSPACE/exoctk/exoctk/data/ >> $GITHUB_ENV
+
+      - run: pip freeze
+      
+      - run: pip install .[test]
+
+      - run: pytest exoctk/tests/
