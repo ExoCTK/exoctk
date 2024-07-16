@@ -242,6 +242,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     if pm_corr:
         for row in stars:
             new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=target_date, verbose=verbose)
+
             if not hasattr(new_ra, 'mask'):
                 row['ra'] = new_ra
             if not hasattr(new_dec, 'mask'):
@@ -720,12 +721,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         # Plot the sweet spot
         fig.circle([stars[0]['xord0']], [stars[0]['yord0']], size=8, line_width=3, fill_color=None, line_color='black')
 
-        # # Plot the FOV
-        # fig.line([lft, lft], [bot, top])
-        # fig.line([rgt, rgt], [bot, top])
-        # fig.line([lft, rgt], [top, top])
-        # fig.line([lft, rgt], [bot, bot])
-
         # Trace extends in dispersion direction further than 2048 subarray edges
         blue_ext = 150
         red_ext = 200
@@ -764,6 +759,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         # Add order 0 hover and taptool
         if order0_gal is not None:
             fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
+
         fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
 
         # Add traces hover and taptool
@@ -847,6 +843,7 @@ def plot_traces(star_table, fig, color='red'):
 
 
 def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
+
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters

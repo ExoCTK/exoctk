@@ -525,7 +525,11 @@ def contam_visibility():
                 else:
 
                     # Get stars
+<<<<<<< HEAD
                     stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
+=======
+                    stars = fs.find_sources(ra_deg, dec_deg, verbose=False)
+>>>>>>> c5ab1de0367f728b47615a8b555655631b23b1ca
 
                     # Add companion
                     print(comp_teff, comp_mag, comp_dist, comp_pa)
