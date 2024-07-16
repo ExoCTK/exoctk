@@ -14,6 +14,4 @@ from . import contam_visibility
 from . import groups_integrations
 from . import limb_darkening
 from . import phase_constraint_overlap
-from . import lightcurve_fitting
 from . import log_exoctk
-
