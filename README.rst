@@ -24,6 +24,7 @@ ExoCTK is an open-source, modular data analysis package focused primarily on atm
 * Integrations and Groups Calculator
 * Transit Light-Curve Fitter
 * Limb Darkening Calculator
+* Atmospheric Retrievals
 * Phase Constraint Calculator
 * Atmospheric Forward Modeling
 
@@ -99,7 +100,7 @@ environment, run the `exoctk` setup script:
 
 ::
 
-  pip install -e .
+  python setup.py [install|develop]
 
 
 Obtain the ``exoctk`` Data

@@ -3,8 +3,10 @@
 This packages contains package tests.
 """
 
+from . import test_atmospheric_retrievals
 from . import test_contam_visibility
 from . import test_groups_integrations
+from . import test_lightcurve_fitting
 from . import test_limb_darkening
 from . import test_log_exoctk
 from . import test_modelgrid

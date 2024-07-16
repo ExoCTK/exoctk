@@ -9,11 +9,12 @@ from pkg_resources import resource_filename
 
 import astropy.coordinates as crd
 from astropy.io import fits
+from astroquery.irsa import Irsa
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from astroquery.ipac.irsa import Irsa
+from astroquery.irsa import Irsa
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
 from astroquery.gaia import Gaia

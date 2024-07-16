@@ -19,20 +19,15 @@ from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 from svo_filters import svo
 
-try:
-    from .throughputs import JWST_THROUGHPUTS
-
-    # Supported filters
-    FILTERS = svo.filters()
-    NON_JWST = [filt for filt in FILTERS if
-                not filt.startswith('NIRISS') and not filt.startswith('NIRCam') and not filt.startswith(
-                    'NIRSpec') and not filt.startswith('MIRI')]
-    FILTERS_LIST = sorted(NON_JWST + JWST_THROUGHPUTS)
-except TypeError:
-    pass
+from .throughputs import JWST_THROUGHPUTS
 
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
+
+# Supported filters
+FILTERS = svo.filters()
+NON_JWST = [filt for filt in FILTERS if not filt.startswith('NIRISS') and not filt.startswith('NIRCam') and not filt.startswith('NIRSpec') and not filt.startswith('MIRI')]
+FILTERS_LIST = sorted(NON_JWST + JWST_THROUGHPUTS)
 
 DATA_URLS = {
     'exoctk_contam': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz'],

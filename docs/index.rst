@@ -18,6 +18,7 @@ The subpackages currently included are:
 
 Contamination and Visibility Calculators
 Groups and Intrgrations Calculator
+Transit Light-­Curve Fitting Tools
 Limb-­Darkening Calculator
 Phase Constraint Calculator
 Atmospheric Forward Modeling - Currently only available through the `website <https://exoctk.stsci.edu/fortney>`_.
@@ -57,6 +58,14 @@ The Groups and Integrations Calculator runs with pre-sampled pandeia data in the
 
   source/exoctk.groups_integrations
 
+**Lightcurve Fitting Tool**
+
+The light-curve fitting tool fits large numbers of spectroscopic light curves simultaneously while sharing model parameters across wavelengths and visits. It includes multiple uncertainty estimation algorithms and a comprehensive library of physical and systematic model components that are fully customizable.
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.lightcurve_fitting
 
 **Limb Darkening Calculator**
 
@@ -66,6 +75,22 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
   :maxdepth: 1
 
   source/exoctk.limb_darkening
+
+**Atmospheric Retrievals**
+
+The ``atmospheric_retrievals`` subpackage within the ``exoctk`` package currently contains a module for performing retrievals via the `PLATON <https://platon.readthedocs.io/en/latest/>`_ package. `This Jupyter notebook <https://github.com/ExoCTK/exoctk/blob/master/exoctk/notebooks/atmospheric_retrievals_demo.ipynb>`_ contains a demo of how to use the `platon_wrapper <https://github.com/ExoCTK/exoctk/blob/master/exoctk/atmospheric_retrievals/platon_wrapper.py>`_ module.
+
+Users who wish to use the ``atmospheric_retrievals`` tools may do so by installing the ``exoctk`` package.  Please see the `installation instructions <https://github.com/ExoCTK/exoctk#installation>`_ for further details.
+
+.. toctree::
+  :maxdepth: 1
+
+  tutorials/exoctk.AtmosphericRetrivals
+
+.. toctree::
+  :maxdepth: 1
+
+  source/exoctk.atmospheric_retrievals
 
 **Phase Constraint Calculator**
 

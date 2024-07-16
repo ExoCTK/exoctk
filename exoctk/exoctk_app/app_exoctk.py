@@ -76,6 +76,21 @@ def _param_fort_validation(args):
     return input_args
 
 
+@app_exoctk.route('/atmospheric_retrievals')
+def atmospheric_retrievals():
+    """A landing page for the atmospheric_retrievals tools"""
+
+    return render_template('atmospheric_retrievals.html')
+
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+
+    return Response('Could not verify your access level for that URL.\n'
+                    'You have to login with proper credentials', 401,
+                    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+
 def check_auth(username, password):
     """This function is called to check if a username password
     combination is valid
@@ -572,6 +587,13 @@ def index():
         The rendered template for the index page.
     """
     return render_template('index.html')
+
+
+@app_exoctk.route('/lightcurve_fitting')
+def lightcurve_fitting():
+    """A landing page for the lightcurve_fitting tool"""
+
+    return render_template('lightcurve_fitting.html')
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])

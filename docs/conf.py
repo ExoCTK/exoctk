@@ -26,12 +26,10 @@
 # be accessible, and the documentation will not build correctly.
 
 import datetime
-import importlib
 import os
 import sys
 import ast
 import textwrap
-from pathlib import Path
 
 try:
     import sphinx_astropy
@@ -45,13 +43,39 @@ except ImportError:
 # Load all of the global Astropy configuration
 from sphinx_astropy.conf import *
 
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
-    import tomllib
+# Create a mock to allow us access to the setup variables:
+def parse_setup(setup_filename):
+    """Parse setup.py and return args and keywords args to its setup
+    function call
 
-with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as configuration_file:
-    project_metadata = tomllib.load(configuration_file)["project"]
+    """
+    mock_setup = textwrap.dedent('''\
+    def setup(*args, **kwargs):
+        __setup_calls__.append((args, kwargs))
+    ''')
+    parsed_mock_setup = ast.parse(mock_setup, filename=setup_filename)
+    with open(setup_filename, 'rt') as setup_file:
+        parsed = ast.parse(setup_file.read())
+        for index, node in enumerate(parsed.body[:]):
+            if (
+                not isinstance(node, ast.Expr) or
+                not isinstance(node.value, ast.Call) or
+                node.value.func.id != 'setup'
+            ):
+                continue
+            parsed.body[index:index] = parsed_mock_setup.body
+            break
+
+    fixed = ast.fix_missing_locations(parsed)
+    codeobj = compile(fixed, setup_filename, 'exec')
+    local_vars = {}
+    global_vars = {'__setup_calls__': []}
+    exec(codeobj, global_vars, local_vars)
+    return global_vars['__setup_calls__'][0]
+
+
+setup_info = parse_setup('../setup.py')[1]
+setup_py = dict(setup_info)
 
 # -- General configuration ----------------------------------------------------
 
@@ -84,22 +108,23 @@ rst_epilog += """
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = project_metadata['name']
-author = project_metadata["authors"][0]["name"]
-copyright = f"{datetime.datetime.now().year}, {author}"
+project = setup_py['name']
+author = setup_py['author']
+copyright = '{0}, {1}'.format(
+    datetime.datetime.now().year, setup_py['author'])
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-package = importlib.import_module(project_metadata["name"])
-try:
-    version = package.__version__.split("-", 1)[0]
-    # The full version, including alpha/beta/rc tags.
-    release = package.__version__
-except AttributeError:
-    version = "dev"
-    release = "dev"
+#__import__(setup_py['name'])
+#package = sys.modules[setup_py['name']]
+package = setup_py['name']
+
+# The short X.Y version.
+version = setup_py['version']
+# The full version, including alpha/beta/rc tags.
+#release = package.__version__
 
 
 # -- Options for HTML output --------------------------------------------------
@@ -166,8 +191,21 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 # -- Options for the edit_on_github extension ---------------------------------
 
+#if eval(setup_py.get('edit_on_github')):
+#    extensions += ['sphinx_astropy.ext.edit_on_github']
+
+#    versionmod = __import__(setup_py['name'] + '.version')
+#    edit_on_github_project = setup_py['url']
+    #if versionmod.version.release:
+     #   edit_on_github_branch = "v" + versionmod.version.version
+    #else:
+    #    edit_on_github_branch = "master"
+
+#    edit_on_github_source_root = ""
+#    edit_on_github_doc_root = "docs"
+
 # -- Resolving issue number to links in changelog -----------------------------
-github_issues_url = project_metadata['urls']['Repository']
+github_issues_url = '{0}'.format(setup_py['url'])
 
 # from mock import Mock as MagicMock
 #
