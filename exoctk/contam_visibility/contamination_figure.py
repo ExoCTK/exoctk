@@ -241,7 +241,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
         xlim0 = 5
         xlim1 = 12
 
-    TOOLS = 'pan, box_zoom, reset'
+    TOOLS = 'pan, box_zoom, reset, save'
     dPA = 1
 
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,8 +268,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    if not instrument.startswith('NIS'):
-        s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
+    s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
 
     # Line plot
     #ax = 1 if 'NIRCam' in instrument else 0
