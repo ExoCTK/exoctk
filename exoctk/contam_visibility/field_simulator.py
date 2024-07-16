@@ -31,15 +31,12 @@ from bokeh.layouts import gridplot, column
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
-from hotsoss.plotting import plot_frame
-from hotsoss.locate_trace import trace_polynomial
 from scipy.ndimage.interpolation import rotate
 import numpy as np
 import pysiaf
 import regions
 
 from ..utils import get_env_variables, check_for_data
-# from .visibilityPA import using_gtvt
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 
@@ -61,6 +58,12 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
+# SOSS order 1/2/3 trace coefficients derived from commissioning data
+SOSS_TRACE_COEFFS = [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
+                    [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
+                    [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]
+
+
 def SOSS_trace_mask(aperture, radius=20):
     """
     Construct a trace mask for SOSS data
@@ -75,8 +78,7 @@ def SOSS_trace_mask(aperture, radius=20):
     np.ndarray
         The SOSS trace mask
     """
-    # TODO: Implement order 3 trace in hotsoss.locate_trace.trace_polynomial then enable it here.
-    traces = trace_polynomial(evaluate=True)
+    traces = np.array([np.polyval(coeff, np.arange(2048)) for coeff in SOSS_TRACE_COEFFS])
     ydim = APERTURES[aperture]['subarr_y'][2] - APERTURES[aperture]['subarr_y'][1]
     mask1 = np.zeros((ydim, 2048))
     mask2 = np.zeros((ydim, 2048))
@@ -734,7 +736,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         xr2 = np.linspace(-blue_ext, 1130 + red_ext, 1000)
 
         # Add the y-intercept to the c0 coefficient
-        polys = trace_polynomial()
+        polys = SOSS_TRACE_COEFFS
         yr0 = np.polyval(polys[0], xr0)
         yr1 = np.polyval(polys[1], xr1)
         yr2 = np.polyval(polys[2], xr2)
@@ -830,7 +832,7 @@ def plot_traces(star_table, fig, color='red'):
     xr2 = np.linspace(-blue_ext, 1130 + red_ext, 1000)
 
     # Add the y-intercept to the c0 coefficient
-    polys = trace_polynomial()
+    polys = SOSS_TRACE_COEFFS
     yr0 = np.polyval(polys[0], xr0)
     yr1 = np.polyval(polys[1], xr1)
     yr2 = np.polyval(polys[2], xr2)
