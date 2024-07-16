@@ -43,7 +43,7 @@ dependencies = [
   'hotsoss',
   'ipython',
   'matplotlib',
-  'numpy<2.0',
+  'numpy<3.0',
   'numpydoc',
   'pandas',
   'paramiko',
