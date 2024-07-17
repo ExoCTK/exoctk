@@ -17,7 +17,6 @@ import numpy as np
 
 from exoctk import log_exoctk
 from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exoplanet_positions
-#from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
@@ -139,7 +138,7 @@ def fortney():
                                  plot_div=div,
                                  js_resources=js_resources,
                                  css_resources=css_resources,
-                                 temp=temp_out,
+                                 temp=sorted(temp_out, key=float),
                                  table_string=table_string
                                  )
 
@@ -525,11 +524,7 @@ def contam_visibility():
                 else:
 
                     # Get stars
-<<<<<<< HEAD
                     stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
-=======
-                    stars = fs.find_sources(ra_deg, dec_deg, verbose=False)
->>>>>>> c5ab1de0367f728b47615a8b555655631b23b1ca
 
                     # Add companion
                     print(comp_teff, comp_mag, comp_dist, comp_pa)
