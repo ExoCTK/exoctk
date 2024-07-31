@@ -1,6 +1,7 @@
 import os
 
 from flask_wtf import FlaskForm
+from astropy.time import Time
 import numpy as np
 from svo_filters import svo
 from wtforms import StringField, SubmitField, DecimalField, RadioField, SelectField, SelectMultipleField, IntegerField, FloatField
@@ -39,6 +40,7 @@ class ContamVisForm(BaseForm):
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
     v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
+    epoch = IntegerField('epoch', default=Time.now().value.year, validators=[NumberRange(min=2000, max=2050, message='Epoch must be between 2000 and 2050')])
     inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2 (Visibility Only)'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W (Visibility Only)'), ('MIRI_SLITLESSPRISM', 'MIRI - LRS (Visibility Only)'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
     delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
     dist = DecimalField('dist', default=None, validators=[Optional()])
@@ -54,9 +56,9 @@ class FortneyModelForm(BaseForm):
     planet_mass_unit = SelectField('planet_mass_unit', choices=[('M_jup', 'Jupiter Mass'), ('kilogram', 'kilogram'), ('g', 'gram'), ('M_earth', 'Earth Mass'), ('M_sun', 'Solar Mass')], validators=[InputRequired('A mass unit is required')])
     planet_radius = DecimalField('planet_radius', default=1.25, validators=[InputRequired('A planet radius is required!'), NumberRange(min=0, message='Planet radius must be positive')])
     planet_radius_unit = SelectField('planet_radius_unit', choices=[('R_jup', 'Jupiter Radius'), ('kilometer', 'kilometer'), ('m', 'meter'), ('R_earth', 'Earth Radius'), ('R_sun', 'Solar Radius')], validators=[InputRequired('A planet radius unit is required')])
-    stellar_radius = DecimalField('stellar_radius', default=1.0, validators=[InputRequired('A stellar radius is required!'), NumberRange(min=0, message='Stellar radius must be positive')])
+    stellar_radius = DecimalField('stellar_radius', validators=[InputRequired('A stellar radius is required!'), NumberRange(min=0, message='Stellar radius must be positive')])
     stellar_radius_unit = SelectField('stellar_radius_unit', choices=[('R_sun', 'Solar Radius'), ('R_jup', 'Jupiter Radius'), ('kilometer', 'kilometer'), ('m', 'meter'), ('R_earth', 'Earth Radius')], validators=[InputRequired('A stellar radius unit is required')])
-    chemistry = SelectField('chemistry', choices=[('noTiO', '500'), ('eqchem', '750'), (1000, '1000'), (1250, '1250'), (1500, '1500'), (1750, '1750'), (2000, '2000'), (2250, '2250'), (2500, '2500')], validators=[InputRequired('A chemistry type is required')])
+    chemistry = SelectField('chemistry', choices=[('noTiO', '500'), ('eqchem', '750')], validators=[InputRequired('A chemistry type is required')])
     clouds = SelectField('clouds', choices=[('0', 'Nothing'), ('ray10', 'Weak Rayleigh'), ('ray100', 'Medium Rayleigh'), ('ray1000', 'Strong Rayleigh'), ('flat10', 'Weak Cloud'), ('flat100', 'Medium Cloud'), ('flat1000', 'Strong Cloud')], validators=[InputRequired('A cloud model is required')])
 
     # Form submits

@@ -65,9 +65,9 @@
     	{% if contam_plot %}
             <hr>
             {% if pa_val == -1 %}
-    		    <h3>Target Contamination at all Position Angles</h3>
+    		    <h3>Target Contamination for all Position Angles at Epoch={{ epoch }}</h3>
             {% else %}
-                <h3> Target Contamination at PA={{ pa_val }}</h3>
+                <h3> Target Contamination for PA={{ pa_val }} at Epoch={{ epoch }}</h3>
             {% endif %}
             <br>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->

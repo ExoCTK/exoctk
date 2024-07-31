@@ -101,6 +101,28 @@
             </div>
         </div>
 
+        <hr class="col-md-12">
+
+        <div class='form-group'>
+
+            <label class="col-sm-2 control-label">Epoch</label>
+
+            <div class="col-sm-10">
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>Year</div>
+                      {{ form.epoch(value=form.epoch.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'></div>
+                </div>
+                <span id="helpBlock" class="help-block">The 4-digit year of the planned observations</span>
+                <br>
+                {% for error in form.epoch.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+
+            </div>
+        </div>
+
 		<hr class="col-md-12">
 
 		<div class='form-group'>

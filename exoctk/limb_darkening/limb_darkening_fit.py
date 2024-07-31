@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
 """
-A module to calculate limb darkening coefficients from a grid of model
-spectra
+A module to calculate limb darkening coefficients from a grid of model spectra
 """
 
 from copy import copy
