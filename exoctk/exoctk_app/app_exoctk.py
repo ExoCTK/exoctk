@@ -217,31 +217,6 @@ def groups_integrations():
     # Load default form
     form = fv.GroupsIntsForm()
 
-    if request.method == 'GET':
-
-        # http://0.0.0.0:5000/groups_integrations?k_mag=8.131&transit_duration=0.09089&target=WASP-18+b
-        target_name = request.args.get('target')
-        form.targname.data = target_name
-
-        k_mag = request.args.get('k_mag')
-        form.kmag.data = k_mag
-
-        # According to Kevin the obs_dur = 3*trans_dur+1 hours
-        # transit_dur is in days from exomast, convert first.
-        try:
-            trans_dur = float(request.args.get('transit_duration'))
-            trans_dur *= u.day.to(u.hour)
-            obs_dur = 3 * trans_dur + 1
-            form.obs_duration.data = obs_dur
-        except TypeError:
-            trans_dur = request.args.get('transit_duration')
-            if trans_dur is None:
-                pass
-            else:
-                err = 'The Transit Duration from ExoMAST experienced some issues. Try a different spelling or source.'
-                return render_template('groups_integrations_error.html', err=err)
-        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
-
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
 
