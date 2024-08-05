@@ -511,6 +511,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
 
     # Remove Teff value for GALAXY type
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
+    FOVstars['Teff_str'] = ['---' if t == 'GALAXY' else str(int(i)) for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
 
     if verbose:
         print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
@@ -663,7 +664,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
 
         # Make the plot
         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
-        tips = [('Name', '@name'), ('RA', '@ra'), ('DEC', '@dec'), ('order', '@order{int}'), ('scale', '@fluxscale'), ('Teff [K]', '@Teff'), ('distance [mas]', '@distance')]
+        tips = [('Name', '@name'), ('Type', '@type'), ('RA', '@ra'), ('DEC', '@dec'), ('order', '@order{int}'), ('scale', '@fluxscale'), ('Teff [K]', '@Teff_str'), ('distance [mas]', '@distance')]
         fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=max(subY, 120), match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
 
@@ -699,9 +700,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
 
         # Plot order 0 locations of stars
         FOVstars_only = FOVstars[FOVstars['type'] == 'STAR']
-        source0_stars = ColumnDataSource(data={'Teff': FOVstars_only['Teff'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
+        source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
                                          'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
-                                         'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'], 'order': [0] * len(FOVstars_only)})
+                                         'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
+                                         'order': [0] * len(FOVstars_only)})
         order0_stars = fig.circle('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
 
         # Plot order 0 locations of galaxies
@@ -709,9 +711,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         order0_gal = None
         if len(FOVstars_gal) > 0:
             source0_gal = ColumnDataSource(
-                data={'Teff': FOVstars_gal['Teff'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
+                data={'Teff_str': FOVstars_gal['Teff_str'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
                       'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
-                      'name': FOVstars_gal['name'],
+                      'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
                       'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
                       'order': [0] * len(FOVstars_gal)})
             order0_gal = fig.circle('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
@@ -744,9 +746,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
                                                 'x2': xr1 + star['xord1'], 'y2': yr1 + star['yord1'],
                                                 'x3': xr2 + star['xord1'], 'y3': yr2 + star['yord1'],
                                                 'name': ['Target' if idx == 0 else star['designation']] * len(xr0),
+                                                'type': [star['type']] * len(xr0),
                                                 'ra': [star['ra']] * len(xr0), 'dec': [star['dec']] * len(xr0),
                                                 'fluxscale': [star['fluxscale']] * len(xr0),
-                                                'Teff': [star['Teff']] * len(xr0),
+                                                'Teff_str': [star['Teff_str']] * len(xr0),
                                                 'distance': [star['distance']] * len(xr0),
                                                 'order': [order] * len(xr0),
                                                 'url': [star['url']] * len(xr0)
