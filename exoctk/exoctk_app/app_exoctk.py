@@ -452,10 +452,12 @@ def contam_visibility():
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
-        instrument = fs.APERTURES[form.inst.data]['inst']
+        if form.inst.data == "NIRSpec":
+            instrument = form.inst.data
+        else:
+            instrument = fs.APERTURES[form.inst.data]['inst']
 
         try:
-
             # Log the form inputs
             log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
