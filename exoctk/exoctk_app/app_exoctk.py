@@ -492,7 +492,7 @@ def contam_visibility():
                     badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
 
                     # Make old contam plot
-                    starCube = np.zeros((362, 2048, 256))
+                    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
                     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
                     starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
                     starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
