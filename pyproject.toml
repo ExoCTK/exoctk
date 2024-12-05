@@ -1,5 +1,6 @@
 [project]
 name = "exoctk"
+version = "1.2.6"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
 authors = [
