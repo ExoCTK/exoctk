@@ -11,7 +11,8 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
     """Use the jwst_gtvt to obtain positions of exoplanet.
     """
 
-    eph = Ephemeris()
+    # Set ephemeris to go from Cycle 3 to Cycle 6:
+    eph = Ephemeris(start_date=Time('2024-07-30'), end_date=Time('2028-07-30'))
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
 
     if in_FOR is None:
