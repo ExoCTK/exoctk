@@ -17,7 +17,6 @@ import numpy as np
 
 from exoctk import log_exoctk
 from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exoplanet_positions
-#from exoctk.contam_visibility import visibilityPA as vpa
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
@@ -139,7 +138,7 @@ def fortney():
                                  plot_div=div,
                                  js_resources=js_resources,
                                  css_resources=css_resources,
-                                 temp=temp_out,
+                                 temp=sorted(temp_out, key=float),
                                  table_string=table_string
                                  )
 
@@ -217,31 +216,6 @@ def groups_integrations():
 
     # Load default form
     form = fv.GroupsIntsForm()
-
-    if request.method == 'GET':
-
-        # http://0.0.0.0:5000/groups_integrations?k_mag=8.131&transit_duration=0.09089&target=WASP-18+b
-        target_name = request.args.get('target')
-        form.targname.data = target_name
-
-        k_mag = request.args.get('k_mag')
-        form.kmag.data = k_mag
-
-        # According to Kevin the obs_dur = 3*trans_dur+1 hours
-        # transit_dur is in days from exomast, convert first.
-        try:
-            trans_dur = float(request.args.get('transit_duration'))
-            trans_dur *= u.day.to(u.hour)
-            obs_dur = 3 * trans_dur + 1
-            form.obs_duration.data = obs_dur
-        except TypeError:
-            trans_dur = request.args.get('transit_duration')
-            if trans_dur is None:
-                pass
-            else:
-                err = 'The Transit Duration from ExoMAST experienced some issues. Try a different spelling or source.'
-                return render_template('groups_integrations_error.html', err=err)
-        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
 
     # Reload page with stellar data from ExoMAST
     if form.resolve_submit.data:
@@ -453,10 +427,12 @@ def contam_visibility():
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
-        instrument = fs.APERTURES[form.inst.data]['inst']
+        if form.inst.data == "NIRSpec":
+            instrument = form.inst.data
+        else:
+            instrument = fs.APERTURES[form.inst.data]['inst']
 
         try:
-
             # Log the form inputs
             log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
@@ -507,7 +483,7 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, binComp=companion, plot=False, multi=False)
+                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
@@ -516,24 +492,23 @@ def contam_visibility():
                     badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
 
                     # Make old contam plot
-                    starCube = np.zeros((362, 2048, 256))
+                    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
                     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
                     starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
                     starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, 'NIS_SUBSTRIP256', targetName=form.targname.data, badPAs=badPAs)
+                    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
 
                 else:
 
                     # Get stars
-                    stars = fs.find_stars(ra_deg, dec_deg, verbose=False)
+                    stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
 
                     # Add companion
-                    print(comp_teff, comp_mag, comp_dist, comp_pa)
                     if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        stars = fs.add_star(stars, 'Companion', ra_deg, dec_deg, comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa)
+                        stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
 
                     # Calculate contam
-                    result, contam_plot = fs.calc_v3pa(pa_val, stars, 'NIS_SUBSTRIP256', plot=True, verbose=False)
+                    result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True, verbose=False)
 
                 # Get scripts
                 contam_js = INLINE.render_js()
@@ -551,7 +526,7 @@ def contam_visibility():
                                    vis_css=vis_css, contam_plot=contam_div,
                                    contam_script=contam_script,
                                    contam_js=contam_js,
-                                   contam_css=contam_css, pa_val=pa_val)
+                                   contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
 
         except Exception as e:
             err = 'The following error occurred: ' + str(e)
