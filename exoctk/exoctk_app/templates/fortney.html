@@ -29,7 +29,6 @@
                 <div class="col-sm-3">
 
                     <select id="ptemp" name="ptemp" class="form-control" data-placeholder="Select Temp (K)">
-                        <option value=""></option>
                         {% for i in temp %}
                             <option {{ i }} value={{ i }}>{{ i }}</option>
                         {% endfor %}
@@ -45,7 +44,6 @@
                 <div class="col-sm-3">
 
                     <select id="pchem" name="pchem" class="form-control" data-placeholder="Select Chemistry">
-                        <option value=""></option>
                         <option value='noTiO'>Equilibrium Chemistry</option>
                         <option value='eqchem'>Equilibrium Chemistry, w/ TiO</option>
                     </select>
@@ -60,7 +58,6 @@
                 <div class="col-sm-3">
 
                     <select id="cloud" name="cloud" class="form-control" data-placeholder="Clouds/Scattering">
-                        <option value=""></option>
                         <option value="0">Nothing</option>
                         <option value="ray10">Weak Rayleigh</option>
                         <option value="ray100">Medium Rayleigh</option>

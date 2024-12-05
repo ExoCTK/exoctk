@@ -65,9 +65,9 @@
     	{% if contam_plot %}
             <hr>
             {% if pa_val == -1 %}
-    		    <h3>Target Contamination at all Position Angles</h3>
+    		    <h3>Target Contamination for all Position Angles at Epoch={{ epoch }}</h3>
             {% else %}
-                <h3> Target Contamination at PA={{ pa_val }}</h3>
+                <h3> Target Contamination for PA={{ pa_val }} at Epoch={{ epoch }}</h3>
             {% endif %}
             <br>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
@@ -105,6 +105,8 @@
                         <li>The top plot shows the simulated observation at the given position angle.</li>
                         <li>The circles show the detector location of the 0th order, which you can click to resolve in Vizier.</li>
                         <li>Red lines show the predicted order 1, 2, and 3 trace positions for the target (solid) as well as all contaminant sources (dashed).</li>
+                        <li>If a source's Teff value is listed as "---" on hover, a temperature could not be determined and a 2300K model SED will be used for contamination estimation.</li>
+                        <li>Pink dashed lines show the predicted order 1, 2, and 3 trace positions for contaminant extended sources.</li>
                         <li>The bottom plot shows the fractional contamination of orders 1 (blue), 2 (red), and 3 (green) in each detector column.</li>
                     </ul>
                 {% endif %}

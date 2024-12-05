@@ -14,7 +14,6 @@ flask>=1.1.2
 flask_wtf>=0.14.3
 gunicorn>=20.1.0
 h5py>=3.2.1
-hotsoss>=0.1.9
 ipython>=7.22.0
 jwst-gtvt>=1.0.0
 matplotlib>=3.4.1

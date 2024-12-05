@@ -35,7 +35,6 @@ dependencies:
     - docutils>=0.16
     - flask_wtf>=1.1.1
     - h5py>=3.9.0
-    - hotsoss>=0.1.9
     - gunicorn>=21.1.0
     - numpy>=1.25.1
     - platon>=5.4
@@ -47,6 +46,6 @@ dependencies:
     - scipy>=1.11.1
     - sphinx_astropy>=1.9.1
     - svo-filters>=0.4.4
-    - werkzeug==2.0.3
+    - werkzeug>=3.0.1
     - jwst_gtvt>=1.0.0
     - astroquery>=0.4.6
