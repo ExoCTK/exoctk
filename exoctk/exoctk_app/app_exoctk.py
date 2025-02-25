@@ -11,7 +11,7 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file
+from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app
 import form_validation as fv
 import numpy as np
 
@@ -28,6 +28,8 @@ from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
+from exoctk.celery_config import make_celery
+from celery import Celery
 
 # FLASK SET UP
 app_exoctk = Flask(__name__)
@@ -35,6 +37,21 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
+
+# Configure Celery
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+
+# Initialize Celery
+celery = make_celery(app_exoctk)
+
+
+celery = Celery(
+    app_exoctk.import_name,
+    broker=app_exoctk.config['CELERY_BROKER_URL'],
+    backend=app_exoctk.config['CELERY_RESULT_BACKEND']
+)
+
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -359,6 +376,30 @@ def pa_contam():
     return render_template('pa_contam.html')
 
 
+# Long-running Celery task
+@celery.task
+def run_contam_visibility_task(params):
+    # Replace this with your long-running logic
+    import time
+    time.sleep(10)  # Simulate a long-running process
+    return {"result": f"Processed with params: {params}"}
+
+
+# Route to check task status
+@app_exoctk.route('/task_status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = run_contam_visibility_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {"status": task.state}
+    elif task.state == 'SUCCESS':
+        response = {"status": task.state, "result": task.result}
+    elif task.state == 'FAILURE':
+        response = {"status": task.state, "error": str(task.info)}
+    else:
+        response = {"status": task.state}
+    return jsonify(response)
+
+
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
@@ -483,6 +524,7 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
+                    # TODO: Replace this with Celery task manager
                     targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
 
                     # Make the plot
