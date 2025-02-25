@@ -379,10 +379,11 @@ def pa_contam():
 # Long-running Celery task
 @celery.task
 def run_contam_visibility_task(params):
-    # Replace this with your long-running logic
-    import time
-    time.sleep(10)  # Simulate a long-running process
-    return {"result": f"Processed with params: {params}"}
+    # Long-running logic
+    targframe, starcube, results = fs.field_simulation(**params)
+    print(f"Processed with params: {params}")
+
+    return targframe, starcube, results
 
 
 # Route to check task status
@@ -524,8 +525,10 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    # TODO: Replace this with Celery task manager
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
+                    params = {'ra': ra_deg, 'dec': dec_deg, 'aperture': form.inst.data, 'target_date': form.epoch.data, 'multi': False}
+                    if companion is not None:
+                        params['binComp'] = companion
+                    targframe, starcube, results = run_contam_visibility_task(params)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
