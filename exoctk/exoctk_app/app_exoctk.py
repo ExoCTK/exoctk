@@ -2,6 +2,7 @@ from functools import wraps
 import io
 import json
 import os
+import sys
 from pkg_resources import resource_filename
 
 from astropy.coordinates import SkyCoord
@@ -32,6 +33,7 @@ from exoctk.celery_config import make_celery
 from celery import Celery
 
 # FLASK SET UP
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 app_exoctk = Flask(__name__)
 
 # define the cache config keys, remember that it can be done in a settings file
