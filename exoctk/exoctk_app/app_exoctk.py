@@ -2,6 +2,7 @@ from functools import wraps
 import io
 import json
 import os
+import sys
 from pkg_resources import resource_filename
 
 from astropy.coordinates import SkyCoord
@@ -11,7 +12,7 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file
+from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app
 import form_validation as fv
 import numpy as np
 
@@ -28,13 +29,24 @@ from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
+from celery import Celery
 
 # FLASK SET UP
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 app_exoctk = Flask(__name__)
 
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
+
+# Configure Celery
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+
+# Initialize Celery
+celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
+                backend=app_exoctk.config['CELERY_RESULT_BACKEND'])
+celery.conf.update(app_exoctk.config)
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -359,6 +371,46 @@ def pa_contam():
     return render_template('pa_contam.html')
 
 
+# Long-running Celery task
+@celery.task
+def run_contam_visibility_task(params):
+    # Long-running logic
+    targframe, starcube, results = fs.field_simulation(**params)
+    print(f"Processed with params: {params}")
+
+    return targframe, starcube, results
+
+# Route to check task status
+@app_exoctk.route('/status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = run_contam_visibility_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'current': 0,
+            'total': 1,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'current': task.info.get('current', 0),
+            'total': task.info.get('total', 1),
+            'status': task.info.get('status', '')
+        }
+        if 'result' in task.info:
+            response['result'] = task.info['result']
+    else:
+        # something went wrong in the background job
+        response = {
+            'state': task.state,
+            'current': 1,
+            'total': 1,
+            'status': str(task.info),  # this is the exception raised
+        }
+    return jsonify(response)
+
+
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
@@ -483,7 +535,12 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
+                    params = {'ra': ra_deg, 'dec': dec_deg, 'aperture': form.inst.data, 'target_date': form.epoch.data, 'multi': False}
+                    if companion is not None:
+                        params['binComp'] = companion
+                    # targframe, starcube, results = run_contam_visibility_task.apply_async(params)
+                    task_result = run_contam_visibility_task.apply_async(args=[params])
+                    targframe, starcube, results = task_result.get()
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
@@ -1014,4 +1071,4 @@ def secret_page():
 if __name__ == '__main__':
 
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port)
+    app_exoctk.run(host='0.0.0.0', port=port, debug=True)

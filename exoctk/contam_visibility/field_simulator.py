@@ -12,6 +12,7 @@ import os
 import re
 import time
 from pkg_resources import resource_filename
+import warnings
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -34,6 +35,7 @@ from scipy.ndimage.interpolation import rotate
 import numpy as np
 import pysiaf
 import regions
+import erfa
 
 from ..utils import get_env_variables, check_for_data
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -42,6 +44,10 @@ from .contamination_figure import contam
 Vizier.columns = ["**", "+_r"]
 Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
 Gaia.ROW_LIMIT = 100
+
+warnings.simplefilter("ignore", category=RuntimeWarning)
+warnings.simplefilter("ignore", category=erfa.ErfaWarning)
+np.seterr(divide='ignore', invalid='ignore')
 
 from exoctk import utils
 
@@ -651,9 +657,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     simframe = targframe_o1 + targframe_o2 + targframe_o3 + starframe
 
     # Calculate contam/total counts in each detector column
-    pctframe_o1 = starframe / simframe_o1
-    pctframe_o2 = starframe / simframe_o2
-    pctframe_o3 = starframe / simframe_o3
+    pctframe_o1 = np.divide(starframe, simframe_o1, where=simframe_o1 != 0)
+    pctframe_o2 = np.divide(starframe, simframe_o2, where=simframe_o2 != 0)
+    pctframe_o3 = np.divide(starframe, simframe_o3, where=simframe_o3 != 0)
     pctline_o1 = np.nanmean(pctframe_o1 * mask1, axis=0)
     pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
     pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
