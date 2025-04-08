@@ -29,7 +29,6 @@ from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
-from exoctk.celery_config import make_celery
 from celery import Celery
 
 # FLASK SET UP
@@ -45,15 +44,9 @@ app_exoctk.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 
 # Initialize Celery
-celery = make_celery(app_exoctk)
-
-
-celery = Celery(
-    app_exoctk.import_name,
-    broker=app_exoctk.config['CELERY_BROKER_URL'],
-    backend=app_exoctk.config['CELERY_RESULT_BACKEND']
-)
-
+celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
+                backend=app_exoctk.config['CELERY_RESULT_BACKEND'])
+celery.conf.update(app_exoctk.config)
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -387,19 +380,34 @@ def run_contam_visibility_task(params):
 
     return targframe, starcube, results
 
-
 # Route to check task status
-@app_exoctk.route('/task_status/<task_id>', methods=['GET'])
+@app_exoctk.route('/status/<task_id>', methods=['GET'])
 def task_status(task_id):
     task = run_contam_visibility_task.AsyncResult(task_id)
     if task.state == 'PENDING':
-        response = {"status": task.state}
-    elif task.state == 'SUCCESS':
-        response = {"status": task.state, "result": task.result}
-    elif task.state == 'FAILURE':
-        response = {"status": task.state, "error": str(task.info)}
+        response = {
+            'state': task.state,
+            'current': 0,
+            'total': 1,
+            'status': 'Pending...'
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state,
+            'current': task.info.get('current', 0),
+            'total': task.info.get('total', 1),
+            'status': task.info.get('status', '')
+        }
+        if 'result' in task.info:
+            response['result'] = task.info['result']
     else:
-        response = {"status": task.state}
+        # something went wrong in the background job
+        response = {
+            'state': task.state,
+            'current': 1,
+            'total': 1,
+            'status': str(task.info),  # this is the exception raised
+        }
     return jsonify(response)
 
 
@@ -530,7 +538,9 @@ def contam_visibility():
                     params = {'ra': ra_deg, 'dec': dec_deg, 'aperture': form.inst.data, 'target_date': form.epoch.data, 'multi': False}
                     if companion is not None:
                         params['binComp'] = companion
-                    targframe, starcube, results = run_contam_visibility_task(params)
+                    # targframe, starcube, results = run_contam_visibility_task.apply_async(params)
+                    task_result = run_contam_visibility_task.apply_async(args=[params])
+                    targframe, starcube, results = task_result.get()
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
@@ -1061,4 +1071,4 @@ def secret_page():
 if __name__ == '__main__':
 
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port)
+    app_exoctk.run(host='0.0.0.0', port=port, debug=True)
