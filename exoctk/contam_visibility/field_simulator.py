@@ -48,7 +48,8 @@ from exoctk import utils
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1]},
              'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1]},
              'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1]},
-             'NRCA5_': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1]},
+             'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1]},
+             'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
@@ -178,32 +179,34 @@ def SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
-def trace_dict(teffs=None):
-    """
-    Load the trace data for all the given Teff values into a dictionary
-
-    Parameters
-    ----------
-    teffs: sequence
-        The teff values to fetch
-
-    Returns
-    -------
-    dict
-        The trace data for the given Teff values
-    """
-    teff_dict = {}
-
-    if teffs is None:
-        teffs = np.arange(2000, 12100, 100)
-
-    # Make sure they're ints
-    teffs = [int(teff) for teff in teffs]
-
-    for teff in teffs:
-        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR', verbose=False)
-
-    return teff_dict
+# def trace_dict(aperture, teffs=None):
+#     """
+#     Load the trace data for all the given Teff values into a dictionary
+#
+#     Parameters
+#     ----------
+#     aperture: str
+#         The aperture in use
+#     teffs: sequence
+#         The teff values to fetch
+#
+#     Returns
+#     -------
+#     dict
+#         The trace data for the given Teff values
+#     """
+#     teff_dict = {}
+#
+#     if teffs is None:
+#         teffs = np.arange(2000, 12100, 100)
+#
+#     # Make sure they're ints
+#     teffs = [int(teff) for teff in teffs]
+#
+#     for teff in teffs:
+#         teff_dict[teff] = get_trace(aperture, teff, 'STAR', verbose=False)
+#
+#     return teff_dict
 
 
 def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), verbose=False, pm_corr=True):
@@ -328,13 +331,17 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     # Add detector location to the table
     stars.add_columns(np.zeros((10, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci', 'xord0', 'yord0', 'xord1', 'yord1'])
 
-    # Get traces
-    traces = trace_dict(teffs=np.unique(stars['Teff']))
-    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o1')
-    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o2')
-    stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o3')
-    for star in stars:
-        star['trace_o1'], star['trace_o2'], star['trace_o3'] = traces[int(star['Teff'])]
+    # # Get traces
+    # traces = trace_dict(aperture, teffs=np.unique(stars['Teff']))
+    # n_traces = 3 if 'NIS' in aperture else 2
+    #
+    # stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o1')
+    # stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o2')
+    # stars.add_column([np.zeros((256, 2048))] * len(stars), name='trace_o3')
+    # for star in stars:
+    #     star_traces = traces[int(star['Teff'])]
+    #     for n, trace in enumerate(star_traces):
+    #         star[f'trace_o{n}'] = trace
 
     return stars
 
@@ -438,10 +445,11 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
         dec = newcoord.dec.degree
 
     # Get the trace
-    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type, verbose=False)
+    # trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type, verbose=False)
 
     # Add the row to the table
-    startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
+    # startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
+    startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist})
     startable.sort('distance')
 
     return startable
@@ -577,6 +585,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         star['xord1'] = star['xord0'] - x_sweet + aper['subarr_x'][0] + x_shift
         star['yord1'] = star['yord0'] - y_sweet + aper['subarr_y'][1] + y_shift
 
+        # Get the traces
+        str['traces'] = get_trace(aperture, star['Teff'], 'STAR', verbose=False)
+
     # Just sources in FOV (Should always have at least 1, the target)
     lft, rgt, top, bot = 700, 5100, 2050, 1400
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
@@ -588,17 +599,20 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     if verbose:
         print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
 
+    # TODO: This is where the code differentiates for NIRCam and NIRISS!!
+    # TODO: Add conditional statement and generalize the code to handle the 8 DHS spectra separately
+    # TODO: the same way the 3 SOSS orders are handled.
+
     # Make frame for the target and a frame for all the other stars
-    targframe_o1 = np.zeros((subY, subX))
-    targframe_o2 = np.zeros((subY, subX))
-    targframe_o3 = np.zeros((subY, subX))
+    n_traces = 1 if inst == 'NIRCam' else 3
+    targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
     # Get order 0
     order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
 
-    # SOSS trace masks
-    mask1, mask2, mask3 = SOSS_trace_mask(aperture.AperName)
+    # Get trace masks
+    trace_masks = NIRCam_DHS_trace_mask() if inst == 'NIRCam' else SOSS_trace_mask(aperture.AperName)
 
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
@@ -1227,7 +1241,7 @@ def get_trace(aperture, teff, stype, verbose=False):
         The 2D trace
     """
     # Get the path to the trace files
-    traces_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/{}/*.fits'.format('NIS_SUBSTRIP256' if 'NIS' in aperture else aperture))
+    traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}/*.fits')
 
     # Glob the file names
     trace_files = glob.glob(traces_path)
@@ -1257,7 +1271,10 @@ def get_trace(aperture, teff, stype, verbose=False):
 
         trace = [traceo1, traceo2, traceo3]
 
-    elif 'N'
+    elif 'NRCA5' in aperture:
+
+        traces1, traces2 = NIR
+
 
     else:
         trace = [fits.getdata(file)]
