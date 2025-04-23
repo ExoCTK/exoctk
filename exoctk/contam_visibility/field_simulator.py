@@ -48,8 +48,8 @@ from exoctk import utils
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1]},
              'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1]},
              'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1]},
-             'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1]},
-             'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1]},
+             'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1], 'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[0, 0, 4257, 4257]},
+             'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8], 'trim': [0, 1, 0, 1], 'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[0, 0, 4257, 4257]},
              'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
@@ -64,7 +64,7 @@ SOSS_TRACE_COEFFS = [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.939353
                     [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                     [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]
 
-def NIRCam_DHS_trace_mask(plot=False):
+def NIRCam_DHS_trace_mask(gap_value=0, ref_value=0, substripe_value=1, combined=False, plot=False):
     """
     Construct a trace mask for NIRCam DHS mode
 
@@ -81,9 +81,15 @@ def NIRCam_DHS_trace_mask(plot=False):
     # DHS has 2 field points configuration and each field points can be paired to 6 filter position
     # Depending on the field point/filter combination, the spectra will not fall on the same part of the 4 detectors nor have the same length
 
-    # Here, we treat the following case: field point 322W2 and filter F150W
-    length_start = 2196  # column number
-    length_stop = 3324  # column number
+    # Y positions for DHS5, 4, 3, 2, 7, 8, 9, 10
+    stripes = {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
+               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
+               'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},
+               'DHS2': {'x0': 2196, 'x1': 3324, 'y0': 2301, 'y1': 2307},
+               'DHS7': {'x0': 2196, 'x1': 3324, 'y0': 1933, 'y1': 1937},
+               'DHS8': {'x0': 2196, 'x1': 3324, 'y0': 1819, 'y1': 1823},
+               'DHS9': {'x0': 2196, 'x1': 3324, 'y0': 1691, 'y1': 1696},
+               'DHS10': {'x0': 2196, 'x1': 3324, 'y0': 1557, 'y1': 1563}}
 
     pixel_scale = 0.031  # arcsec/pixel (on sky)
     gap_fov = 5  # arcsec
@@ -92,12 +98,10 @@ def NIRCam_DHS_trace_mask(plot=False):
     full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap))
 
     # now let's populate the full array with the corresponding gap, reference or substripe locations
-    gap_value = 2
     full[det_size_full:det_size_full + gap, :] = gap_value
     full[:, det_size_full:det_size_full + gap] = gap_value
 
     # Add reference pixels
-    ref_value = 3
     full[starting:det_size_full, starting:ref_pixels] = ref_value
     full[det_size_full + gap:, starting:ref_pixels] = ref_value
     full[starting:det_size_full, det_size:det_size_full] = ref_value
@@ -116,24 +120,22 @@ def NIRCam_DHS_trace_mask(plot=False):
     full[det_size_full + gap + det_size:, starting:det_size_full] = ref_value
     full[det_size_full + gap + det_size:, det_size_full + gap:] = ref_value
 
-    # Substripe
-    substripe_value = 4
     # For the specific field point and filter specified above:
-    full[2665:2671, length_start:length_stop] = substripe_value  # sub5
-    full[2552:2558, length_start:length_stop] = substripe_value  # sub4
-    full[2432:2438, length_start:length_stop] = substripe_value  # sub3
-    full[2301:2307, length_start:length_stop] = substripe_value  # sub2
-    full[1933:1937, length_start:length_stop] = substripe_value  # sub7
-    full[1819:1823, length_start:length_stop] = substripe_value  # sub8
-    full[1691:1696, length_start:length_stop] = substripe_value  # sub9
-    full[1557:1563, length_start:length_stop] = substripe_value  # sub10
+    traces = []
+    for stripe in stripes.values():
+        if combined:
+            full[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] = substripe_value
+        else:
+            trace = copy(full)
+            trace[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] = substripe_value
+            traces.append(trace)
 
     if plot:
         plt = figure(width=1000, height=1000)
         plt.image([full], x=0, y=0, dw=full.shape[0], dh=full.shape[1])
         show(plt)
 
-    return full
+    return full if combined else traces
 
 
 def SOSS_trace_mask(aperture, radius=20):
@@ -1175,11 +1177,10 @@ def get_order0(aperture):
     """
     # Get file
     # TODO: Add order 0 files for other modes
-    if 'NIS' in aperture:
-        filename = 'NIS_order0.npy'
+    filename = 'NIS_order0.npy' if 'NIS' in aperture else 'NIS_order0.npy'
 
     # Get the path to the trace files
-    trace_path = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/order0/{}'.format(filename))
+    trace_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/{filename}')
 
     # Make frame
     trace = np.load(trace_path)
@@ -1204,6 +1205,9 @@ def get_trace(aperture, teff, stype, verbose=False):
     np.ndarray
         The 2D trace
     """
+    if 'NRCA5' in aperture and 'F322W2' in aperture:
+        aperture = 'NRCA5_GRISM256_F322W2'
+
     # Get the path to the trace files
     traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}/*.fits')
 
@@ -1233,15 +1237,14 @@ def get_trace(aperture, teff, stype, verbose=False):
             # Just mask trace area
             traceo1, traceo2, traceo2 = SOSS_trace_mask(aperture)
 
-        trace = [traceo1, traceo2, traceo3]
+        traces = [traceo1, traceo2, traceo3]
 
     elif 'NRCA5' in aperture:
 
-        traces1, traces2 = NIR
-
+        traces = NIRCam_DHS_trace_mask(plot=False)
 
     else:
-        trace = [fits.getdata(file)]
+        traces = [fits.getdata(file)]
 
     # # Expand to SUBSTRIP256 to FULL frame for NIS_SOSSFULL
     # if aperture == 'NIS_SOSSFULL':
@@ -1249,7 +1252,7 @@ def get_trace(aperture, teff, stype, verbose=False):
     #     full_trace[:, -257:] = trace
     #     trace = full_trace
 
-    return trace
+    return traces
 
 
 def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, wlims, badPAs=[], title=''):
