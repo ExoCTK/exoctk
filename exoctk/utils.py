@@ -18,6 +18,7 @@ import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 from svo_filters import svo
+from bokeh.plotting import figure, show
 
 try:
     from .throughputs import JWST_THROUGHPUTS
@@ -91,6 +92,69 @@ def blockPrint():
 def enablePrint():
     """Function to enable print statements"""
     sys.stdout = sys.__stdout__
+
+
+def add_array_at_position(A, B, x, y, centered=False, plot=False):
+    """
+    Adds array B to array A at position (x, y).
+    If centered=False, (x, y) is the lower-left corner of B in A.
+    If centered=True, (x, y) is the center of B in A.
+    Any part of B that goes outside the bounds of A is trimmed.
+
+    Parameters
+    ----------
+    A: sequence
+        The array being added to
+    B: sequence
+        The array being added to A
+    x: int
+        The x-index of A at which to add B
+    y: int
+        The y-index of A at which to add B
+    centered: bool
+        Add center of B at (x, y) rather than using lower left corner of B
+    plot: bool
+        Plot the final image for visual inspection
+
+    Returns
+    -------
+    array
+        The final array
+    """
+    A = A.copy()  # Avoid modifying original
+    hA, wA = A.shape
+    hB, wB = B.shape
+
+    if centered:
+        x -= wB // 2
+        y -= hB // 2
+
+    # Determine region of A that will be affected
+    x0 = max(x, 0)
+    y0 = max(y, 0)
+    x1 = min(x + wB, wA)
+    y1 = min(y + hB, hA)
+
+    # If B doesn't overlap A, return A unchanged
+    if x0 >= x1 or y0 >= y1:
+        return A
+
+    # Corresponding region in B
+    Bx0 = x0 - x
+    By0 = y0 - y
+    Bx1 = Bx0 + (x1 - x0)
+    By1 = By0 + (y1 - y0)
+
+    A[y0:y1, x0:x1] += B[By0:By1, Bx0:Bx1]
+
+    if plot:
+        p = figure(x_range=(0, A.shape[1]), y_range=(0, A.shape[0]),
+                   tools="", toolbar_location=None, match_aspect=True)
+        p.image(image=[A], x=0, y=0, dw=A.shape[1], dh=A.shape[0], palette="Greys256")
+        show(p)
+
+    return A
+
 
 
 def build_target_url(target_name):
