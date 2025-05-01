@@ -39,7 +39,7 @@ import numpy as np
 import pysiaf
 import regions
 
-from ..utils import get_env_variables, check_for_data, add_array_at_position
+from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 from exoctk import utils
@@ -82,7 +82,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0, 1.5, 1.5, 1.5],
+                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                          [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -91,7 +91,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0, 1.5, 1.5, 1.5],
+                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                                 'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                            [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -100,31 +100,31 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0, 1.5, 1.5, 1.5],
+                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                                  'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
              'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
-                                            # 'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[0, 0, 4257, 4257], 'trim': [0, 1, 0, 1],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                            'c0x0': 1330, 'c0y0': 1869, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
-                                            'lft': 0, 'rgt': 4257, 'top': 4257, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                            'xord0to1': -2892, 'yord0to1': 68, 'empirical_scale': [0, 1.5, 1.5, 1.5],
-                                            'cutoffs': [3324]*8, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
+                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
+                                            'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                             'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
                                                        [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
+                                                       [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
                                                        [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
                                                        [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
              'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
-                                           # 'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[0, 0, 4257, 4257], 'trim': [0, 1, 0, 1],
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                           'c0x0': 1800, 'c0y0': 2127, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
-                                           'lft': 0, 'rgt': 4257, 'top': 4257, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                           'xord0to1': -2892, 'yord0to1': 68, 'empirical_scale': [0, 1.5, 1.5, 1.5],
-                                           'cutoffs': [3324]*8, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
+                                           'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                           'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
+                                           'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                           'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                            'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
                                                       [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
+                                                      [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
                                                       [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
                                                       [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
              'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
@@ -238,10 +238,10 @@ def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1,
             plt.line([stripe['x0'], stripe['x1']], [(stripe['y0']+stripe['y1'])/2.]*2)
         show(plt)
 
-    return full if combined else traces
+    return full[1064:3192, :] if combined else [trace[1064:3192] for trace in traces]
 
 
-def SOSS_trace_mask(aperture, radius=20):
+def NIRISS_SOSS_trace_mask(aperture, radius=20):
     """
     Construct a trace mask for SOSS data
 
@@ -514,7 +514,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt=0, plot=False, verbose=False, old=False):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -528,10 +528,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
         The aperture object for the given mode
     data: sequence (optional)
         The data to use instead of making a simulation (to check accuracy or ID sources)
-    x_sweet: int
-        The x-axis location of the target on the detector
-    y_sweet: int
-        The y-axis location of the target on the detector
     plot: bool
         Plot the full frame and subarray bounds with all traces
     verbose: bool
@@ -654,127 +650,35 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
     order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
 
     # Get trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if inst['inst'] == 'NIRCam' else SOSS_trace_mask(aperture.AperName)
+    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if inst['inst'] == 'NIRCam' else NIRISS_SOSS_trace_mask(aperture.AperName)
 
     log_checkpoint(f'Fetched arrays, masks, and traces...')
 
-    if old:
-        # Iterate over all stars in the FOV and add their scaled traces to the correct frame
-        for idx, star in enumerate(FOVstars):
+    # Iterate over all stars in the FOV and add their scaled traces to the correct frame
+    for idx, star in enumerate(FOVstars):
 
-            # Scale the order 0 image and get dims
-            scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
-            dim0y, dim0x = scale0.shape
-            dim0y0 = int(dim0y / 2)
-            dim0y1 = dim0y - dim0y0
-            dim0x0 = int(dim0x / 2)
-            dim0x1 = dim0x - dim0x0
+        # Scale the traces for this source
+        traces = [trace * star['fluxscale'] * aper['empirical_scale'][n + 1] for n, trace in enumerate(star['traces'])]
 
-            # Locations of the order 0 pixels on the subarray
-            f0x0, f1x0 = int(max(aper['subarr_x'][0], star['xord0'] - dim0x0)), int(min(aper['subarr_x'][1], star['xord0'] + dim0x1))
-            f0y0, f1y0 = int(max(aper['subarr_y'][1], star['yord0'] - dim0y0)), int(min(aper['subarr_y'][2], star['yord0'] + dim0y1))
+        # Add each target trace to it's own frame
+        if idx == 0:
 
-            if 0 < f1x0 - f0x0 <= dim0x and 0 < f1y0 - f0y0 <= dim0y:
-
-                # How many pixels of the order 0 image fall on the subarray
-                t0x0 = dim0x - (f1x0 - f0x0) if f0x0 == aper['subarr_x'][0] else 0
-                t1x0 = f1x0 - f0x0 if f1x0 == aper['subarr_x'][1] else dim0x
-                t0y0 = dim0y - (f1y0 - f0y0) if f0y0 == aper['subarr_y'][0] else 0
-                t1y0 = f1y0 - f0y0 if f1y0 == aper['subarr_y'][2] else dim0y
-
-                # if verbose:
-                #     print("{} x {} pixels of star {} order 0 fall on {}".format(t1y0 - t0y0, t1x0 - t0x0, idx, aperture.AperName))
-
-                # Target order 0 is never on the subarray so add all order 0s to the starframe
-                starframe[f0y0 - aper['subarr_y'][1]:f1y0 - aper['subarr_y'][1], f0x0 - aper['subarr_x'][1]:f1x0 - aper['subarr_x'][0]] += scale0[t0y0:t1y0, t0x0:t1x0]
-
-            # Higher Orders ============================================================================
-
-            # Get the list of traces for this source
-            traces = star['traces']
             for n, trace in enumerate(traces):
 
-                # Orient trace if need be
-                if 'NIS' in aperture.AperName:
-                    trace = np.rot90(trace.T[:, ::-1] * 1.5, k=1) # Scaling factor based on observations
+                # Assumes the lower lft corner of the trace is in the lower left corner of the 'targframe' array
+                targframes[n] = add_array_at_position(targframes[n], trace, 0, 0)
 
-                    # Pad or trim SUBSTRIP256 simulation for SUBSTRIP96 or FULL frame
-                    if aperture.AperName == 'NIS_SOSSFULL':
-                        trace = np.pad(trace, ((1792, 0), (0, 0)), 'constant')
-                    if aperture.AperName == 'NIS_SUBSTRIP96':
-                        trace = trace[:96, :]
+        # Add all orders to the same frame (if it is a STAR)
+        else:
 
-                # Trim huge NIRCam detector
-                # if 'NRCA5' in aperture.AperName:
-                #     trace = trace[2125:-2125, :]
+            # Scale the order 0 image and add it to the starframe
+            scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
+            starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
 
-                # Scale the traces and get dims
-                traces[n] = trace * star['fluxscale'] * aper['empirical_scale'][n + 1]
-                dimy, dimx = trace.shape
-
-            # Location of full trace footprint
-            fpx0 = int(star['xord1'])
-            fpx1 = int(fpx0 + dimx)
-            fpy0 = int(star['yord1'])
-            fpy1 = int(fpy0 + dimy)
-
-            # Locations of the trace pixels on the subarray
-            f0x, f1x = max(aper['subarr_x'][0], fpx0), min(aper['subarr_x'][1], fpx1)
-            f0y, f1y = max(aper['subarr_y'][1], fpy0), min(aper['subarr_y'][2], fpy1)
-
-            # print(idx, f0x, f1x, f0y, f1y)
-            if 0 < f1x - f0x <= dimx and 0 < f1y - f0y <= dimy:
-
-                # How many pixels of the trace image fall on the subarray
-                t0x = dimx - (f1x - f0x) if f0x == aper['subarr_x'][0] else 0
-                t1x = f1x - f0x if f1x == aper['subarr_x'][1] else dimx
-                t0y = dimy - (f1y - f0y) if f0y == aper['subarr_y'][0] else 0
-                t1y = f1y - f0y if f1y == aper['subarr_y'][2] else dimy
-
-                if verbose:
-                    print("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
-
-                # Add each order to it's own frame
-                if idx == 0:
-
-                    for n, trace in enumerate(traces):
-                        targframes[n][f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1],
-                        f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace[t0y:t1y, t0x:t1x]
-
-                # Add all orders to the same frame (if it is a STAR)
-                else:
-
-                    # NOTE: Take this conditional out if you want to see galaxy traces!
-                    if star['type'] == 'STAR':
-                        for n, trace in enumerate(traces):
-                            starframe[f0y - aper['subarr_y'][1]:f1y - aper['subarr_y'][1], f0x - aper['subarr_x'][1]:f1x - aper['subarr_x'][0]] += trace[t0y:t1y, t0x:t1x]
-
-    else:
-        # Iterate over all stars in the FOV and add their scaled traces to the correct frame
-        for idx, star in enumerate(FOVstars):
-
-            # Scale the traces for this source
-            traces = [trace * star['fluxscale'] * aper['empirical_scale'][n + 1] for n, trace in enumerate(star['traces'])]
-
-            # Add each order to it's own frame
-            if idx == 0:
-
-                for n, trace in enumerate(traces):
-
-                    # Assumes the lower lft corner of the trace is in the lower left corner of the 'targframe' array
-                    targframes[n] = add_array_at_position(targframes[n], trace, 0, 0)
-
-            # Add all orders to the same frame (if it is a STAR)
-            else:
-
-                # Scale the order 0 image and add it to the starframe
-                scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
-                starframe = add_array_at_position(starframe, scale0, int(star['xord0']), int(star['yord0']))
-
-                # NOTE: Take this conditional out if you want to see galaxy traces!
-                if star['type'] == 'STAR':
-                    for trace in traces:
-                        starframe = add_array_at_position(starframe, trace, int(star['xord1']) - int(stars['xord1'][0]), int(star['yord1']) - int(stars['yord1'][0]))
+            # NOTE: Take this conditional out if you want to see galaxy traces!
+            if star['type'] == 'STAR':
+                for trace in traces:
+                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0]), int(star['yord1'] - stars['yord1'][0]))
 
     log_checkpoint(f'Added {len(FOVstars)} sources to the simulated frames.')
 
@@ -794,39 +698,30 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
 
         # Make the plot
         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
-        tips = [('Name', '@name'), ('Type', '@type'), ('RA', '@ra'), ('DEC', '@dec'), ('order', '@order{int}'), ('scale', '@fluxscale'), ('Teff [K]', '@Teff_str'), ('distance [mas]', '@distance')]
-        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=900 if inst['inst'] == 'NIRCam' else max(subY, 120), match_aspect=True, tools=tools)
+        tips = [('Name', '@name'), ('Type', '@type'), ('RA', '@ra'), ('DEC', '@dec'), ('trace', '@trace'),
+                ('scale', '@fluxscale'), ('Teff [K]', '@Teff_str'), ('distance [mas]', '@distance')]
+        fig = figure(title='Generated FOV from Gaia EDR3', width=900, height=450 if inst['inst'] == 'NIRCam' else max(subY, 120), match_aspect=True, tools=tools)
         fig.title = '({}, {}) at PA={} in {}'.format(stars[0]['ra'], stars[0]['dec'], V3PA, aperture.AperName)
 
         # Plot config
         scale = 'log'
         color_map = 'Viridis256'
 
-        # Plot the obs data if possible
+        # Plot the obs data if possible...
         if data is not None:
-            imgsource = ColumnDataSource(data={'data': [data]})
-            vmax = np.nanmax(data)
-            if scale == 'log':
-                mapper = LogColorMapper(palette=color_map, low=1, high=vmax)
-            else:
-                mapper = LinearColorMapper(palette=color_map, low=0, high=vmax)
-            data[data < 0] = 0
-            data = rotate(data, tilt)
-            fig.image(image='data', x=aper['subarr_x'][0], y=aper['subarr_y'][1], dh=data.shape[0], dw=data.shape[1], color_mapper=mapper, source=imgsource)
+            simframe = data
 
-        # Plot the simulated frame
+        # Replace negatives
+        simframe[simframe < 0] = 0
+
+        # Rotate for PWCPOS
+        simframe = rotate(simframe, tilt)
+
+        # Plot the image data or simulation
         vmax = np.nanmax(simframe)
-        if scale == 'log':
-            mapper = LogColorMapper(palette=color_map, low=1, high=vmax)
-        else:
-            mapper = LinearColorMapper(palette=color_map, low=0, high=vmax)
-
-        # Only plot the simulation if no data is available to plot
-        if data is None:
-            imgsource = ColumnDataSource(data={'sim': [simframe]})
-            fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, color_mapper=mapper, source=imgsource, name="image")
-
-        mapper = linear_cmap(field_name='Teff', palette=Spectral6, low=np.nanmin(FOVstars['Teff']), high=np.nanmax(FOVstars['Teff']))
+        mapper = LogColorMapper(palette=color_map, low=1, high=vmax) if scale == 'log' else LinearColorMapper(palette=color_map, low=0, high=vmax)
+        imgsource = ColumnDataSource(data={'sim': [simframe]})
+        fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=imgsource, name="image", color_mapper=mapper)
 
         # Plot the detector gaps and reference pixels for visual inspection
         refframe = NIRCam_DHS_trace_mask(aperture.AperName, substripe_value=0, ref_value=1, gap_value=1, combined=True) if 'NRCA5' in aperture.AperName else np.zeros((subY, subX))
@@ -838,7 +733,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
         source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
                                          'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
                                          'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
-                                         'order': [0] * len(FOVstars_only)})
+                                         'trace': ['Order 0'] * len(FOVstars_only)})
         order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
 
         # Plot order 0 locations of galaxies
@@ -850,11 +745,11 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
                       'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
                       'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
                       'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
-                      'order': [0] * len(FOVstars_gal)})
+                      'trace': ['Order 0'] * len(FOVstars_gal)})
             order0_gal = fig.scatter('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
                                       source=source0_gal)
 
-        # Plot the sweet spot
+        # Plot the target order 0
         fig.scatter([stars[0]['xord0']], [stars[0]['yord0']], size=8, line_width=3, fill_color=None, line_color='black')
 
         # Get the nominal x and y values for the trace centroids
@@ -876,7 +771,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
                              'fluxscale': [star['fluxscale']] * n_pts,
                              'Teff_str': [star['Teff_str']] * n_pts,
                              'distance': [star['distance']] * n_pts,
-                             'order': [trx] * n_pts,
+                             'trace': [aper['trace_names'][trx]] * n_pts,
                              'url': [star['url']] * n_pts}
 
                 # Add the offset traces for this star
@@ -911,7 +806,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, tilt
 
         # Make plot
         rfig = figure(title='Target Contamination', width=900, height=200, match_aspect=True, tools=tools, x_range=fig.x_range)
-        colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime']
+        colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
         trace_names = inst['trace_names']
         for n in np.arange(n_traces):
             rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=rsource)
@@ -1289,24 +1184,25 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
         if stype == 'GALAXY':
 
             # Just mask trace area
-            traces = SOSS_trace_mask(aperture)
+            traces = NIRISS_SOSS_trace_mask(aperture)
 
     elif 'NRCA5' in aperture:
 
+        # Get the trace and replace the NaN values
         trace = fits.getdata(file)[0]
+        trace = replace_NaNs(trace)
 
         # Put the trace in each of the DHS trace positions
         traces = []
         for stripe in DHS_STRIPES[aperture].values():
-            center = ((stripe['y1'] + stripe['y0']) / 2., (stripe['x1'] + stripe['x0']) / 2.)
-            dhs_trace = add_centered(trace, np.zeros((4257, 4257)), center)
-            dhs_trace[dhs_trace < 0.75] = 0.
+            y, x = int((stripe['y1'] + stripe['y0']) / 2.), int((stripe['x1'] + stripe['x0']) / 2.)
+            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y, centered=True)
             traces.append(dhs_trace)
 
         if stype == 'GALAXY':
             traces = NIRCam_DHS_trace_mask(aperture, plot=False)
 
-        traces = [trace[:, APERTURES[aperture]['subarr_y'][1]:APERTURES[aperture]['subarr_y'][2]] for trace in traces]
+        traces = [trace[APERTURES[aperture]['subarr_y'][1]:APERTURES[aperture]['subarr_y'][2], :] for trace in traces]
 
     else:
         traces = [fits.getdata(file)]
@@ -1314,7 +1210,7 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
     if plot:
         f = figure(width=900, height=450)
         final = np.sum(traces, axis=0)
-        f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[0], dh=final.shape[1])
+        f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0])
         show(f)
 
     return traces
