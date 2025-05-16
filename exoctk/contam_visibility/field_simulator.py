@@ -7,7 +7,7 @@ A module to calculate the contamination and visibility of a target on a JWST det
 from copy import copy
 from functools import partial
 import glob
-from multiprocessing import pool, cpu_count
+from multiprocessing import pool, cpu_count, set_start_method
 import os
 import re
 import json
@@ -43,6 +43,8 @@ from ..utils import get_env_variables, check_for_data, add_array_at_position, re
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 from exoctk import utils
+
+set_start_method("spawn")
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -514,7 +516,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False, logging=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -538,9 +540,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     targframe, starframe
         The frame containing the target trace and a frame containing all contaminating star traces
     """
-    open('contam_tool.log', 'w').close()
-    start_time = datetime.datetime.now()
-    log_checkpoint(f'Logging in {log_file}...')
+    if logging:
+        open('contam_tool.log', 'w').close()
+        start_time = datetime.datetime.now()
+        log_checkpoint(f'Logging in {log_file}...')
 
     if verbose:
         print("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
@@ -567,7 +570,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         aperture.minrow, aperture.maxrow = rows.min(), rows.max()
         aperture.mincol, aperture.maxcol = cols.min(), cols.max()
 
-    log_checkpoint('Loaded aperture info from pySIAF.')
+    if logging:
+        log_checkpoint('Loaded aperture info from pySIAF.')
 
     # Get APA from V3PA
     APA = V3PA + aperture.V3IdlYAngle
@@ -622,7 +626,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         star['xord1'] = star['xord0'] + aper['xord0to1'] + x_shift
         star['yord1'] = star['yord0'] + aper['yord0to1'] + y_shift
 
-    log_checkpoint(f'Calculated target and {len(stars)-1} source sci coordinates.')
+    if logging:
+        log_checkpoint(f'Calculated target and {len(stars)-1} source sci coordinates.')
 
     # Just sources in FOV (Should always have at least 1, the target)
     lft, rgt, top, bot = aper['lft'], aper['rgt'], aper['top'], aper['bot']
@@ -636,7 +641,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['Teff_str'] = ['---' if t == 'GALAXY' else str(int(i)) for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
 
-    log_checkpoint(f'Found {len(FOVstars)} sources in the FOV.')
+    if logging:
+        log_checkpoint(f'Found {len(FOVstars)} sources in the FOV.')
 
     if verbose:
         print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
@@ -650,9 +656,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
 
     # Get trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if inst['inst'] == 'NIRCam' else NIRISS_SOSS_trace_mask(aperture.AperName)
+    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
 
-    log_checkpoint(f'Fetched arrays, masks, and traces...')
+    if logging:
+        log_checkpoint(f'Fetched arrays, masks, and traces...')
 
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
@@ -680,7 +687,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
                 for trace in traces:
                     starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0]), int(star['yord1'] - stars['yord1'][0]))
 
-    log_checkpoint(f'Added {len(FOVstars)} sources to the simulated frames.')
+    if logging:
+        log_checkpoint(f'Added {len(FOVstars)} sources to the simulated frames.')
 
     # Adding frames together
     simframes = [tframe + starframe for tframe in targframes]
@@ -692,7 +700,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
               'contaminants': starframe, 'sources': FOVstars, 'contam_levels': pctlines}
 
-    log_checkpoint('Compiled final results.')
+    if logging:
+        log_checkpoint('Compiled final results.')
 
     if plot:
 
@@ -823,15 +832,17 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         # Plot grid
         gp = gridplot([[fig], [rfig]])
 
-        log_checkpoint(f'Finished making plot of size {len(json.dumps(json_item(gp))) / 1e6:.2f}MB')
-        log_checkpoint(f'Total calculation time: {(datetime.datetime.now() - start_time).total_seconds():.2f}s')
+        if logging:
+            log_checkpoint(f'Finished making plot of size {len(json.dumps(json_item(gp))) / 1e6:.2f}MB')
+            log_checkpoint(f'Total calculation time: {(datetime.datetime.now() - start_time).total_seconds():.2f}s')
 
         return result, gp
 
     return result
 
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
+                     multi=True, verbose=True):
 
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -849,6 +860,8 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         The target epoch year of the observation, e.g. '2025'
     n_jobs: int
         Number of cores to use (-1 = All)
+    interpolate: bool
+        Skip every other PA and interpolate to speed up calculation
 
     Returns
     -------
@@ -865,6 +878,11 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     ra, dec = 91.872242, -25.594934
     targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
+    # Initialize logging
+    open('contam_tool.log', 'w').close()
+    start_time = datetime.datetime.now()
+    log_checkpoint(f'Logging in {log_file}...')
+
     # Check for contam tool data
     check_for_data('exoctk_contam')
 
@@ -903,6 +921,8 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     if n_jobs == -1 or n_jobs > max_cores:
         n_jobs = max_cores
 
+    log_checkpoint(f'Found {len(stars)} sources in the neighborhood')
+
     # Get full list from ephemeris
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
     goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
@@ -926,6 +946,12 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
     goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
 
+    # Try to speed it up by doing every other visible PA and then interpolating
+    # if interpolate:
+
+
+    log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
+
     # Flatten list and check against 360 angles to get all bad PAs
     # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
@@ -943,7 +969,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # And by multiprocessing end them?
     if multi:
         pl = pool.ThreadPool(n_jobs)
-        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
+        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False, logging=False)
         results = pl.map(func, goodPA_list)
         pl.close()
         pl.join()
@@ -951,17 +977,16 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     else:
         results = []
         for pa in goodPA_list:
-            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
+            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False, logging=False)
             results.append(result)
 
+    log_checkpoint('Finished all calc_v3pa calculations')
+
     # We only need one target frame frames
-    targframe_o1 = np.asarray(results[0]['target_o1'])
-    targframe_o2 = np.asarray(results[0]['target_o2'])
-    targframe_o3 = np.asarray(results[0]['target_o3'])
-    targframe = [targframe_o1, targframe_o2, targframe_o3]
+    targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
 
     # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
+    starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
 
     # Make the contamination plot
     for result in results:
@@ -970,11 +995,13 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     if verbose:
         print('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
+    log_checkpoint('Bundled up all the results.')
+
     # Make contam plot
     if plot:
         contam_slider_plot(results, plot=plot)
 
-    return targframe, starcube, results
+    return targframes, starcube, results
 
 
 def contam_slider_plot(contam_results, threshold=0.05, plot=False):
