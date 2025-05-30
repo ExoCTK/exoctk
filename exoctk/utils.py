@@ -97,23 +97,23 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 
-def add_array_at_position(A, B, x, y, centered=False, plot=False):
+def add_array_at_position(Arr, B, x, y, centered=False, plot=False):
     """
-    Adds array B to array A at position (x, y).
-    If centered=False, (x, y) is the lower-left corner of B in A.
-    If centered=True, (x, y) is the center of B in A.
-    Any part of B that goes outside the bounds of A is trimmed.
+    Adds array B to array Arr at position (x, y).
+    If centered=False, (x, y) is the lower-left corner of B in Arr.
+    If centered=True, (x, y) is the center of B in Arr.
+    Any part of B that goes outside the bounds of Arr is trimmed.
 
     Parameters
     ----------
-    A: sequence
+    Arr: sequence
         The array being added to
     B: sequence
-        The array being added to A
+        The array being added to Arr
     x: int
-        The x-index of A at which to add B
+        The x-index of Arr at which to add B
     y: int
-        The y-index of A at which to add B
+        The y-index of Arr at which to add B
     centered: bool
         Add center of B at (x, y) rather than using lower left corner of B
     plot: bool
@@ -124,7 +124,7 @@ def add_array_at_position(A, B, x, y, centered=False, plot=False):
     array
         The final array
     """
-    A = A.copy()  # Avoid modifying original
+    A = Arr.copy()  # Avoid modifying original
     hA, wA = A.shape
     hB, wB = B.shape
 

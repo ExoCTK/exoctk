@@ -44,7 +44,10 @@ from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
 from exoctk import utils
 
-set_start_method("spawn")
+try:
+    set_start_method('spawn')
+except RuntimeError:
+    pass
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -789,8 +792,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
                     data_dict[f'y{n}'] = y_ranges[n] + star['yord1']
 
                 source = ColumnDataSource(data=data_dict)
-
-                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=source, color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
+                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
                 lines.append(line)
 
         # Add order 0 hover and taptool
@@ -818,10 +820,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
         trace_names = inst['trace_names']
         for n in np.arange(n_traces):
-            rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=rsource)
+            rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=copy(rsource))
             glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
-            rfig.add_glyph(rsource, glyph)
-        rfig.y_range = Range1d(0, 1)#min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
+            rfig.add_glyph(copy(rsource), glyph)
+        rfig.y_range = Range1d(0, 1) #min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
 
@@ -1335,6 +1337,5 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
 
 
 if __name__ == '__main__':
-
     ra, dec = "04 25 29.0162", "-30 36 01.603"  # Wasp 79
     field_simulation(ra, dec, 'NIS_SUBSTRIP256')
