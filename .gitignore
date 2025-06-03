@@ -6,6 +6,9 @@
 *.so
 *.x
 
+# tmp files for LDC
+*.ecsv
+
 # Directories
 __pycache__
 exoctk/__pycache__
