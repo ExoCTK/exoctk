@@ -807,24 +807,6 @@ def limb_darkening():
     return render_template('limb_darkening.html', form=form)
 
 
-def table_to_csv_response(table, filename='table.csv'):
-    # 1. Write table as CSV string
-    str_buf = io.StringIO()
-    table.write(str_buf, format='csv', overwrite=True)
-
-    # 2. Convert to BytesIO for Flask
-    byte_buf = io.BytesIO(str_buf.getvalue().encode('utf-8'))
-    byte_buf.seek(0)
-
-    # 3. Send as downloadable file
-    return send_file(
-        byte_buf,
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=filename
-    )
-
-
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
 def limb_darkening_error():
     """The limb darkening error page
