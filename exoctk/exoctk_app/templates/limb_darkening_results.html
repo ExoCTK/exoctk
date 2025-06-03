@@ -100,10 +100,11 @@
 
             <br>
             <h4>Coefficients</h4>
-            <form id='exportform' method='post' action='download' >
-                <div style='display:none;'><input name='file_as_string' type='text' value="{{file_as_string|safe}}"></div>
-                <input class="btn" type='submit' value='Download Coefficient Tables' />
-            </form>
+            <div>
+                <form action="/ldc_result" method="post">
+                    <button type="submit">Download Coefficient Tables</button>
+                </form>
+            </div>
             {% for tab in table %}
                 {{ tab|safe }}
             {% endfor %}
@@ -111,10 +112,11 @@
             {% if spam_table != '' %}
                 <br>
                 <h4>SPAM Coefficients</h4>
-                <form id='exportform' method='post' action='download' >
-                    <div style='display:none;'><input name='file_as_string' type='text' value="{{spam_file_as_string|safe}}"></div>
-                    <input class="btn" type='submit' value='Download SPAM Coefficient Tables' />
-                </form>
+                <div>
+                    <form action="/spam_result" method="post">
+                        <button type="submit">Download SPAM Coefficient Tables</button>
+                    </form>
+                </div>
                 {% for tab in spam_table %}
                     {{ tab|safe }}
                 {% endfor %}
