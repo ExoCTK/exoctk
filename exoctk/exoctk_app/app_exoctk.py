@@ -786,7 +786,7 @@ def limb_darkening():
         os.makedirs(tmp_dir, exist_ok=True)
 
         # define a filepath (you can use UUIDs to make unique)
-        ldc_filename = 'ldc_result.ecsv'
+        ldc_filename = 'ldc_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
         ldc_filepath = os.path.join(tmp_dir, ldc_filename)
         print_table.write(ldc_filepath, format='ascii.ecsv', overwrite=True)
         session['ldc_result_path'] = ldc_filepath
@@ -795,7 +795,7 @@ def limb_darkening():
         if profile_spam_tables == '':
             pass
         else:
-            spam_filename = 'ldc_result.ecsv'
+            spam_filename = 'spam_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
             spam_filepath = os.path.join(tmp_dir, spam_filename)
             print_spam_table.write(spam_filepath, format='ascii.ecsv', overwrite=True)
             session['spam_result_path'] = spam_filepath
