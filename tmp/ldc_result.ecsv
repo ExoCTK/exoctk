@@ -1,0 +1,45 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: Teff, datatype: float64}
+# - {name: logg, datatype: float64}
+# - {name: FeH, datatype: float64}
+# - {name: profile, datatype: string}
+# - {name: filter, datatype: string}
+# - {name: wave_min, datatype: float16}
+# - {name: wave_eff, datatype: float16}
+# - {name: wave_max, datatype: float16}
+# - {name: c1, datatype: float64}
+# - {name: c2, datatype: float64}
+# schema: astropy-2.0
+Teff logg FeH profile filter wave_min wave_eff wave_max c1 c2
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 0.6846 0.7554 0.826 0.277 0.212
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 0.8354 0.9062 0.9766 0.223 0.204
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 0.9863 1.057 1.128 0.204 0.188
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.137 1.207 1.278 0.179 0.183
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.287 1.358 1.429 0.106 0.251
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.438 1.509 1.579 0.084 0.238
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.589 1.659 1.73 0.063 0.224
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.739 1.811 1.881 0.056 0.22
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 1.891 1.961 2.031 0.054 0.219
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.041 2.111 2.182 0.05 0.216
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.191 2.262 2.334 0.098 0.138
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.342 2.414 2.484 0.043 0.212
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.494 2.564 2.635 0.037 0.208
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.645 2.715 2.785 0.086 0.129
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.795 2.865 2.936 0.089 0.122
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 2.945 3.016 3.086 0.087 0.119
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.096 3.166 3.236 0.091 0.11
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.246 3.316 3.389 0.085 0.104
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.396 3.469 3.54 0.089 0.101
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.549 3.62 3.69 0.088 0.095
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.7 3.77 3.84 0.084 0.092
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 3.85 3.92 3.99 0.087 0.086
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.0 4.07 4.14 0.085 0.082
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.152 4.223 4.293 0.087 0.076
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.3 4.37 4.44 0.09 0.072
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.453 4.523 4.594 0.091 0.068
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.6 4.67 4.746 0.081 0.065
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.754 4.824 4.895 0.089 0.062
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 4.906 4.977 5.047 0.089 0.057
+6500.0 4.5 0.0 quadratic NIRSpec.CLEAR.PRISM.S200A1 5.055 5.125 5.195 0.084 0.053

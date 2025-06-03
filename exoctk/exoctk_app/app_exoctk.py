@@ -3,6 +3,7 @@ import io
 import json
 import os
 from pkg_resources import resource_filename
+import tempfile
 
 from astropy.coordinates import SkyCoord
 import astropy.table as at
@@ -11,7 +12,7 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file
+from flask import Flask, make_response, render_template, Response, request, send_file, session
 import form_validation as fv
 import numpy as np
 
@@ -718,7 +719,6 @@ def limb_darkening():
         # Store the tables as a string
         keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
         print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
-        file_as_string = '\n'.join(print_table.pformat(max_lines=-1, max_width=-1))
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
@@ -753,13 +753,11 @@ def limb_darkening():
 
         # Make a table for each profile with a row for each wavelength bin
         profile_spam_tables = ''
-        spam_file_as_string = ''
         if ld.spam_results is not None:
 
             # Store SPAM tables as string
             keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'c2']
             print_spam_table = ld.spam_results[[col for col in keep_cols if col in ld.spam_results.colnames]]
-            spam_file_as_string = '\n'.join(print_spam_table.pformat(max_lines=-1, max_width=-1))
             profile_spam_tables = []
             for profile in list(np.unique(ld.spam_results['profile'])):
 
@@ -783,14 +781,48 @@ def limb_darkening():
                 html_table = header + html_table
                 profile_spam_tables.append(html_table)
 
-        return render_template('limb_darkening_results.html', form=form,
-                               table=profile_tables, spam_table=profile_spam_tables,
-                               script=script, plot=div, spam_file_as_string=repr(spam_file_as_string),
-                               file_as_string=repr(file_as_string),
-                               filt_plot=filt_plot, filt_script=filt_script,
-                               js=js_resources, css=css_resources)
+        # make sure tmp folder exists
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        # define a filepath (you can use UUIDs to make unique)
+        ldc_filename = 'ldc_result.ecsv'
+        ldc_filepath = os.path.join(tmp_dir, ldc_filename)
+        print_table.write(ldc_filepath, format='ascii.ecsv', overwrite=True)
+        session['ldc_result_path'] = ldc_filepath
+
+        # Store the tables in session (as ECSV strings)
+        if profile_spam_tables == '':
+            pass
+        else:
+            spam_filename = 'ldc_result.ecsv'
+            spam_filepath = os.path.join(tmp_dir, spam_filename)
+            print_spam_table.write(spam_filepath, format='ascii.ecsv', overwrite=True)
+            session['spam_result_path'] = spam_filepath
+
+        return render_template('limb_darkening_results.html', form=form, table=profile_tables,
+                               spam_table=profile_spam_tables, script=script, plot=div, filt_plot=filt_plot,
+                               filt_script=filt_script, js=js_resources, css=css_resources)
 
     return render_template('limb_darkening.html', form=form)
+
+
+def table_to_csv_response(table, filename='table.csv'):
+    # 1. Write table as CSV string
+    str_buf = io.StringIO()
+    table.write(str_buf, format='csv', overwrite=True)
+
+    # 2. Convert to BytesIO for Flask
+    byte_buf = io.BytesIO(str_buf.getvalue().encode('utf-8'))
+    byte_buf.seek(0)
+
+    # 3. Send as downloadable file
+    return send_file(
+        byte_buf,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
@@ -944,6 +976,24 @@ def save_generic_result():
 
     table_string = flask.request.form['data_file']
     return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=generic.dat"})
+
+
+@app_exoctk.route('/ldc_result', methods=['POST'])
+def save_ldc_result():
+    ldc_path = session.get('ldc_result_path')
+    if not ldc_path or not os.path.exists(ldc_path):
+        return "File not found", 404
+
+    return send_file(ldc_path, as_attachment=True, download_name='ldc_result.csv')
+
+
+@app_exoctk.route('/spam_result', methods=['POST'])
+def save_spam_result():
+    spam_path = session.get('ldc_result_path')
+    if not spam_path or not os.path.exists(spam_path):
+        return "File not found", 404
+
+    return send_file(spam_path, as_attachment=True, download_name='spam_result.csv')
 
 
 @app_exoctk.route('/groups_integrations_download')
