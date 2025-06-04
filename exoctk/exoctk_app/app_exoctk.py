@@ -92,25 +92,6 @@ def check_auth(username, password):
     return username == 'admin' and password == 'secret'
 
 
-@app_exoctk.route('/download', methods=['POST'])
-def exoctk_savefile():
-    """Save results to file
-
-    Returns
-    -------
-    ``flask.make_response`` obj
-        Returns response including results in txt form.
-    """
-
-    file_as_string = eval(request.form['file_as_string'])
-
-    response = make_response(file_as_string)
-    response.headers["Content-type"] = 'text; charset=utf-8'
-    response.headers["Content-Disposition"] = "attachment; filename=ExoCTK_results.txt"
-
-    return response
-
-
 @app_exoctk.route('/fortney', methods=['GET', 'POST'])
 def fortney():
     """
