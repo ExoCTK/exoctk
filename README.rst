@@ -80,7 +80,7 @@ Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``
   conda env create -f environment-<PYTHON_VERSION>.yml
 
 
-where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.8.yml``)
+where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.11.yml``)
 
 Lastly, one can activate the newly-created environment with:
 
@@ -88,7 +88,7 @@ Lastly, one can activate the newly-created environment with:
 
   conda activate exoctk-<PYTHON_VERSION>
 
-where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.8``)
+where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.11``)
 
 
 Package Installation
