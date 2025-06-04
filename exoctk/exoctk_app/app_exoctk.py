@@ -4,6 +4,7 @@ import json
 import os
 from pkg_resources import resource_filename
 import tempfile
+from datetime import datetime
 
 from astropy.coordinates import SkyCoord
 import astropy.table as at
