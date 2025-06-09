@@ -49,7 +49,6 @@ DATA_URLS = {
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
             'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz']}
 
 # If the variable is blank or doesn't exist
