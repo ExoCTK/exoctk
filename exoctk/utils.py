@@ -12,6 +12,7 @@ import requests
 import shutil
 import urllib
 import sys
+from importlib.metadata import version
 
 from astropy.io import fits
 import bokeh.palettes as bpal
@@ -34,23 +35,24 @@ except TypeError:
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
+VERSION = version('exoctk')
+PATCHVER = 'v' + '.'.join(VERSION.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
 DATA_URLS = {
-    'exoctk_contam': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz'],
-    'groups_integrations': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz'],
-    'fortney': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz'],
-    'generic': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz'],
-    'exoctk_log': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log.tar.gz'],
-    'modelgrid': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
-                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
-                  'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz'],
-    'all': ['https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz',
-            'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz']}
+    'exoctk_contam': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz'],
+    'groups_integrations': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz'],
+    'fortney': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney{PATCHVER}.tar.gz'],
+    'generic': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic{PATCHVER}.tar.gz'],
+    'exoctk_log': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log{PATCHVER}.tar.gz'],
+    'modelgrid': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9{PATCHVER}.tar.gz',
+                  f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1{PATCHVER}.tar.gz',
+                  f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2{PATCHVER}.tar.gz'],
+    'all': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz']}
 
 # If the variable is blank or doesn't exist
 HOME_DIR = os.path.expanduser('~')
