@@ -12,7 +12,6 @@ import requests
 import shutil
 import urllib
 import sys
-from importlib.metadata import version
 
 from astropy.io import fits
 import bokeh.palettes as bpal
@@ -21,6 +20,8 @@ from scipy.ndimage import generic_filter
 import numpy as np
 from svo_filters import svo
 from bokeh.plotting import figure, show
+
+from ._version import __version__
 
 try:
     from .throughputs import JWST_THROUGHPUTS
@@ -37,8 +38,7 @@ except TypeError:
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
-VERSION = version('exoctk')
-PATCHVER = 'v' + '.'.join(VERSION.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
+PATCHVER = 'v' + '.'.join(__version__.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
 DATA_URLS = {
     'exoctk_contam': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz'],
     'groups_integrations': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz'],
