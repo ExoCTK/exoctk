@@ -845,7 +845,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
 
 def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
                      multi=True, verbose=True):
-
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters

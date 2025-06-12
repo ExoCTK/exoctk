@@ -159,7 +159,6 @@ def add_array_at_position(Arr, B, x, y, centered=False, plot=False):
     return A
 
 
-
 def build_target_url(target_name):
     """Build restful api url based on target name.
 
