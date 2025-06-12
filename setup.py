@@ -4,7 +4,7 @@ import os
 import re
 
 def get_version():
-    with open(os.path.join("exoctk", "_version.py")) as f:
+    with open(os.path.join("exoctk/exoctk", "_version.py")) as f:
         match = re.search(r'__version__ = "([^"]+)"', f.read())
         return match.group(1)
 
