@@ -15,6 +15,7 @@ import time
 from pkg_resources import resource_filename
 import logging
 import datetime
+from urllib.parse import quote_plus
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -48,6 +49,9 @@ try:
     set_start_method('spawn')
 except RuntimeError:
     pass
+
+import warnings
+warnings.filterwarnings("ignore", message="Mean of empty slice")
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -384,7 +388,8 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
 
     # Add URL (before PM correcting coordinates)
     search_radius = 1
-    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs={}&-out.orig=o'.format(cat, ra_deg, dec_deg, search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
+    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}&eq=ICRS&rs={}&-out.orig=o'.format(cat, quote_plus(f"{ra_deg} {dec_deg}"), search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
+    # urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs={}&-out.orig=o'.format(cat, ra_deg, dec_deg, search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
     # urls = ['https://vizier.cds.unistra.fr/viz-bin/VizieR-S?Gaia+EDR3+{}'.format(source_id) for source_id in stars['source_id']]
     stars.add_column(urls, name='url')
 
@@ -696,8 +701,13 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     # Adding frames together
     simframes = [tframe + starframe for tframe in targframes]
     simframe = np.sum(targframes, axis=0) + starframe
-    pctframes = [starframe / sframe for sframe in simframes]
-    pctlines = [np.nanmean(pframe * mask, axis=0) for pframe, mask in zip(pctframes, trace_masks)]
+    pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
+    pctlines = []
+    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
+        masked = pframe * mask
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mean_line = np.nanmean(masked, axis=0)
+        pctlines.append(mean_line)
 
     # Make results dict
     result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
@@ -911,7 +921,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
-    stars = find_sources(ra, dec, target_date=target_date, verbose=verbose)
+    stars = find_sources(ra, dec, target_date=target_date, verbose=False)
 
     # Add stars manually
     if isinstance(binComp, dict):
@@ -958,7 +968,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
 
     # Time it
     if verbose:
-        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), [(int(rng[0]), int(rng[1])) for rng in good_group_bounds]))
         start = time.time()
 
     # Calculate contamination of all stars at each PA
