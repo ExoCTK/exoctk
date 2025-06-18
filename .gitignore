@@ -23,6 +23,7 @@ htmlcov
 .coverage
 MANIFEST
 .ipynb_checkpoints
+contam_tool.log
 
 # Sphinx
 docs/api
