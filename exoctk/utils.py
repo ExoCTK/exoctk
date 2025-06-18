@@ -12,13 +12,16 @@ import requests
 import shutil
 import urllib
 import sys
-from importlib.metadata import version
 
 from astropy.io import fits
 import bokeh.palettes as bpal
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import generic_filter
 import numpy as np
 from svo_filters import svo
+from bokeh.plotting import figure, show
+
+from ._version import __version__
 
 try:
     from .throughputs import JWST_THROUGHPUTS
@@ -35,8 +38,7 @@ except TypeError:
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
-VERSION = version('exoctk')
-PATCHVER = 'v' + '.'.join(VERSION.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
+PATCHVER = 'v' + '.'.join(__version__.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
 DATA_URLS = {
     'exoctk_contam': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz'],
     'groups_integrations': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz'],
@@ -93,6 +95,68 @@ def blockPrint():
 def enablePrint():
     """Function to enable print statements"""
     sys.stdout = sys.__stdout__
+
+
+def add_array_at_position(Arr, B, x, y, centered=False, plot=False):
+    """
+    Adds array B to array Arr at position (x, y).
+    If centered=False, (x, y) is the lower-left corner of B in Arr.
+    If centered=True, (x, y) is the center of B in Arr.
+    Any part of B that goes outside the bounds of Arr is trimmed.
+
+    Parameters
+    ----------
+    Arr: sequence
+        The array being added to
+    B: sequence
+        The array being added to Arr
+    x: int
+        The x-index of Arr at which to add B
+    y: int
+        The y-index of Arr at which to add B
+    centered: bool
+        Add center of B at (x, y) rather than using lower left corner of B
+    plot: bool
+        Plot the final image for visual inspection
+
+    Returns
+    -------
+    array
+        The final array
+    """
+    A = Arr.copy()  # Avoid modifying original
+    hA, wA = A.shape
+    hB, wB = B.shape
+
+    if centered:
+        x -= wB // 2
+        y -= hB // 2
+
+    # Determine region of A that will be affected
+    x0 = max(x, 0)
+    y0 = max(y, 0)
+    x1 = min(x + wB, wA)
+    y1 = min(y + hB, hA)
+
+    # If B doesn't overlap A, return A unchanged
+    if x0 >= x1 or y0 >= y1:
+        return A
+
+    # Corresponding region in B
+    Bx0 = x0 - x
+    By0 = y0 - y
+    Bx1 = Bx0 + (x1 - x0)
+    By1 = By0 + (y1 - y0)
+
+    A[y0:y1, x0:x1] += B[By0:By1, Bx0:Bx1]
+
+    if plot:
+        p = figure(x_range=(0, A.shape[1]), y_range=(0, A.shape[0]),
+                   tools="", toolbar_location=None, match_aspect=True)
+        p.image(image=[A], x=0, y=0, dw=A.shape[1], dh=A.shape[0], palette="Greys256")
+        show(p)
+
+    return A
 
 
 def build_target_url(target_name):
@@ -650,6 +714,49 @@ def medfilt(x, window_len):
         y[: -j, -(i + 1)] = s[j:]
         y[-j:, -(i + 1)] = s[-1]
     return np.median(y[window_len - 1: -window_len + 1], axis=1)
+
+
+def nanmean_filter(values):
+    """
+    Custom filter function that replaces the center value with the mean of the surrounding
+    8 values, ignoring NaNs. If the center is not NaN, it is returned unchanged. If all
+    neighbors are NaN, the center remains NaN.
+
+    Parameters:
+        values (array-like): Flattened 3x3 neighborhood of values.
+
+    Returns:
+        float: The replacement value for the center pixel.
+    """
+    center = values[len(values) // 2]
+    if np.isnan(center):
+        neighbors = np.delete(values, len(values) // 2)  # Remove center
+        mean = np.nanmean(neighbors)
+        return mean if not np.isnan(mean) else center
+    else:
+        return center
+
+
+def replace_NaNs(arr, max_iter=100):
+    """
+    Recursively replaces NaN values in a 2D NumPy array with the mean of their 8
+    surrounding neighbors, ignoring NaNs. Continues until all NaNs are filled or
+    the maximum number of iterations is reached.
+
+    Parameters:
+        arr (np.ndarray): 2D NumPy array containing NaNs to fill.
+        max_iter (int): Maximum number of iterations to attempt (default: 100).
+
+    Returns:
+        np.ndarray: A copy of the array with NaNs filled.
+    """
+    result = arr.copy()
+    for _ in range(max_iter):
+        if not np.isnan(result).any():
+            break
+        updated = generic_filter(result, nanmean_filter, size=3, mode='constant', cval=np.nan)
+        result[np.isnan(result)] = updated[np.isnan(result)]
+    return result
 
 
 def rebin_spec(spec, wavnew, oversamp=100, plot=False):
