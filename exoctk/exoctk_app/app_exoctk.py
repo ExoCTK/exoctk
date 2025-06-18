@@ -463,23 +463,19 @@ def contam_visibility():
                     # Add a companion
                     companion = None
                     if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
+                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff,
+                                     'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
+                    targframe, starcube, results, contam_plot = fs.field_simulation(ra_deg, dec_deg, form.inst.data,
+                                                                                    target_date=form.epoch.data,
+                                                                                    binComp=companion,
+                                                                                    plot=True,
+                                                                                    multi=False,
+                                                                                    title=form.targname.data)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
-
-                    # Get bad PA list from missing angles between 0 and 360
-                    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
-
-                    # Make old contam plot
-                    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
 
                 else:
 
