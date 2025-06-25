@@ -15,3 +15,4 @@ from . import groups_integrations
 from . import limb_darkening
 from . import phase_constraint_overlap
 from . import log_exoctk
+from . import _version
