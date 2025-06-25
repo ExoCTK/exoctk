@@ -18,12 +18,12 @@ exoctk/__pycache__
 *.c
 
 # Other generated files
-*/_version.py
 */cython_version.py
 htmlcov
 .coverage
 MANIFEST
 .ipynb_checkpoints
+contam_tool.log
 
 # Sphinx
 docs/api
