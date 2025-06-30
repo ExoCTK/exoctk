@@ -1172,10 +1172,8 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
     np.ndarray
         The 2D trace
     """
-    if 'DHS_F322W2' in aperture:
-        aperpath = 'NRCA5_GRISM256_F322W2'
-    elif 'DHS_F444W' in aperture:
-        aperpath = 'NRCA5_GRISM256_F444W'
+    if 'DHS_F322W2' in aperture or 'DHS_444W' in aperture:
+        aperpath = 'NRCA5_DHS_F150W2'
     elif 'NIS' in aperture:
         aperpath = 'NIS_SUBSTRIP256'
     else:

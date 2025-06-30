@@ -26,11 +26,126 @@ Dependencies
 """
 
 from pkg_resources import resource_filename
+import importlib
+import os
 
 import astropy.constants as ac
 from astropy.io import fits, ascii
 import astropy.units as q
+from bokeh.plotting import figure, show
 import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+import stpsf
+
+from exoctk.modelgrid import ACES
+
+
+def generate_DHS_traces(teff_values, blocking_filter='F150W2', pupil_mask='DHS_01', outdir=None, plot=False):
+    """
+    Generate a library of NIRCam DHS traces in the given Teff parameter space
+
+    Parameters
+    ----------
+    teff_values: list[int]
+        The Teff values for each trace
+    blocking_filter: str
+        The filter to use, ['F070W', 'F090W', 'F115W', 'F150W2', 'F200W']
+    pupil_mask: str
+        The pupil to use, ['DHS_01', 'DHS_02', ..., 'DHS_10']
+    """
+    # Set up the PSF generator
+    nrc = stpsf.NIRCam()
+    nrc.filter = blocking_filter
+    nrc.pupil_mask = pupil_mask  # Different for 1-10?
+    nrc.detector = 'NRCA1'
+
+    # Make a PSF cube
+    wave_min = 1.01
+    wave_max = 2.25
+    waves = np.linspace(wave_min, wave_max, 100) * 1E-6
+    psf_cube = nrc.calc_datacube(waves, oversample=1)[0].data
+    psf_cube = psf_cube[:, 50:-50, 50:-50]
+
+    # Get wavelengths for each detector column given the dispersion scale of NIRCam
+    disp_scale = 0.290 * 0.001  # um/pixel
+    pixel_wavelengths = np.arange(wave_min, wave_max, disp_scale)
+
+    # Get throughputs and interpolate to pixel_wavelengths
+    with importlib.resources.files('exoctk.data.throughputs').joinpath(f'NIRCam.{blocking_filter}.CLEARP.SW.txt').open('r') as f:
+        data = np.loadtxt(f)
+    throughputs = np.interp(pixel_wavelengths, data[:, 0], data[:, 1])
+
+    # 1. Define the original grid points
+    x_original = np.arange(psf_cube.shape[0])
+    y_original = np.arange(psf_cube.shape[1])
+    z_original = np.arange(psf_cube.shape[2])
+
+    # 2. Define the interpolation grid
+    # Create a meshgrid of the new interpolation points
+    X_interp, Y_interp, Z_interp = np.meshgrid(pixel_wavelengths, y_original, z_original, indexing='ij')
+
+    # Reshape the meshgrid to be a list of points (each point is [x, y, z])
+    interpolation_points = np.vstack([X_interp.ravel(), Y_interp.ravel(), Z_interp.ravel()]).T
+
+    # 3. Create the interpolator object
+    interp = RegularGridInterpolator((x_original, y_original, z_original), psf_cube)
+
+    # 4. Perform the interpolation
+    interpolated_values = interp(interpolation_points)
+
+    # Reshape the interpolated values back to the desired output shape
+    interpolated_data_cube = interpolated_values.reshape((len(pixel_wavelengths), 60, 60))
+
+    # Load model grid once
+    mg = ACES()
+
+    # Iterate over list of Teff values
+    for teff in teff_values:
+
+        try:
+
+            # Fetch the SED and interpolate to the pixel wavelengths
+            model = mg.get(teff, 4.5, 0)
+            interpolated_sed = np.interp(pixel_wavelengths, model['wave'], model['flux'][0])
+
+            # Multiply by the filter throughputs and SED
+            final_psf_cube = interpolated_data_cube * throughputs[:, None, None] * interpolated_sed[:, None, None]
+
+            # Determine the dimensions of the output 2D array
+            num_slices, slice_height, slice_width = final_psf_cube.shape
+            output_width = slice_width + (num_slices - 1)  # Width with offset
+            output_height = slice_height
+
+            # Create the result array
+            trace = np.zeros((output_height, output_width), dtype=final_psf_cube.dtype)
+
+            # Iterate and place slices
+            for i in range(num_slices):
+                offset = i  # Offset to the right by i columns
+                trace[:, offset:offset + slice_width] += final_psf_cube[i, :, :]
+
+            # Save to file
+            psfhdu = fits.PrimaryHDU(data=trace)
+            wavhdu = fits.ImageHDU(data=pixel_wavelengths, name='WAV')
+            hdulist = fits.HDUList([psfhdu, wavhdu])
+
+            # Write the file
+            filename = f'NRCA5_DHS_{blocking_filter}_{teff}.fits'
+            if outdir is None:
+                outdir = f"{os.environ['EXOCTK_DATA']}exoctk_contam/traces/NRCA5_DHS_{blocking_filter}"
+            filepath = os.path.join(outdir, filename)
+            hdulist.writeto(filepath, overwrite=True)
+            hdulist.close()
+
+            if plot:
+                trace_data = fits.getdata(filepath)
+                tr = figure(width=900, height=100)
+                tr.image([trace_data], x=0, y=0, dw=trace_data.shape[1], dh=trace_data.shape[0])
+                show(tr)
+            print(f"Created trace file at {filepath}")
+
+        except:
+            print(f"Could not create trace file for Teff={teff}")
 
 
 def convert_ATLAS9(filepath, destination='', template=resource_filename('exoctk', 'data/core/ModelGrid_tmp.fits')):
