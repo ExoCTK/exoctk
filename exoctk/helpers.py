@@ -38,11 +38,20 @@ from scipy.interpolate import RegularGridInterpolator
 import stpsf
 
 from exoctk.modelgrid import ACES
+from exoctk.utils import medfilt
 
 
 def generate_DHS_traces(teff_values, blocking_filter='F150W2', pupil_mask='DHS_01', outdir=None, plot=False):
     """
     Generate a library of NIRCam DHS traces in the given Teff parameter space
+
+    Example
+    -------
+    # This generates and saves the FITS files to the user's EXOCTK_DATA directory
+    import numpy as np
+    from exoctk.helpers import generate_DHS_traces
+    teffs = np.arange(2400, 8000, 200)
+    generate_DHS_traces(teffs)
 
     Parameters
     ----------
@@ -65,6 +74,7 @@ def generate_DHS_traces(teff_values, blocking_filter='F150W2', pupil_mask='DHS_0
     waves = np.linspace(wave_min, wave_max, 100) * 1E-6
     psf_cube = nrc.calc_datacube(waves, oversample=1)[0].data
     psf_cube = psf_cube[:, 50:-50, 50:-50]
+    # psf_cube = np.rot90(psf_cube, k=1, axes=(1, 2))
 
     # Get wavelengths for each detector column given the dispersion scale of NIRCam
     disp_scale = 0.290 * 0.001  # um/pixel
@@ -104,9 +114,10 @@ def generate_DHS_traces(teff_values, blocking_filter='F150W2', pupil_mask='DHS_0
 
         try:
 
-            # Fetch the SED and interpolate to the pixel wavelengths
+            # Fetch the (smoothed) SED and interpolate to the pixel wavelengths
             model = mg.get(teff, 4.5, 0)
-            interpolated_sed = np.interp(pixel_wavelengths, model['wave'], model['flux'][0])
+            flx = medfilt(model['flux'][0], 11)
+            interpolated_sed = np.interp(pixel_wavelengths, model['wave'], flx)
 
             # Multiply by the filter throughputs and SED
             final_psf_cube = interpolated_data_cube * throughputs[:, None, None] * interpolated_sed[:, None, None]
@@ -125,9 +136,12 @@ def generate_DHS_traces(teff_values, blocking_filter='F150W2', pupil_mask='DHS_0
                 trace[:, offset:offset + slice_width] += final_psf_cube[i, :, :]
 
             # Save to file
-            psfhdu = fits.PrimaryHDU(data=trace)
+            primary = fits.PrimaryHDU()
+            tracehdu = fits.ImageHDU(data=trace, name='TRACE')
             wavhdu = fits.ImageHDU(data=pixel_wavelengths, name='WAV')
-            hdulist = fits.HDUList([psfhdu, wavhdu])
+            thruhdu = fits.ImageHDU(data=throughputs, name='THRU')
+            sedhdu = fits.ImageHDU(data=interpolated_sed, name='SED')
+            hdulist = fits.HDUList([primary, tracehdu, wavhdu, thruhdu, sedhdu])
 
             # Write the file
             filename = f'NRCA5_DHS_{blocking_filter}_{teff}.fits'
