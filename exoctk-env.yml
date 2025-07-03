@@ -1,0 +1,10 @@
+name: exoctk-env
+channels:
+  - conda-forge
+dependencies:
+  - ipython>=7.22.0
+  - jupyter
+  - python>=3.9
+  - pip
+  - pip:
+    - exoctk
