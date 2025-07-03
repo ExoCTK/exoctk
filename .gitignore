@@ -17,6 +17,7 @@ exoctk/__pycache__
 # Other generated files
 */_version.py
 */cython_version.py
+*/_version.py
 htmlcov
 .coverage
 MANIFEST
