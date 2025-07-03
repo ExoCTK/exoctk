@@ -40,66 +40,53 @@ The following are instructions on how to install the ``exoctk`` package for both
 Download Anaconda or Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must first have a working installation of ``anaconda`` or ``miniconda`` for Python 3.  If you do not yet have this on your system, you can visit the following links for download and installation instructions:
+You must first have a working installation of ``conda`` (or ``mamba``) for Python 3.  If you do not yet have this on your system, you can visit the following links for download and installation instructions:
 
-- `Anaconda <https://www.anaconda.com/download/>`_
+- `Miniforge <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
 - `Miniconda <https://conda.io/en/latest/miniconda.html>`_
+- `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`_
 
 
 Obtain the ``exoctk`` Package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To obtain the ``exoctk`` package with the necessary environment files, clone the repository directly from GitHub:
+To obtain the ``exoctk`` package with the necessary environment file, clone the repository directly from GitHub:
 
-::
+..code-block:: sh
 
-  git clone https://github.com/ExoCTK/exoctk.git
-  cd exoctk
+    git clone https://github.com/ExoCTK/exoctk.git
+    cd exoctk
 
 
 Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-You can install the ExoCTK ``conda`` environment via the ``env/environment-<PYTHON_VERSION>.yml`` files (relative to the parent directory of where the repository was installed).  Note that there are separate environment files for each version of ``python`` that ``exoctk`` supports.  First, one should ensure that their version of ``conda`` is up to date:
+You can install the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file with the following ``conda`` (or ``mamba``) command: 
 
-::
+..code-block:: sh
 
-  conda update conda
+    conda env create -f exoctk-env.yml
 
+.. tip::
+    To specify a specific Python version (or any additional Conda packages), add them to the end of the ``conda env create`` command:
 
-Next, one should activate the ``base`` environment:
+    ..code-block:: sh
+        conda env create -f exoctk-env.yml python==3.9
+       
 
-::
+One can activate the newly-created environment with:
 
-  conda activate base
+..code-block:: sh
 
+    conda activate exoctk-env
 
-Next, one can create the ``exoctk`` ``conda`` environment via the appropriate ``environment-<PYTHON_VERSION>.yml`` file. One can find these files under the ``env`` directory and should run the following command in that directory:
+Package Installation From Source
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-::
+To install the latest development version of ``exoctk`` use ``pip`` to install directly from the cloned source:
 
-  conda env create -f environment-<PYTHON_VERSION>.yml
+..code-block:: sh
 
-
-where ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``environment-3.8.yml``)
-
-Lastly, one can activate the newly-created environment with:
-
-::
-
-  conda activate exoctk-<PYTHON_VERSION>
-
-where again, ``<PYTHON_VERSION>`` is the version of python you are using (e.g. ``exoctk-3.8``)
-
-
-Package Installation
-~~~~~~~~~~~~~~~~~~~~
-
-In order to install the ``exoctk`` package within the newly-created ``conda``
-environment, run the `exoctk` setup script:
-
-::
-
-  pip install -e .
+    pip install -e .
 
 
 Obtain the ``exoctk`` Data
@@ -114,7 +101,7 @@ Lastly, export an environment variable for ``EXOCTK_DATA``.
 
 - For Mac OS/Linux, add the line
 
-::
+..code-block:: sh
 
     export EXOCTK_DATA='/path/to/your/unzipped/directory/exoctk_data/'
 
@@ -127,7 +114,7 @@ Users may also download individual components of the ``exoctk`` data package dir
 
 Missing Dependencies?
 ~~~~~~~~~~~~~~~~~~~~~
-If you find that the `exoctk` `conda` is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
+If you find that the ``exoctk`` environment is missing a required dependency, please feel free to `submit a GitHub Issue <https://github.com/ExoCTK/exoctk/issues>`_ detailing the problem.
 
 
 Citation

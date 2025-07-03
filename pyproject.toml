@@ -2,6 +2,7 @@
 name = "exoctk"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
+requires-python = ">=3.9"
 authors = [
   { name= "Matthew Bourque" },
   { name="Néstor Espinoza" },
@@ -23,45 +24,26 @@ authors = [
 keywords = ["astronomy", "python"]
 classifiers = ["Programming Language :: Python"]
 dependencies = [
-  'asteval',
-  'astropy',
-  'astroquery',
-  'bandit',
-  'batman-package',
-  'bibtexparser',
+  'astropy>=5.3.1',
+  'astroquery>=0.4.6',
+  'batman-package>=2.4.8',
+  'bibtexparser>=1.2.0',
   'bokeh>=3.0,<=3.2.1',
-  'boto3',
-  'corner',
-  'cython',
-  'docopt',
-  'docutils',
-  'flake8',
-  'flask',
-  'flask_wtf',
-  'gunicorn',
-  'h5py',
+  'docopt>=0.6.2',
+  'flask>=1.1.2',
+  'flask_wtf>=0.14.3',
+  'h5py>=3.2.1',
   'hotsoss',
-  'ipython',
-  'matplotlib',
-  'numpy<2.0',
-  'numpydoc',
-  'pandas',
-  'paramiko',
-  'platon',
-  'pysiaf',
-  'pysynphot',
-  'pytest',
-  'pyyaml',
-  'pyvo',
-  'regions',
-  'scipy',
-  'scp',
-  'sphinx',
-  'sphinx_astropy',
-  'sqlalchemy',
-  'svo_filters',
-  'wtforms',
-  'werkzeug',
+  'matplotlib>=3.4.1',
+  'numpy>=1.25.1,<2.0',
+  'pandas>=2.0.3',
+  'platon>=5.1.2',
+  'pysiaf>=0.10.0',
+  'regions>=0.5',
+  'scipy>=1.11.1',
+  'sqlalchemy>=1.4.4',
+  'svo_filters>=0.4.4',
+  'wtforms>=2.3.3',
   'jwst_gtvt',
 ]
 dynamic = ["version"]
@@ -73,8 +55,10 @@ test = [
 ]
 docs = [
   "sphinx",
+  'sphinx_astropy',
   "sphinx_rtd_theme",
   "stsci_rtd_theme",
+  "numpydoc"
 ]
 
 [project.license]
