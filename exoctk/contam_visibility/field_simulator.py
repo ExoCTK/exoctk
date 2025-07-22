@@ -31,7 +31,7 @@ from astroquery.gaia import Gaia
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, LegendItem
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from scipy.ndimage.interpolation import rotate
@@ -112,7 +112,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
              'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 00, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
                                             'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
@@ -519,7 +519,8 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False, logging=True):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plot=False, verbose=False, logging=True,
+              plot_order0s=True, source_links=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -636,6 +637,13 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     lft, rgt, top, bot = aper['lft'], aper['rgt'], aper['top'], aper['bot']
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
+    # Filter out sources that are very faint to save computational resources
+    if source_cutoff is not None:
+
+        cutoff_FOVstars = FOVstars[FOVstars['fluxscale'] > source_cutoff]
+        print(f"{len(cutoff_FOVstars)}/{len(FOVstars)} sources with relative fluxes greater than {source_cutoff}")
+        FOVstars = cutoff_FOVstars
+
     # Get the traces for sources in the FOV and add the column to the source table
     star_traces = [get_trace(aperture.AperName, temp, typ, verbose=False) for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['traces'] = star_traces
@@ -658,9 +666,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     # Get order 0
     order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
 
-    # Get trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
-
     if logging:
         log_checkpoint(f'Fetched arrays, masks, and traces...')
 
@@ -682,8 +687,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         else:
 
             # Scale the order 0 image and add it to the starframe
-            scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
-            starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
+            if plot_order0s:
+                scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
+                starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
 
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
@@ -692,6 +698,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
 
     if logging:
         log_checkpoint(f'Added {len(FOVstars)} sources to the simulated frames.')
+
+    # Get trace masks
+    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
 
     # Adding frames together
     simframes = [tframe + starframe for tframe in targframes]
@@ -721,13 +730,15 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
 
         # Plot the obs data if possible...
         if data is not None:
+            print("Input data will be plotted instead of simulation.")
             simframe = data
 
         # Replace negatives
         simframe[simframe < 0] = 0
 
         # Rotate for PWCPOS
-        simframe = rotate(simframe, tilt)
+        if tilt != 0:
+            simframe = rotate(simframe, tilt)
 
         # Plot the image data or simulation
         vmax = np.nanmax(simframe)
@@ -736,30 +747,32 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=imgsource, name="image", color_mapper=mapper)
 
         # Plot the detector gaps and reference pixels for visual inspection
-        refframe = NIRCam_DHS_trace_mask(aperture.AperName, substripe_value=0, ref_value=1, gap_value=1, combined=True) if 'NRCA5' in aperture.AperName else np.zeros((subY, subX))
-        refsource = ColumnDataSource(data={'ref': [refframe]})
-        fig.image(image='ref', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=refsource, name="ref", color_mapper=LinearColorMapper(palette=["white", "black"], low=0, high=1), alpha=0.1)
+        if 'DHS' in aperture.AperName:
+            refframe = NIRCam_DHS_trace_mask(aperture.AperName, substripe_value=0, ref_value=1, gap_value=1, combined=True) if 'NRCA5' in aperture.AperName else np.zeros((subY, subX))
+            refsource = ColumnDataSource(data={'ref': [refframe]})
+            fig.image(image='ref', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=refsource, name="ref", color_mapper=LinearColorMapper(palette=["white", "black"], low=0, high=1), alpha=0.1)
 
-        # Plot order 0 locations of stars
-        FOVstars_only = FOVstars[FOVstars['type'] == 'STAR']
-        source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
-                                         'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
-                                         'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
-                                         'trace': ['Order 0'] * len(FOVstars_only)})
-        order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
+        if plot_order0s:
+            # Plot order 0 locations of stars
+            FOVstars_only = FOVstars[FOVstars['type'] == 'STAR']
+            source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
+                                             'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
+                                             'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
+                                             'trace': ['Order 0'] * len(FOVstars_only)})
+            order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
 
-        # Plot order 0 locations of galaxies
-        FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
-        order0_gal = None
-        if len(FOVstars_gal) > 0:
-            source0_gal = ColumnDataSource(
-                data={'Teff_str': FOVstars_gal['Teff_str'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
-                      'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
-                      'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
-                      'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
-                      'trace': ['Order 0'] * len(FOVstars_gal)})
-            order0_gal = fig.scatter('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
-                                      source=source0_gal)
+            # Plot order 0 locations of galaxies
+            FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
+            order0_gal = None
+            if len(FOVstars_gal) > 0:
+                source0_gal = ColumnDataSource(
+                    data={'Teff_str': FOVstars_gal['Teff_str'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
+                          'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
+                          'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
+                          'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
+                          'trace': ['Order 0'] * len(FOVstars_gal)})
+                order0_gal = fig.scatter('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
+                                          source=source0_gal)
 
         # Plot the target order 0
         fig.scatter([stars[0]['xord0']], [stars[0]['yord0']], size=8, line_width=3, fill_color=None, line_color='black')
@@ -792,23 +805,27 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
                     data_dict[f'y{n}'] = y_ranges[n] + star['yord1']
 
                 source = ColumnDataSource(data=data_dict)
-                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
+                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1, legend_label='name')
                 lines.append(line)
 
         # Add order 0 hover and taptool
-        if order0_gal is not None:
-            fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
+        if plot_order0s:
+            if order0_gal is not None:
+                fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
 
-        fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
+            if source_links:
+                fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
 
         # Add traces hover and taptool
         fig.add_tools(HoverTool(renderers=lines, tooltips=tips, name='traces', mode='mouse'))
-        fig.add_tools(TapTool(behavior='select', name='traces', callback=OpenURL(url="@url")))
+        if source_links:
+            fig.add_tools(TapTool(behavior='select', name='traces', callback=OpenURL(url="@url")))
 
         # Show the figure
         pad = 20
         fig.x_range = Range1d(aper['subarr_x'][0] - pad, aper['subarr_x'][1] + pad)
         fig.y_range = Range1d(aper['subarr_y'][1] - pad, aper['subarr_y'][2] + pad)
+        fig.legend.click_policy = "hide"
 
         # Source for ratio plot
         data = {f'pct_{n}': pct for n, pct in enumerate(pctlines)}
@@ -816,16 +833,28 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         rsource = ColumnDataSource(data=data)
 
         # Make plot
-        rfig = figure(title='Target Contamination', width=900, height=200, match_aspect=True, tools=tools, x_range=fig.x_range)
+        legend_items = []
+        rfig = figure(title='Target Contamination', width=900, height=300, match_aspect=True, tools=tools, x_range=fig.x_range)
         colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
         trace_names = inst['trace_names']
-        for n in np.arange(n_traces):
-            rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=copy(rsource))
+        which_traces = [0, 1, 2, 3, 6, 7, 8, 9] if 'DHS' in aperture.AperName else np.arange(n_traces) # Don't show contam for traces for DHS 1 or 6
+        for n in which_traces:
+            line = rfig.line('x', f'pct_{n}', color=colors[n], source=copy(rsource))
+            legend_items.append(LegendItem(label=trace_names[n], renderers=[line]))
             glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
             rfig.add_glyph(copy(rsource), glyph)
-        rfig.y_range = Range1d(0, 1) #min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
+        rfig.y_range = Range1d(0, 1)
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
+
+        # Shaded area for detector NIRCam gap
+        if 'DHS' in aperture.AperName:
+            rfig.varea(x=[2034, 2195], y1=[0, 0], y2=[1, 1], fill_color='black', fill_alpha=0.1)
+
+        # Add legend
+        legend = Legend(items=legend_items)
+        rfig.add_layout(legend, 'right')
+        rfig.legend.click_policy = "hide"
 
         # Color bar
         # color_bar = ColorBar(color_mapper=mapper['transform'], width=10, location=(0, 0), title="Teff")
@@ -1193,6 +1222,7 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
 
     # Get data
     if 'NIS' in aperture:
+
         # Orders stored separately just in case ;)
         traceo1 = fits.getdata(file, ext=0)
         traceo2 = fits.getdata(file, ext=1)
@@ -1215,8 +1245,12 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
     elif 'NRCA5' in aperture:
 
         # Get the trace and replace the NaN values
-        trace = fits.getdata(file)[0]
+        trace = fits.getdata(file, extname='TRACE')
         trace = replace_NaNs(trace)
+
+        # Trim trace (to match observations)
+        # TODO: wavelength calibrate the traces to observations, then trim
+        trace[:, :500] = 0
 
         # Put the trace in each of the DHS trace positions
         traces = []
@@ -1236,7 +1270,9 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
     if plot:
         f = figure(width=900, height=450)
         final = np.sum(traces, axis=0)
-        f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0])
+        vmax = np.nanmax(final)
+        mapper = LogColorMapper(palette='Viridis256', low=1, high=vmax)
+        f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0], color_mapper=mapper)
         show(f)
 
     return traces
