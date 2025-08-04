@@ -1,0 +1,58 @@
+include:
+   - redis.yaml
+#   - celery.yaml
+services:
+  # Data Store Images
+#   exoctk_data:
+#     build:
+#       context: $EXOCTK_DATA
+#       dockerfile: $PWD/dockerfiles/DataDockerfileExoctk
+#       args:
+#         - has_exo=$HAS_EXO
+  pandeia_data:
+    build:
+      context: $pandeia_refdata
+      dockerfile: $PWD/dockerfiles/DataDockerfilePandeia
+      args:
+        - has_pandeia=$HAS_PANDEIA
+  synphot_data:
+    build:
+      context: $PYSYN_CDBS
+      dockerfile: $PWD/dockerfiles/DataDockerfileSynphot
+      args:
+        - has_syn=$HAS_SYN
+  exoctk:
+    build:
+      context: ./exoctk
+#      additional_contexts:
+#        - data=docker-image://docker-exoctk_data:latest
+      dockerfile: Dockerfile
+      args:
+        - exoctk_version=v1.2.6.3
+        - python_version=3.11
+        - exoctk_data=$EXOCTK_DATA
+        - has_exo=$HAS_EXO
+    volumes:
+      - $EXOCTK_DATA:/exoctk/exoctk_data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+  pandexo:
+    build:
+      context: ./pandexo
+      additional_contexts:
+        - pandeia_data=docker-image://docker-pandeia_data:latest
+        - synphot_data=docker-image://docker-synphot_data:latest
+      dockerfile: Dockerfile
+      args:
+        - pandexo_version=3.0.0
+        - python_version=3.11
+        - pandeia_version=3.2
+        - has_exo=$HAS_EXO
+        - has_pandeia=$HAS_PANDEIA
+        - has_syn=$HAS_SYN
+    volumes:
+      - $EXOCTK_DATA/fortney:/data/fortney:ro
+    ports:
+      - "1111:1111"
+    restart: unless-stopped
