@@ -4,17 +4,9 @@
 ARG python_version
 FROM python:${python_version}-alpine
 
-# Load exoctk fortney data
-# WORKDIR /data/fortney
-# COPY --from=exoctk_data /data/fortney/ /data/fortney/
-
-# Load pandeia data
-WORKDIR /data/pandeia_refdata
-COPY --from=pandeia_data /data/ /data/pandeia_refdata/
-
-# Load synphot data
-WORKDIR /data/trds
-COPY --from=synphot_data /data/ /data/trds/
+ENV FORTGRID_DIR=/data/exoctk/fortney
+ENV pandeia_refdata=/data/pandeia
+ENV PYSYN_CDBS=/data/trds
 
 # Get remaining arguments
 ARG pandexo_version
@@ -26,9 +18,6 @@ WORKDIR /pandexo
 # Set up container environment
 ENV PANDEXO_VERSION=${pandexo_version}
 ENV PANDEIA_VERSION=${pandeia_version}
-ENV FORTGRID_DIR=/data/fortney
-ENV pandeia_refdata=/data/pandeia_refdata
-ENV PYSYN_CDBS=/data/trds
 
 # Install necessary base software
 RUN apk update
