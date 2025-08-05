@@ -6,9 +6,6 @@ ARG python_version
 # Create Container
 FROM python:${python_version}-alpine
 
-#WORKDIR /exoctk/exoctk_data
-#COPY --from=data /data/ /exoctk/exoctk_data/
-
 # Get remaining arguments
 ARG exoctk_version
 
