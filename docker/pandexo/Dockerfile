@@ -34,7 +34,10 @@ WORKDIR /pandexo
 
 # Install pandexo
 RUN pip install numpy==1.26.4
-# RUN pip install pandexo.engine==$PANDEXO_VERSION
+# ***** NOTE *****
+# In the future, it would be useful to be able to either directly install this
+# with pip (i.e. pip install pandexo==VERSION), or do a git checkout of a given
+# version (i.e. git checkout VERSION)
 RUN git clone --recursive https://github.com/natashabatalha/PandExo.git
 WORKDIR /pandexo/PandExo
 RUN pip install .
