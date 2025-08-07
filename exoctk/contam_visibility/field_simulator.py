@@ -843,7 +843,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
             legend_items.append(LegendItem(label=trace_names[n], renderers=[line]))
             glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
             rfig.add_glyph(copy(rsource), glyph)
-        rfig.y_range = Range1d(0, 1)
+        rfig.y_range = Range1d
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
 
