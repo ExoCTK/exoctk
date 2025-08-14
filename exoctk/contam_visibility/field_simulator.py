@@ -724,7 +724,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         else:
 
             # Get correct order 0
-            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type']) * 1.5e4  # Scaling factor based on observations
+            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'], verbose=verbose) * 1.5e3  # Scaling factor based on observations
 
             # Scale the order 0 image and add it to the starframe
             scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
