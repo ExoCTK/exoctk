@@ -23,6 +23,7 @@ ENV PANDEIA_VERSION=${pandeia_version}
 RUN apk update
 RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev hdf5-dev git
+RUN apk --no-cache --update-cache add linux-headers
 
 # Install numpy with custom batman
 RUN pip install --force-reinstall --no-cache-dir numpy==2.2.6
@@ -34,6 +35,7 @@ WORKDIR /pandexo
 
 # Install pandexo
 RUN pip install numpy==1.26.4
+RUN pip install scipy==1.14.1
 # ***** NOTE *****
 # In the future, it would be useful to be able to either directly install this
 # with pip (i.e. pip install pandexo==VERSION), or do a git checkout of a given
