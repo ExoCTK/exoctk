@@ -20,9 +20,6 @@ services:
   pandexo:
     build:
       context: ./pandexo
-      additional_contexts:
-        - pandeia_data=docker-image://docker-pandeia_data:latest
-        - synphot_data=docker-image://docker-synphot_data:latest
       dockerfile: Dockerfile
       args:
         - pandexo_version=3.0.0
