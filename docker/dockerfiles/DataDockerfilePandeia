@@ -1,0 +1,22 @@
+# Create Container
+ARG has_pandeia
+FROM alpine AS base
+
+# Define how to load exoctk data if a copy is already present locally
+FROM base AS copy
+WORKDIR /tmp/data
+ADD . /tmp/data/
+
+# Define how to load pandeia data by download
+FROM base AS download
+WORKDIR /tmp/data
+# ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz fortney.tar.gz
+# RUN tar zxf fortney.tar.gz
+
+# And now combine together and do whichever one the environment tells us to
+FROM ${has_pandeia} AS final
+
+RUN mv /tmp/data /data
+WORKDIR /data
+CMD ["/bin/sh", "echo", "'Built from ${has_pandeia}'"]
+# CMD ["tail", "-f", "/dev/null"]
