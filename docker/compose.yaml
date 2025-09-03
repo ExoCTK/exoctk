@@ -1,0 +1,56 @@
+include:
+   - redis.yaml
+#   - celery.yaml
+services:
+  # Data Store Images
+  exoctk:
+    build:
+      context: ./exoctk
+      dockerfile: Dockerfile
+      args:
+        - exoctk_version=v1.2.6.3
+        - python_version=3.11
+        - exoctk_data=$EXOCTK_DATA
+        - has_exo=$HAS_EXO
+    volumes:
+      - exoctk_data:/exoctk/exoctk_data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+  pandexo:
+    build:
+      context: ./pandexo
+      dockerfile: Dockerfile
+      args:
+        - pandexo_version=3.0.0
+        - python_version=3.11
+        - pandeia_version=3.2
+        - has_exo=$HAS_EXO
+        - has_pandeia=$HAS_PANDEIA
+        - has_syn=$HAS_SYN
+    volumes:
+      - exoctk_data:/data/exoctk
+      - pandeia_data:/data/pandeia
+      - synphot_data:/data/trds
+    ports:
+      - "1111:1111"
+    restart: unless-stopped
+volumes:
+  exoctk_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $EXOCTK_DATA
+  pandeia_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $pandeia_refdata
+  synphot_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $PYSYN_CDBS

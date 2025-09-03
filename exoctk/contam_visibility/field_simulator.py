@@ -15,6 +15,7 @@ import time
 from pkg_resources import resource_filename
 import logging
 import datetime
+from urllib.parse import quote_plus
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -41,13 +42,16 @@ import regions
 
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
-from .contamination_figure import contam
+from . import contamination_figure as cf
 from exoctk import utils
 
 try:
     set_start_method('spawn')
 except RuntimeError:
     pass
+
+import warnings
+warnings.filterwarnings("ignore", message="Mean of empty slice")
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -86,7 +90,7 @@ Gaia.ROW_LIMIT = 100
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
-                              'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
+                              'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                               'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -95,7 +99,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NIS_SUBSTRIP96': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
-                                'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
+                                'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                                 'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -104,7 +108,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                                  'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
-                                 'lft': 700, 'rgt': 5100, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
+                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                  'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
                                  'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -340,7 +344,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
             pass
 
         # Or infer galaxy from parallax
-        stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
+        stars['type'] = [classify_source(row) for row in stars]
 
         # Derived from K. Volk
         stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
@@ -384,8 +388,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
 
     # Add URL (before PM correcting coordinates)
     search_radius = 1
-    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}%20%2b{},eq=ICRS,rs={}&-out.orig=o'.format(cat, ra_deg, dec_deg, search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
-    # urls = ['https://vizier.cds.unistra.fr/viz-bin/VizieR-S?Gaia+EDR3+{}'.format(source_id) for source_id in stars['source_id']]
+    urls = ['https://vizier.u-strasbg.fr/viz-bin/VizieR-5?-ref=VIZ62fa613b20f3fc&-out.add=.&-source={}&-c={}&eq=ICRS&rs={}&-out.orig=o'.format(cat, quote_plus(f"{ra_deg} {dec_deg}"), search_radius) for ra_deg, dec_deg in zip(stars['ra'], stars['dec'])]
     stars.add_column(urls, name='url')
 
     # Cope coordinates to new column
@@ -519,8 +522,47 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plot=False, verbose=False, logging=True,
-              plot_order0s=True, source_links=True):
+def classify_source(row, verbose=False):
+    """
+    Classify a Gaia EDR3 source as STAR or GALAXY based on proxy criteria.
+
+    Parameters
+    ----------
+    row : astropy.table.Row
+        A single row from an Astropy Table with Gaia EDR3 columns.
+    verbose: bool
+        Print helpful stuff
+
+    Returns
+    -------
+    str
+        'STAR' if the source appears to be stellar, 'GALAXY' otherwise.
+    """
+    # Default is STAR
+    stype = 'STAR'
+
+    # Check to see if GALAXY
+    if hasattr(row['parallax'], 'mask'):
+
+        if hasattr(row['astrometric_excess_noise'], 'mask'):
+            if row['astrometric_excess_noise'] > 1.0:
+                stype = 'GALAXY'
+
+        if hasattr(row['phot_bp_rp_excess_factor'], 'mask') and hasattr(row['bp_rp'], 'mask'):
+            if row['phot_bp_rp_excess_factor'] > (1.0 + 0.015 * row['bp_rp']**2):
+                stype = 'GALAXY'
+
+    else:
+        if row['parallax'] < 0.5:
+            stype = 'GALAXY'
+
+    if verbose:
+        print(stype, row['parallax'], row['astrometric_excess_noise'], row['phot_bp_rp_excess_factor'])
+
+    return stype
+
+
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False, logging=True, POM=False):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -538,6 +580,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
         Plot the full frame and subarray bounds with all traces
     verbose: bool
         Print statements
+    POM: bool
+        Show the pick off mirror footprint in the plot
 
     Returns
     -------
@@ -663,8 +707,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
     targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
-    # Get order 0
-    order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
+    # Get trace masks
+    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
 
     if logging:
         log_checkpoint(f'Fetched arrays, masks, and traces...')
@@ -686,6 +730,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
         # Add all orders to the same frame (if it is a STAR)
         else:
 
+            # Get correct order 0
+            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'], verbose=verbose) * 1.5e3  # Scaling factor based on observations
+
             # Scale the order 0 image and add it to the starframe
             if plot_order0s:
                 scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
@@ -705,8 +752,13 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
     # Adding frames together
     simframes = [tframe + starframe for tframe in targframes]
     simframe = np.sum(targframes, axis=0) + starframe
-    pctframes = [starframe / sframe for sframe in simframes]
-    pctlines = [np.nanmean(pframe * mask, axis=0) for pframe, mask in zip(pctframes, trace_masks)]
+    pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
+    pctlines = []
+    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
+        masked = pframe * mask
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mean_line = np.nanmean(masked, axis=0)
+        pctlines.append(mean_line)
 
     # Make results dict
     result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
@@ -760,6 +812,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
                                              'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
                                              'trace': ['Order 0'] * len(FOVstars_only)})
             order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
+
+            # Plot the POM footprint
+            if POM:
+                fig.varea(x=[lft, rgt], y1=[bot, bot], y2=[top, top], fill_color='blue', fill_alpha=0.1)
 
             # Plot order 0 locations of galaxies
             FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
@@ -873,7 +929,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, source_cutoff=0.001, plo
 
 
 def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
-                     multi=True, verbose=True):
+                     title='My Target', multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -892,6 +948,8 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         Number of cores to use (-1 = All)
     interpolate: bool
         Skip every other PA and interpolate to speed up calculation
+    plot: bool
+        Return a plot
 
     Returns
     -------
@@ -940,7 +998,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
-    stars = find_sources(ra, dec, target_date=target_date, verbose=verbose)
+    stars = find_sources(ra, dec, target_date=target_date, verbose=False)
 
     # Add stars manually
     if isinstance(binComp, dict):
@@ -987,7 +1045,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
 
     # Time it
     if verbose:
-        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), [(int(rng[0]), int(rng[1])) for rng in good_group_bounds]))
         start = time.time()
 
     # Calculate contamination of all stars at each PA
@@ -1029,9 +1087,25 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
 
     # Make contam plot
     if plot:
-        contam_slider_plot(results, plot=plot)
 
-    return targframes, starcube, results
+        # Get bad PA list from missing angles between 0 and 360
+        badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
+
+        # Make old contam plot
+        starcube_targ = np.zeros((362, 2048, 96 if aperture == 'NIS_SUBSTRIP96' else 256))
+        starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
+        starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+        starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+        contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
+
+        # # Slider plot
+        # contam_plot = contam_slider_plot(results, plot=False)
+
+        return targframes, starcube, results, contam_plot
+
+    else:
+
+        return targframes, starcube, results
 
 
 def contam_slider_plot(contam_results, threshold=0.05, plot=False):
@@ -1154,7 +1228,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     return layout
 
 
-def get_order0(aperture):
+def get_order0(aperture, teff, stype='STAR', verbose=False):
     """Get the order 0 image for the given aperture
 
     Parameters
@@ -1167,15 +1241,34 @@ def get_order0(aperture):
     np.ndarray
         The 2D order 0 image
     """
-    # Get file
-    # TODO: Add order 0 files for other modes
-    filename = 'NIS_order0.npy' if 'NIS' in aperture else 'NIS_order0.npy'
+    if 'DHS' in aperture:
+        trace = np.zeros((50,50))
+    else:
 
-    # Get the path to the trace files
-    trace_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/{filename}')
+        if stype == 'STAR':
 
-    # Make frame
-    trace = np.load(trace_path)
+            # Get the path to the trace files
+            traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/NIS_order0_*.npy')
+
+            # Glob the file names
+            trace_files = glob.glob(traces_path)
+
+            # Get closest Teff
+            teffs = np.array([int(os.path.basename(file).split('_')[-1][:-4]) for file in trace_files])
+            trace_file = trace_files[np.argmin((teffs - teff)**2)]
+            if verbose:
+                print(f'Fetching {aperture} {teffs[np.argmin((teffs - teff)**2)]}K trace from {trace_file}')
+
+            # Make frame
+            trace = np.load(trace_file)
+
+        else:
+
+            # Get stand-in for galaxy order 0
+            gal_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/NIS_gal_order0.npy')
+            if verbose:
+                print('Fetching {} galaxy trace from {}'.format(aperture, gal_path))
+            trace = np.load(gal_path)
 
     return trace
 
