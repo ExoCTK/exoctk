@@ -700,9 +700,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
-    # Get order 0
-    order0 = get_order0(aperture.AperName) * 1.5e8 # Scaling factor based on observations
-
     # Get trace masks
     trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
 
@@ -725,6 +722,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
 
         # Add all orders to the same frame (if it is a STAR)
         else:
+
+            # Get correct order 0
+            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'], verbose=verbose) * 1.5e3  # Scaling factor based on observations
 
             # Scale the order 0 image and add it to the starframe
             scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
@@ -1197,7 +1197,7 @@ def contam_slider_plot(contam_results, threshold=0.05, plot=False):
     return layout
 
 
-def get_order0(aperture):
+def get_order0(aperture, teff, stype='STAR', verbose=False):
     """Get the order 0 image for the given aperture
 
     Parameters
@@ -1210,15 +1210,34 @@ def get_order0(aperture):
     np.ndarray
         The 2D order 0 image
     """
-    # Get file
-    # TODO: Add order 0 files for other modes
-    filename = 'NIS_order0.npy' if 'NIS' in aperture else 'NIS_order0.npy'
+    if 'DHS' in aperture:
+        trace = np.zeros((50,50))
+    else:
 
-    # Get the path to the trace files
-    trace_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/{filename}')
+        if stype == 'STAR':
 
-    # Make frame
-    trace = np.load(trace_path)
+            # Get the path to the trace files
+            traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/NIS_order0_*.npy')
+
+            # Glob the file names
+            trace_files = glob.glob(traces_path)
+
+            # Get closest Teff
+            teffs = np.array([int(os.path.basename(file).split('_')[-1][:-4]) for file in trace_files])
+            trace_file = trace_files[np.argmin((teffs - teff)**2)]
+            if verbose:
+                print(f'Fetching {aperture} {teffs[np.argmin((teffs - teff)**2)]}K trace from {trace_file}')
+
+            # Make frame
+            trace = np.load(trace_file)
+
+        else:
+
+            # Get stand-in for galaxy order 0
+            gal_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/order0/NIS_gal_order0.npy')
+            if verbose:
+                print('Fetching {} galaxy trace from {}'.format(aperture, gal_path))
+            trace = np.load(gal_path)
 
     return trace
 
