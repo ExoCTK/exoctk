@@ -65,9 +65,9 @@
     	{% if contam_plot %}
             <hr>
             {% if pa_val == -1 %}
-    		    <h3>Target Contamination for all Position Angles at Epoch={{ epoch }}</h3>
+    		    <h3>Target Contamination for all Position Angles at Epoch={{ form.epoch.data }}</h3>
             {% else %}
-                <h3> Target Contamination for PA={{ pa_val }} at Epoch={{ epoch }}</h3>
+                <h3> Target Contamination for PA={{ pa_val }} at Epoch={{ form.epoch.data }}</h3>
             {% endif %}
             <br>
             <!-- <p><img src="data:image/png;base64,{{ contam_plot | safe }}" alt="contam" width='1000px'></p> -->
@@ -119,10 +119,19 @@
 
             	<br>
 
-                <form action="/contam_visibility">
-                    <p><input class="btn btn-success" type="submit" value="Try Another Target" target="_blank"></p>
+                <form method="post" action="{{ url_for('contam_visibility') }}">
+                    {{ form.hidden_tag() }}
+                    {% for field in form %}
+                        {% if field.type != 'CSRFTokenField' and field.name != 'submit' %}
+                            <input type="hidden" name="{{ field.name }}" value="{{ field.data }}">
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success">Back and Edit</button>
                 </form>
 
+                <form action="{{ url_for('contam_visibility') }}">
+                    <p><input class="btn btn-primary" type="submit" value="Try a Different Target" target="_blank"></p>
+                </form>
             </body>
 
 {% endblock %}
