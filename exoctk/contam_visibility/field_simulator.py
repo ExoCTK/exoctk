@@ -8,6 +8,7 @@ from copy import copy
 from functools import partial
 import glob
 from multiprocessing import pool, cpu_count, set_start_method
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
 import re
 import json
@@ -135,12 +136,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                                       [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
                                                       [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
                                                       [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
-                                                      [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
-             'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.835, 5.084], 'trim': [0, 1, 1250, 1]},
-             'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
+                                                      [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]}}
 
 DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
@@ -562,7 +558,8 @@ def classify_source(row, verbose=False):
     return stype
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False, logging=True, POM=False):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=False, logging=True, source_cutoff=0.001,
+              plot_order0s=True, source_links=True, POM=False):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -582,6 +579,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         Print statements
     POM: bool
         Show the pick off mirror footprint in the plot
+    source_cutoff: float
+        The cutoff value for a contaminant 'fluxscale' value (ignores very faint contaminants)
+    plot_order0s: bool
+        Add order 0 traces to the contamination plot
+    source_links: bool
+        Make all traces clickable (used for debugging)
 
     Returns
     -------
@@ -752,7 +755,11 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     # Adding frames together
     simframes = [tframe + starframe for tframe in targframes]
     simframe = np.sum(targframes, axis=0) + starframe
-    pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
+    pctframes = []
+    for sframe in simframes:
+        pctfrm = np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe))
+        pctframes.append(pctfrm)
+    # pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
     pctlines = []
     for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
         masked = pframe * mask
@@ -897,9 +904,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         for n in which_traces:
             line = rfig.line('x', f'pct_{n}', color=colors[n], source=copy(rsource))
             legend_items.append(LegendItem(label=trace_names[n], renderers=[line]))
-            glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
+            glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.1)
             rfig.add_glyph(copy(rsource), glyph)
-        rfig.y_range = Range1d
+        rfig.y_range = Range1d(0, 1)
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
 
@@ -926,6 +933,15 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         return result, gp
 
     return result
+
+
+def _calc_v3pa_worker(v3pa, stars_template, aperture):
+    """
+    Worker function: each process gets its own copy of stars and shared aperture.
+    extra_kwargs: dict of extra arguments to calc_v3pa
+    """
+    stars = copy.deepcopy(stars_template)
+    return calc_v3pa(V3PA=v3pa, stars=stars, aperture=aperture)
 
 
 def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
@@ -1055,15 +1071,16 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # The slings and arrows of outrageous list comprehensions,
     # Or to take arms against a sea of troubles,
     # And by multiprocessing end them?
+    results = []
     if multi:
-        pl = pool.ThreadPool(n_jobs)
-        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False, logging=False)
-        results = pl.map(func, goodPA_list)
-        pl.close()
-        pl.join()
+
+        func = partial(_calc_v3pa_worker, stars_template=stars, aperture=aperture)
+
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            for res in pool.map(func, goodPA_list):
+                results.append(res)
 
     else:
-        results = []
         for pa in goodPA_list:
             result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False, logging=False)
             results.append(result)
