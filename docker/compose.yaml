@@ -8,12 +8,12 @@ services:
       context: ..
       dockerfile: ./docker/exoctk/Dockerfile
       args:
-        - exoctk_version=celery
+        - exoctk_version=patch_celery
         - python_version=3.11
         - exoctk_data=$EXOCTK_DATA
         - has_exo=$HAS_EXO
-        - exoctk_repo=york-stsci/exoctk
-        - dev_source=copy
+        - exoctk_repo=exoctk/exoctk
+        - dev_source=clone
     entrypoint: /exoctk/exoctk_entrypoint.sh
     volumes:
       - exoctk_data:/exoctk/exoctk_data
