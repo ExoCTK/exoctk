@@ -9,9 +9,11 @@ from functools import partial
 import glob
 from multiprocessing import pool, cpu_count
 import os
+import pickle
 import re
 import time
 from pkg_resources import resource_filename
+import uuid
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -658,7 +660,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
     pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
 
-    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': FOVstars, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
+    result_id = f"uuid.uuid4()"
+    result_table = os.path.join(os.environ["SHARED_DATA_DIR"], f"{result_id}.pickle")
+    with open(result_table, "wb") as f:
+        pickle.dump(FOVstars, f)
+
+    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': result_table, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
     if plot:
 

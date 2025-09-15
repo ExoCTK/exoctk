@@ -8,4 +8,4 @@ done
 # run flask
 # flask --app app_exoctk run
 
-python /exoctk/exoctk/exoctk/exoctk_app/exoctk_app.py
+python /exoctk/exoctk/exoctk/exoctk_app/app_exoctk.py
