@@ -42,6 +42,10 @@ WORKDIR /exoctk
 # Install very specific versions of packages
 RUN pip install svo-filters==0.4.4
 
+# Install queue-management software
+RUN pip install redis
+RUN pip install rq
+
 ARG exoctk_repo
 
 # Clone the repository (if the environment is set to do that)
