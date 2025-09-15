@@ -1,5 +1,3 @@
-include:
-   - redis.yaml
 services:
   exoctk:
     build:
