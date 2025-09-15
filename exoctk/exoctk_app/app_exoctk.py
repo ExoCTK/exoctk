@@ -1,11 +1,17 @@
+import csv
 from functools import wraps
+import glob
 import io
 import json
+import logging
 import os
+import pickle
 import sys
 from pkg_resources import resource_filename
+import uuid
 
 from astropy.coordinates import SkyCoord
+from astropy.io import ascii, fits
 import astropy.table as at
 from astropy.time import Time
 import astropy.units as u
@@ -13,10 +19,10 @@ from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
 from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app
-import form_validation as fv
 import numpy as np
 
 from exoctk import log_exoctk
+from exoctk.exoctk_app import form_validation as fv
 from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
@@ -31,6 +37,53 @@ from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from celery import Celery
 
+# Set up numpy array serialization over JSON
+from kombu.utils.json import register_type
+from kombu.serialization import dumps, loads
+
+def serialize_np_array(in_array):
+    out_list = in_array.tolist()
+    return out_list
+
+def de_serialize_np_array(in_list):
+    out_array = np.array(in_list)
+    return out_array
+
+register_type(
+    np.ndarray,
+    'numpy_array',
+    serialize_np_array,
+    de_serialize_np_array
+)
+
+register_type(
+    np.int64,
+    'numpy_int64',
+    lambda o: int(o),
+    lambda o: np.int64(o)
+)
+
+def serialize_table(in_table):
+    with io.StringIO() as f:
+        in_table.write(f, format='ascii.ecsv')
+        f.seek(0)
+        out_str = f.read()
+    return(out_str)
+
+def de_serialize_table(in_string):
+    out_table = at.Table.read(in_string, format='ascii.ecsv')
+    return out_table
+
+register_type(
+    at.Table,
+    'astropy_table',
+    serialize_table,
+    de_serialize_table
+)
+
+# Increase the CSV field size limit, because we have some amazingly huge tables here
+csv.field_size_limit(sys.maxsize)
+
 # FLASK SET UP
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 app_exoctk = Flask(__name__)
@@ -40,8 +93,8 @@ app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 # Configure Celery
-app_exoctk.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
-app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
+app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://redis:6379/0'
 
 # Initialize Celery
 celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
@@ -374,11 +427,58 @@ def pa_contam():
 # Long-running Celery task
 @celery.task
 def run_contam_visibility_task(params):
-    # Long-running logic
-    targframe, starcube, results = fs.field_simulation(**params)
-    print(f"Processed with params: {params}")
+    serializer = params["serializer"]
+    del params["serializer"]
+    file_methods = {
+        "json": "wt",
+        "pickle": "wb"
+    }
+    file_method = file_methods[serializer]
+    file_params = {
+        'json': {"encoding": "utf-8"},
+        'pickle': {}
+    }
+    file_param = file_params[serializer]
 
-    return targframe, starcube, results
+    # Long-running logic
+    task_uuid = f"{uuid.uuid4()}"
+    params['out_name'] = task_uuid
+    targframe, starcube, results = fs.field_simulation(**params)
+
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+    print("Serializing targframe")
+    with open(targframe_file, file_method, **file_param) as f:
+        pickle.dump(targframe, f)
+    print(f"Wrote targframe to {targframe_file}")
+
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+    print("Serializing starcube")
+    with open(starcube_file, file_method, **file_param) as f:
+        pickle.dump(starcube, f)
+    print(f"Wrote starcube to {starcube_file}")
+
+#     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
+#     print("Serializing results")
+#     content_type, content_encoding, serialized_data = dumps(
+#         results, serializer=serializer
+#     )
+#     print(f"Writing results file with {content_type} {content_encoding}")
+#     with open(results_file, file_method, **file_param) as f:
+#         f.write(serialized_data)
+#     print(f"Wrote results to {results_file}")
+
+    for i, result in enumerate(results):
+        print(f"Saving Result {i+1}")
+        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.{serializer}')
+        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
+        print(f"Serializing result {i+1}")
+        with open(results_file, file_method, **file_param) as f:
+            pickle.dump(result, f)
+        print(f"Wrote results to {results_file}")
+
+    print(f"Processed with params: {params}, uuid {task_uuid}")
+
+    return task_uuid, len(results)
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
@@ -424,6 +524,11 @@ def contam_visibility():
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
+    logger = logging.getLogger("exoctk")
+    display_stream = logging.StreamHandler(sys.stdout)
+    logger.addHandler(display_stream)
+    logger.setLevel(logging.INFO)
+    display_stream.setLevel(logging.INFO)
 
     if request.method == 'GET':
 
@@ -535,12 +640,69 @@ def contam_visibility():
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
                     # Make field simulation
-                    params = {'ra': ra_deg, 'dec': dec_deg, 'aperture': form.inst.data, 'target_date': form.epoch.data, 'multi': False}
+                    serializer = 'pickle'
+                    encoders = {
+                        'json': 'utf-8',
+                        'pickle': 'binary'
+                    }
+                    encoder = encoders[serializer]
+                    file_types = {
+                        'json': 't',
+                        'pickle': 'b'
+                    }
+                    file_method = f"r{file_types[serializer]}"
+                    params = {
+                        'ra': ra_deg,
+                        'dec': dec_deg,
+                        'aperture': form.inst.data,
+                        'target_date': form.epoch.data,
+                        'multi': False,
+                        'serializer': serializer,
+                        'out_dir': os.environ['SHARED_DATA_DIR']
+                    }
                     if companion is not None:
                         params['binComp'] = companion
                     # targframe, starcube, results = run_contam_visibility_task.apply_async(params)
                     task_result = run_contam_visibility_task.apply_async(args=[params])
-                    targframe, starcube, results = task_result.get()
+                    print(f"Dispatched task {task_result}")
+                    task_uuid, n_results = task_result.get()
+                    print(f"Got task result {task_uuid}, {n_results}")
+
+                    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+                    print(f"Loading {targframe_file}")
+                    with open(targframe_file, file_method) as f:
+                        targframe = pickle.load(f)
+                    print("Loaded targframe")
+                    os.remove(targframe_file)
+
+                    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+                    print(f"Loading {starcube_file}")
+                    with open(starcube_file, file_method) as f:
+                        starcube = pickle.load(f)
+                    print("Loaded starcube")
+                    os.remove(starcube_file)
+
+#                     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
+#                     print(f"Loading {results_file}")
+#                     with open(results_file, file_method) as f:
+#                         results = loads(f.read(), serializer, encoder)
+#                     print("Loaded results")
+#                     os.remove(results_file)
+
+                    results = []
+                    for idx in range(n_results):
+                        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.{serializer}')
+                        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
+                        print(f"Loading {results_file}")
+                        sys.stdout.flush()
+                        with open(results_file, file_method) as f:
+                            print("File Loaded")
+                            sys.stdout.flush()
+                            result = pickle.load(f)
+                        os.remove(results_file)
+                        print("Appending result to results list")
+                        sys.stdout.flush()
+                        results.append(result)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
