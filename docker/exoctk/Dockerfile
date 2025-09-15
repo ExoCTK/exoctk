@@ -73,8 +73,8 @@ EXPOSE 5000
 WORKDIR /exoctk
 COPY ./docker/exoctk/exoctk_entrypoint.sh exoctk_entrypoint.sh
 RUN chmod +x exoctk_entrypoint.sh
-COPY ./docker/exoctk/worker_entrypoint.sh worker_entrypoint.sh
-RUN chmod +x worker_entrypoint.sh
+# COPY ./docker/exoctk/worker_entrypoint.sh worker_entrypoint.sh
+# RUN chmod +x worker_entrypoint.sh
 
 # Run exoctk
 WORKDIR /exoctk/exoctk/exoctk
