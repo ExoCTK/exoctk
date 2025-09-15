@@ -699,11 +699,13 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
     pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
     pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
 
-    fov_table = os.path.join(out_dir, f"{out_name}_sources_{out_num}.pickle")
-    with open(fov_table, "wb") as f:
-        pickle.dump(FOVstars, f)
+#    fov_table = os.path.join(out_dir, f"{out_name}_sources_{out_num}.pickle")
+#    with open(fov_table, "wb") as f:
+#        pickle.dump(FOVstars, f)
+#
+#    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': fov_table, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
-    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': fov_table, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
+    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
     if plot:
 
