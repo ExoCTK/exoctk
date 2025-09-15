@@ -93,8 +93,8 @@ app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 # Configure Celery
-app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:8800/0'
-app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://redis:8800/0'
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
+app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://redis:6379/0'
 
 # Initialize Celery
 celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
