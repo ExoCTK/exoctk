@@ -3,8 +3,6 @@ import io
 import json
 import os
 from pkg_resources import resource_filename
-import redis
-from rq import push_connection, pop_connection, Queue
 import tempfile
 from datetime import datetime
 
@@ -39,10 +37,6 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
-app_exoctk.config['REDIS_URL'] = 'redis://redis:6379/0'
-app_exoctk.config['QUEUES'] = ['default']
-
-redis_url = app.config['REDIS_URL']
 
 
 # Load the database to log all form submissions
@@ -347,35 +341,6 @@ def pa_contam():
 
     """
     return render_template('pa_contam.html')
-
-
-@rq.job(queue="default")
-def _field_simulator(ra, dec, inst, date, comp):
-    """
-    Dispatch the contamination visibility task using RQ, and return the task information.
-    """
-    # Make field simulation
-    targframe, starcube, results = fs.field_simulation(
-        ra, dec, inst, target_date=date, binComp=comp, plot=False, multi=False
-    )
-    return targframe, starcube, results
-
-
-@app_exoctk.route('/status/<job_id>')
-def job_status(job_id):
-    job = rq.
-    q = Queue()
-    job = q.fetch_job(job_id)
-    if job is None:
-        response = {'status': 'unknown'}
-    else:
-        response = {
-            'status': job.get_status(),
-            'result': job.result,
-        }
-        if job.is_failed:
-            response['message'] = job.exc_info.strip().split('\n')[-1]
-    return jsonify(response)
 
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
