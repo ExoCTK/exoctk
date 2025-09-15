@@ -69,7 +69,13 @@ FROM ${dev_source} AS final
 # Set up the port that exoctk will listen on
 EXPOSE 5000
 
-# Run exoctk
+# Add the entrypoint scripts
 WORKDIR /exoctk
-# CMD ["tail", "-f", "/dev/null"]
-CMD ["python", "/exoctk/exoctk/exoctk/exoctk_app/app_exoctk.py"]
+COPY ./docker/exoctk/exoctk_entrypoint.sh exoctk_entrypoint.sh
+RUN chmod +x exoctk_entrypoint.sh
+COPY ./docker/exoctk/worker_entrypoint.sh worker_entrypoint.sh
+RUN chmod +x worker_entrypoint.sh
+
+# Run exoctk
+WORKDIR /exoctk/exoctk/exoctk
+CMD ["tail", "-f", "/dev/null"]
