@@ -7,7 +7,7 @@ A module to calculate the contamination and visibility of a target on a JWST det
 from copy import copy
 from functools import partial
 import glob
-from multiprocessing import pool, cpu_count
+import logging
 import os
 import pickle
 import re
@@ -41,6 +41,8 @@ import erfa
 from ..utils import get_env_variables, check_for_data
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 Vizier.columns = ["**", "+_r"]
 Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
@@ -204,26 +206,26 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     # Search Gaia for stars
     if catalog == 'Gaia':
 
-        if verbose:
-            print('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
+        logging.info(f'Searching Gaia Catalog to find all stars within {width} of RA={ra}, Dec={dec}...')
 
         stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
 
-        # Perform XMatch between Gaia and SDSS DR16
-        xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
-
         try:
+            # Perform XMatch between Gaia and SDSS DR16
+            xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
+
             # Join Gaia results with XMatch results based on source_id
             merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
             # Extract SDSS DR16 source types from XMatch results
             stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
 
-        except ValueError:
-            pass
+        except Exception as e:
+            logging.exception(e)
 
-        # Or infer galaxy from parallax
-        stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
+            # Or infer galaxy from parallax
+            logging.info("Setting star type via parallax")
+            stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
 
         # Derived from K. Volk
         stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
@@ -466,13 +468,11 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
     targframe, starframe
         The frame containing the target trace and a frame containing all contaminating star traces
     """
-    if verbose:
-        print("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
+    logging.info(f"Checking PA={V3PA} with {len(stars['ra'])} stars in the vicinity")
 
     if isinstance(aperture, str):
 
-        if verbose:
-            print("Getting aperture info from pysiaf...")
+        logging.info("Getting aperture info from pysiaf...")
 
         # Aperture names
         if aperture not in APERTURES:
@@ -517,8 +517,7 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
     attitude = pysiaf.utils.rotations.attitude_matrix(stars['xtel'][0], stars['ytel'][0], stars['ra'][0], stars['dec'][0], APA)
 
     # Get relative coordinates of the stars based on target attitude
-    if verbose:
-        print("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
+    logging.info(f"Getting star locations for {len(stars)} stars at PA={APA} from pysiaf...")
 
     for idx, star in enumerate(stars[1:]):
 
@@ -554,8 +553,7 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['Teff_str'] = ['---' if t == 'GALAXY' else str(int(i)) for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
 
-    if verbose:
-        print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
+    logging.info(f"Calculating contamination from {len(FOVstars) - 1} other sources in the FOV")
 
     # Make frame for the target and a frame for all the other stars
     targframe_o1 = np.zeros((subY, subX))
@@ -663,8 +661,7 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
             t0y = dimy - (f1y - f0y) if f0y == aper['subarr_y'][0] else 0
             t1y = f1y - f0y if f1y == aper['subarr_y'][2] else dimy
 
-            if verbose:
-                print("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
+            logging.info(f"{t1y - t0y} x {t1x - t0x} pixels of star {idx} trace fall on {aperture.AperName}")
 
             # Add each order to it's own frame
             if idx == 0:
@@ -933,8 +930,7 @@ def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
 
     # Instantiate a pySIAF object
-    if verbose:
-        print('Getting info from pysiaf for {} aperture...'.format(aperture))
+    logging.info(f'Getting info from pysiaf for {aperture} aperture...')
 
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     inst = APERTURES[aperture]
@@ -990,9 +986,8 @@ def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_
     # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
-    if verbose:
-        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
-        start = time.time()
+    logging.info(f'Calculating target contamination from {len(stars)} neighboring sources in position angle ranges {good_group_bounds}...')
+    start = time.time()
 
     # Calculate contamination of all stars at each PA
     # -----------------------------------------------
@@ -1001,19 +996,11 @@ def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_
     # The slings and arrows of outrageous list comprehensions,
     # Or to take arms against a sea of troubles,
     # And by multiprocessing end them?
-    if multi:
-        pl = pool.ThreadPool(n_jobs)
-        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-        results = pl.map(func, goodPA_list)
-        pl.close()
-        pl.join()
-
-    else:
-        results = []
-        for i, pa in enumerate(goodPA_list):
-            print(f"Calculating result {i+1} of {len(goodPA_list)}")
-            result = calc_v3pa(pa, out_name, out_dir, i, stars=stars, aperture=aper, plot=False, verbose=False)
-            results.append(result)
+    results = []
+    for i, pa in enumerate(goodPA_list):
+        logging.info(f"Calculating result {i+1} of {len(goodPA_list)}")
+        result = calc_v3pa(pa, out_name, out_dir, i, stars=stars, aperture=aper, plot=False, verbose=False)
+        results.append(result)
 
     # We only need one target frame frames
     targframe_o1 = np.asarray(results[0]['target_o1'])
@@ -1028,8 +1015,7 @@ def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_
     for result in results:
         starcube[result['pa'], :, :] = result['contaminants']
 
-    if verbose:
-        print('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
+    logging.info(f'Contamination calculation complete: {round(time.time() - start, 3)}s')
 
     # Make contam plot
     if plot:
@@ -1211,8 +1197,7 @@ def get_trace(aperture, teff, stype, verbose=False):
     # Get closest Teff
     teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
     file = trace_files[np.argmin((teffs - teff)**2)]
-    if verbose:
-        print('Fetching {} {}K trace from {}'.format(aperture, teff, file))
+    logging.info(f'Fetching {aperture} {teff}K trace from {file}')
 
     # Get data
     if 'NIS' in aperture:

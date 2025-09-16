@@ -59,7 +59,7 @@ services:
       - redis
       - exoctk
     deploy:
-      replicas: 5
+      replicas: $WORKER_COUNT
     restart: unless-stopped
 volumes:
   exoctk_data:
