@@ -8,12 +8,10 @@ services:
       context: ..
       dockerfile: ./docker/exoctk/Dockerfile
       args:
-        - exoctk_version=patch_celery
-        - python_version=3.11
-        - exoctk_data=$EXOCTK_DATA
-        - has_exo=$HAS_EXO
-        - exoctk_repo=exoctk/exoctk
-        - dev_source=clone
+        - exoctk_version=$EXO_VERSION
+        - python_version=$PYTHON_VERSION
+        - exoctk_repo=$EXO_REPO
+        - dev_source=$EXO_SOURCE
     entrypoint: /exoctk/exoctk_entrypoint.sh
     volumes:
       - exoctk_data:/exoctk/exoctk_data
@@ -45,12 +43,10 @@ services:
       context: ..
       dockerfile: ./docker/exoctk/Dockerfile
       args:
-        - exoctk_version=patch_celery
-        - python_version=3.11
-        - exoctk_data=$EXOCTK_DATA
-        - has_exo=$HAS_EXO
-        - exoctk_repo=exoctk/exoctk
-        - dev_source=clone
+        - exoctk_version=$EXO_VERSION
+        - python_version=$PYTHON_VERSION
+        - exoctk_repo=$EXO_REPO
+        - dev_source=$EXO_SOURCE
     entrypoint: /exoctk/worker_entrypoint.sh
     volumes:
       - exoctk_data:/exoctk/exoctk_data
