@@ -976,6 +976,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
+    start = time.time()
     logging.info(f"Calculating target contamination from {len(stars)} neighboring sources in position angle ranges {good_group_bounds}...")
     results = []
     for i, pa in enumerate(goodPA_list):
