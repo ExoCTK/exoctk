@@ -100,6 +100,10 @@ app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://redis:6379/0'
 celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
                 backend=app_exoctk.config['CELERY_RESULT_BACKEND'])
 celery.conf.update(app_exoctk.config)
+celery.conf.task_serializer = 'pickle'
+celery.conf.result_serializer = 'pickle'
+celery.conf.event_serializer = 'pickle'
+celery.conf.accept_content = ['pickle', 'application/json', 'application/x-python-serialize']
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
