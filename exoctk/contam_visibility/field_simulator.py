@@ -984,25 +984,29 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         results.append(result)
 
     # We only need one target frame frames
+    logging.info("Combining target frames")
     targframe_o1 = np.asarray(results[0]['target_o1'])
     targframe_o2 = np.asarray(results[0]['target_o2'])
     targframe_o3 = np.asarray(results[0]['target_o3'])
     targframe = [targframe_o1, targframe_o2, targframe_o3]
 
     # Make sure starcube is of shape (PA, rows, cols)
+    logging.info("Reshaping starcube")
     starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
 
     # Make the contamination plot
+    logging.info("Creating contamination plot")
     for result in results:
         starcube[result['pa'], :, :] = result['contaminants']
 
-    if verbose:
-        print('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
+    logging.info(f'Contamination calculation complete: {round(time.time() - start, 3)}s')
 
     # Make contam plot
     if plot:
+        logging.info("Creating plot")
         contam_slider_plot(results, plot=plot)
 
+    logging.info("Returning from field simulation")
     return targframe, starcube, results
 
 
