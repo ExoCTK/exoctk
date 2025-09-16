@@ -94,11 +94,14 @@ app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
 
 # Configure Celery
 app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
-app_exoctk.config['CELERY_RESULT_BACKEND'] = 'redis://redis:6379/0'
+app_exoctk.config['RESULT_BACKEND'] = 'redis://redis:6379/0'
 
 # Initialize Celery
-celery = Celery(app_exoctk.import_name, broker=app_exoctk.config['CELERY_BROKER_URL'],
-                backend=app_exoctk.config['CELERY_RESULT_BACKEND'])
+celery = Celery(
+    app_exoctk.import_name,
+    broker=app_exoctk.config['CELERY_BROKER_URL'],
+    backend=app_exoctk.config['RESULT_BACKEND']
+)
 celery.conf.update(app_exoctk.config)
 celery.conf.task_serializer = 'pickle'
 celery.conf.result_serializer = 'pickle'
