@@ -45,6 +45,7 @@ RUN pip install svo-filters==0.4.4
 # Install redis and celery
 RUN pip install redis
 RUN pip install celery
+RUN pip install gunicorn
 
 ARG exoctk_repo
 
