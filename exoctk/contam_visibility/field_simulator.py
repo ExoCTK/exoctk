@@ -166,20 +166,43 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     astropy.table.Table
         The table of stars
     """
-    # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
+    logging.info("Finding all stars")
+    try:
+        # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc
+        # (point-source catalog)
+        logging.info("Running SkyCoord")
+        unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg)
+        targetcrd = crd.SkyCoord(
+            ra=ra, dec=dec, unit=unit
+        )
+    except Exception as e:
+        logging.exception(e)
 
     # Search Gaia for stars
     if catalog == 'Gaia':
 
-        if verbose:
-            print('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
-
-        stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
+        logging.info(f'Searching {catalog} Catalog to find all stars within {width} of RA={ra}, Dec={dec}...')
+        try:
+            stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
+        except Exception as e:
+            logging.exception(e)
 
         # Perform XMatch between Gaia and SDSS DR16
-        xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
+        logging.info("Performing XMatch between Gaia and SDSS DR16")
+        try:
+            xmatch_result = XMatch.query(
+                cat1=stars,
+                cat2='vizier:V/154/sdss16',
+                max_distance=2 * u.arcsec,
+                colRA1='ra',
+                colDec1='dec',
+                colRA2='RA_ICRS',
+                colDec2='DE_ICRS'
+            )
+        except Exception as e:
+            logging.exception(e)
 
+        logging.info("Merging GAIA with XMatch on sourceid")
         try:
             # Join Gaia results with XMatch results based on source_id
             merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
@@ -187,8 +210,8 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
             # Extract SDSS DR16 source types from XMatch results
             stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
 
-        except ValueError:
-            pass
+        except ValueError as e:
+            logging.exception(e)
 
         # Or infer galaxy from parallax
         stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
