@@ -393,8 +393,8 @@ def pa_contam():
 def run_contam_visibility_task(params):
     # Long-running logic
     task_uuid = f"{uuid.uuid4()}"
-    form = params['form']
-    del params['form']
+    targname = params['targname']
+    del params['targname']
     targframe, starcube, results = fs.field_simulation(**params)
 
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
@@ -420,7 +420,7 @@ def run_contam_visibility_task(params):
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
 
-    return task_uuid, len(results), form
+    return task_uuid, len(results), aperture, targname
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
@@ -456,7 +456,7 @@ def task_status(task_id):
 @app_exoctk.route('/contam_result/<task_id>')
 def contam_result(task_id):
     task_result = run_contam_visibility_task.AsyncResult(task_id)
-    task_uuid, n_results, form = task_result.get()
+    task_uuid, n_results, aperture, targname = task_result.get()
     print(f"Got task result {task_uuid}, {n_results}")
 
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
@@ -495,11 +495,11 @@ def contam_result(task_id):
     badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
 
     # Make old contam plot
-    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
+    starCube = np.zeros((362, 2048, 96 if aperture=='NIS_SUBSTRIP96' else 256))
     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
     starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
     starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+    contam_plot = cf.contam(starCube, aperture, targetName=targname, badPAs=badPAs)
 
     # Get scripts
     contam_js = INLINE.render_js()
@@ -507,7 +507,7 @@ def contam_result(task_id):
     contam_script, contam_div = components(contam_plot)
 
     return render_template('contam_visibility_results.html',
-                           form=form, vis_plot=vis_div,
+                           aperture=aperture, targname=targname, vis_plot=vis_div,
                            vis_table=vis_table,
                            vis_script=vis_script, vis_js=vis_js,
                            vis_css=vis_css, contam_plot=contam_div,
@@ -649,7 +649,7 @@ def contam_visibility():
                         'dec': dec_deg,
                         'aperture': form.inst.data,
                         'target_date': form.epoch.data,
-                        'form': form,
+                        'targname': form.targname.data,
                         'multi': False,
                     }
                     if companion is not None:
