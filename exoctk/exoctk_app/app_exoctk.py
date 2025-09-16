@@ -393,6 +393,7 @@ def pa_contam():
 def run_contam_visibility_task(params):
     # Long-running logic
     task_uuid = f"{uuid.uuid4()}"
+    aperture = params['aperture']
     targname = params['targname']
     del params['targname']
     targframe, starcube, results = fs.field_simulation(**params)
@@ -727,7 +728,8 @@ def contam_visibility():
                 contam_script = contam_div = contam_js = contam_css = pa_val = ''
 
             return render_template('contam_visibility_results.html',
-                                   form=form, vis_plot=vis_div,
+                                   aperture=form.inst.data, targname=form.targname.data,
+                                   vis_plot=vis_div,
                                    vis_table=vis_table,
                                    vis_script=vis_script, vis_js=vis_js,
                                    vis_css=vis_css, contam_plot=contam_div,
