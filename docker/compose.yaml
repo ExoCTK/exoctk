@@ -81,4 +81,8 @@ volumes:
          o: bind
          device: $PYSYN_CDBS
   shared_data:
-      external: false
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $EXO_TMP

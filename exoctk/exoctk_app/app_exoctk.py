@@ -103,10 +103,6 @@ celery = Celery(
     backend=app_exoctk.config['RESULT_BACKEND']
 )
 celery.conf.update(app_exoctk.config)
-celery.conf.task_serializer = 'pickle'
-celery.conf.result_serializer = 'pickle'
-celery.conf.event_serializer = 'pickle'
-celery.conf.accept_content = ['pickle', 'application/json', 'application/x-python-serialize']
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -452,42 +448,40 @@ def run_contam_visibility_task(params):
     params['out_name'] = task_uuid
     targframe, starcube, results = fs.field_simulation(**params)
 
-    return targframe, starcube, results
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+    print("Serializing targframe")
+    with open(targframe_file, file_method, **file_param) as f:
+        pickle.dump(targframe, f)
+    print(f"Wrote targframe to {targframe_file}")
 
-#     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
-#     print("Serializing targframe")
-#     with open(targframe_file, file_method, **file_param) as f:
-#         pickle.dump(targframe, f)
-#     print(f"Wrote targframe to {targframe_file}")
-# 
-#     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
-#     print("Serializing starcube")
-#     with open(starcube_file, file_method, **file_param) as f:
-#         pickle.dump(starcube, f)
-#     print(f"Wrote starcube to {starcube_file}")
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+    print("Serializing starcube")
+    with open(starcube_file, file_method, **file_param) as f:
+        pickle.dump(starcube, f)
+    print(f"Wrote starcube to {starcube_file}")
 
-#     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
-#     print("Serializing results")
-#     content_type, content_encoding, serialized_data = dumps(
-#         results, serializer=serializer
-#     )
-#     print(f"Writing results file with {content_type} {content_encoding}")
-#     with open(results_file, file_method, **file_param) as f:
-#         f.write(serialized_data)
-#     print(f"Wrote results to {results_file}")
+    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
+    print("Serializing results")
+    content_type, content_encoding, serialized_data = dumps(
+        results, serializer=serializer
+    )
+    print(f"Writing results file with {content_type} {content_encoding}")
+    with open(results_file, file_method, **file_param) as f:
+        f.write(serialized_data)
+    print(f"Wrote results to {results_file}")
 
-#     for i, result in enumerate(results):
-#         print(f"Saving Result {i+1}")
-#         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.{serializer}')
-#         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
-#         print(f"Serializing result {i+1}")
-#         with open(results_file, file_method, **file_param) as f:
-#             pickle.dump(result, f)
-#         print(f"Wrote results to {results_file}")
-# 
-#     print(f"Processed with params: {params}, uuid {task_uuid}")
+    for i, result in enumerate(results):
+        print(f"Saving Result {i+1}")
+        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.{serializer}')
+        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
+        print(f"Serializing result {i+1}")
+        with open(results_file, file_method, **file_param) as f:
+            pickle.dump(result, f)
+        print(f"Wrote results to {results_file}")
 
-#     return task_uuid, len(results)
+    print(f"Processed with params: {params}, uuid {task_uuid}")
+
+    return task_uuid, len(results)
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
@@ -675,46 +669,44 @@ def contam_visibility():
                     task_result = run_contam_visibility_task.apply_async(args=[params])
                     print(f"Dispatched task {task_result}")
 
-                    targframe, starcube, results = task_result.get()
+                    task_uuid, n_results = task_result.get()
+                    print(f"Got task result {task_uuid}, {n_results}")
 
-#                     task_uuid, n_results = task_result.get()
-#                     print(f"Got task result {task_uuid}, {n_results}")
-# 
-#                     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
-#                     print(f"Loading {targframe_file}")
-#                     with open(targframe_file, file_method) as f:
-#                         targframe = pickle.load(f)
-#                     print("Loaded targframe")
-#                     os.remove(targframe_file)
-# 
-#                     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
-#                     print(f"Loading {starcube_file}")
-#                     with open(starcube_file, file_method) as f:
-#                         starcube = pickle.load(f)
-#                     print("Loaded starcube")
-#                     os.remove(starcube_file)
-# 
-# #                     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
-# #                     print(f"Loading {results_file}")
-# #                     with open(results_file, file_method) as f:
-# #                         results = loads(f.read(), serializer, encoder)
-# #                     print("Loaded results")
-# #                     os.remove(results_file)
-# 
-#                     results = []
-#                     for idx in range(n_results):
-#                         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.{serializer}')
-#                         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
-#                         print(f"Loading {results_file}")
-#                         sys.stdout.flush()
-#                         with open(results_file, file_method) as f:
-#                             print("File Loaded")
-#                             sys.stdout.flush()
-#                             result = pickle.load(f)
-#                         os.remove(results_file)
-#                         print("Appending result to results list")
-#                         sys.stdout.flush()
-#                         results.append(result)
+                    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+                    print(f"Loading {targframe_file}")
+                    with open(targframe_file, file_method) as f:
+                        targframe = pickle.load(f)
+                    print("Loaded targframe")
+                    os.remove(targframe_file)
+
+                    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+                    print(f"Loading {starcube_file}")
+                    with open(starcube_file, file_method) as f:
+                        starcube = pickle.load(f)
+                    print("Loaded starcube")
+                    os.remove(starcube_file)
+
+#                     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
+#                     print(f"Loading {results_file}")
+#                     with open(results_file, file_method) as f:
+#                         results = loads(f.read(), serializer, encoder)
+#                     print("Loaded results")
+#                     os.remove(results_file)
+
+                    results = []
+                    for idx in range(n_results):
+                        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.{serializer}')
+                        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
+                        print(f"Loading {results_file}")
+                        sys.stdout.flush()
+                        with open(results_file, file_method) as f:
+                            print("File Loaded")
+                            sys.stdout.flush()
+                            result = pickle.load(f)
+                        os.remove(results_file)
+                        print("Appending result to results list")
+                        sys.stdout.flush()
+                        results.append(result)
 
                     # Make the plot
                     # contam_plot = fs.contam_slider_plot(results)
