@@ -393,6 +393,8 @@ def pa_contam():
 def run_contam_visibility_task(params):
     # Long-running logic
     task_uuid = f"{uuid.uuid4()}"
+    form = params['form']
+    del params['form']
     targframe, starcube, results = fs.field_simulation(**params)
 
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
@@ -418,7 +420,7 @@ def run_contam_visibility_task(params):
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
 
-    return task_uuid, len(results)
+    return task_uuid, len(results), form
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
@@ -454,7 +456,7 @@ def task_status(task_id):
 @app_exoctk.route('/contam_result/<task_id>')
 def contam_result(task_id):
     task_result = run_contam_visibility_task.AsyncResult(task_id)
-    task_uuid, n_results = task_result.get()
+    task_uuid, n_results, form = task_result.get()
     print(f"Got task result {task_uuid}, {n_results}")
 
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
@@ -647,6 +649,7 @@ def contam_visibility():
                         'dec': dec_deg,
                         'aperture': form.inst.data,
                         'target_date': form.epoch.data,
+                        'form': form,
                         'multi': False,
                     }
                     if companion is not None:
