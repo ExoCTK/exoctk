@@ -20,6 +20,8 @@
                 }
               })
           }
+          
+          poll();
     }
 
     $(document).ready(function(){
@@ -29,6 +31,8 @@
         });
 
         var task_value = $('#task_id').value;
+        console.log("task value is:");
+        console.log(task_value);
         if (task_value != "blank") {
             $('#visibility-form').style = "display: none";
             $('#task-running').style = "display: block";
