@@ -17,7 +17,16 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app, url_for
+from flask import Flask
+from flask import make_response
+from flask import render_template
+from flask import Response
+from flask import request
+from flask import send_file
+from flask import jsonify
+from flask import current_app
+from flask import url_for
+from flask import redirect
 import numpy as np
 
 from exoctk import log_exoctk
@@ -397,16 +406,6 @@ def run_contam_visibility_task(params):
     with open(starcube_file, "wb") as f:
         pickle.dump(starcube, f)
     print(f"Wrote starcube to {starcube_file}")
-
-    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
-    print("Serializing results")
-    content_type, content_encoding, serialized_data = dumps(
-        results, serializer=serializer
-    )
-    print(f"Writing results file with {content_type} {content_encoding}")
-    with open(results_file, file_method, **file_param) as f:
-        f.write(serialized_data)
-    print(f"Wrote results to {results_file}")
 
     for i, result in enumerate(results):
         print(f"Saving Result {i+1}")
