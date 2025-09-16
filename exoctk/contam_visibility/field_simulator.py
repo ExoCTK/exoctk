@@ -419,7 +419,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=905, c0y0=1467,
+def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=905, c0y0=1467,
               c1x0=-0.013, c1y0=-0.1, c1y1=0.12, c1x1=-0.03, c2y1=-0.011, tilt=0, ord0scale=1,
               ord1scale=1, plot=False, verbose=False):
     """
@@ -697,12 +697,6 @@ def calc_v3pa(V3PA, out_name, out_dir, out_num, stars, aperture, data=None, x_sw
     pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
     pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
 
-#    fov_table = os.path.join(out_dir, f"{out_name}_sources_{out_num}.pickle")
-#    with open(fov_table, "wb") as f:
-#        pickle.dump(FOVstars, f)
-#
-#    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': fov_table, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
-
     result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
     if plot:
@@ -889,7 +883,7 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
 
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -1000,7 +994,7 @@ def field_simulation(ra, dec, aperture, out_name, out_dir, binComp=None, target_
     results = []
     for i, pa in enumerate(goodPA_list):
         logging.info(f"Calculating result {i+1} of {len(goodPA_list)}")
-        result = calc_v3pa(pa, out_name, out_dir, i, stars=stars, aperture=aper, plot=False, verbose=False)
+        result = calc_v3pa(pa, i, stars=stars, aperture=aper, plot=False, verbose=False)
         results.append(result)
 
     # We only need one target frame frames
