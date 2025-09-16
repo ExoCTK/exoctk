@@ -386,19 +386,19 @@ def run_contam_visibility_task(params):
     task_uuid = f"{uuid.uuid4()}"
     targframe, starcube, results = fs.field_simulation(**params)
 
-    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
     print("Serializing targframe")
     with open(targframe_file, file_method, **file_param) as f:
         pickle.dump(targframe, f)
     print(f"Wrote targframe to {targframe_file}")
 
-    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
     print("Serializing starcube")
     with open(starcube_file, file_method, **file_param) as f:
         pickle.dump(starcube, f)
     print(f"Wrote starcube to {starcube_file}")
 
-    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.{serializer}')
+    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
     print("Serializing results")
     content_type, content_encoding, serialized_data = dumps(
         results, serializer=serializer
@@ -410,7 +410,7 @@ def run_contam_visibility_task(params):
 
     for i, result in enumerate(results):
         print(f"Saving Result {i+1}")
-        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.{serializer}')
+        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.pickle')
         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
         print(f"Serializing result {i+1}")
         with open(results_file, file_method, **file_param) as f:
@@ -458,14 +458,14 @@ def contam_result(task_id):
     task_uuid, n_results = task_result.get()
     print(f"Got task result {task_uuid}, {n_results}")
 
-    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
     print(f"Loading {targframe_file}")
     with open(targframe_file, file_method) as f:
         targframe = pickle.load(f)
     print("Loaded targframe")
     os.remove(targframe_file)
 
-    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
     print(f"Loading {starcube_file}")
     with open(starcube_file, file_method) as f:
         starcube = pickle.load(f)
@@ -474,7 +474,7 @@ def contam_result(task_id):
 
     results = []
     for idx in range(n_results):
-        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.{serializer}')
+        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle')
         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
         print(f"Loading {results_file}")
         sys.stdout.flush()
@@ -656,19 +656,19 @@ def contam_visibility():
                     task_result = run_contam_visibility_task.apply_async(args=[params])
                     print(f"Dispatched task {task_result} with id {task_result.id}")
 
-                    return url_for(app_exoctk.contam_result, task_id=task_result.id)
+                    return url_for('contam_result', task_id=task_result.id)
 # 
 #                     task_uuid, n_results = task_result.get()
 #                     print(f"Got task result {task_uuid}, {n_results}")
 # 
-#                     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.{serializer}')
+#                     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
 #                     print(f"Loading {targframe_file}")
 #                     with open(targframe_file, file_method) as f:
 #                         targframe = pickle.load(f)
 #                     print("Loaded targframe")
 #                     os.remove(targframe_file)
 # 
-#                     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.{serializer}')
+#                     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
 #                     print(f"Loading {starcube_file}")
 #                     with open(starcube_file, file_method) as f:
 #                         starcube = pickle.load(f)
@@ -677,7 +677,7 @@ def contam_visibility():
 # 
 #                     results = []
 #                     for idx in range(n_results):
-#                         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.{serializer}')
+#                         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle')
 #                         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
 #                         print(f"Loading {results_file}")
 #                         sys.stdout.flush()
