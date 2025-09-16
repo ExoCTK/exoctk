@@ -697,7 +697,6 @@ def contam_visibility():
                         'aperture': form.inst.data,
                         'target_date': form.epoch.data,
                         'multi': False,
-                        'out_dir': os.environ['SHARED_DATA_DIR']
                     }
                     if companion is not None:
                         params['binComp'] = companion
