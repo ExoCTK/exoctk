@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
   $('[data-submenu]').submenupicker();
 
   updateScrollBtnCls();
-  hljs.initHighlighting();
+//  hljs.initHighlighting();
 });
 
 
