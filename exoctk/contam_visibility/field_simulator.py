@@ -188,8 +188,8 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
             logging.exception(e)
 
         # Perform XMatch between Gaia and SDSS DR16
-        logging.info("Performing XMatch between Gaia and SDSS DR16")
         try:
+            logging.info("Performing XMatch between Gaia and SDSS DR16")
             xmatch_result = XMatch.query(
                 cat1=stars,
                 cat2='vizier:V/154/sdss16',
@@ -199,22 +199,20 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
                 colRA2='RA_ICRS',
                 colDec2='DE_ICRS'
             )
-        except Exception as e:
-            logging.exception(e)
 
-        logging.info("Merging GAIA with XMatch on sourceid")
-        try:
             # Join Gaia results with XMatch results based on source_id
+            logging.info("Merging GAIA with XMatch on sourceid")
             merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
             # Extract SDSS DR16 source types from XMatch results
             stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
 
-        except ValueError as e:
+        except Exception as e:
             logging.exception(e)
 
-        # Or infer galaxy from parallax
-        stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
+            # Or infer galaxy from parallax
+            logging.info("Inferring star type from parallax because query match failed.")
+            stars['type'] = ['STAR' if row['parallax'] > 0.5 else 'GALAXY' for row in stars]
 
         # Derived from K. Volk
         stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
