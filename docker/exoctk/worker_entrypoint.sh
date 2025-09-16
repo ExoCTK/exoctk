@@ -6,4 +6,5 @@ do
 done
 
 # run a worker :)
+export C_FORCE_ROOT=1
 celery -A app_exoctk worker --loglevel=info --concurrency 1 -E -Ofair --max-tasks-per-child=1 --prefetch-multiplier 1
