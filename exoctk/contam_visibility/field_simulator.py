@@ -994,7 +994,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     results = []
     for i, pa in enumerate(goodPA_list):
         logging.info(f"Calculating result {i+1} of {len(goodPA_list)}")
-        result = calc_v3pa(pa, i, stars=stars, aperture=aper, plot=False, verbose=False)
+        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
         results.append(result)
 
     # We only need one target frame frames

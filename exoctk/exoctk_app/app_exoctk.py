@@ -1,4 +1,3 @@
-import csv
 from functools import wraps
 import glob
 import io
@@ -18,7 +17,7 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app
+from flask import Flask, make_response, render_template, Response, request, send_file, jsonify, current_app, url_for
 import numpy as np
 
 from exoctk import log_exoctk
@@ -36,53 +35,6 @@ from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overl
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from celery import Celery
-
-# Set up numpy array serialization over JSON
-from kombu.utils.json import register_type
-from kombu.serialization import dumps, loads
-
-def serialize_np_array(in_array):
-    out_list = in_array.tolist()
-    return out_list
-
-def de_serialize_np_array(in_list):
-    out_array = np.array(in_list)
-    return out_array
-
-register_type(
-    np.ndarray,
-    'numpy_array',
-    serialize_np_array,
-    de_serialize_np_array
-)
-
-register_type(
-    np.int64,
-    'numpy_int64',
-    lambda o: int(o),
-    lambda o: np.int64(o)
-)
-
-def serialize_table(in_table):
-    with io.StringIO() as f:
-        in_table.write(f, format='ascii.ecsv')
-        f.seek(0)
-        out_str = f.read()
-    return(out_str)
-
-def de_serialize_table(in_string):
-    out_table = at.Table.read(in_string, format='ascii.ecsv')
-    return out_table
-
-register_type(
-    at.Table,
-    'astropy_table',
-    serialize_table,
-    de_serialize_table
-)
-
-# Increase the CSV field size limit, because we have some amazingly huge tables here
-csv.field_size_limit(sys.maxsize)
 
 # FLASK SET UP
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
