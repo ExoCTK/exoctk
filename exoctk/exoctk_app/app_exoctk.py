@@ -427,94 +427,13 @@ def run_contam_visibility_task(params):
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
 def task_status(task_id):
     task = run_contam_visibility_task.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'current': 0,
-            'total': 1,
-            'status': 'Pending...'
-        }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'current': task.info.get('current', 0),
-            'total': task.info.get('total', 1),
-            'status': task.info.get('status', '')
-        }
-        if 'result' in task.info:
-            response['result'] = task.info['result']
-    else:
-        # something went wrong in the background job
-        response = {
-            'state': task.state,
-            'current': 1,
-            'total': 1,
-            'status': str(task.info),  # this is the exception raised
-        }
-    return jsonify(response)
-
-
-@app_exoctk.route('/contam_result/<task_id>')
-def contam_result(task_id):
-    task_result = run_contam_visibility_task.AsyncResult(task_id)
-    task_uuid, n_results, aperture, targname = task_result.get()
-    print(f"Got task result {task_uuid}, {n_results}")
-
-    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
-    print(f"Loading {targframe_file}")
-    with open(targframe_file, "rb") as f:
-        targframe = pickle.load(f)
-    print("Loaded targframe")
-    os.remove(targframe_file)
-
-    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
-    print(f"Loading {starcube_file}")
-    with open(starcube_file, "rb") as f:
-        starcube = pickle.load(f)
-    print("Loaded starcube")
-    os.remove(starcube_file)
-
-    results = []
-    for idx in range(n_results):
-        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle')
-        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
-        print(f"Loading {results_file}")
-        sys.stdout.flush()
-        with open(results_file, "rb") as f:
-            print("File Loaded")
-            sys.stdout.flush()
-            result = pickle.load(f)
-        os.remove(results_file)
-        print("Appending result to results list")
-        sys.stdout.flush()
-        results.append(result)
-
-    # Make the plot
-    # contam_plot = fs.contam_slider_plot(results)
-
-    # Get bad PA list from missing angles between 0 and 360
-    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
-
-    # Make old contam plot
-    starCube = np.zeros((362, 2048, 96 if aperture=='NIS_SUBSTRIP96' else 256))
-    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-    contam_plot = cf.contam(starCube, aperture, targetName=targname, badPAs=badPAs)
-
-    # Get scripts
-    contam_js = INLINE.render_js()
-    contam_css = INLINE.render_css()
-    contam_script, contam_div = components(contam_plot)
-
-    return render_template('contam_visibility_results.html',
-                           aperture=aperture, targname=targname, vis_plot=vis_div,
-                           vis_table=vis_table,
-                           vis_script=vis_script, vis_js=vis_js,
-                           vis_css=vis_css, contam_plot=contam_div,
-                           contam_script=contam_script,
-                           contam_js=contam_js,
-                           contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+    result = {
+        "ready": result.ready(),
+        "successful": result.successful(),
+        "state": task.state,
+        "value": result.result if result.ready() else None,
+    }
+    return result
 
 
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
@@ -588,6 +507,67 @@ def contam_visibility():
         # Send it back to the main page
         return render_template('contam_visibility.html', form=form)
 
+    # Completed a contamination/visibility task
+    if form.task_submit.data:
+        task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
+        task_uuid, n_results = task_result.get()
+        print(f"Got task result {task_uuid}, {n_results}")
+
+        targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
+        print(f"Loading {targframe_file}")
+        with open(targframe_file, file_method) as f:
+            targframe = pickle.load(f)
+        print("Loaded targframe")
+        os.remove(targframe_file)
+
+        starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
+        print(f"Loading {starcube_file}")
+        with open(starcube_file, file_method) as f:
+            starcube = pickle.load(f)
+        print("Loaded starcube")
+        os.remove(starcube_file)
+
+        results = []
+        for idx in range(n_results):
+            results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle')
+            sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
+            print(f"Loading {results_file}")
+            sys.stdout.flush()
+            with open(results_file, file_method) as f:
+                print("File Loaded")
+                sys.stdout.flush()
+                result = pickle.load(f)
+            os.remove(results_file)
+            print("Appending result to results list")
+            sys.stdout.flush()
+            results.append(result)
+
+        # Get bad PA list from missing angles between 0 and 360
+        badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
+
+        # Make old contam plot
+        starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
+        starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
+        starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
+        starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+        contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+
+        # Get scripts
+        contam_js = INLINE.render_js()
+        contam_css = INLINE.render_css()
+        contam_script, contam_div = components(contam_plot)
+
+        return render_template('contam_visibility_results.html',
+                               form=form,
+                               vis_plot=vis_div,
+                               vis_table=vis_table,
+                               vis_script=vis_script, vis_js=vis_js,
+                               vis_css=vis_css, contam_plot=contam_div,
+                               contam_script=contam_script,
+                               contam_js=contam_js,
+                               contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+        
+
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
         if form.inst.data == "NIRSpec":
@@ -659,7 +639,9 @@ def contam_visibility():
                     task_result = run_contam_visibility_task.apply_async(args=[params])
                     print(f"Dispatched task {task_result} with id {task_result.id}")
 
-                    return redirect(url_for('contam_result', task_id=task_result.id))
+                    form.task_id.data = task_result.id
+
+                    return render_template('contam_visibility.html', form=form)
 # 
 #                     task_uuid, n_results = task_result.get()
 #                     print(f"Got task result {task_uuid}, {n_results}")
