@@ -7,10 +7,12 @@ A module to calculate the contamination and visibility of a target on a JWST det
 from copy import copy
 from functools import partial
 import glob
+import logging
 from multiprocessing import pool, cpu_count
 import os
 import pickle
 import re
+import sys
 import time
 from pkg_resources import resource_filename
 import uuid
@@ -40,6 +42,8 @@ import regions
 from ..utils import get_env_variables, check_for_data
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 Vizier.columns = ["**", "+_r"]
 Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
@@ -887,6 +891,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     ra, dec = 91.872242, -25.594934
     targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
+    logging.info("Running field simulation")
     # Check for contam tool data
     check_for_data('exoctk_contam')
 
@@ -895,9 +900,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
 
     # Instantiate a pySIAF object
-    if verbose:
-        print('Getting info from pysiaf for {} aperture...'.format(aperture))
-
+    logging.info(f"Getting info from pysiaf for aperture {aperture}...")
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     inst = APERTURES[aperture]
     siaf = pysiaf.Siaf(inst['inst'])
@@ -914,26 +917,26 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
+    logging.info("Finding sources near target")
     stars = find_sources(ra, dec, target_date=target_date, verbose=verbose)
 
     # Add stars manually
+    logging.info("Manually adding sources")
     if isinstance(binComp, dict):
         stars = add_source(stars, **binComp)
 
-    # Set the number of cores for multiprocessing
-    max_cores = 8
-    if n_jobs == -1 or n_jobs > max_cores:
-        n_jobs = max_cores
-
     # Get full list from ephemeris
+    logging.info("Getting full list of good PAs from ephemeris")
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
     goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
 
     # Get all observable PAs and convert to ints
+    logging.info("Converting observable PAs to ints")
     goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
     goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
 
     # Group good PAs to find gaps in visibility
+    logging.info("Grouping PAs")
     good_groups = []
     current_group = [goodPA_ints[0]]
     max_gap = 7 # Biggest PA gap considered to still be observable
@@ -952,29 +955,12 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
-    if verbose:
-        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
-        start = time.time()
-
-    # Calculate contamination of all stars at each PA
-    # -----------------------------------------------
-    # To multiprocess, or not to multiprocess. That is the question.
-    # Whether 'tis nobler in the code to suffer
-    # The slings and arrows of outrageous list comprehensions,
-    # Or to take arms against a sea of troubles,
-    # And by multiprocessing end them?
-    if multi:
-        pl = pool.ThreadPool(n_jobs)
-        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-        results = pl.map(func, goodPA_list)
-        pl.close()
-        pl.join()
-
-    else:
-        results = []
-        for pa in goodPA_list:
-            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
-            results.append(result)
+    logging.info(f"Calculating target contamination from {len(stars)} neighboring sources in position angle ranges {good_group_bounds}...")
+    results = []
+    for i, pa in enumerate(goodPA_list):
+        logging.info(f"Calculating pa {i+1} of {len(goodPA_list)}")
+        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
+        results.append(result)
 
     # We only need one target frame frames
     targframe_o1 = np.asarray(results[0]['target_o1'])
