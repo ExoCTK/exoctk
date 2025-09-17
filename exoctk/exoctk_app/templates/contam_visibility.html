@@ -6,16 +6,15 @@
 <script>
     function task_check(task_value) {
           const poll = () => {
-            fetch(`/tasks/result/${task_value}`)
+            fetch(`/status/${task_value}`)
               .then(response => response.json())
               .then(data => {
-                report(data)
-
                 if (!data["ready"]) {
-                  $('#task_status').innerHTML = data["state"];
+                  document.getElementById("task-status").innerHTML = data["state"];
                   setTimeout(poll, 500)
                 } else {
-                  console.log(formName, data);
+                  console.log(data);
+                  document.getElementById("task-status").innerHTML = data["state"];
                   $('#tasksubmit').click();
                 }
               })
@@ -30,19 +29,21 @@
             $('#modesubmit').click();
         });
 
-        var task_value = $('#task_id').value;
+        var task_value = document.getElementById("task_id").value;
         console.log("task value is:");
         console.log(task_value);
-        if (task_value != "blank") {
-            $('#visibility-form').style = "display: none";
-            $('#task-running').style = "display: block";
+        if (task_value !== "blank") {
+            document.getElementById("form-content").hidden = true;
+            document.getElementById("task-running").hidden = false;
             task_check(task_value);
+        } else {
+            document.getElementById("task-running").hidden = true;
         }
 
     });
 </script>
 
-<div class='form-group'>
+<div class='form-group' id="form-content">
 	<h1>Contamination & Visibility Calculator</h1>
     <br>
 
@@ -62,7 +63,7 @@
         <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.</li>
       </ul>
       <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
-    <form id='visibility-form' class='form-horizontal' action="/contam_visibility" method="POST" />
+    <form class='form-horizontal' action="/contam_visibility" method="POST" />
 
         {{ form.hidden_tag() }}
 
@@ -163,9 +164,7 @@
 		</div>
         {{ form.mode_submit(id='modesubmit', style="visibility: hidden;") }}
         {{ form.task_submit(id='tasksubmit', style="visibility: hidden;") }}
-        <div class='task_id' style='visibility: hidden'>
-        {{ form.task_id(size=10, rows=1, class='form-control') }}
-        </div>
+        {{ form.task_id(id='task_id', size=10, rows=1, class='form-control', style="visibility: hidden;") }}
 
         <hr class="col-md-12">
 
@@ -238,9 +237,8 @@
             </div>
         </div>
     </form>
-    <div id="task-running" style="display: none;">
-    <h2>Waiting for calculation as task {{ form.task_id.data }}</h2>
-    <p id="task-status"></p>
+    <div id="task-running">
+    <h1>Calculation is currently: <span id="task-status"></span></h2>
     </div>
 </div>
 

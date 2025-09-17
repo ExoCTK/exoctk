@@ -64,6 +64,7 @@ celery = Celery(
     backend=app_exoctk.config['RESULT_BACKEND']
 )
 celery.conf.update(app_exoctk.config)
+celery.conf['task_track_started'] = True
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -421,18 +422,19 @@ def run_contam_visibility_task(params):
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
 
-    return task_uuid, len(results), aperture, targname
+    return task_uuid, len(results)
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
 def task_status(task_id):
     task = run_contam_visibility_task.AsyncResult(task_id)
     result = {
-        "ready": result.ready(),
-        "successful": result.successful(),
+        "ready": task.ready(),
+        "successful": task.successful(),
         "state": task.state,
-        "value": result.result if result.ready() else None,
+        "value": task.result if task.ready() else None,
     }
+    print(f"Returning result {result}")
     return result
 
 
@@ -509,20 +511,41 @@ def contam_visibility():
 
     # Completed a contamination/visibility task
     if form.task_submit.data:
+        pa_val = float(form.v3pa.data)
+
+        if form.inst.data == "NIRSpec":
+            instrument = form.inst.data
+        else:
+            instrument = fs.APERTURES[form.inst.data]['inst']
+
+        # Make plot
+        title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+        table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+
+        # Make output table
+        vis_table = table.to_csv()
+
+        # Get scripts
+        vis_js = INLINE.render_js()
+        vis_css = INLINE.render_css()
+        vis_script, vis_div = components(vis_plot)
+
+        # Get task output
         task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
         task_uuid, n_results = task_result.get()
         print(f"Got task result {task_uuid}, {n_results}")
 
         targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
         print(f"Loading {targframe_file}")
-        with open(targframe_file, file_method) as f:
+        with open(targframe_file, "rb") as f:
             targframe = pickle.load(f)
         print("Loaded targframe")
         os.remove(targframe_file)
 
         starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
         print(f"Loading {starcube_file}")
-        with open(starcube_file, file_method) as f:
+        with open(starcube_file, "rb") as f:
             starcube = pickle.load(f)
         print("Loaded starcube")
         os.remove(starcube_file)
@@ -533,7 +556,7 @@ def contam_visibility():
             sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
             print(f"Loading {results_file}")
             sys.stdout.flush()
-            with open(results_file, file_method) as f:
+            with open(results_file, "rb") as f:
                 print("File Loaded")
                 sys.stdout.flush()
                 result = pickle.load(f)
