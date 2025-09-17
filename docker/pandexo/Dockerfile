@@ -47,7 +47,7 @@ RUN git clone --recursive https://github.com/natashabatalha/PandExo.git
 WORKDIR /pandexo/PandExo
 RUN git checkout ${pandexo_branch}
 RUN pip install .
-RUN pip install pandeia.engine==${pandeia_version}
+# RUN pip install pandeia.engine==${pandeia_version}
 
 WORKDIR /pandexo
 CMD ["start_pandexo", "--workers=10"]
