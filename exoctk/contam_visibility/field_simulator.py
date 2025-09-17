@@ -139,12 +139,12 @@ def trace_dict(teffs=None):
     teffs = [int(teff) for teff in teffs]
 
     for teff in teffs:
-        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR', verbose=False)
+        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR')
 
     return teff_dict
 
 
-def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), verbose=False, pm_corr=True):
+def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), pm_corr=True):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -160,8 +160,6 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
         The name of the catalog to use, ['2MASS', 'Gaia']
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    verbose: bool
-        Print details
     pm_corr: bool
         Correct source coordinates based on their proper motion
 
@@ -284,7 +282,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     # Update RA and Dec using proper motion data
     if pm_corr:
         for row in stars:
-            new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=target_date, verbose=verbose)
+            new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=target_date)
 
             if not hasattr(new_ra, 'mask'):
                 row['ra'] = new_ra
@@ -311,7 +309,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     return stars
 
 
-def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now(), verbose=False):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
     """
     Get the proper motion corrected coordinates of a source
 
@@ -329,8 +327,6 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
         The epoch of the observation
     target_date: float
         The target epoch
-    verbose: bool
-        Print extra stuff
 
     Returns
     -------
@@ -354,11 +350,6 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
     # Calculate new coordinates
     new_ra = ra + (pm_RA_deg_per_year * dt_years / np.cos(np.deg2rad(dec)))
     new_dec = dec + (pm_Dec_deg_per_year * dt_years)
-
-    # if verbose:
-    #     print(f"delta_T = {dt_years} years")
-    #     print(f'RA: {ra} + {pm_ra} mas/yr => {new_ra}')
-    #     print(f'Dec: {dec} + {pm_dec} mas/yr => {new_dec}')
 
     return new_ra, new_dec
 
@@ -410,7 +401,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
         dec = newcoord.dec.degree
 
     # Get the trace
-    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type, verbose=False)
+    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type)
 
     # Add the row to the table
     startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
@@ -419,9 +410,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=905, c0y0=1467,
-              c1x0=-0.013, c1y0=-0.1, c1y1=0.12, c1x1=-0.03, c2y1=-0.011, tilt=0, ord0scale=1,
-              ord1scale=1, plot=False, verbose=False):
+def calc_v3pa(V3PA, stars, aperture, **kwargs):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -461,8 +450,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         A factor to scale the order 1/2/3 traces by (for testing)
     plot: bool
         Plot the full frame and subarray bounds with all traces
-    verbose: bool
-        Print statements
 
     Returns
     -------
@@ -470,6 +457,20 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         The frame containing the target trace and a frame containing all contaminating star traces
     """
     logging.info(f"Checking PA={V3PA} with {len(stars['ra'])} stars in the vicinity")
+    data = kwargs.get("data", None)
+    x_sweet = kwargs.get("x_sweet", 2885)
+    y_sweet = kwargs.get("y_sweet", 1725)
+    c0x0 = kwargs.get("c0x0", 905)
+    c0y0 = kwargs.get("c0y0", 1467)
+    c1x0 = kwargs.get("c1x0", -0.013)
+    c1y0 = kwargs.get("c1y0", -0.1)
+    c1y1 = kwargs.get("c1y1", 0.12)
+    c1x1 = kwargs.get("c1x1", -0.03)
+    c2y1 = kwargs.get("c2y1", -0.011)
+    tilt = kwargs.get("tilt", 0)
+    ord0scale = kwargs.get("ord0scale", 1)
+    ord1scale = kwargs.get("ord1scale", 1)
+    plot = kwargs.get("plot", False)
 
     if isinstance(aperture, str):
 
@@ -590,9 +591,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
             t1x0 = f1x0 - f0x0 if f1x0 == aper['subarr_x'][1] else dim0x
             t0y0 = dim0y - (f1y0 - f0y0) if f0y0 == aper['subarr_y'][0] else 0
             t1y0 = f1y0 - f0y0 if f1y0 == aper['subarr_y'][2] else dim0y
-
-            # if verbose:
-            #     print("{} x {} pixels of star {} order 0 fall on {}".format(t1y0 - t0y0, t1x0 - t0x0, idx, aperture.AperName))
 
             # Target order 0 is never on the subarray so add all order 0s to the starframe
             starframe[f0y0 - aper['subarr_y'][1]:f1y0 - aper['subarr_y'][1], f0x0 - aper['subarr_x'][1]:f1x0 - aper['subarr_x'][0]] += scale0[t0y0:t1y0, t0x0:t1x0]
@@ -883,7 +881,7 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), plot=False, task=None):
 
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -899,8 +897,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    n_jobs: int
-        Number of cores to use (-1 = All)
 
     Returns
     -------
@@ -943,16 +939,13 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
-    stars = find_sources(ra, dec, target_date=target_date, verbose=verbose)
+    if task is not None:
+        task.update_state(state="RUNNING SOURCE QUERY")
+    stars = find_sources(ra, dec, target_date=target_date)
 
     # Add stars manually
     if isinstance(binComp, dict):
         stars = add_source(stars, **binComp)
-
-    # Set the number of cores for multiprocessing
-    max_cores = 8
-    if n_jobs == -1 or n_jobs > max_cores:
-        n_jobs = max_cores
 
     # Get full list from ephemeris
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
@@ -993,10 +986,14 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # And by multiprocessing end them?
     results = []
     for i, pa in enumerate(goodPA_list):
+        if task is not None:
+            task.update_state(state=f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
         logging.info(f"Calculating result {i+1} of {len(goodPA_list)}")
-        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
+        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
         results.append(result)
 
+    if task is not None:
+        task.update_state(state="FINISHING CALCULATIONS")
     # We only need one target frame frames
     targframe_o1 = np.asarray(results[0]['target_o1'])
     targframe_o2 = np.asarray(results[0]['target_o2'])
@@ -1166,7 +1163,7 @@ def get_order0(aperture):
     return trace
 
 
-def get_trace(aperture, teff, stype, verbose=False):
+def get_trace(aperture, teff, stype):
     """Get the trace for the given aperture at the given temperature
 
     Parameters

@@ -28,9 +28,6 @@ services:
         - pandexo_version=3.0.0
         - python_version=3.11
         - pandeia_version=2025.7
-        - has_exo=$HAS_EXO
-        - has_pandeia=$HAS_PANDEIA
-        - has_syn=$HAS_SYN
     volumes:
       - exoctk_data:/data/exoctk
       - pandeia_data:/data/pandeia

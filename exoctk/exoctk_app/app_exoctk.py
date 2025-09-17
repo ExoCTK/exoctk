@@ -390,21 +390,21 @@ def pa_contam():
 
 
 # Long-running Celery task
-@celery.task
-def run_contam_visibility_task(params):
+@celery.task(bind=True)
+def run_contam_visibility_task(self, params):
     # Long-running logic
-    task_uuid = f"{uuid.uuid4()}"
-    aperture = params['aperture']
-    targname = params['targname']
-    del params['targname']
+    task_uuid = f"{self.request.id}"
+    params["task"] = self
     targframe, starcube, results = fs.field_simulation(**params)
 
+    self.update_state(state="SAVING TARGET FRAME")
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
     print("Serializing targframe")
     with open(targframe_file, "wb") as f:
         pickle.dump(targframe, f)
     print(f"Wrote targframe to {targframe_file}")
 
+    self.update_state(state="SAVING STAR CUBE")
     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
     print("Serializing starcube")
     with open(starcube_file, "wb") as f:
@@ -412,6 +412,7 @@ def run_contam_visibility_task(params):
     print(f"Wrote starcube to {starcube_file}")
 
     for i, result in enumerate(results):
+        self.update_state(state=f"SAVING RESULT {i+1} OF {len(results)}")
         print(f"Saving Result {i+1}")
         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.pickle')
         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
@@ -653,63 +654,15 @@ def contam_visibility():
                         'dec': dec_deg,
                         'aperture': form.inst.data,
                         'target_date': form.epoch.data,
-                        'targname': form.targname.data,
-                        'multi': False,
                     }
                     if companion is not None:
                         params['binComp'] = companion
-                    # targframe, starcube, results = run_contam_visibility_task.apply_async(params)
                     task_result = run_contam_visibility_task.apply_async(args=[params])
                     print(f"Dispatched task {task_result} with id {task_result.id}")
 
                     form.task_id.data = task_result.id
 
                     return render_template('contam_visibility.html', form=form)
-# 
-#                     task_uuid, n_results = task_result.get()
-#                     print(f"Got task result {task_uuid}, {n_results}")
-# 
-#                     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
-#                     print(f"Loading {targframe_file}")
-#                     with open(targframe_file, file_method) as f:
-#                         targframe = pickle.load(f)
-#                     print("Loaded targframe")
-#                     os.remove(targframe_file)
-# 
-#                     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
-#                     print(f"Loading {starcube_file}")
-#                     with open(starcube_file, file_method) as f:
-#                         starcube = pickle.load(f)
-#                     print("Loaded starcube")
-#                     os.remove(starcube_file)
-# 
-#                     results = []
-#                     for idx in range(n_results):
-#                         results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle')
-#                         sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{idx}.pickle')
-#                         print(f"Loading {results_file}")
-#                         sys.stdout.flush()
-#                         with open(results_file, file_method) as f:
-#                             print("File Loaded")
-#                             sys.stdout.flush()
-#                             result = pickle.load(f)
-#                         os.remove(results_file)
-#                         print("Appending result to results list")
-#                         sys.stdout.flush()
-#                         results.append(result)
-# 
-#                     # Make the plot
-#                     # contam_plot = fs.contam_slider_plot(results)
-# 
-#                     # Get bad PA list from missing angles between 0 and 360
-#                     badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
-# 
-#                     # Make old contam plot
-#                     starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-#                     starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-#                     starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-#                     starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-#                     contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
 
                 else:
 
