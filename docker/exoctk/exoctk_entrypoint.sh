@@ -1,11 +1,12 @@
 #!/bin/sh
 
-until cd /exoctk/exoctk/exoctk/exoctk_app
+until cd /exoctk/exoctk/
 do
     echo "Waiting for server volume..."
 done
 
 # run flask
-flask --app app_exoctk run
+# flask --app app_exoctk run
 
-# python /exoctk/exoctk/exoctk/exoctk_app/exoctk_app.py
+# run gunicorn
+gunicorn -b 0.0.0.0:5000 --log-level debug 'exoctk.exoctk_app.app_exoctk:app_exoctk'

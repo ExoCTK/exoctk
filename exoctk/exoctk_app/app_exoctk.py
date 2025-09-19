@@ -45,6 +45,8 @@ from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from celery import Celery
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # FLASK SET UP
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 app_exoctk = Flask(__name__)
@@ -140,8 +142,7 @@ def fortney():
 
     input_args = _param_fort_validation(args)
     fig, fh, temp_out = fortney_grid(input_args)
-
-    table_string = fh.getvalue()
+    logging.info(f"Table (as ASCII string) has length {len(fh.getvalue())}")
 
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
@@ -154,7 +155,7 @@ def fortney():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  temp=sorted(temp_out, key=float),
-                                 table_string=table_string
+                                 table_string=json.dumps(input_args)
                                  )
 
     # Log the form inputs
@@ -437,11 +438,6 @@ def contam_visibility():
     # Load default form
     form = fv.ContamVisForm()
     form.calculate_contam_submit.disabled = False
-    logger = logging.getLogger("exoctk")
-    display_stream = logging.StreamHandler(sys.stdout)
-    logger.addHandler(display_stream)
-    logger.setLevel(logging.INFO)
-    display_stream.setLevel(logging.INFO)
 
     if request.method == 'GET':
 
@@ -1086,8 +1082,14 @@ def save_contam_pdf():
 def save_fortney_result():
     """Save the results of the Fortney grid"""
 
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
+    input_json = flask.request.form['data_file']
+    logging.info(f"Form input is: {input_json}")
+    with io.StringIO(input_json) as fs:
+        fs.seek(0)
+        input_args = json.load(fs)
+    logging.info(f"JSON loaded as {input_args}")
+    fig, fh, temp_out = fortney_grid(input_args)
+    return flask.Response(fh.getvalue(), mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
 
 
 @app_exoctk.route('/generic_result', methods=['POST'])

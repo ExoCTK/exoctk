@@ -152,7 +152,7 @@
 
 <div>
     <form action="/fortney_result" method="post">
-        <input type="hidden" name="data_file" value="{{ table_string }}" />
+        <textarea name="data_file" style="display: none">{{ table_string }}</textarea>
         <input class="btn btn-primary" type='submit' value='Save File'></p>
     </form>
 </div>

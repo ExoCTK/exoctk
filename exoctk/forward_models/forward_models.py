@@ -144,6 +144,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
     tab = at.Table(data=[x, y])
     fh = io.StringIO()
     tab.write(fh, format='ascii.no_header')
+    print(f"Written table is {fh.tell()} characters long")
 
     if write_table:
         tab.write('fortney.dat', format='ascii.no_header')
