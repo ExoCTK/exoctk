@@ -1,9 +1,13 @@
+from celery import Celery
 from functools import wraps
 import io
 import json
+import logging
 import os
+import pickle
 from pkg_resources import resource_filename
 import tempfile
+import time
 from datetime import datetime
 
 from astropy.coordinates import SkyCoord
@@ -31,12 +35,27 @@ from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overl
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # FLASK SET UP
 app_exoctk = Flask(__name__)
 
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
+
+# Configure Celery
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
+app_exoctk.config['RESULT_BACKEND'] = 'redis://redis:6379/0'
+
+# Initialize Celery
+celery = Celery(
+    app_exoctk.import_name,
+    broker=app_exoctk.config['CELERY_BROKER_URL'],
+    backend=app_exoctk.config['RESULT_BACKEND']
+)
+celery.conf.update(app_exoctk.config)
+celery.conf['task_track_started'] = True
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -122,7 +141,7 @@ def fortney():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  temp=sorted(temp_out, key=float),
-                                 table_string=table_string
+                                 table_string=json.dumps(input_args)
                                  )
 
     # Log the form inputs
@@ -342,6 +361,56 @@ def pa_contam():
     return render_template('pa_contam.html')
 
 
+# Long-running Celery task
+@celery.task(bind=True)
+def run_contam_visibility_task(self, params):
+    # Long-running logic
+    task_uuid = f"{self.request.id}"
+    params["task"] = self
+    targframe, starcube, results = fs.field_simulation(**params)
+
+    self.update_state(state="SAVING TARGET FRAME")
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
+    print("Serializing targframe")
+    with open(targframe_file, "wb") as f:
+        pickle.dump(targframe, f)
+    print(f"Wrote targframe to {targframe_file}")
+
+    self.update_state(state="SAVING STAR CUBE")
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
+    print("Serializing starcube")
+    with open(starcube_file, "wb") as f:
+        pickle.dump(starcube, f)
+    print(f"Wrote starcube to {starcube_file}")
+
+    for i, result in enumerate(results):
+        self.update_state(state=f"SAVING RESULT {i+1} OF {len(results)}")
+        print(f"Saving Result {i+1}")
+        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.pickle')
+        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
+        print(f"Serializing result {i+1}")
+        with open(results_file, "wb") as f:
+            pickle.dump(result, f)
+        print(f"Wrote results to {results_file}")
+
+    print(f"Processed with params: {params}, uuid {task_uuid}")
+
+    return task_uuid, len(results)
+
+# Route to check task status
+@app_exoctk.route('/status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = run_contam_visibility_task.AsyncResult(task_id)
+    result = {
+        "ready": task.ready(),
+        "successful": task.successful(),
+        "state": task.state,
+        "value": task.result if task.ready() else None,
+    }
+    print(f"Returning result {result}")
+    return result
+
+
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
@@ -465,21 +534,19 @@ def contam_visibility():
                     if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
                         companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
-                    # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
+                    params = {
+                        'ra': ra_deg,
+                        'dec': dec_deg,
+                        'aperture': form.inst.data,
+                        'target_date': form.epoch.data,
+                    }
+                    if companion is not None:
+                        params['binComp'] = companion
+                    task_result = run_contam_visibility_task.apply_async(args=[params])
+                    logging.info(f"Dispatched task {task_result} with id {task_result.id}")
+                    form.task_id.data = task_result.id
 
-                    # Make the plot
-                    # contam_plot = fs.contam_slider_plot(results)
-
-                    # Get bad PA list from missing angles between 0 and 360
-                    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
-
-                    # Make old contam plot
-                    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+                    return render_template('contam_visibility.html', form=form)
 
                 else:
 
@@ -511,9 +578,94 @@ def contam_visibility():
                                    contam_js=contam_js,
                                    contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
 
-        except Exception as e:
-            err = 'The following error occurred: ' + str(e)
-            return render_template('groups_integrations_error.html', err=err)
+    if form.task_submit.data:
+
+        if form.inst.data == "NIRSpec":
+            instrument = form.inst.data
+        else:
+            instrument = fs.APERTURES[form.inst.data]['inst']
+
+        # Make plot
+        title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+        table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+
+        # Make output table
+        vis_table = table.to_csv()
+
+        # Get scripts
+        vis_js = INLINE.render_js()
+        vis_css = INLINE.render_css()
+        vis_script, vis_div = components(vis_plot)
+
+        # Get PA value
+        pa_val = float(form.v3pa.data)
+
+        # Get task output
+        task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
+        task_uuid, n_results = task_result.get()
+        logging.info(f"Got task result {task_uuid}, {n_results}")
+
+        targframe_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
+        )
+        logging.info(f"Loading {targframe_file}")
+        with open(targframe_file, "rb") as f:
+            targframe = pickle.load(f)
+        logging.info("Loaded targframe")
+        os.remove(targframe_file)
+
+        starcube_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
+        )
+        logging.info(f"Loading {starcube_file}")
+        with open(starcube_file, "rb") as f:
+            starcube = pickle.load(f)
+        logging.info("Loaded starcube")
+        os.remove(starcube_file)
+
+        results = []
+        for idx in range(n_results):
+            results_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle'
+            )
+            logging.info(f"Loading {results_file}")
+            with open(results_file, "rb") as f:
+                result = pickle.load(f)
+            logging.info("File Loaded")
+            os.remove(results_file)
+            results.append(result)
+
+        # Get bad PA list from missing angles between 0 and 360
+        badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
+
+        # Make old contam plot
+        starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
+        starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
+        starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
+        starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+        contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+
+        # Get scripts
+        contam_js = INLINE.render_js()
+        contam_css = INLINE.render_css()
+        contam_script, contam_div = components(contam_plot)
+
+        return render_template(
+            'contam_visibility_results.html',
+            form=form,
+            vis_plot=vis_div,
+            vis_table=vis_table,
+            vis_script=vis_script,
+            vis_js=vis_js,
+            vis_css=vis_css,
+            contam_plot=contam_div,
+            contam_script=contam_script,
+            contam_js=contam_js,
+            contam_css=contam_css,
+            pa_val=pa_val,
+            epoch=form.epoch.data
+        )
 
     return render_template('contam_visibility.html', form=form)
 
@@ -930,8 +1082,19 @@ def save_contam_pdf():
 def save_fortney_result():
     """Save the results of the Fortney grid"""
 
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
+    input_json = flask.request.form['data_file']
+    logging.info(f"Form input is: {input_json}")
+    with io.StringIO(input_json) as fs:
+        fs.seek(0)
+        input_args = json.load(fs)
+    logging.info(f"JSON loaded as {input_args}")
+    fig, fh, temp_out = fortney_grid(input_args)
+    fortney_data = flask.Response(
+        fh.getvalue(),
+        mimetype="text/dat",
+        headers={"Content-disposition": "attachment; filename=fortney.dat"}
+    )
+    return fortney_data
 
 
 @app_exoctk.route('/generic_result', methods=['POST'])
