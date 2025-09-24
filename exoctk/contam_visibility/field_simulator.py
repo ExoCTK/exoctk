@@ -928,6 +928,13 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), pl
     logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
     start = time.time()
 
+#     result = {
+#         'target': targframe_o1 + targframe_o2 + targframe_o3, 
+#         'order1_contam': pctline_o1, 
+#         'order2_contam': pctline_o2, 
+#         'order3_contam': pctline_o3
+#     }
+
     # Calculate contamination of all stars at each PA
     # -----------------------------------------------
     # To multiprocess, or not to multiprocess. That is the question.
@@ -940,21 +947,19 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), pl
         update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
         logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
         result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
-        results.append(result)
-    update_task(task, "FINISHING CALCULATIONS")
 
-    # We only need one target frame frames
-    targframe_o1 = np.asarray(results[0]['target_o1'])
-    targframe_o2 = np.asarray(results[0]['target_o2'])
-    targframe_o3 = np.asarray(results[0]['target_o3'])
-    targframe = [targframe_o1, targframe_o2, targframe_o3]
+        if i == 0:
+            # Only need one set of target frames
+            targframe_o1 = np.asarray(result['target_o1'])
+            targframe_o2 = np.asarray(result['target_o2'])
+            targframe_o3 = np.asarray(result['target_o3'])
+            targframe = [targframe_o1, targframe_o2, targframe_o3]
+            starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
 
-    # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
-
-    # Make the contamination plot
-    for result in results:
+        # Make the contamination plot
         starcube[result['pa'], :, :] = result['contaminants']
+
+        results.append({'pa': result['pa']})
 
     logging.info('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
