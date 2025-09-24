@@ -830,7 +830,7 @@ def plot_traces(star_table, fig, color='red'):
 
 def update_task(task, new_state):
     if task is not None:
-        task.update_state(state="RUNNING SOURCE QUERY")
+        task.update_state(state=new_state)
 
 
 def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), plot=False, task=None):
@@ -848,8 +848,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), pl
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    n_jobs: int
-        Number of cores to use (-1 = All)
 
     Returns
     -------
@@ -899,11 +897,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), pl
     # Add stars manually
     if isinstance(binComp, dict):
         stars = add_source(stars, **binComp)
-
-    # Set the number of cores for multiprocessing
-    max_cores = 8
-    if n_jobs == -1 or n_jobs > max_cores:
-        n_jobs = max_cores
 
     # Get full list from ephemeris
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')

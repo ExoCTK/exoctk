@@ -1,4 +1,5 @@
 from celery import Celery
+from datetime import datetime
 from functools import wraps
 import io
 import json
@@ -9,7 +10,7 @@ from pkg_resources import resource_filename
 import sys
 import tempfile
 import time
-from datetime import datetime
+import uuid
 
 from astropy.coordinates import SkyCoord
 import astropy.table as at
@@ -494,7 +495,9 @@ def contam_visibility():
         table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
         # Make output table
-        vis_table = table.to_csv()
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4().csv}")
+        with open(vis_table_file, "wt") as f:
+            f.write(table.to_csv())
 
         # Get scripts
         vis_js = INLINE.render_js()
@@ -571,7 +574,7 @@ def contam_visibility():
 
         return render_template('contam_visibility_results.html',
                                form=form, vis_plot=vis_div,
-                               vis_table=vis_table,
+                               vis_table=vis_table_file,
                                vis_script=vis_script, vis_js=vis_js,
                                vis_css=vis_css, contam_plot=contam_div,
                                contam_script=contam_script,
@@ -591,7 +594,9 @@ def contam_visibility():
         table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
         # Make output table
-        vis_table = table.to_csv()
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4().csv}")
+        with open(vis_table_file, "wt") as f:
+            f.write(table.to_csv())
 
         # Get scripts
         vis_js = INLINE.render_js()
@@ -655,7 +660,7 @@ def contam_visibility():
             'contam_visibility_results.html',
             form=form,
             vis_plot=vis_div,
-            vis_table=vis_table,
+            vis_table=vis_table_file,
             vis_script=vis_script,
             vis_js=vis_js,
             vis_css=vis_css,
@@ -1140,7 +1145,9 @@ def save_visib_result():
         flask.Response object with the results of the visibility only
         calculation.
     """
-    visib_table = request.form['vis_table']
+    visib_table_file = request.form['vis_table']
+    with open(visib_table_file, "rt") as f:
+        visib_table = f.read()
     targname = request.form['targetname']
     targname = targname.replace(' ', '_')  # no spaces
     instname = request.form['instrumentname']
