@@ -358,31 +358,29 @@ def run_contam_visibility_task(self, params):
 
     self.update_state(state="SAVING TARGET FRAME")
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
-    print("Serializing targframe")
+    logging.info("Serializing targframe")
     with open(targframe_file, "wb") as f:
         pickle.dump(targframe, f)
-    print(f"Wrote targframe to {targframe_file}")
+    logging.info(f"Wrote targframe to {targframe_file}")
 
     self.update_state(state="SAVING STAR CUBE")
     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
-    print("Serializing starcube")
+    logging.info("Serializing starcube")
     with open(starcube_file, "wb") as f:
         pickle.dump(starcube, f)
-    print(f"Wrote starcube to {starcube_file}")
+    logging.info(f"Wrote starcube to {starcube_file}")
 
-    for i, result in enumerate(results):
-        self.update_state(state=f"SAVING RESULT {i+1} OF {len(results)}")
-        print(f"Saving Result {i+1}")
-        results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{i}.pickle')
-        sources_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources_{i}.fits')
-        print(f"Serializing result {i+1}")
-        with open(results_file, "wb") as f:
-            pickle.dump(result, f)
-        print(f"Wrote results to {results_file}")
+    pa_results = [result['pa'] for result in results]
+    logging.info("Serializing results")
+    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
+    with open(results_file, "wb") as f:
+        pickle.dump(pa_results, f)
+    logging.info(f"Wrote results to {results_file}")
 
-    print(f"Processed with params: {params}, uuid {task_uuid}")
+    logging.info(f"Processed with params: {params}, uuid {task_uuid}")
 
-    return task_uuid, len(results)
+    return task_uuid
+
 
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
@@ -593,8 +591,8 @@ def contam_visibility():
 
         # Get task output
         task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
-        task_uuid, n_results = task_result.get()
-        logging.info(f"Got task result {task_uuid}, {n_results}")
+        task_uuid = task_result.get()
+        logging.info(f"Got task result {task_uuid}")
 
         targframe_file = os.path.join(
             os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
@@ -614,20 +612,17 @@ def contam_visibility():
         logging.info("Loaded starcube")
         os.remove(starcube_file)
 
-        results = []
-        for idx in range(n_results):
-            results_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results_{idx}.pickle'
-            )
-            logging.info(f"Loading {results_file}")
-            with open(results_file, "rb") as f:
-                result = pickle.load(f)
-            logging.info("File Loaded")
-            os.remove(results_file)
-            results.append(result)
+        results_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
+        )
+        logging.info(f"Loading {results_file}")
+        with open(results_file, "rb") as f:
+            results = pickle.load(f)
+        logging.info("Loaded results")
+        os.remove(results_file)
 
         # Get bad PA list from missing angles between 0 and 360
-        badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
+        badPAs = [j for j in np.arange(0, 360) if j not in results]
 
         # Make old contam plot
         starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
