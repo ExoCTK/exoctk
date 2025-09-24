@@ -98,21 +98,6 @@ def _param_fort_validation(args):
     return input_args
 
 
-def check_auth(username, password):
-    """This function is called to check if a username password
-    combination is valid
-
-    Parameters
-    ----------
-    username: str
-        The username
-    password: str
-        The password
-    """
-
-    return username == 'admin' and password == 'secret'
-
-
 @app_exoctk.route('/fortney', methods=['GET', 'POST'])
 def fortney():
     """
@@ -1041,30 +1026,6 @@ def phase_constraint(transit_type='primary'):
     return render_template('phase_constraint.html', form=form)
 
 
-def requires_auth(page):
-    """Requires authentication for a page before loading
-
-    Parameters
-    ----------
-    page: function
-        The function that sets a route
-
-    Returns
-    -------
-    function
-        The decorated route
-    """
-
-    @wraps(page)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return page(*args, **kwargs)
-
-    return decorated
-
-
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
     """Save the results of the Contamination Science FOV
@@ -1157,42 +1118,6 @@ def save_visib_result():
     resp.headers["Content-Type"] = "text/csv"
 
     return resp
-
-
-@app_exoctk.route('/admin')
-@requires_auth
-def secret_page():
-    """Shhhhh! This is a secret page of admin stuff
-
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the admin page.
-    """
-    # Reload the DB when this page loads so the data is current
-    DB = log_exoctk.load_db(DBPATH)
-
-    tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
-
-    log_tables = []
-    for table in tables:
-
-        try:
-            data = log_exoctk.view_log(DB, table)
-
-            # Add the results to the lists
-            html_table = '\n'.join(data.pformat(max_width=500, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-
-        except Exception:
-            html_table = '<p>No data to display</p>'
-
-        # Add the table title
-        header = '<h3>{}</h3>'.format(table)
-        html_table = header + html_table
-
-        log_tables.append(html_table)
-
-    return render_template('admin_page.html', tables=log_tables)
 
 
 if __name__ == '__main__':
