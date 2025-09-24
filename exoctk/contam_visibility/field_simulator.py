@@ -11,6 +11,7 @@ import logging
 from multiprocessing import pool, cpu_count
 import os
 import re
+import sys
 import time
 from pkg_resources import resource_filename
 

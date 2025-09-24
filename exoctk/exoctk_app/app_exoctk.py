@@ -6,6 +6,7 @@ import logging
 import os
 import pickle
 from pkg_resources import resource_filename
+import sys
 import tempfile
 import time
 from datetime import datetime
@@ -18,7 +19,6 @@ from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
 from flask import Flask, make_response, render_template, Response, request, send_file, session
-import form_validation as fv
 import numpy as np
 
 from exoctk import log_exoctk
@@ -26,6 +26,7 @@ from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exo
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
+from exoctk.exoctk_app import form_validation as fv
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
@@ -484,99 +485,98 @@ def contam_visibility():
         else:
             instrument = fs.APERTURES[form.inst.data]['inst']
 
-        try:
-            # Log the form inputs
-            log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+        # Log the form inputs
+        log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
-            # Make plot
-            title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
-            table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+        # Make plot
+        title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+        table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
-            # Make output table
-            vis_table = table.to_csv()
+        # Make output table
+        vis_table = table.to_csv()
 
-            # Get scripts
-            vis_js = INLINE.render_js()
-            vis_css = INLINE.render_css()
-            vis_script, vis_div = components(vis_plot)
+        # Get scripts
+        vis_js = INLINE.render_js()
+        vis_css = INLINE.render_css()
+        vis_script, vis_div = components(vis_plot)
 
-            # Contamination plot too
-            if form.calculate_contam_submit.data:
+        # Contamination plot too
+        if form.calculate_contam_submit.data:
 
-                # Get RA and Dec in degrees
-                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+            # Get RA and Dec in degrees
+            ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
 
-                # Add companion
-                try:
-                    comp_teff = float(form.teff.data)
-                except TypeError:
-                    comp_teff = None
-                try:
-                    comp_mag = float(form.delta_mag.data)
-                except TypeError:
-                    comp_mag = None
-                try:
-                    comp_dist = float(form.dist.data)
-                except TypeError:
-                    comp_dist = None
-                try:
-                    comp_pa = float(form.pa.data)
-                except TypeError:
-                    comp_pa = None
+            # Add companion
+            try:
+                comp_teff = float(form.teff.data)
+            except TypeError:
+                comp_teff = None
+            try:
+                comp_mag = float(form.delta_mag.data)
+            except TypeError:
+                comp_mag = None
+            try:
+                comp_dist = float(form.dist.data)
+            except TypeError:
+                comp_dist = None
+            try:
+                comp_pa = float(form.pa.data)
+            except TypeError:
+                comp_pa = None
 
-                # Get PA value
-                pa_val = float(form.v3pa.data)
-                if pa_val == -1:
+            # Get PA value
+            pa_val = float(form.v3pa.data)
+            if pa_val == -1:
 
-                    # Add a companion
-                    companion = None
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
+                # Add a companion
+                companion = None
+                if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                    companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
-                    params = {
-                        'ra': ra_deg,
-                        'dec': dec_deg,
-                        'aperture': form.inst.data,
-                        'target_date': form.epoch.data,
-                    }
-                    if companion is not None:
-                        params['binComp'] = companion
-                    task_result = run_contam_visibility_task.apply_async(args=[params])
-                    logging.info(f"Dispatched task {task_result} with id {task_result.id}")
-                    form.task_id.data = task_result.id
+                params = {
+                    'ra': ra_deg,
+                    'dec': dec_deg,
+                    'aperture': form.inst.data,
+                    'target_date': form.epoch.data,
+                }
+                if companion is not None:
+                    params['binComp'] = companion
+                task_result = run_contam_visibility_task.apply_async(args=[params])
+                logging.info(f"Dispatched task {task_result} with id {task_result.id}")
+                form.task_id.data = task_result.id
 
-                    return render_template('contam_visibility.html', form=form)
-
-                else:
-
-                    # Get stars
-                    stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
-
-                    # Add companion
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
-
-                    # Calculate contam
-                    result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True, verbose=False)
-
-                # Get scripts
-                contam_js = INLINE.render_js()
-                contam_css = INLINE.render_css()
-                contam_script, contam_div = components(contam_plot)
+                return render_template('contam_visibility.html', form=form)
 
             else:
 
-                contam_script = contam_div = contam_js = contam_css = pa_val = ''
+                # Get stars
+                stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data)
 
-            return render_template('contam_visibility_results.html',
-                                   form=form, vis_plot=vis_div,
-                                   vis_table=vis_table,
-                                   vis_script=vis_script, vis_js=vis_js,
-                                   vis_css=vis_css, contam_plot=contam_div,
-                                   contam_script=contam_script,
-                                   contam_js=contam_js,
-                                   contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+                # Add companion
+                if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                    stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
+
+                # Calculate contam
+                result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
+
+        else:
+
+            contam_script = contam_div = contam_js = contam_css = pa_val = ''
+
+        return render_template('contam_visibility_results.html',
+                               form=form, vis_plot=vis_div,
+                               vis_table=vis_table,
+                               vis_script=vis_script, vis_js=vis_js,
+                               vis_css=vis_css, contam_plot=contam_div,
+                               contam_script=contam_script,
+                               contam_js=contam_js,
+                               contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
 
     if form.task_submit.data:
 
