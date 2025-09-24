@@ -480,7 +480,7 @@ def contam_visibility():
         table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
         # Make output table
-        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4().csv}")
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4()}.csv")
         with open(vis_table_file, "wt") as f:
             f.write(table.to_csv())
 
@@ -579,7 +579,7 @@ def contam_visibility():
         table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
         # Make output table
-        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4().csv}")
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4()}.csv")
         with open(vis_table_file, "wt") as f:
             f.write(table.to_csv())
 
