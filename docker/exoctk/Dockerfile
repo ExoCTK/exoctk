@@ -60,6 +60,16 @@ WORKDIR /exoctk/exoctk
 RUN git checkout $EXOCTK_VERSION
 RUN pip install -e .
 
+# Clone the repository from a detached-head release (if set to do that)
+FROM base AS release
+
+# Clone exoctk repository
+WORKDIR /exoctk
+RUN git clone https://github.com/${exoctk_repo}
+WORKDIR /exoctk/exoctk
+RUN git checkout $EXOCTK_VERSION
+RUN pip install -e .
+
 # Copy the local repository (if the environment is set to do that)
 FROM base AS copy
 
