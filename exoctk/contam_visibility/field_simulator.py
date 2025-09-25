@@ -7,9 +7,11 @@ A module to calculate the contamination and visibility of a target on a JWST det
 from copy import copy
 from functools import partial
 import glob
+import logging
 from multiprocessing import pool, cpu_count
 import os
 import re
+import sys
 import time
 from pkg_resources import resource_filename
 
@@ -38,6 +40,8 @@ import regions
 from ..utils import get_env_variables, check_for_data
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .contamination_figure import contam
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 Vizier.columns = ["**", "+_r"]
 Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
@@ -129,12 +133,12 @@ def trace_dict(teffs=None):
     teffs = [int(teff) for teff in teffs]
 
     for teff in teffs:
-        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR', verbose=False)
+        teff_dict[teff] = get_trace('NIS_SUBSTRIP256', teff, 'STAR')
 
     return teff_dict
 
 
-def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), verbose=False, pm_corr=True):
+def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), pm_corr=True):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -150,8 +154,6 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
         The name of the catalog to use, ['2MASS', 'Gaia']
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    verbose: bool
-        Print details
     pm_corr: bool
         Correct source coordinates based on their proper motion
 
@@ -166,8 +168,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     # Search Gaia for stars
     if catalog == 'Gaia':
 
-        if verbose:
-            print('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
+        logging.info('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
 
         stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
 
@@ -240,7 +241,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     # Update RA and Dec using proper motion data
     if pm_corr:
         for row in stars:
-            new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=target_date, verbose=verbose)
+            new_ra, new_dec = calculate_current_coordinates(row['ra'], row['dec'], row['pmra'], row['pmdec'], row['ref_epoch'], target_date=target_date)
 
             if not hasattr(new_ra, 'mask'):
                 row['ra'] = new_ra
@@ -267,7 +268,7 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
     return stars
 
 
-def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now(), verbose=False):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
     """
     Get the proper motion corrected coordinates of a source
 
@@ -285,8 +286,6 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
         The epoch of the observation
     target_date: float
         The target epoch
-    verbose: bool
-        Print extra stuff
 
     Returns
     -------
@@ -310,11 +309,6 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
     # Calculate new coordinates
     new_ra = ra + (pm_RA_deg_per_year * dt_years / np.cos(np.deg2rad(dec)))
     new_dec = dec + (pm_Dec_deg_per_year * dt_years)
-
-    # if verbose:
-    #     print(f"delta_T = {dt_years} years")
-    #     print(f'RA: {ra} + {pm_ra} mas/yr => {new_ra}')
-    #     print(f'Dec: {dec} + {pm_dec} mas/yr => {new_dec}')
 
     return new_ra, new_dec
 
@@ -366,7 +360,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
         dec = newcoord.dec.degree
 
     # Get the trace
-    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type, verbose=False)
+    trace = get_trace('NIS_SUBSTRIP256', teff or 2300, type)
 
     # Add the row to the table
     startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist, 'trace_o1': trace[0], 'trace_o2': trace[1], 'trace_o3': trace[2]})
@@ -377,7 +371,7 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
 
 def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0=905, c0y0=1467,
               c1x0=-0.013, c1y0=-0.1, c1y1=0.12, c1x1=-0.03, c2y1=-0.011, tilt=0, ord0scale=1,
-              ord1scale=1, plot=False, verbose=False):
+              ord1scale=1, plot=False):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -417,21 +411,17 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
         A factor to scale the order 1/2/3 traces by (for testing)
     plot: bool
         Plot the full frame and subarray bounds with all traces
-    verbose: bool
-        Print statements
 
     Returns
     -------
     targframe, starframe
         The frame containing the target trace and a frame containing all contaminating star traces
     """
-    if verbose:
-        print("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
+    logging.info("Checking PA={} with {} stars in the vicinity".format(V3PA, len(stars['ra'])))
 
     if isinstance(aperture, str):
 
-        if verbose:
-            print("Getting aperture info from pysiaf...")
+        logging.info("Getting aperture info from pysiaf...")
 
         # Aperture names
         if aperture not in APERTURES:
@@ -476,8 +466,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     attitude = pysiaf.utils.rotations.attitude_matrix(stars['xtel'][0], stars['ytel'][0], stars['ra'][0], stars['dec'][0], APA)
 
     # Get relative coordinates of the stars based on target attitude
-    if verbose:
-        print("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
+    logging.info("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
 
     for idx, star in enumerate(stars[1:]):
 
@@ -513,8 +502,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['Teff_str'] = ['---' if t == 'GALAXY' else str(int(i)) for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
 
-    if verbose:
-        print("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
+    logging.info("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
 
     # Make frame for the target and a frame for all the other stars
     targframe_o1 = np.zeros((subY, subX))
@@ -550,9 +538,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
             t1x0 = f1x0 - f0x0 if f1x0 == aper['subarr_x'][1] else dim0x
             t0y0 = dim0y - (f1y0 - f0y0) if f0y0 == aper['subarr_y'][0] else 0
             t1y0 = f1y0 - f0y0 if f1y0 == aper['subarr_y'][2] else dim0y
-
-            # if verbose:
-            #     print("{} x {} pixels of star {} order 0 fall on {}".format(t1y0 - t0y0, t1x0 - t0x0, idx, aperture.AperName))
 
             # Target order 0 is never on the subarray so add all order 0s to the starframe
             starframe[f0y0 - aper['subarr_y'][1]:f1y0 - aper['subarr_y'][1], f0x0 - aper['subarr_x'][1]:f1x0 - aper['subarr_x'][0]] += scale0[t0y0:t1y0, t0x0:t1x0]
@@ -622,8 +607,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
             t0y = dimy - (f1y - f0y) if f0y == aper['subarr_y'][0] else 0
             t1y = f1y - f0y if f1y == aper['subarr_y'][2] else dimy
 
-            if verbose:
-                print("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
+            logging.info("{} x {} pixels of star {} trace fall on {}".format(t1y - t0y, t1x - t0x, idx, aperture.AperName))
 
             # Add each order to it's own frame
             if idx == 0:
@@ -658,7 +642,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, x_sweet=2885, y_sweet=1725, c0x0
     pctline_o2 = np.nanmean(pctframe_o2 * mask2, axis=0)
     pctline_o3 = np.nanmean(pctframe_o3 * mask3, axis=0)
 
-    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'sources': FOVstars, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
+    result = {'pa': V3PA, 'target': targframe_o1 + targframe_o2 + targframe_o3, 'target_o1': targframe_o1, 'target_o2': targframe_o2, 'target_o3': targframe_o3,  'contaminants': starframe, 'order1_contam': pctline_o1, 'order2_contam': pctline_o2, 'order3_contam': pctline_o3}
 
     if plot:
 
@@ -844,8 +828,12 @@ def plot_traces(star_table, fig, color='red'):
     return fig
 
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False, multi=True, verbose=True):
+def update_task(task, new_state):
+    if task is not None:
+        task.update_state(state=new_state)
 
+
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), plot=False, task=None):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -860,8 +848,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    n_jobs: int
-        Number of cores to use (-1 = All)
 
     Returns
     -------
@@ -878,6 +864,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     ra, dec = 91.872242, -25.594934
     targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
+    logging.info("Setting up simulation")
     # Check for contam tool data
     check_for_data('exoctk_contam')
 
@@ -886,8 +873,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
 
     # Instantiate a pySIAF object
-    if verbose:
-        print('Getting info from pysiaf for {} aperture...'.format(aperture))
+    logging.info('Getting info from pysiaf for {} aperture...'.format(aperture))
 
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
     inst = APERTURES[aperture]
@@ -905,16 +891,12 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     aper.mincol, aper.maxcol = cols.min(), cols.max()
 
     # Find stars in the vicinity
-    stars = find_sources(ra, dec, target_date=target_date, verbose=verbose)
+    update_task(task, "RUNNING SOURCE QUERY")
+    stars = find_sources(ra, dec, target_date=target_date)
 
     # Add stars manually
     if isinstance(binComp, dict):
         stars = add_source(stars, **binComp)
-
-    # Set the number of cores for multiprocessing
-    max_cores = 8
-    if n_jobs == -1 or n_jobs > max_cores:
-        n_jobs = max_cores
 
     # Get full list from ephemeris
     ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
@@ -943,9 +925,15 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
-    if verbose:
-        print('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
-        start = time.time()
+    logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+    start = time.time()
+
+#     result = {
+#         'target': targframe_o1 + targframe_o2 + targframe_o3, 
+#         'order1_contam': pctline_o1, 
+#         'order2_contam': pctline_o2, 
+#         'order3_contam': pctline_o3
+#     }
 
     # Calculate contamination of all stars at each PA
     # -----------------------------------------------
@@ -954,34 +942,26 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # The slings and arrows of outrageous list comprehensions,
     # Or to take arms against a sea of troubles,
     # And by multiprocessing end them?
-    if multi:
-        pl = pool.ThreadPool(n_jobs)
-        func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False)
-        results = pl.map(func, goodPA_list)
-        pl.close()
-        pl.join()
+    results = []
+    for i, pa in enumerate(goodPA_list):
+        update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
+        logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
+        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
 
-    else:
-        results = []
-        for pa in goodPA_list:
-            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False, verbose=False)
-            results.append(result)
+        if i == 0:
+            # Only need one set of target frames
+            targframe_o1 = np.asarray(result['target_o1'])
+            targframe_o2 = np.asarray(result['target_o2'])
+            targframe_o3 = np.asarray(result['target_o3'])
+            targframe = [targframe_o1, targframe_o2, targframe_o3]
+            starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
 
-    # We only need one target frame frames
-    targframe_o1 = np.asarray(results[0]['target_o1'])
-    targframe_o2 = np.asarray(results[0]['target_o2'])
-    targframe_o3 = np.asarray(results[0]['target_o3'])
-    targframe = [targframe_o1, targframe_o2, targframe_o3]
-
-    # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframe_o1.shape[0], targframe_o1.shape[1]))
-
-    # Make the contamination plot
-    for result in results:
+        # Make the contamination plot
         starcube[result['pa'], :, :] = result['contaminants']
 
-    if verbose:
-        print('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
+        results.append({'pa': result['pa']})
+
+    logging.info('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
     # Make contam plot
     if plot:
@@ -1137,7 +1117,7 @@ def get_order0(aperture):
     return trace
 
 
-def get_trace(aperture, teff, stype, verbose=False):
+def get_trace(aperture, teff, stype):
     """Get the trace for the given aperture at the given temperature
 
     Parameters
@@ -1163,8 +1143,7 @@ def get_trace(aperture, teff, stype, verbose=False):
     # Get closest Teff
     teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
     file = trace_files[np.argmin((teffs - teff)**2)]
-    if verbose:
-        print('Fetching {} {}K trace from {}'.format(aperture, teff, file))
+    logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
 
     # Get data
     if 'NIS' in aperture:
