@@ -50,4 +50,4 @@ RUN pip install .
 # RUN pip install pandeia.engine==${pandeia_version}
 
 WORKDIR /pandexo
-CMD ["start_pandexo", "--workers=10"]
+CMD ["start_pandexo", "--workers=5"]
