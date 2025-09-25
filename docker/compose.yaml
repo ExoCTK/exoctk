@@ -13,6 +13,10 @@ services:
         - exoctk_repo=$EXO_REPO
         - dev_source=$EXO_SOURCE
     entrypoint: /exoctk/exoctk_entrypoint.sh
+    deploy:
+      resources:
+        limits:
+          memory: 32g
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
@@ -28,6 +32,10 @@ services:
         - pandexo_version=3.0.0
         - python_version=3.11
         - pandeia_version=2025.7
+    deploy:
+      resources:
+        limits:
+          memory: 64g
     volumes:
       - exoctk_data:/data/exoctk
       - pandeia_data:/data/pandeia
@@ -52,6 +60,9 @@ services:
       - redis
       - exoctk
     deploy:
+      resources:
+        limits:
+          memory: 24g
       replicas: $WORKER_COUNT
     restart: unless-stopped
 volumes:

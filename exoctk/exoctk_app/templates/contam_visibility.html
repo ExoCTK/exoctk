@@ -10,7 +10,13 @@
               .then(response => response.json())
               .then(data => {
                 if (!data["ready"]) {
-                  document.getElementById("task-status").innerHTML = data["state"];
+                  if (data["state"] === "PENDING") {
+//                     const text = data["state"] + " (" + data["counts"]["active"] + " active, " + data["counts"]["scheduled"] + " scheduled, " + data["counts"]["reserved"] + " reserved)";
+//                     document.getElementById("task-status").innerHTML = text;
+                    document.getElementById("task-status").innerHTML = data["state"];
+                  } else {
+                    document.getElementById("task-status").innerHTML = data["state"];
+                  }
                   setTimeout(poll, 500)
                 } else {
                   console.log(data);

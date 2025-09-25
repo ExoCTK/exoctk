@@ -72,6 +72,22 @@ except IOError:
     DB = None
 
 
+def get_task_counts():
+    task_inspector = celery.control.inspect()
+    active_tasks = task_inspector.active()
+    scheduled_tasks = task_inspector.scheduled()
+    reserved_tasks = task_inspector.reserved()
+
+    # Count tasks by status
+    counts = {
+        'active': sum(len(tasks) for tasks in active_tasks.values()) if active_tasks else 0,
+        'scheduled': sum(len(tasks) for tasks in scheduled_tasks.values()) if scheduled_tasks else 0,
+        'reserved': sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0,
+        # Note: 'PENDING' and 'SUCCESS' require a result backend and task IDs
+    }
+    return counts
+
+
 def _param_fort_validation(args):
     """Validates the input parameters for the forward models
 
@@ -391,6 +407,7 @@ def task_status(task_id):
         "successful": task.successful(),
         "state": task.state,
         "value": task.result if task.ready() else None,
+#         "counts": get_task_counts()
     }
     print(f"Returning result {result}")
     return result
