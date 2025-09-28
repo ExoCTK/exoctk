@@ -9,4 +9,4 @@ done
 # flask --app app_exoctk run
 
 # run gunicorn
-gunicorn -b 0.0.0.0:5000 --log-level debug 'exoctk.exoctk_app.app_exoctk:app_exoctk'
+gunicorn -b 0.0.0.0:5000 --log-level info 'exoctk.exoctk_app.app_exoctk:app_exoctk'
