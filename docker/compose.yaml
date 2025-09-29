@@ -50,7 +50,7 @@ services:
       context: ./pandexo
       dockerfile: Dockerfile
       args:
-        - pandexo_branch=dhs
+        - pandexo_branch=$PANDEXO_BRANCH
         - pandexo_version=3.0.0
         - python_version=3.11
         - pandeia_version=2025.7
