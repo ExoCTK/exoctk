@@ -23,26 +23,6 @@ services:
     ports:
       - "5000:5000"
     restart: unless-stopped
-  pandexo:
-    build:
-      context: ./pandexo
-      dockerfile: Dockerfile
-      args:
-        - pandexo_branch=dhs
-        - pandexo_version=3.0.0
-        - python_version=3.11
-        - pandeia_version=2025.7
-    deploy:
-      resources:
-        limits:
-          memory: 64g
-    volumes:
-      - exoctk_data:/data/exoctk
-      - pandeia_data:/data/pandeia
-      - synphot_data:/data/trds
-    ports:
-      - "1111:1111"
-    restart: unless-stopped
   worker:
     build:
       context: ..
@@ -62,8 +42,28 @@ services:
     deploy:
       resources:
         limits:
-          memory: 24g
+          memory: 6g
       replicas: $WORKER_COUNT
+    restart: unless-stopped
+  pandexo:
+    build:
+      context: ./pandexo
+      dockerfile: Dockerfile
+      args:
+        - pandexo_branch=dhs
+        - pandexo_version=3.0.0
+        - python_version=3.11
+        - pandeia_version=2025.7
+    deploy:
+      resources:
+        limits:
+          memory: 64g
+    volumes:
+      - exoctk_data:/data/exoctk
+      - pandeia_data:/data/pandeia
+      - synphot_data:/data/trds
+    ports:
+      - "1111:1111"
     restart: unless-stopped
 volumes:
   exoctk_data:
