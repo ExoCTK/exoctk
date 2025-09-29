@@ -16,7 +16,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 32g
+          memory: 24g
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
