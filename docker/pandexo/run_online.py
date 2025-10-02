@@ -991,14 +991,10 @@ class CalculationViewHSTHandler(BaseHandler):
 
 def main():
     tornado.options.parse_command_line()
-    sockets = bind_sockets(options.port)
-    tornado.process.fork_processes(options.workers)
     BaseHandler.executor = ProcessPoolExecutor(max_workers=options.workers)
-    async def post_fork_main(): 
-        http_server = tornado.httpserver.HTTPServer(Application())
-        http_server.add_sockets(sockets)
-        await asyncio.Event().wait()
-    asyncio.run(post_fork_main())
+    http_server = tornado.httpserver.HTTPServer(Application())
+    http_server.listen(options.port)
+    tornado.ioloop.IOLoop.current().start()
 
 
 if __name__ == "__main__":
