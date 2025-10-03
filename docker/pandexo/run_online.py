@@ -1,9 +1,11 @@
 import asyncio
 import json
+import logging
 import os
 import copy
 import uuid
 from collections import namedtuple, OrderedDict
+import sys
 import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
@@ -30,6 +32,8 @@ from .exomast import get_target_data
 #grab all planets for folks 
 #all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
 #all_planets = sorted(all_planets['pl_name'].values)
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # define location of temp files
 __TEMP__ = os.environ.get("PANDEXO_TEMP", os.path.join(os.path.dirname(__file__), "temp"))
@@ -279,6 +283,7 @@ class CalculationNewHandler(BaseHandler):
     a new calculation task to the parallelized workers.
     """
     def get(self):
+        logging.info("Starting New Calculation GET Handler")
         try: 
             header= pd.read_sql_table('header',db_fort)
         except:
@@ -287,11 +292,15 @@ class CalculationNewHandler(BaseHandler):
             'ray' : ['NO GRID DB FOUND'],
             'flat':['NO GRID DB FOUND']})
 
+        logging.info("Opening Reference Data")
         with open(os.path.join(os.path.dirname(__file__), "reference",
                                "exo_input.json")) as data_file:
             exodata = json.load(data_file)
+        logging.info("Retrieving Exoplanet Archive")
         all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+        logging.info("Sorting Exoplanet Archive")
         all_planets = sorted(all_planets['pl_name'].values)
+        logging.info("Rendering Page")
         self.render("new.html", id=id,
                                  temp=list(map(str, header.temp.unique())), 
                                  planets=all_planets,
@@ -305,14 +314,18 @@ class CalculationNewHandler(BaseHandler):
         """
         
         #print(self.request.body)
-        
+
+        logging.info("Starting New Calculation POST Handler")
         id = str(uuid.uuid4())+'e'
        
         # Read data from exoMAST, print it on the webpage:
+        logging.info("Getting ExoMAST Response")
         exomast_response = self.get_argument("resolve_target", None)
+        logging.info("Getting submit_form Response")
         submit_form = self.get_argument("submit_form", None)
 
         if exomast_response=="exomast":
+            logging.info("Loading exoMAST Data File")
             with open(os.path.join(os.path.dirname(__file__), "reference",
                             "exo_input.json")) as data_file:
                 exodata = json.load(data_file)
@@ -320,6 +333,7 @@ class CalculationNewHandler(BaseHandler):
                 exodata["calculation"] = 'fml'  # always for online form
 
             try:
+                logging.info("Populating Fields")
                 planet_name = self.get_argument("planetname")
                 planet_data = get_target_data(planet_name)[0]
                 exodata['planet']['planetname'] = planet_data['canonical_name']
@@ -331,8 +345,10 @@ class CalculationNewHandler(BaseHandler):
                 exodata["star"]["metal"] = planet_data['Fe/H'] 
                 # Keep Simbad query, as exoMAST typically does not have Jmag:
 
+                logging.info("Getting Star Name")
                 star_name = getStarName(planet_name)
 
+                logging.info("Running Simbad Query")
                 exodata["star"]["jmag"] = Simbad.query_object(star_name)['J'][0] #planet_data['Jmag']
                 exodata["star"]["ref_wave"] = 1.25
 
@@ -369,15 +385,19 @@ class CalculationNewHandler(BaseHandler):
 
             # Need to re-define header before rendering:
             try:
+                logging.info("Re-reading Header")
                 self.header = pd.read_sql_table('header',db_fort)
             except:
                 self.header = pd.DataFrame({
                 'temp': ['NO GRID DB FOUND'],
                 'ray' : ['NO GRID DB FOUND'],
                 'flat':['NO GRID DB FOUND']})
+            logging.info("Reading Exoplanet Archive")
             all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+            logging.info("Sorting Exoplanet Archive")
             all_planets = sorted(all_planets['pl_name'].values)
 
+            logging.info("Rendering Page")
             return self.render("new.html", id=id,
                                 temp=list(map(str, self.header.temp.unique())),
                                 data=exodata,
