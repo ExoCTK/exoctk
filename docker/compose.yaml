@@ -54,6 +54,7 @@ services:
         - pandexo_version=3.0.0
         - python_version=3.11
         - pandeia_version=2025.7
+    entrypoint: /pandexo/pandexo_entrypoint.sh
     deploy:
       resources:
         limits:

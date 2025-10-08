@@ -110,9 +110,9 @@ class Application(tornado.web.Application):
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
-            debug=True,
+#             debug=True,
         )
-        super(Application, self).__init__(handlers, **settings)
+        super().__init__(handlers, **settings)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -208,8 +208,8 @@ class BaseHandler(tornado.web.RequestHandler):
         This creates the task and adds it to the buffer.
         """
         self.buffer[id] = CalculationTask(id=id, name=name, task=task,
-                                          count=len(self.buffer)+1,
-                                          cookie=self.get_cookie("pandexo_user"))
+                                                count=len(self.buffer)+1,
+                                                cookie=self.get_cookie("pandexo_user"))
 
         # Only allow 100 tasks **globally**. This will delete old tasks first.
         if len(self.buffer) > 100:
@@ -256,9 +256,9 @@ class DashboardHandler(BaseHandler):
     """
     def get(self):
         task_responses = [self._get_task_response(id) for id, nt in
-                          list(self.buffer.items())
-                          if ((nt.cookie == self.get_cookie("pandexo_user"))
-                          & (id[len(id)-1]=='e'))]
+                                list(self.buffer.items())
+                                if ((nt.cookie == self.get_cookie("pandexo_user"))
+                                & (id[len(id)-1]=='e'))]
         
         self.render("dashboard.html", calculations=task_responses[::-1])
 
@@ -270,9 +270,9 @@ class DashboardHSTHandler(BaseHandler):
     """
     def get(self):
         task_responses = [self._get_task_response_hst(id) for id, nt in
-                          list(self.buffer.items())
-                          if ((nt.cookie == self.get_cookie("pandexo_user"))
-                          & (id[len(id)-1]=='h'))]
+                                list(self.buffer.items())
+                                if ((nt.cookie == self.get_cookie("pandexo_user"))
+                                & (id[len(id)-1]=='h'))]
         
         self.render("dashboardhst.html", calculations=task_responses[::-1])
 
@@ -297,8 +297,12 @@ class CalculationNewHandler(BaseHandler):
                                "exo_input.json")) as data_file:
             exodata = json.load(data_file)
         logging.info("Retrieving Exoplanet Archive")
-        all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
-        logging.info("Sorting Exoplanet Archive")
+        planets_file = os.path.join(os.path.dirname(__file__), "reference", "planets.csv")
+        if not os.path.exists(planets_file):
+            all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+            all_planets.to_csv(planets_file)
+        else:
+            all_planets = pd.read_csv(planets_file)
         all_planets = sorted(all_planets['pl_name'].values)
         logging.info("Rendering Page")
         self.render("new.html", id=id,
@@ -335,7 +339,9 @@ class CalculationNewHandler(BaseHandler):
             try:
                 logging.info("Populating Fields")
                 planet_name = self.get_argument("planetname")
+                logging.info("Getting target data from exoMAST")
                 planet_data = get_target_data(planet_name)[0]
+                logging.info("Setting planet data")
                 exodata['planet']['planetname'] = planet_data['canonical_name']
                 # for item in planet_data:
                 #     print("{}: {}".format(item, planet_data[item]))
@@ -350,6 +356,7 @@ class CalculationNewHandler(BaseHandler):
 
                 logging.info("Running Simbad Query")
                 exodata["star"]["jmag"] = Simbad.query_object(star_name)['J'][0] #planet_data['Jmag']
+                logging.info("Setting Star data")
                 exodata["star"]["ref_wave"] = 1.25
 
                 # optional star radius
@@ -393,8 +400,12 @@ class CalculationNewHandler(BaseHandler):
                 'ray' : ['NO GRID DB FOUND'],
                 'flat':['NO GRID DB FOUND']})
             logging.info("Reading Exoplanet Archive")
-            all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
-            logging.info("Sorting Exoplanet Archive")
+            planets_file = os.path.join(os.path.dirname(__file__), "reference", "planets.csv")
+            if not os.path.exists(planets_file):
+                all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+                all_planets.to_csv(planets_file)
+            else:
+                all_planets = pd.read_csv(planets_file)
             all_planets = sorted(all_planets['pl_name'].values)
 
             logging.info("Rendering Page")
@@ -453,8 +464,8 @@ class CalculationNewHandler(BaseHandler):
                     fname_star = fileinfo_star['filename']
                     extn_star = os.path.splitext(fname_star)[1]
                     cname_star = id+'star' + extn_star
-                    fh_star = open(os.path.join(__TEMP__, cname_star), 'wb')
-                    fh_star.write(fileinfo_star['body'])
+                    with open(os.path.join(__TEMP__, cname_star), 'wb') as fh_star:
+                        fh_star.write(fileinfo_star['body'])
 
                     exodata["star"]["starpath"] = os.path.join(__TEMP__, cname_star)
                     exodata["star"]["f_unit"] = self.get_argument("starfunits")
@@ -469,8 +480,8 @@ class CalculationNewHandler(BaseHandler):
                     fname_plan = fileinfo_plan['filename']
                     extn_plan = os.path.splitext(fname_plan)[1]
                     cname_plan = id+'planet' + extn_plan
-                    fh_plan = open(os.path.join(__TEMP__, cname_plan), 'wb')
-                    fh_plan.write(fileinfo_plan['body'])
+                    with open(os.path.join(__TEMP__, cname_plan), 'wb') as fh_plan:
+                        fh_plan.write(fileinfo_plan['body'])
 
                     exodata["planet"]["exopath"] = os.path.join(__TEMP__, cname_plan)
                     exodata["planet"]["w_unit"] = self.get_argument("planwunits")
@@ -509,8 +520,8 @@ class CalculationNewHandler(BaseHandler):
                         fname_noise = fileinfo_noise['filename']
                         extn_noise = os.path.splitext(fname_noise)[1]
                         cname_noise = id + 'noise' + extn_noise
-                        fh_noise = open(os.path.join(__TEMP__, cname_noise), 'wb')
-                        fh_noise.write(fileinfo_star['body'])
+                        with open(os.path.join(__TEMP__, cname_noise), 'wb') as fh_noise:
+                            fh_noise.write(fileinfo_star['body'])
                         exodata["observation"]["noise_floor"] = os.path.join(__TEMP__, cname_noise)
                     else:
                         exodata["observation"]["noise_floor"] = float(self.get_argument("noisefloor"))
@@ -602,7 +613,7 @@ class CalculationNewHSTHandler(BaseHandler):
 
     def get(self):
         try: 
-            self.header= pd.read_sql_table('header',db_fort)
+            self.header = pd.read_sql_table('header',db_fort)
         except:
             self.header = pd.DataFrame({
             'temp': ['NO GRID DB FOUND'],
@@ -612,8 +623,14 @@ class CalculationNewHSTHandler(BaseHandler):
                                "exo_input.json")) as data_file:
             exodata = json.load(data_file)
 
-        all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+        planets_file = os.path.join(os.path.dirname(__file__), "reference", "all_planets.csv")
+        if not os.path.exists(planets_file):
+            all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+            all_planets.to_csv(planets_file)
+        else:
+            all_planets = pd.read_csv(planets_file)
         all_planets = sorted(all_planets['pl_name'].values)
+
         self.render("newHST.html", id=id,
                     temp=list(map(str, self.header.temp.unique())),
                     data=exodata,
@@ -696,15 +713,21 @@ class CalculationNewHSTHandler(BaseHandler):
 
             # Need to re-define header before rendering:
             try:
-                self.header= pd.read_sql_table('header',db_fort)
+                self.header = pd.read_sql_table('header',db_fort)
             except:
                 self.header = pd.DataFrame({
                 'temp': ['NO GRID DB FOUND'],
                 'ray' : ['NO GRID DB FOUND'],
                 'flat':['NO GRID DB FOUND']})
 
-            all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+            planets_file = os.path.join(os.path.dirname(__file__), "reference", "planets.csv")
+            if not os.path.exists(planets_file):
+                all_planets =  pd.read_csv('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name+from+PSCompPars&format=csv')
+                all_planets.to_csv(planets_file)
+            else:
+                all_planets = pd.read_csv(planets_file)
             all_planets = sorted(all_planets['pl_name'].values)
+
             return self.render("newHST.html", id=id,
                                 temp=list(map(str, self.header.temp.unique())),
                                 data=exodata,
@@ -759,8 +782,8 @@ class CalculationNewHSTHandler(BaseHandler):
                     fname_plan = fileinfo_plan['filename']
                     extn_plan = os.path.splitext(fname_plan)[1]
                     cname_plan = id+'planet' + extn_plan
-                    fh_plan = open(os.path.join(__TEMP__, cname_plan), 'wb')
-                    fh_plan.write(fileinfo_plan['body'])
+                    with open(os.path.join(__TEMP__, cname_plan), 'wb') as fh_plan:
+                        fh_plan.write(fileinfo_plan['body'])
 
                     exodata["planet"]["exopath"] = os.path.join(__TEMP__, cname_plan)
                     exodata["planet"]["w_unit"] = self.get_argument("planwunits")
@@ -1012,8 +1035,8 @@ class CalculationViewHSTHandler(BaseHandler):
 def main():
     tornado.options.parse_command_line()
     BaseHandler.executor = ProcessPoolExecutor(max_workers=options.workers)
-    http_server = tornado.httpserver.HTTPServer(Application())
-    http_server.listen(options.port)
+    http_server = tornado.httpserver.HTTPServer(Application(), xheaders=True)
+    http_server.listen(options.port, reuse_port=True)
     tornado.ioloop.IOLoop.current().start()
 
 

@@ -51,5 +51,14 @@ ADD ./view.html /pandexo/PandExo/pandexo/engine/templates/view.html
 RUN pip install .
 # RUN pip install pandeia.engine==${pandeia_version}
 
+# WORKDIR /pandexo
+# CMD ["start_pandexo", "--workers=2"]
+
+# Add the entrypoint scripts
 WORKDIR /pandexo
-CMD ["start_pandexo", "--workers=5"]
+COPY ./pandexo_entrypoint.sh pandexo_entrypoint.sh
+RUN chmod +x pandexo_entrypoint.sh
+
+# Run Pandexo
+WORKDIR /pandexo
+CMD ["tail", "-f", "/dev/null"]
