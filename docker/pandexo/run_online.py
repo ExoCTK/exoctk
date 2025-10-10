@@ -77,13 +77,7 @@ def get_simbad_object(star_name):
     from astroquery.simbad import Simbad
     Simbad.add_votable_fields('flux(H)')
     Simbad.add_votable_fields('flux(J)')
-    logging.info("Listing SIMBAD fields")
-    field_table = Simbad.list_votable_fields()
-    for row in field_table:
-        logging.info(f"{row['name']}")
     simbad_data = Simbad.query_object(star_name)
-    logging.info(f"Simbad data is {simbad_data}")
-    logging.info(f"Returned columns are {simbad_data.columns}")
     return simbad_data
     
 
