@@ -46,8 +46,9 @@ ADD https://api.github.com/repos/natashabatalha/PandExo/git/refs/heads/${pandexo
 RUN git clone --recursive https://github.com/natashabatalha/PandExo.git
 WORKDIR /pandexo/PandExo
 RUN git checkout ${pandexo_branch}
-ADD ./run_online.py /pandexo/PandExo/pandexo/engine/run_online.py
 ADD ./view.html /pandexo/PandExo/pandexo/engine/templates/view.html
+ADD ./exomast.py /pandexo/PandExo/pandexo/engine/exomast.py
+ADD ./run_online.py /pandexo/PandExo/pandexo/engine/run_online.py
 RUN pip install .
 # RUN pip install pandeia.engine==${pandeia_version}
 
