@@ -29,7 +29,7 @@ dependencies = [
   'bandit',
   'batman-package',
   'bibtexparser',
-  'bokeh>=3.0,<=3.6.0',
+  'bokeh>=3.0,<=3.8.1',
   'boto3',
   'corner',
   'cython',
