@@ -1,19 +1,20 @@
 """
 Module to precompute the contamination for targets, store the data to file, and then retrieve results
+with per-chunk zero-value masks.
 
 Author: Joe Filippazzo
 Date: 01/13/26
 
-Example Usage:
+Example:
 filename = "soss_contam.h5"
-
-generate_exoplanet_file(filename)
 data = load_exoplanet(filename, "WASP-39b")
 
-print(data["orbital_params"].shape)   # (15,)
 print(data["target_trace"].shape)     # (256, 2048)
 print(data["contamination"].shape)    # (360, 256, 2048)
+print(len(data["plane_index"]))       # number of non-zero planes
 """
+
+import h5py
 import numpy as np
 import requests
 
@@ -33,103 +34,118 @@ def fetch_exoplanet_names_eaot():
     return names
 
 
-def generate_exoplanet_file(filename):
+def generate_exoplanet_file(filename, test=True):
     """
-    Create an HDF5 file with exoplanet data structures but no data... yet.
+    Create HDF5 file with empty datasets for exoplanets.
 
-    Parameters
-    ----------
-    filename : str
-        Path to output HDF5 file
+    - target_trace: (256, 2048)
+    - contamination: (variable number of planes, 256, 2048), stored only for non-zero planes
+    - plane_index: which planes are stored
     """
-    # Get names from ExoMAST
     planet_names = fetch_exoplanet_names_eaot()
     count = 0
 
-    # Populate the empty file
     with h5py.File(filename, "w") as f:
-        for name in planet_names:
+        for name in (planet_names[:3] if test else planet_names):
+            if name in f:
+                continue
 
-            if name not in f:
+            grp_name = name.strip().replace("/", "_")
+            grp = f.create_group(grp_name)
+            grp.attrs["name"] = name
 
-                # Make the group and store the name
-                grp = f.create_group(name)
-                grp.attrs["name"] = name
+            # Target trace
+            grp.create_dataset(
+                "target_trace",
+                shape=(3, 256, 2048),
+                dtype="float32",
+                compression="gzip",
+                compression_opts=4,
+                chunks=(1, 256, 2048),
+            )
 
-                # Target trace (256, 2048)
-                grp.create_dataset("target_trace", shape=(256, 2048), dtype="float32", compression="gzip",
-                                   compression_opts=4)
+            # Contamination placeholder (0 planes initially)
+            grp.create_dataset(
+                "contamination",
+                shape=(0, 256, 2048),  # variable length along first axis
+                maxshape=(None, 256, 2048),
+                dtype="float32",
+                compression="gzip",
+                compression_opts=4,
+                chunks=(1, 256, 2048),
+            )
 
-                # Contamination (360, 256, 2048)
-                grp.create_dataset( "contamination", shape=(360, 256, 2048), dtype="float32", compression="gzip",
-                                    compression_opts=4, chunks=(1, 256, 2048))
-                count += 1
+            # Plane index placeholder
+            grp.create_dataset(
+                "plane_index",
+                shape=(0,),
+                maxshape=(None,),
+                dtype="int16",
+            )
 
-    print(f"Finished! Saved data for {count}/{len(planet_names)} exoplanets to {filename}.")
+            count += 1
 
+    print(f"Finished! Saved structure for {count}/{len(planet_names)} exoplanets to {filename}.")
     return planet_names
 
 
 def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination):
-        """
-        Save target trace and contamination data for a single exoplanet.
+    """
+    Save target trace and contamination (only non-zero planes) to HDF5 file.
+    """
+    grp_name = exoplanet_name.strip().replace("/", "_")
 
-        Parameters
-        ----------
-        filename : str
-            Path to HDF5 file
-        exoplanet_name : str
-            Exoplanet name (EAOT name)
-        target_trace : ndarray
-            2D array of shape (256, 2048)
-        contamination : ndarray
-            3D array of shape (360, 256, 2048)
-        """
-        # Open the file and save the data
-        with h5py.File(filename, "r+") as f:
-            if exoplanet_name not in f:
-                raise KeyError(f"Exoplanet '{exoplanet_name}' not found in {filename}")
+    with h5py.File(filename, "r+") as f:
+        if grp_name not in f:
+            raise KeyError(f"Exoplanet '{exoplanet_name}' not found in {filename}")
 
-            grp = f[group_name]
+        grp = f[grp_name]
 
-            # Write data in-place (no reallocation)
-            grp["target_trace"][:, :] = target_trace
-            grp["contamination"][:, :, :] = contamination
+        # --- Target trace (3,256,2048) ---
+        grp["target_trace"][:, :, :] = target_trace
 
-            # Optional provenance
-            grp.attrs["filled"] = True
+        # --- Sparse contamination ---
+        plane_index = np.where(contamination.any(axis=(1, 2)))[0]
 
-        print(f"{exoplanet_name} data saved to {filename}")
+        if plane_index.size == 0:
+            # All-zero contamination
+            grp["contamination"].resize((0, 256, 2048))
+            grp["plane_index"].resize((0,))
+        else:
+            nonzero_planes = contamination[plane_index, :, :]
+
+            # Ensure 3D
+            if nonzero_planes.ndim == 2:
+                nonzero_planes = nonzero_planes[np.newaxis, :, :]
+
+            grp["contamination"].resize(nonzero_planes.shape)
+            grp["contamination"][:, :, :] = nonzero_planes
+
+            grp["plane_index"].resize(plane_index.shape)
+            grp["plane_index"][:] = plane_index
+
+        grp.attrs["filled"] = True
+
+    print(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
 
 
-def generate_database(filename, aperture='NIS_SUBSTRIP256'):
+def generate_database(filename, aperture='NIS_SUBSTRIP256', test=True):
     """
     Compute the contamination data and save to the file
-
-    Parameters
-    ----------
-    filename: str
-        Path to HDF5 file
-    aperture:
-        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2', 'MIRI_SLITLESSPRISM']
     """
     # Make the empty file
-    planet_names = generate_exoplanet_file(filename)
+    planet_names = generate_exoplanet_file(filename, test=True)
 
-    with h5py.File(filename, "w") as f:
+    for targname in (planet_names[:3] if test else planet_names):
 
-        for targname in planet_names:
+        # Canonical name and get coordinates
+        targname = get_canonical_name(targname)
+        data, _ = get_target_data(targname)
+        ra_deg = data.get('RA')
+        dec_deg = data.get('DEC')
 
-            # Get the data by name
-            targname = get_canonical_name(targname)
-            data, _ = get_target_data(targname)
+        # Run contamination tool
+        target_traces, contamination, _ = fs.field_simulation(ra_deg, dec_deg, aperture, plot=False)
 
-            # Update the coordinates
-            ra_deg = data.get('RA')
-            dec_deg = data.get('DEC')
-
-            # Run contam tool
-            target_trace, contamination, _ = fs.field_simulation(ra_deg, dec_deg, aperture, plot=False)
-
-            # Save the data to file
-            save_exoplanet_data(filename, exoplanet_name, target_trace, contamination)
+        # Save data to file with mask and plane index
+        save_exoplanet_data(filename, targname, target_traces, contamination)

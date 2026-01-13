@@ -169,35 +169,40 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
 
-def load_exoplanet(filename, name):
+def load_exoplanet(filename, exoplanet_name):
     """
-    Load exoplanet data from h5 file by exoplanet name
+    Load exoplanet data from HDF5 and reconstruct full contamination cube.
 
-    Parameters
-    ----------
-    filename : str
-        Path to HDF5 file
-    name : str
-        Exoplanet name (group key)
-
-    Returns
-    -------
-    dict
-        Dictionary containing exoplanet data
+    Returns:
+        dict with keys:
+            - target_trace: (256, 2048)
+            - contamination: full (360, 256, 2048) array with zeros in skipped planes
+            - plane_index: indices of stored planes
     """
+    grp_name = exoplanet_name.strip().replace("/", "_")
+
     with h5py.File(filename, "r") as f:
-        if name not in f:
-            raise KeyError(f"Exoplanet '{name}' not found in {filename}")
+        if grp_name not in f:
+            raise KeyError(f"Exoplanet '{exoplanet_name}' not found in {filename}")
 
-        # Get the data
-        grp = f[name]
-        data = {"name": grp.attrs["name"],
-                "target_trace": grp["target_trace"][:],
-                "contamination": grp["contamination"][:]}
+        grp = f[grp_name]
 
-        # TODO: Add slicing for PA ranges to speed up retrieval?
+        # Load target trace
+        target_trace = grp["target_trace"][:, :]
 
-        return data
+        # Initialize full contamination cube
+        full_contam = np.zeros((360, 256, 2048), dtype=np.float32)
+
+        # Load stored planes
+        plane_index = grp["plane_index"][:]
+        stored_planes = grp["contamination"][:, :, :]
+
+        # Put stored planes in their original locations
+        full_contam[plane_index, :, :] = stored_planes
+
+    data = {"target_trace": target_trace, "contamination": full_contam, "plane_index": plane_index}
+
+    return data
 
 
 def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
