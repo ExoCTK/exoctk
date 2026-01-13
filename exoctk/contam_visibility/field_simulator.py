@@ -39,6 +39,7 @@ from scipy.ndimage.interpolation import rotate
 import numpy as np
 import pysiaf
 import regions
+import h5py
 
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -166,6 +167,38 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
+
+
+def load_exoplanet(filename, name):
+    """
+    Load exoplanet data from h5 file by exoplanet name
+
+    Parameters
+    ----------
+    filename : str
+        Path to HDF5 file
+    name : str
+        Exoplanet name (group key)
+
+    Returns
+    -------
+    dict
+        Dictionary containing exoplanet data
+    """
+    with h5py.File(filename, "r") as f:
+        if name not in f:
+            raise KeyError(f"Exoplanet '{name}' not found in {filename}")
+
+        # Get the data
+        grp = f[name]
+        data = {"name": grp.attrs["name"],
+                "target_trace": grp["target_trace"][:],
+                "contamination": grp["contamination"][:]}
+
+        # TODO: Add slicing for PA ranges to speed up retrieval?
+
+        return data
+
 
 def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
     """
