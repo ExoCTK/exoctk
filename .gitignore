@@ -24,6 +24,7 @@ htmlcov
 MANIFEST
 .ipynb_checkpoints
 contam_tool.log
+soss_contam.h5
 
 # Sphinx
 docs/api
