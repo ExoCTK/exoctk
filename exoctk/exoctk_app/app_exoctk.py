@@ -1,4 +1,5 @@
-from celery import Celery
+from celery import Celery, chain
+from celery.result import AsyncResult
 from datetime import datetime
 from functools import wraps
 import io
@@ -364,6 +365,22 @@ def pa_contam():
     return render_template('pa_contam.html')
 
 
+@celery.task(bind=True)
+def run_gaia_query_task(self, params):
+    task_uuid = f"{self.request.id}"
+    params["task"] = self
+    stars = fs.find_sources(params["ra"], params["dec"], target_date=params["target_date"])
+
+    self.update_state(state="SAVING STARS")
+    stars_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle')
+    logging.info("Serializing stars")
+    with open(stars_file, "wb") as f:
+        pickle.dump(stars, f)
+    logging.info(f"Wrote stars to {stars_file}")
+
+    return task_uuid
+
+
 # Long-running Celery task
 @celery.task(bind=True)
 def run_contam_visibility_task(self, params):
@@ -401,7 +418,7 @@ def run_contam_visibility_task(self, params):
 # Route to check task status
 @app_exoctk.route('/status/<task_id>', methods=['GET'])
 def task_status(task_id):
-    task = run_contam_visibility_task.AsyncResult(task_id)
+    task = AsyncResult(task_id, app=celery)
     result = {
         "ready": task.ready(),
         "successful": task.successful(),
@@ -553,15 +570,19 @@ def contam_visibility():
 
             else:
 
+                params = {
+                    'ra': ra_deg,
+                    'dec': dec_deg,
+                    'aperture': form.inst.data,
+                    'target_date': form.epoch.data,
+                }
+
                 # Get stars
-                stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data)
+                task_result = run_gaia_query_task.apply_async(args=[params])
+                logging.info(f"Dispatched task {task_result} with id {task_result.id}")
+                form.task_id.data = task_result.id
 
-                # Add companion
-                if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                    stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
-
-                # Calculate contam
-                result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+                return render_template('contam_visibility.html', form=form)
 
             # Get scripts
             contam_js = INLINE.render_js()
@@ -603,55 +624,97 @@ def contam_visibility():
         vis_css = INLINE.render_css()
         vis_script, vis_div = components(vis_plot)
 
-        # Get PA value
         pa_val = float(form.v3pa.data)
+        if pa_val == -1:
+            # Get task output
+            task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
+            task_uuid = task_result.get()
+            logging.info(f"Got task result {task_uuid}")
 
-        # Get task output
-        task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
-        task_uuid = task_result.get()
-        logging.info(f"Got task result {task_uuid}")
+            targframe_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
+            )
+            logging.info(f"Loading {targframe_file}")
+            with open(targframe_file, "rb") as f:
+                targframe = pickle.load(f)
+            logging.info("Loaded targframe")
+            os.remove(targframe_file)
 
-        targframe_file = os.path.join(
-            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
-        )
-        logging.info(f"Loading {targframe_file}")
-        with open(targframe_file, "rb") as f:
-            targframe = pickle.load(f)
-        logging.info("Loaded targframe")
-        os.remove(targframe_file)
+            starcube_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
+            )
+            logging.info(f"Loading {starcube_file}")
+            with open(starcube_file, "rb") as f:
+                starcube = pickle.load(f)
+            logging.info("Loaded starcube")
+            os.remove(starcube_file)
 
-        starcube_file = os.path.join(
-            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
-        )
-        logging.info(f"Loading {starcube_file}")
-        with open(starcube_file, "rb") as f:
-            starcube = pickle.load(f)
-        logging.info("Loaded starcube")
-        os.remove(starcube_file)
+            results_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
+            )
+            logging.info(f"Loading {results_file}")
+            with open(results_file, "rb") as f:
+                results = pickle.load(f)
+            logging.info("Loaded results")
+            os.remove(results_file)
 
-        results_file = os.path.join(
-            os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
-        )
-        logging.info(f"Loading {results_file}")
-        with open(results_file, "rb") as f:
-            results = pickle.load(f)
-        logging.info("Loaded results")
-        os.remove(results_file)
+            # Get bad PA list from missing angles between 0 and 360
+            badPAs = [j for j in np.arange(0, 360) if j not in results]
 
-        # Get bad PA list from missing angles between 0 and 360
-        badPAs = [j for j in np.arange(0, 360) if j not in results]
+            # Make old contam plot
+            starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
+            starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
+            starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
+            starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+            contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
 
-        # Make old contam plot
-        starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-        starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-        starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-        starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-        contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
 
-        # Get scripts
-        contam_js = INLINE.render_js()
-        contam_css = INLINE.render_css()
-        contam_script, contam_div = components(contam_plot)
+        else:
+            task_result = AsyncResult(form.task_id.data, app=celery)
+            task_uuid = task_result.get()
+
+            stars_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle'
+            )
+            logging.info(f"Loading {stars_file}")
+            with open(stars_file, "rb") as f:
+                stars = pickle.load(f)
+            logging.info("Loaded stars")
+            os.remove(stars_file)
+
+            # Add companion
+            try:
+                comp_teff = float(form.teff.data)
+            except TypeError:
+                comp_teff = None
+            try:
+                comp_mag = float(form.delta_mag.data)
+            except TypeError:
+                comp_mag = None
+            try:
+                comp_dist = float(form.dist.data)
+            except TypeError:
+                comp_dist = None
+            try:
+                comp_pa = float(form.pa.data)
+            except TypeError:
+                comp_pa = None
+
+            # Add companion
+            if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
+
+            # Calculate contam
+            result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
 
         return render_template(
             'contam_visibility_results.html',
