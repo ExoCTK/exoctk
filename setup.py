@@ -22,5 +22,4 @@ setup(
     name="exoctk",
     version=get_version(),
     include_dirs=[np.get_include()],
-    version='1.2.6.3a',
 )
