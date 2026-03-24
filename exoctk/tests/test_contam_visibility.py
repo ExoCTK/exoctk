@@ -39,7 +39,7 @@ def test_new_vis_plot():
     ra, dec = '24.3544618', '-45.6777937' # WASP-18
     table = new_vis_plot.get_exoplanet_positions(ra, dec)
 
-    assert str(type(table)) == "<class 'pandas.core.frame.DataFrame'>"
+    assert str(type(table)) == "<class 'pandas.DataFrame'>"
 
     plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
 
