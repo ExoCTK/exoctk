@@ -26,6 +26,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas import DataFrame
+
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
@@ -38,8 +40,8 @@ def test_new_vis_plot():
     """Tests the `new_vis_plot.py` module"""
     ra, dec = '24.3544618', '-45.6777937' # WASP-18
     table = new_vis_plot.get_exoplanet_positions(ra, dec)
-
-    assert str(type(table)) == "<class 'pandas.DataFrame'>"
+    
+    assert isinstance(table, DataFrame)
 
     plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
 
