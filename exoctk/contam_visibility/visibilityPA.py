@@ -11,7 +11,6 @@ Usage: python visibilityPA.py RA DEC [targetName]
 """
 import datetime
 import math
-import pkg_resources
 
 from astropy.table import Table
 from astropy.time import Time
