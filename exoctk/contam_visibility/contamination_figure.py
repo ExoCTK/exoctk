@@ -26,7 +26,7 @@ if not EXOCTK_DATA:
     LAM_FILE = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS_old', 'lambda_order1-2.txt')
+    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369
