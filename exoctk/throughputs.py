@@ -11,7 +11,7 @@ import os
 import numpy as np
 from svo_filters.svo import Filter
 
-from .utils import resource_filename
+from .pkgdata import resource_filename
 
 try:
     from pandeia.engine.instrument_factory import InstrumentFactory

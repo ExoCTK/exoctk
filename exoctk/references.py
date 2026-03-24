@@ -5,10 +5,9 @@ A module for managing references in ExoCTK
 """
 
 import os
-import pkg_resources
-
 import bibtexparser as bt
 
+from .pkgdata import resource_filename
 
 class References(object):
     """
@@ -41,7 +40,7 @@ class References(object):
 
         """
         bibfile = bibfile or \
-            pkg_resources.resource_filename('ExoCTK', 'data/core/bibtex.bib')
+            resource_filename('ExoCTK', 'data/core/bibtex.bib')
 
         # Attributes for the filepath and references
         self.bibfile = bibfile

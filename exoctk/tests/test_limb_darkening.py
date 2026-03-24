@@ -21,7 +21,7 @@ from svo_filters import Filter
 
 from exoctk import modelgrid as mg
 from exoctk.limb_darkening import limb_darkening_fit as ldf
-from exoctk.utils import resource_filename
+from exoctk.pkgdata import resource_filename
 
 
 # Load local modelgrid

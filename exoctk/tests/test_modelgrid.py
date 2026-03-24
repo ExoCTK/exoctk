@@ -20,7 +20,7 @@ Use
 import numpy as np
 
 from exoctk import modelgrid as mg
-from exoctk.utils import resource_filename
+from exoctk.pkgdata import resource_filename
 
 
 def test_modelgrid_object():
