@@ -12,6 +12,10 @@ import requests
 import shutil
 import urllib
 import sys
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 from astropy.io import fits
 import bokeh.palettes as bpal
@@ -86,6 +90,17 @@ if not ON_GITHUB_ACTIONS_OR_RTD:
         GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
         GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+
+
+def resource_filename(package_name, resource_name):
+    # Use a context manager to ensure the resource path is valid, 
+    # especially if the package is in a zip archive.
+    ref = importlib_resources.files(package_name).joinpath(resource_name)
+    with importlib_resources.as_file(ref) as path:
+        # path is a pathlib.Path object pointing to the file
+        # You can now use this path as a string (e.g., in open())
+        return str(path)
+
 
 def blockPrint():
     """Function to suppress print statements"""

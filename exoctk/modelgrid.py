@@ -9,7 +9,7 @@ from glob import glob
 import multiprocessing
 import os
 import pickle
-from pkg_resources import resource_filename
+from exoctk.utils import resource_filename
 import time
 import warnings
 

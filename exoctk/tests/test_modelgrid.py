@@ -17,7 +17,7 @@ Use
         pytest -s modelgrid.py
 """
 
-from pkg_resources import resource_filename
+from exoctk.utils import resource_filename
 
 import numpy as np
 

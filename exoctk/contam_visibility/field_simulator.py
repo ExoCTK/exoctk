@@ -13,7 +13,7 @@ import os
 import re
 import sys
 import time
-from pkg_resources import resource_filename
+from exoctk.utils import resource_filename
 import logging
 import datetime
 from urllib.parse import quote_plus

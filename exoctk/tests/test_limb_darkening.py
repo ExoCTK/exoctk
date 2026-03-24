@@ -17,7 +17,7 @@ Use
         pytest -s test_limb_darkening.py
 """
 
-from pkg_resources import resource_filename
+from exoctk.utils import resource_filename
 
 from svo_filters import Filter
 

@@ -7,7 +7,7 @@ A module for creating and managing grids of model spectra
 from glob import glob
 import json
 import os
-from pkg_resources import resource_filename
+from exoctk.utils import resource_filename
 
 import numpy as np
 from svo_filters.svo import Filter
