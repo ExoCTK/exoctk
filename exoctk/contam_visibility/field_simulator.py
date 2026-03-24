@@ -46,11 +46,6 @@ from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from . import contamination_figure as cf
 from exoctk import utils
 
-try:
-    set_start_method('spawn')
-except RuntimeError:
-    pass
-
 import warnings
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 
