@@ -13,7 +13,6 @@ import os
 import re
 import sys
 import time
-from exoctk.utils import resource_filename
 import logging
 import datetime
 from urllib.parse import quote_plus
@@ -41,7 +40,7 @@ import numpy as np
 import pysiaf
 import regions
 
-from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
+from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from . import contamination_figure as cf
 from exoctk import utils

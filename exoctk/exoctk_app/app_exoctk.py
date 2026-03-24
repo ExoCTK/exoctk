@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import pickle
-from exoctk.utils import resource_filename
 import sys
 import tempfile
 import time
@@ -36,7 +35,7 @@ from exoctk.limb_darkening import spam
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.throughputs import Throughput
-from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
+from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name, resource_filename
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

@@ -9,7 +9,6 @@ from glob import glob
 import multiprocessing
 import os
 import pickle
-from exoctk.utils import resource_filename
 import time
 import warnings
 
@@ -23,6 +22,7 @@ from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import zoom
 
 from . import utils
+from .utils import resource_filename
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=FutureWarning)

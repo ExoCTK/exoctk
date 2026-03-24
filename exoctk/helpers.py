@@ -25,7 +25,7 @@ Dependencies
     - ``numpy``
 """
 
-from exoctk.utils import resource_filename
+from .utils import resource_filename
 
 import astropy.constants as ac
 from astropy.io import fits, ascii

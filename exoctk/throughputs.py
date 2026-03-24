@@ -7,10 +7,11 @@ A module for creating and managing grids of model spectra
 from glob import glob
 import json
 import os
-from exoctk.utils import resource_filename
 
 import numpy as np
 from svo_filters.svo import Filter
+
+from .utils import resource_filename
 
 try:
     from pandeia.engine.instrument_factory import InstrumentFactory

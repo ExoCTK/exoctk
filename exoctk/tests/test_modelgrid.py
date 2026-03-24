@@ -17,11 +17,10 @@ Use
         pytest -s modelgrid.py
 """
 
-from exoctk.utils import resource_filename
-
 import numpy as np
 
 from exoctk import modelgrid as mg
+from exoctk.utils import resource_filename
 
 
 def test_modelgrid_object():
