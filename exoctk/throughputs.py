@@ -7,6 +7,7 @@ A module for creating and managing grids of model spectra
 from glob import glob
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 from svo_filters.svo import Filter
@@ -18,8 +19,13 @@ try:
 except ImportError:
     print("pandeia not installed. Functionality limited.")
 
+def get_throughput_list(filt_dir):
+    filt_dir = Path(filt_dir)
+    filt_files = [x.stem for x in filt_dir.rglob('*.txt')]
+    return filt_files
+
 FILT_DIR = resource_filename('exoctk', 'data/throughputs/')
-JWST_THROUGHPUTS = [os.path.basename(file).replace('.txt', '') for file in glob(FILT_DIR + '*')]
+JWST_THROUGHPUTS = get_throughput_list(FILT_DIR)
 
 
 class Throughput(Filter):
@@ -37,7 +43,7 @@ class Throughput(Filter):
         if name in JWST_THROUGHPUTS:
 
             # Change throughput directory
-            super().__init__(name, filter_directory=FILT_DIR, **kwargs)
+            super().__init__(name, filter_directory=Path(FILT_DIR), **kwargs)
 
         # Otherwise, just use svo_filters default
         else:

@@ -30,22 +30,12 @@ RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/reposit
 RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev git hdf5-dev
 RUN apk --no-cache --update-cache add nano
 
-# Install numpy with custom batman
 WORKDIR /exoctk
-RUN pip install --force-reinstall --no-cache-dir numpy==2.2.6
-RUN pip uninstall batman-package
-RUN git clone https://github.com/lkreidberg/batman.git
-WORKDIR /exoctk/batman
-RUN pip install .
-WORKDIR /exoctk
-
-# Install very specific versions of packages
-RUN pip install svo-filters==0.4.4
 
 # Install redis and celery
-RUN pip install redis
-RUN pip install celery
 RUN pip install gunicorn
+RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
+RUN pip install svo-filters==0.5.3
 
 ARG exoctk_repo
 
