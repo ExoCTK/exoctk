@@ -661,24 +661,21 @@ def contam_visibility():
             print("Loaded results")
             os.remove(results_file)
 
-            plot_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_plot.pickle'
-            )
-            print(f"Loading {plot_file}")
-            with open(plot_file, "rb") as f:
-                contam_plot = pickle.load(f)
-            print("Loaded plot")
-            os.remove(plot_file)
-
             # Get bad PA list from missing angles between 0 and 360
-            badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
+            badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
+            print("Made PA list")
 
             # Make old contam plot
-            starcube_targ = np.zeros((362, 2048, 96 if aperture == 'NIS_SUBSTRIP96' else 256))
-            starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
-            starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            starcube_targ = np.zeros((362, 2048, 96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
+            print("Starcube Step 1")
+            starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
+            print("Starcube Step 2")
+            starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
+            print("Starcube Step 3")
             starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-            contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
+            print("Made target starcube")
+            contam_plot = cf.contam(starcube_targ, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+            print("Made contamination Plot")
 
             # Get scripts
             contam_js = INLINE.render_js()
@@ -905,7 +902,7 @@ def limb_darkening():
         # Calculate the coefficients for each profile
         ld = lf.LDC(model_grid)
         for prof in form.profiles.data:
-            ld.calculate(*star_params, prof, mu_min=float(form.mu_min.data), bandpass=bandpass)
+            ld.calculate(*star_params, str(prof), mu_min=float(form.mu_min.data), bandpass=bandpass)
 
         # Check if spam coefficients can be calculated
         planet_data = {param: getattr(form, param).data for param in planet_properties}
