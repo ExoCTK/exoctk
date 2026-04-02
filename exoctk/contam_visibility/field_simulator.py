@@ -9,6 +9,7 @@ from functools import partial
 import glob
 import logging
 import os
+import pickle
 import re
 import sys
 import time
@@ -541,7 +542,10 @@ def classify_source(row):
         if row['parallax'] < 0.5:
             stype = 'GALAXY'
 
-    logging.info(stype, row['parallax'], row['astrometric_excess_noise'], row['phot_bp_rp_excess_factor'])
+    msg = f"Type={stype}, parallax={row['parallax']}, excess noise="
+    msg += f"{row['astrometric_excess_noise']}, excess_factor="
+    msg += f"{row['phot_bp_rp_excess_factor']}"
+    logging.info(msg)
 
     return stype
 
@@ -666,9 +670,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
 
     # Get trace masks
     trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
-
-    # SOSS trace masks
-    mask1, mask2, mask3 = SOSS_trace_mask(aperture.AperName)
 
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
@@ -993,6 +994,8 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
     # Make contam plot
     if plot:
 
+        logging.info("Doing a plot here")
+
         # Get bad PA list from missing angles between 0 and 360
         badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
 
@@ -1003,14 +1006,12 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
         starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
         contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
+        return targframes, starcube, results, plot
+
         # # Slider plot
         # contam_plot = contam_slider_plot(results, plot=False)
 
-        return targframes, starcube, results, contam_plot
-
-    else:
-
-        return targframes, starcube, results
+    return targframes, starcube, results
 
 
 def contam_slider_plot(contam_results, threshold=0.05, plot=False):

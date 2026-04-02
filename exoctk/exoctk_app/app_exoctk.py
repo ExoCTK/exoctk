@@ -38,8 +38,6 @@ from exoctk.pkgdata import resource_filename
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # FLASK SET UP
 app_exoctk = Flask(__name__)
 
@@ -373,10 +371,10 @@ def run_gaia_query_task(self, params):
 
     self.update_state(state="SAVING STARS")
     stars_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle')
-    logging.info("Serializing stars")
+    print("Serializing stars")
     with open(stars_file, "wb") as f:
         pickle.dump(stars, f)
-    logging.info(f"Wrote stars to {stars_file}")
+    print(f"Wrote stars to {stars_file}")
 
     return task_uuid
 
@@ -387,30 +385,31 @@ def run_contam_visibility_task(self, params):
     # Long-running logic
     task_uuid = f"{self.request.id}"
     params["task"] = self
+    params["plot"] = False
     targframe, starcube, results = fs.field_simulation(**params)
 
     self.update_state(state="SAVING TARGET FRAME")
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
-    logging.info("Serializing targframe")
+    print("Serializing targframe")
     with open(targframe_file, "wb") as f:
         pickle.dump(targframe, f)
-    logging.info(f"Wrote targframe to {targframe_file}")
+    print(f"Wrote targframe to {targframe_file}")
 
     self.update_state(state="SAVING STAR CUBE")
     starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
-    logging.info("Serializing starcube")
+    print("Serializing starcube")
     with open(starcube_file, "wb") as f:
         pickle.dump(starcube, f)
-    logging.info(f"Wrote starcube to {starcube_file}")
+    print(f"Wrote starcube to {starcube_file}")
 
     pa_results = [result['pa'] for result in results]
-    logging.info("Serializing results")
+    print("Serializing results")
     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
     with open(results_file, "wb") as f:
         pickle.dump(pa_results, f)
-    logging.info(f"Wrote results to {results_file}")
+    print(f"Wrote results to {results_file}")
 
-    logging.info(f"Processed with params: {params}, uuid {task_uuid}")
+    print(f"Processed with params: {params}, uuid {task_uuid}")
 
     return task_uuid
 
@@ -563,7 +562,7 @@ def contam_visibility():
                 if companion is not None:
                     params['binComp'] = companion
                 task_result = run_contam_visibility_task.apply_async(args=[params])
-                logging.info(f"Dispatched task {task_result} with id {task_result.id}")
+                print(f"Dispatched task {task_result} with id {task_result.id}")
                 form.task_id.data = task_result.id
 
                 return render_template('contam_visibility.html', form=form)
@@ -579,7 +578,7 @@ def contam_visibility():
 
                 # Get stars
                 task_result = run_gaia_query_task.apply_async(args=[params])
-                logging.info(f"Dispatched task {task_result} with id {task_result.id}")
+                print(f"Dispatched task {task_result} with id {task_result.id}")
                 form.task_id.data = task_result.id
 
                 return render_template('contam_visibility.html', form=form)
@@ -604,6 +603,8 @@ def contam_visibility():
 
     if form.task_submit.data:
 
+        print("Got a completed task.")
+
         if form.inst.data == "NIRSpec":
             instrument = form.inst.data
         else:
@@ -625,53 +626,65 @@ def contam_visibility():
         vis_script, vis_div = components(vis_plot)
 
         pa_val = float(form.v3pa.data)
+        print(f"PA is {pa_val}")
         if pa_val == -1:
             # Get task output
-            task_result = run_contam_visibility_task.AsyncResult(form.task_id.data)
+            task_result = AsyncResult(form.task_id.data, app=celery)
+            print(f"Task result is {task_result}")
             task_uuid = task_result.get()
-            logging.info(f"Got task result {task_uuid}")
+            print(f"Got task ID {task_uuid}")
 
             targframe_file = os.path.join(
                 os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
             )
-            logging.info(f"Loading {targframe_file}")
+            print(f"Loading {targframe_file}")
             with open(targframe_file, "rb") as f:
                 targframe = pickle.load(f)
-            logging.info("Loaded targframe")
+            print("Loaded targframe")
             os.remove(targframe_file)
 
             starcube_file = os.path.join(
                 os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
             )
-            logging.info(f"Loading {starcube_file}")
+            print(f"Loading {starcube_file}")
             with open(starcube_file, "rb") as f:
                 starcube = pickle.load(f)
-            logging.info("Loaded starcube")
+            print("Loaded starcube")
             os.remove(starcube_file)
 
             results_file = os.path.join(
                 os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
             )
-            logging.info(f"Loading {results_file}")
+            print(f"Loading {results_file}")
             with open(results_file, "rb") as f:
                 results = pickle.load(f)
-            logging.info("Loaded results")
+            print("Loaded results")
             os.remove(results_file)
 
+            plot_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_plot.pickle'
+            )
+            print(f"Loading {plot_file}")
+            with open(plot_file, "rb") as f:
+                contam_plot = pickle.load(f)
+            print("Loaded plot")
+            os.remove(plot_file)
+
             # Get bad PA list from missing angles between 0 and 360
-            badPAs = [j for j in np.arange(0, 360) if j not in results]
+            badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
 
             # Make old contam plot
-            starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-            starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-            starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-            starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-            contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+            starcube_targ = np.zeros((362, 2048, 96 if aperture == 'NIS_SUBSTRIP96' else 256))
+            starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
+            starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+            contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
             # Get scripts
             contam_js = INLINE.render_js()
             contam_css = INLINE.render_css()
             contam_script, contam_div = components(contam_plot)
+            print("Created scripts")
 
         else:
             task_result = AsyncResult(form.task_id.data, app=celery)
@@ -680,10 +693,10 @@ def contam_visibility():
             stars_file = os.path.join(
                 os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle'
             )
-            logging.info(f"Loading {stars_file}")
+            print(f"Loading {stars_file}")
             with open(stars_file, "rb") as f:
                 stars = pickle.load(f)
-            logging.info("Loaded stars")
+            print("Loaded stars")
             os.remove(stars_file)
 
             # Add companion
@@ -1124,11 +1137,11 @@ def save_fortney_result():
     """Save the results of the Fortney grid"""
 
     input_json = flask.request.form['data_file']
-    logging.info(f"Form input is: {input_json}")
+    print(f"Form input is: {input_json}")
     with io.StringIO(input_json) as fs:
         fs.seek(0)
         input_args = json.load(fs)
-    logging.info(f"JSON loaded as {input_args}")
+    print(f"JSON loaded as {input_args}")
     fig, fh, temp_out = fortney_grid(input_args)
     fortney_data = flask.Response(
         fh.getvalue(),
@@ -1196,6 +1209,8 @@ def save_visib_result():
 
 
 if __name__ == '__main__':
-
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    app_exoctk.logger.handlers = gunicorn_logger.handlers
+    app_exoctk.logger.setLevel(gunicorn_logger.level)
     port = int(os.environ.get('PORT', 5000))
     app_exoctk.run(host='0.0.0.0', port=port)
