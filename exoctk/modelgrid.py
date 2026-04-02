@@ -491,6 +491,11 @@ class ModelGrid(object):
         if in_grid:
 
             # See if the model with the desired parameters is a true grid point
+            sd = self.data[(self.data['Teff'] == Teff) &
+                           (self.data['logg'] == logg) &
+                           (self.data['FeH'] == FeH)]
+            print(sd)
+            print(len(sd))
             on_grid = self.data[(self.data['Teff'] == Teff) &
                                 (self.data['logg'] == logg) &
                                 (self.data['FeH'] == FeH)] in self.data
