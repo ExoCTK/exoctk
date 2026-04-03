@@ -12,7 +12,6 @@ import logging
 import math
 import numpy as np
 import os
-import pkg_resources
 import re
 
 from astropy.coordinates import SkyCoord, Galactic
@@ -22,6 +21,8 @@ import astropy.units as u
 from astroquery.gaia import Gaia
 from astroquery.ipac.irsa import Irsa
 from pysiaf.utils.projection import deproject_from_tangent_plane
+
+from ..pkgdata import resource_filename
 
 
 def source_catalog(ra, dec, box_width):
@@ -671,7 +672,7 @@ def query_WISE_ptsrc_catalog(ra, dec, box_width, wise_catalog='ALLWISE'):
 #     """
 #     # read in the values needed to transform the Besancon model magnitudes
 #     #
-#     module_path = pkg_resources.resource_filename('mirage', '')
+#     module_path = resource_filename('mirage', '')
 #     standard_mag_file = os.path.join(module_path, 'config/magslist_bosz_normal_mirage.new')
 #     with open(standard_mag_file, 'r') as infile:
 #         lines = infile.readlines()
@@ -2153,7 +2154,7 @@ def query_GAIA_ptsrc_catalog(ra, dec, box_width):
 #                   'niriss_f430m_magnitude': 28, 'niriss_f444w_magnitude': 21,
 #                   'niriss_f480m_magnitude': 30, 'fgs_guider1_magnitude': 11,
 #                   'fgs_guider2_magnitude': 11}
-#     module_path = pkg_resources.resource_filename('mirage', '')
+#     module_path = resource_filename('mirage', '')
 #     catalog_file = os.path.join(module_path, 'config/goodss_3dhst.v4.1.jwst_galfit.cat')
 #     catalog_values = np.loadtxt(catalog_file, comments='#')
 #

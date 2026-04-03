@@ -72,6 +72,7 @@ def fortney_grid(args, write_plot=False, write_table=False):
         db = create_engine('sqlite:///' + os.path.join(utils.get_env_variables()['exoctk_data'], 'fortney/fortney_models.db'))
         header = pd.read_sql_table('header', db)
     except:
+        print("Fortney grid not found")
         raise Exception('Fortney Grid File Path is incorrect, or not initialized')
 
     if args:
@@ -108,9 +109,15 @@ def fortney_grid(args, write_plot=False, write_table=False):
 
         fort_grav = 25.0 * u.m / u.s**2
 
-        df = header.loc[(header.gravity == fort_grav) & (header.temp == temp) & (header.noTiO == noTiO) & (header.ray == ray) & (header.flat == flat)]
+        df = header.loc[(header.gravity == fort_grav.value) & (header.temp == temp) & (header.noTiO == noTiO) & (header.ray == ray) & (header.flat == flat)]
+        print("Final Dataframe:")
+        print(df)
 
-        wave_planet = np.array(pd.read_sql_table(df['name'].values[0], db)['wavelength'])[::-1]
+        try:
+            wave_planet = np.array(pd.read_sql_table(df['name'].values[0], db)['wavelength'])[::-1]
+        except Exception as e:
+            print(e)
+            raise e
         r_lambda = np.array(pd.read_sql_table(df['name'].values[0], db)['radius']) * u.km
 
         # All fortney models have fixed 1.25 radii
@@ -138,8 +145,10 @@ def fortney_grid(args, write_plot=False, write_table=False):
         y = flux_planet[::-1]
 
     else:
+        print("No args")
         df = pd.read_sql_table('t1000g25_noTiO', db)
         x, y = df['wavelength'], df['radius']**2.0 / 7e5**2.0
+        print("Done no args")
 
     tab = at.Table(data=[x, y])
     fh = io.StringIO()
