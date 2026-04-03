@@ -1,8 +1,16 @@
+from celery import Celery, chain
+from celery.result import AsyncResult
+from datetime import datetime
 from functools import wraps
 import io
 import json
+import logging
 import os
-from pkg_resources import resource_filename
+import pickle
+import sys
+import tempfile
+import time
+import uuid
 
 from astropy.coordinates import SkyCoord
 import astropy.table as at
@@ -11,8 +19,7 @@ import astropy.units as u
 from bokeh.embed import components
 from bokeh.resources import INLINE
 import flask
-from flask import Flask, make_response, render_template, Response, request, send_file
-import form_validation as fv
+from flask import Flask, make_response, render_template, Response, request, send_file, session
 import numpy as np
 
 from exoctk import log_exoctk
@@ -20,12 +27,14 @@ from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exo
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
+from exoctk.exoctk_app import form_validation as fv
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
 from exoctk.limb_darkening import limb_darkening_fit as lf
 from exoctk.limb_darkening import spam
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
+from exoctk.pkgdata import resource_filename
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 
@@ -35,6 +44,19 @@ app_exoctk = Flask(__name__)
 # define the cache config keys, remember that it can be done in a settings file
 app_exoctk.config['CACHE_TYPE'] = 'null'
 app_exoctk.config['SECRET_KEY'] = 'Thisisasecret!'
+
+# Configure Celery
+app_exoctk.config['CELERY_BROKER_URL'] = 'redis://redis:6379/0'
+app_exoctk.config['RESULT_BACKEND'] = 'redis://redis:6379/0'
+
+# Initialize Celery
+celery = Celery(
+    app_exoctk.import_name,
+    broker=app_exoctk.config['CELERY_BROKER_URL'],
+    backend=app_exoctk.config['RESULT_BACKEND']
+)
+celery.conf.update(app_exoctk.config)
+celery.conf['task_track_started'] = True
 
 # Load the database to log all form submissions
 if get_env_variables()['exoctklog_dir'] is None:
@@ -47,6 +69,22 @@ try:
     DB = log_exoctk.load_db(DBPATH)
 except IOError:
     DB = None
+
+
+def get_task_counts():
+    task_inspector = celery.control.inspect()
+    active_tasks = task_inspector.active()
+    scheduled_tasks = task_inspector.scheduled()
+    reserved_tasks = task_inspector.reserved()
+
+    # Count tasks by status
+    counts = {
+        'active': sum(len(tasks) for tasks in active_tasks.values()) if active_tasks else 0,
+        'scheduled': sum(len(tasks) for tasks in scheduled_tasks.values()) if scheduled_tasks else 0,
+        'reserved': sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0,
+        # Note: 'PENDING' and 'SUCCESS' require a result backend and task IDs
+    }
+    return counts
 
 
 def _param_fort_validation(args):
@@ -75,40 +113,6 @@ def _param_fort_validation(args):
     return input_args
 
 
-def check_auth(username, password):
-    """This function is called to check if a username password
-    combination is valid
-
-    Parameters
-    ----------
-    username: str
-        The username
-    password: str
-        The password
-    """
-
-    return username == 'admin' and password == 'secret'
-
-
-@app_exoctk.route('/download', methods=['POST'])
-def exoctk_savefile():
-    """Save results to file
-
-    Returns
-    -------
-    ``flask.make_response`` obj
-        Returns response including results in txt form.
-    """
-
-    file_as_string = eval(request.form['file_as_string'])
-
-    response = make_response(file_as_string)
-    response.headers["Content-type"] = 'text; charset=utf-8'
-    response.headers["Content-Disposition"] = "attachment; filename=ExoCTK_results.txt"
-
-    return response
-
-
 @app_exoctk.route('/fortney', methods=['GET', 'POST'])
 def fortney():
     """
@@ -119,11 +123,14 @@ def fortney():
     html : ``flask.render_template`` obj
         The rendered template for the Fortney results.
     """
+    print("Starting Fortney")
 
     # Grab the inputs arguments from the URL
     args = flask.request.args
+    print(f"Got args: {args}")
 
     input_args = _param_fort_validation(args)
+    print(f"Got input args: {input_args}")
     fig, fh, temp_out = fortney_grid(input_args)
 
     table_string = fh.getvalue()
@@ -139,7 +146,7 @@ def fortney():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  temp=sorted(temp_out, key=float),
-                                 table_string=table_string
+                                 table_string=json.dumps(input_args)
                                  )
 
     # Log the form inputs
@@ -359,6 +366,72 @@ def pa_contam():
     return render_template('pa_contam.html')
 
 
+@celery.task(bind=True)
+def run_gaia_query_task(self, params):
+    task_uuid = f"{self.request.id}"
+    params["task"] = self
+    stars = fs.find_sources(params["ra"], params["dec"], target_date=params["target_date"])
+
+    self.update_state(state="SAVING STARS")
+    stars_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle')
+    print("Serializing stars")
+    with open(stars_file, "wb") as f:
+        pickle.dump(stars, f)
+    print(f"Wrote stars to {stars_file}")
+
+    return task_uuid
+
+
+# Long-running Celery task
+@celery.task(bind=True)
+def run_contam_visibility_task(self, params):
+    # Long-running logic
+    task_uuid = f"{self.request.id}"
+    params["task"] = self
+    params["plot"] = False
+    targframe, starcube, results = fs.field_simulation(**params)
+
+    self.update_state(state="SAVING TARGET FRAME")
+    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
+    print("Serializing targframe")
+    with open(targframe_file, "wb") as f:
+        pickle.dump(targframe, f)
+    print(f"Wrote targframe to {targframe_file}")
+
+    self.update_state(state="SAVING STAR CUBE")
+    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
+    print("Serializing starcube")
+    with open(starcube_file, "wb") as f:
+        pickle.dump(starcube, f)
+    print(f"Wrote starcube to {starcube_file}")
+
+    pa_results = [result['pa'] for result in results]
+    print("Serializing results")
+    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
+    with open(results_file, "wb") as f:
+        pickle.dump(pa_results, f)
+    print(f"Wrote results to {results_file}")
+
+    print(f"Processed with params: {params}, uuid {task_uuid}")
+
+    return task_uuid
+
+
+# Route to check task status
+@app_exoctk.route('/status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = AsyncResult(task_id, app=celery)
+    result = {
+        "ready": task.ready(),
+        "successful": task.successful(),
+        "state": task.state,
+        "value": task.result if task.ready() else None,
+#         "counts": get_task_counts()
+    }
+    print(f"Returning result {result}")
+    return result
+
+
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
@@ -432,105 +505,245 @@ def contam_visibility():
         else:
             instrument = fs.APERTURES[form.inst.data]['inst']
 
-        try:
-            # Log the form inputs
-            log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
+        # Log the form inputs
+        log_exoctk.log_form_input(request.form, 'contam_visibility', DB)
 
-            # Make plot
-            title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-            vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
-            table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+        # Make plot
+        title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+        table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
 
-            # Make output table
-            vis_table = table.to_csv()
+        # Make output table
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4()}.csv")
+        with open(vis_table_file, "wt") as f:
+            f.write(table.to_csv())
 
-            # Get scripts
-            vis_js = INLINE.render_js()
-            vis_css = INLINE.render_css()
-            vis_script, vis_div = components(vis_plot)
+        # Get scripts
+        vis_js = INLINE.render_js()
+        vis_css = INLINE.render_css()
+        vis_script, vis_div = components(vis_plot)
 
-            # Contamination plot too
-            if form.calculate_contam_submit.data:
+        # Contamination plot too
+        if form.calculate_contam_submit.data:
 
-                # Get RA and Dec in degrees
-                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+            # Get RA and Dec in degrees
+            ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
 
-                # Add companion
-                try:
-                    comp_teff = float(form.teff.data)
-                except TypeError:
-                    comp_teff = None
-                try:
-                    comp_mag = float(form.delta_mag.data)
-                except TypeError:
-                    comp_mag = None
-                try:
-                    comp_dist = float(form.dist.data)
-                except TypeError:
-                    comp_dist = None
-                try:
-                    comp_pa = float(form.pa.data)
-                except TypeError:
-                    comp_pa = None
+            # Add companion
+            try:
+                comp_teff = float(form.teff.data)
+            except TypeError:
+                comp_teff = None
+            try:
+                comp_mag = float(form.delta_mag.data)
+            except TypeError:
+                comp_mag = None
+            try:
+                comp_dist = float(form.dist.data)
+            except TypeError:
+                comp_dist = None
+            try:
+                comp_pa = float(form.pa.data)
+            except TypeError:
+                comp_pa = None
 
-                # Get PA value
-                pa_val = float(form.v3pa.data)
-                if pa_val == -1:
+            # Get PA value
+            pa_val = float(form.v3pa.data)
+            if pa_val == -1:
 
-                    # Add a companion
-                    companion = None
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
+                # Add a companion
+                companion = None
+                if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                    companion = {'name': 'Companion', 'ra': ra_deg, 'dec': dec_deg, 'teff': comp_teff, 'delta_mag': comp_mag, 'dist': comp_dist, 'pa': comp_pa}
 
-                    # Make field simulation
-                    targframe, starcube, results = fs.field_simulation(ra_deg, dec_deg, form.inst.data, target_date=form.epoch.data, binComp=companion, plot=False, multi=False)
+                params = {
+                    'ra': ra_deg,
+                    'dec': dec_deg,
+                    'aperture': form.inst.data,
+                    'target_date': form.epoch.data,
+                }
+                if companion is not None:
+                    params['binComp'] = companion
+                task_result = run_contam_visibility_task.apply_async(args=[params])
+                print(f"Dispatched task {task_result} with id {task_result.id}")
+                form.task_id.data = task_result.id
 
-                    # Make the plot
-                    # contam_plot = fs.contam_slider_plot(results)
-
-                    # Get bad PA list from missing angles between 0 and 360
-                    badPAs = [j for j in np.arange(0, 360) if j not in [i['pa'] for i in results]]
-
-                    # Make old contam plot
-                    starCube = np.zeros((362, 2048, 96 if form.inst.data=='NIS_SUBSTRIP96' else 256))
-                    starCube[0, :, :] = (targframe[0]).T[::-1, ::-1]
-                    starCube[1, :, :] = (targframe[1]).T[::-1, ::-1]
-                    starCube[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-                    contam_plot = cf.contam(starCube, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
-
-                else:
-
-                    # Get stars
-                    stars = fs.find_sources(ra_deg, dec_deg, target_date=form.epoch.data, verbose=False)
-
-                    # Add companion
-                    if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                        stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
-
-                    # Calculate contam
-                    result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True, verbose=False)
-
-                # Get scripts
-                contam_js = INLINE.render_js()
-                contam_css = INLINE.render_css()
-                contam_script, contam_div = components(contam_plot)
+                return render_template('contam_visibility.html', form=form)
 
             else:
 
-                contam_script = contam_div = contam_js = contam_css = pa_val = ''
+                params = {
+                    'ra': ra_deg,
+                    'dec': dec_deg,
+                    'aperture': form.inst.data,
+                    'target_date': form.epoch.data,
+                }
 
-            return render_template('contam_visibility_results.html',
-                                   form=form, vis_plot=vis_div,
-                                   vis_table=vis_table,
-                                   vis_script=vis_script, vis_js=vis_js,
-                                   vis_css=vis_css, contam_plot=contam_div,
-                                   contam_script=contam_script,
-                                   contam_js=contam_js,
-                                   contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+                # Get stars
+                task_result = run_gaia_query_task.apply_async(args=[params])
+                print(f"Dispatched task {task_result} with id {task_result.id}")
+                form.task_id.data = task_result.id
 
-        except Exception as e:
-            err = 'The following error occurred: ' + str(e)
-            return render_template('groups_integrations_error.html', err=err)
+                return render_template('contam_visibility.html', form=form)
+
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
+
+        else:
+
+            contam_script = contam_div = contam_js = contam_css = pa_val = ''
+
+        return render_template('contam_visibility_results.html',
+                               form=form, vis_plot=vis_div,
+                               vis_table=vis_table_file,
+                               vis_script=vis_script, vis_js=vis_js,
+                               vis_css=vis_css, contam_plot=contam_div,
+                               contam_script=contam_script,
+                               contam_js=contam_js,
+                               contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+
+    if form.task_submit.data:
+
+        print("Got a completed task.")
+
+        if form.inst.data == "NIRSpec":
+            instrument = form.inst.data
+        else:
+            instrument = fs.APERTURES[form.inst.data]['inst']
+
+        # Make plot
+        title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
+        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
+        table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+
+        # Make output table
+        vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4()}.csv")
+        with open(vis_table_file, "wt") as f:
+            f.write(table.to_csv())
+
+        # Get scripts
+        vis_js = INLINE.render_js()
+        vis_css = INLINE.render_css()
+        vis_script, vis_div = components(vis_plot)
+
+        pa_val = float(form.v3pa.data)
+        print(f"PA is {pa_val}")
+        if pa_val == -1:
+            # Get task output
+            task_result = AsyncResult(form.task_id.data, app=celery)
+            print(f"Task result is {task_result}")
+            task_uuid = task_result.get()
+            print(f"Got task ID {task_uuid}")
+
+            targframe_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
+            )
+            print(f"Loading {targframe_file}")
+            with open(targframe_file, "rb") as f:
+                targframe = pickle.load(f)
+            print("Loaded targframe")
+            os.remove(targframe_file)
+
+            starcube_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
+            )
+            print(f"Loading {starcube_file}")
+            with open(starcube_file, "rb") as f:
+                starcube = pickle.load(f)
+            print("Loaded starcube")
+            os.remove(starcube_file)
+
+            results_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
+            )
+            print(f"Loading {results_file}")
+            with open(results_file, "rb") as f:
+                results = pickle.load(f)
+            print("Loaded results")
+            os.remove(results_file)
+
+            # Get bad PA list from missing angles between 0 and 360
+            badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
+            print("Made PA list")
+
+            # Make old contam plot
+            starcube_targ = np.zeros((362, 2048, 96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
+            print("Starcube Step 1")
+            starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
+            print("Starcube Step 2")
+            starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
+            print("Starcube Step 3")
+            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+            print("Made target starcube")
+            contam_plot = cf.contam(starcube_targ, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
+            print("Made contamination Plot")
+
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
+            print("Created scripts")
+
+        else:
+            task_result = AsyncResult(form.task_id.data, app=celery)
+            task_uuid = task_result.get()
+
+            stars_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle'
+            )
+            print(f"Loading {stars_file}")
+            with open(stars_file, "rb") as f:
+                stars = pickle.load(f)
+            print("Loaded stars")
+            os.remove(stars_file)
+
+            # Add companion
+            try:
+                comp_teff = float(form.teff.data)
+            except TypeError:
+                comp_teff = None
+            try:
+                comp_mag = float(form.delta_mag.data)
+            except TypeError:
+                comp_mag = None
+            try:
+                comp_dist = float(form.dist.data)
+            except TypeError:
+                comp_dist = None
+            try:
+                comp_pa = float(form.pa.data)
+            except TypeError:
+                comp_pa = None
+
+            # Add companion
+            if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
+                stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
+
+            # Calculate contam
+            result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+
+            # Get scripts
+            contam_js = INLINE.render_js()
+            contam_css = INLINE.render_css()
+            contam_script, contam_div = components(contam_plot)
+
+        return render_template(
+            'contam_visibility_results.html',
+            form=form,
+            vis_plot=vis_div,
+            vis_table=vis_table_file,
+            vis_script=vis_script,
+            vis_js=vis_js,
+            vis_css=vis_css,
+            contam_plot=contam_div,
+            contam_script=contam_script,
+            contam_js=contam_js,
+            contam_css=contam_css,
+            pa_val=pa_val,
+            epoch=form.epoch.data
+        )
 
     return render_template('contam_visibility.html', form=form)
 
@@ -665,13 +878,16 @@ def limb_darkening():
 
         # Form inputs for logging
         form_input = dict(request.form)
+        print("Got form input")
 
         # Get the stellar parameters
         star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
+        print("Got star parameters")
 
         # Load the model grid
         model_grid = ModelGrid(form.modeldir.data, resolution=500)
         form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
+        print("Got model grid")
 
         # Grism details
         kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
@@ -684,6 +900,7 @@ def limb_darkening():
         js_resources = INLINE.render_js()
         css_resources = INLINE.render_css()
         filt_script, filt_plot = components(bk_plot)
+        print("Made filter and plot")
 
         # Trim the grid to nearby grid points to speed up calculation
         # full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
@@ -692,7 +909,8 @@ def limb_darkening():
         # Calculate the coefficients for each profile
         ld = lf.LDC(model_grid)
         for prof in form.profiles.data:
-            ld.calculate(*star_params, prof, mu_min=float(form.mu_min.data), bandpass=bandpass)
+            ld.calculate(*star_params, str(prof), mu_min=float(form.mu_min.data), bandpass=bandpass)
+        print("Calculated coefficients")
 
         # Check if spam coefficients can be calculated
         planet_data = {param: getattr(form, param).data for param in planet_properties}
@@ -708,25 +926,31 @@ def limb_darkening():
             # Calculate spam coeffs
             planet_data = {key: float(val) for key, val in planet_data.items()}
             ld.spam(planet_data=planet_data)
+        print("Got planet data and SPAM coefficient")
 
         # Draw tabbed figure
         final = ld.plot_tabs()
+        print("Drew tabbed figure")
 
         # Get HTML
         script, div = components(final)
+        print("Got HTML")
 
         # Store the tables as a string
         keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
         print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
-        file_as_string = '\n'.join(print_table.pformat(max_lines=-1, max_width=-1))
+        print("Made table")
 
         # Make a table for each profile with a row for each wavelength bin
         profile_tables = []
         for profile in form.profiles.data:
+            print(f"Creating profile table for {profile}")
+            profile = str(profile)
 
             # Make LaTeX for polynomials
             latex = lf.ld_profile(profile, latex=True)
             poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
+            print("\tMade LaTeX")
 
             # Make the table into LaTeX
             table = filter_table(ld.results, profile=profile)
@@ -735,9 +959,11 @@ def limb_darkening():
             table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
             table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
+            print("\tMade table info")
 
             # Add the results to the lists
             html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+            print("\tMade HTML table")
 
             # Add the table title
             header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
@@ -747,25 +973,29 @@ def limb_darkening():
 
             # Add the profile to the form inputs
             form_input[profile] = 'true'
+            print(f"\tFinished {profile}")
 
         # Log the successful form inputs
         log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
+        print("Logged form")
 
         # Make a table for each profile with a row for each wavelength bin
         profile_spam_tables = ''
-        spam_file_as_string = ''
         if ld.spam_results is not None:
+            print("Making spam table")
 
             # Store SPAM tables as string
             keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'c2']
             print_spam_table = ld.spam_results[[col for col in keep_cols if col in ld.spam_results.colnames]]
-            spam_file_as_string = '\n'.join(print_spam_table.pformat(max_lines=-1, max_width=-1))
             profile_spam_tables = []
             for profile in list(np.unique(ld.spam_results['profile'])):
+                profile = str(profile)
+                print(f"\tStarting spam table profile {profile}")
 
                 # Make LaTeX for polynomials
                 latex = lf.ld_profile(profile, latex=True)
                 poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
+                print("\t\tMade latex and polynomial")
 
                 # Make the table into LaTeX
                 table = filter_table(ld.spam_results, profile=profile)
@@ -774,21 +1004,42 @@ def limb_darkening():
                 table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
                 table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
                 table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
+                print("\t\tMade table")
 
                 # Add the results to the lists
                 html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+                print("\t\tMade HTML table")
 
                 # Add the table title
                 header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
                 html_table = header + html_table
                 profile_spam_tables.append(html_table)
+                print(f"\t\tFinished {profile} table")
 
-        return render_template('limb_darkening_results.html', form=form,
-                               table=profile_tables, spam_table=profile_spam_tables,
-                               script=script, plot=div, spam_file_as_string=repr(spam_file_as_string),
-                               file_as_string=repr(file_as_string),
-                               filt_plot=filt_plot, filt_script=filt_script,
-                               js=js_resources, css=css_resources)
+        # make sure tmp folder exists
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        # define a filepath (you can use UUIDs to make unique)
+        ldc_filename = 'ldc_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+        ldc_filepath = os.path.join(tmp_dir, ldc_filename)
+        print_table.write(ldc_filepath, format='ascii.ecsv', overwrite=True)
+        session['ldc_result_path'] = ldc_filepath
+        print("Created LDC path")
+
+        # Store the tables in session (as ECSV strings)
+        if profile_spam_tables == '':
+            pass
+        else:
+            spam_filename = 'spam_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+            spam_filepath = os.path.join(tmp_dir, spam_filename)
+            print_spam_table.write(spam_filepath, format='ascii.ecsv', overwrite=True)
+            session['spam_result_path'] = spam_filepath
+
+        print("Rendering")
+        return render_template('limb_darkening_results.html', form=form, table=profile_tables,
+                               spam_table=profile_spam_tables, script=script, plot=div, filt_plot=filt_plot,
+                               filt_script=filt_script, js=js_resources, css=css_resources)
 
     return render_template('limb_darkening.html', form=form)
 
@@ -888,30 +1139,6 @@ def phase_constraint(transit_type='primary'):
     return render_template('phase_constraint.html', form=form)
 
 
-def requires_auth(page):
-    """Requires authentication for a page before loading
-
-    Parameters
-    ----------
-    page: function
-        The function that sets a route
-
-    Returns
-    -------
-    function
-        The decorated route
-    """
-
-    @wraps(page)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return page(*args, **kwargs)
-
-    return decorated
-
-
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
 def save_contam_pdf():
     """Save the results of the Contamination Science FOV
@@ -934,8 +1161,19 @@ def save_contam_pdf():
 def save_fortney_result():
     """Save the results of the Fortney grid"""
 
-    table_string = flask.request.form['data_file']
-    return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=fortney.dat"})
+    input_json = flask.request.form['data_file']
+    print(f"Form input is: {input_json}")
+    with io.StringIO(input_json) as fs:
+        fs.seek(0)
+        input_args = json.load(fs)
+    print(f"JSON loaded as {input_args}")
+    fig, fh, temp_out = fortney_grid(input_args)
+    fortney_data = flask.Response(
+        fh.getvalue(),
+        mimetype="text/dat",
+        headers={"Content-disposition": "attachment; filename=fortney.dat"}
+    )
+    return fortney_data
 
 
 @app_exoctk.route('/generic_result', methods=['POST'])
@@ -944,6 +1182,24 @@ def save_generic_result():
 
     table_string = flask.request.form['data_file']
     return flask.Response(table_string, mimetype="text/dat", headers={"Content-disposition": "attachment; filename=generic.dat"})
+
+
+@app_exoctk.route('/ldc_result', methods=['POST'])
+def save_ldc_result():
+    ldc_path = session.get('ldc_result_path')
+    if not ldc_path or not os.path.exists(ldc_path):
+        return "File not found", 404
+
+    return send_file(ldc_path, as_attachment=True, download_name='ldc_result.csv')
+
+
+@app_exoctk.route('/spam_result', methods=['POST'])
+def save_spam_result():
+    spam_path = session.get('ldc_result_path')
+    if not spam_path or not os.path.exists(spam_path):
+        return "File not found", 404
+
+    return send_file(spam_path, as_attachment=True, download_name='spam_result.csv')
 
 
 @app_exoctk.route('/groups_integrations_download')
@@ -963,7 +1219,9 @@ def save_visib_result():
         flask.Response object with the results of the visibility only
         calculation.
     """
-    visib_table = request.form['vis_table']
+    visib_table_file = request.form['vis_table']
+    with open(visib_table_file, "rt") as f:
+        visib_table = f.read()
     targname = request.form['targetname']
     targname = targname.replace(' ', '_')  # no spaces
     instname = request.form['instrumentname']
@@ -975,43 +1233,9 @@ def save_visib_result():
     return resp
 
 
-@app_exoctk.route('/admin')
-@requires_auth
-def secret_page():
-    """Shhhhh! This is a secret page of admin stuff
-
-    Returns
-    -------
-    ``flask.render_template`` obj
-        The rendered template for the admin page.
-    """
-    # Reload the DB when this page loads so the data is current
-    DB = log_exoctk.load_db(DBPATH)
-
-    tables = [i[0] for i in DB.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
-
-    log_tables = []
-    for table in tables:
-
-        try:
-            data = log_exoctk.view_log(DB, table)
-
-            # Add the results to the lists
-            html_table = '\n'.join(data.pformat(max_width=500, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-
-        except Exception:
-            html_table = '<p>No data to display</p>'
-
-        # Add the table title
-        header = '<h3>{}</h3>'.format(table)
-        html_table = header + html_table
-
-        log_tables.append(html_table)
-
-    return render_template('admin_page.html', tables=log_tables)
-
-
 if __name__ == '__main__':
-
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    app_exoctk.logger.handlers = gunicorn_logger.handlers
+    app_exoctk.logger.setLevel(gunicorn_logger.level)
     port = int(os.environ.get('PORT', 5000))
     app_exoctk.run(host='0.0.0.0', port=port)

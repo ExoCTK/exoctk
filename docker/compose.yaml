@@ -1,0 +1,93 @@
+include:
+   - redis.yaml
+#   - celery.yaml
+services:
+  # Data Store Images
+  exoctk:
+    build:
+      context: ..
+      dockerfile: ./docker/exoctk/Dockerfile
+      args:
+        - exoctk_version=$EXO_VERSION
+        - python_version=$PYTHON_VERSION
+        - exoctk_repo=$EXO_REPO
+        - dev_source=$EXO_SOURCE
+    entrypoint: /exoctk/exoctk_entrypoint.sh
+    deploy:
+      resources:
+        limits:
+          memory: 24g
+    volumes:
+      - exoctk_data:/exoctk/exoctk_data
+      - shared_data:/exoctk/data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+  worker:
+    build:
+      context: ..
+      dockerfile: ./docker/exoctk/Dockerfile
+      args:
+        - exoctk_version=$EXO_VERSION
+        - python_version=$PYTHON_VERSION
+        - exoctk_repo=$EXO_REPO
+        - dev_source=$EXO_SOURCE
+    entrypoint: /exoctk/worker_entrypoint.sh
+    volumes:
+      - exoctk_data:/exoctk/exoctk_data
+      - shared_data:/exoctk/data
+    depends_on:
+      - redis
+      - exoctk
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+      replicas: $WORKER_COUNT
+    restart: unless-stopped
+  pandexo:
+    build:
+      context: ./pandexo
+      dockerfile: Dockerfile
+      args:
+        - pandexo_branch=$PANDEXO_BRANCH
+        - pandexo_version=3.0.0
+        - python_version=3.11
+        - pandeia_version=2025.7
+    entrypoint: /pandexo/pandexo_entrypoint.sh
+    deploy:
+      resources:
+        limits:
+          memory: 64g
+    volumes:
+      - exoctk_data:/data/exoctk
+      - pandeia_data:/data/pandeia
+      - synphot_data:/data/trds
+    ports:
+      - "1111:1111"
+    restart: unless-stopped
+volumes:
+  exoctk_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $EXOCTK_DATA
+  pandeia_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $pandeia_refdata
+  synphot_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $PYSYN_CDBS
+  shared_data:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $EXO_TMP
