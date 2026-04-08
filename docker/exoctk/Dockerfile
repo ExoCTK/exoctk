@@ -28,7 +28,7 @@ ENV SHARED_DATA_DIR="/exoctk/data"
 RUN apk update
 RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev git hdf5-dev
-RUN apk --no-cache --update-cache add nano
+RUN apk --no-cache --update-cache add nano curl
 
 WORKDIR /exoctk
 
