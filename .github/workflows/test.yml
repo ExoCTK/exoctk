@@ -39,9 +39,12 @@ jobs:
 
       - run: pytest exoctk/tests/
 
+  # Create and start the ExoCTK, Redis, and Celery containers
+  # Make test website queries using a shell script on the exoctk container.
   test-website:
 
     name: Website Test
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
