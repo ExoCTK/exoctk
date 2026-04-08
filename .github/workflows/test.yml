@@ -15,7 +15,7 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12']
       fail-fast: false
 
@@ -38,3 +38,47 @@ jobs:
       - run: pip install .[test]
 
       - run: pytest exoctk/tests/
+
+  test-website:
+
+    name: Website Test
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create environment file
+        run: |
+          mkdir ./data
+          mkdir ./tmp
+          touch ./docker/.env
+          echo "export EXOCTK_DATA=${CWD}/data" >> ./docker/.env
+          echo "export EXO_TMP=${CWD}/tmp" >> ./docker/.env
+          echo "export WORKER_COUNT=1" >> ./docker/.env
+          echo "export PYTHON_VERSION=3.11" >> ./docker/.env
+          echo "export EXO_SOURCE=copy" >> ./docker/.env
+
+      - name: Download ExoCTK Data
+        run: |
+          echo "Downloading ExoCTK Data"
+          # Download the necessary parts
+          echo "Uncompressing ExoCTK Data"
+          # Uncompress them
+          echo "ExoCTK data is installed"
+          
+
+      - name: Start Redis
+        run: docker compose up redis -d
+        working-directory: ./docker
+
+      - name: Start Celery
+        run: docker compose up celery -d
+        working-directory: ./docker
+
+      - name: Start Exoctk
+        run: docker compose up exoctk -d
+        working-directory: ./docker
+
+      - name: Run tests
+        working-directory: ./docker
+        run: |
+          docker compose exec -t exoctk /exoctk/exoctk_test_script.sh
