@@ -74,7 +74,7 @@ jobs:
         working-directory: ./docker
 
       - name: Start Celery
-        run: docker compose up celery -d
+        run: docker compose up worker -d
         working-directory: ./docker
 
       - name: Start Exoctk
