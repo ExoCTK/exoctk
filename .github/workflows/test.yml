@@ -51,6 +51,7 @@ jobs:
       
       - name: Create environment file
         run: |
+          mkdir /tmp/exoctk
           mkdir /tmp/exoctk/data
           mkdir ./tmp
           touch ./docker/.env
