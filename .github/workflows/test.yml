@@ -103,6 +103,11 @@ jobs:
         run: docker compose up exoctk -d
         working-directory: ./docker
 
+      - name: Get logs
+        working-directory: ./docker
+        run: |
+            docker compose logs
+
       - name: Run tests
         working-directory: ./docker
         run: |
