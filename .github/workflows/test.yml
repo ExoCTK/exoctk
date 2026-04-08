@@ -51,10 +51,10 @@ jobs:
       
       - name: Create environment file
         run: |
-          mkdir ./data
+          mkdir /tmp/exoctk/data
           mkdir ./tmp
           touch ./docker/.env
-          echo "export EXOCTK_DATA=${CWD}/data" >> ./docker/.env
+          echo "export EXOCTK_DATA=/tmp/exoctk/data" >> ./docker/.env
           echo "export EXO_TMP=${CWD}/tmp" >> ./docker/.env
           echo "export WORKER_COUNT=1" >> ./docker/.env
           echo "export PYTHON_VERSION=3.11" >> ./docker/.env
