@@ -62,6 +62,7 @@ jobs:
           echo "export EXO_SOURCE=copy" >> ./docker/.env
 
       - name: Download ExoCTK Data
+        working-directory: /tmp/exoctk/data
         run: |
           echo "Downloading ExoCTK Data"
           curl -L https://stsci.box.com/shared/static/grztwf220jnvamzv8ugb7phj9tlwnoi1 -o output.zip
