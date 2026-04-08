@@ -64,9 +64,30 @@ jobs:
       - name: Download ExoCTK Data
         run: |
           echo "Downloading ExoCTK Data"
-          # Download the necessary parts
-          echo "Uncompressing ExoCTK Data"
-          # Uncompress them
+          curl -L https://stsci.box.com/shared/static/grztwf220jnvamzv8ugb7phj9tlwnoi1 -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/4q75kt2xelk3zox26vii1i3clnm7nzt7 -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/702r4nkccc484noiggq5xt13agbkkevp -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/p64c53rky00ojz1gvabe9hqirpat9azz -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/1ag5x8ii1ko8h6lnoxwxljgdfw2mp894 -o output.zip
+          unzip output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/vcn1ff9nzg2qx3pnkmsz17dujjdzlsh1 -o output.zip
+          unzip output.zip
+          rm output.zip
           echo "ExoCTK data is installed"
           
 
