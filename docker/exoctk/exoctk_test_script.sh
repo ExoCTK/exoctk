@@ -4,9 +4,6 @@
 # The URL is http://localhost:5000/WHATEVER
 # Sub-sites are:
 #   /groups_integrations
-#       - Enter a target star
-#       - Invoke "resolve"
-#       - Invoke "calculate"
 #   /contam_visibility
 #       - Enter a target star
 #       - Invoke "resolve"
@@ -45,5 +42,5 @@ do
     echo "Waiting for server volume..."
 done
 
-# Retrieve the main URL
-curl http://localhost:5000
+# Run the Selenium script
+python /exoctk/test_exoctk_page.py
