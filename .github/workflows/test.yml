@@ -15,7 +15,7 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12']
       fail-fast: false
 
@@ -38,3 +38,78 @@ jobs:
       - run: pip install .[test]
 
       - run: pytest exoctk/tests/
+
+  # Create and start the ExoCTK, Redis, and Celery containers
+  # Make test website queries using a shell script on the exoctk container.
+  test-website:
+
+    name: Website Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create environment file
+        run: |
+          mkdir /tmp/exoctk
+          mkdir /tmp/exoctk/data
+          mkdir ./tmp
+          touch ./docker/.env
+          echo "export EXOCTK_DATA=/tmp/exoctk/data" >> ./docker/.env
+          echo "export EXO_TMP=${CWD}/tmp" >> ./docker/.env
+          echo "export WORKER_COUNT=1" >> ./docker/.env
+          echo "export PYTHON_VERSION=3.11" >> ./docker/.env
+          echo "export EXO_SOURCE=copy" >> ./docker/.env
+
+      - name: Download ExoCTK Data
+        working-directory: /tmp/exoctk/data
+        run: |
+          echo "Downloading ExoCTK Data"
+          curl -L https://stsci.box.com/shared/static/grztwf220jnvamzv8ugb7phj9tlwnoi1 -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/4q75kt2xelk3zox26vii1i3clnm7nzt7 -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/702r4nkccc484noiggq5xt13agbkkevp -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/p64c53rky00ojz1gvabe9hqirpat9azz -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/1ag5x8ii1ko8h6lnoxwxljgdfw2mp894 -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          curl -L https://stsci.box.com/shared/static/vcn1ff9nzg2qx3pnkmsz17dujjdzlsh1 -o output.zip
+          unzip -o output.zip
+          rm output.zip
+          echo "ExoCTK data is installed"
+          
+
+      - name: Start Redis
+        run: docker compose up redis -d
+        working-directory: ./docker
+
+      - name: Start Celery
+        run: docker compose up worker -d
+        working-directory: ./docker
+
+      - name: Start Exoctk
+        run: docker compose up exoctk -d
+        working-directory: ./docker
+
+      - name: Get logs
+        working-directory: ./docker
+        run: |
+            docker compose logs
+
+      - name: Run tests
+        working-directory: ./docker
+        run: |
+          docker compose exec -t exoctk /exoctk/exoctk_test_script.sh

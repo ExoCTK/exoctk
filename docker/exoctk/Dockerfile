@@ -28,7 +28,7 @@ ENV SHARED_DATA_DIR="/exoctk/data"
 RUN apk update
 RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev git hdf5-dev
-RUN apk --no-cache --update-cache add nano
+RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 
 WORKDIR /exoctk
 
@@ -36,6 +36,9 @@ WORKDIR /exoctk
 RUN pip install gunicorn
 RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
 RUN pip install svo-filters==0.5.3
+RUN pip install selenium
+RUN pip install pytest-selenium
+RUN pip install tabulate
 
 ARG exoctk_repo
 
@@ -80,6 +83,9 @@ COPY ./docker/exoctk/exoctk_entrypoint.sh exoctk_entrypoint.sh
 RUN chmod +x exoctk_entrypoint.sh
 COPY ./docker/exoctk/worker_entrypoint.sh worker_entrypoint.sh
 RUN chmod +x worker_entrypoint.sh
+COPY ./docker/exoctk/test_exoctk_page.py test_exoctk_page.py
+COPY ./docker/exoctk/exoctk_test_script.sh exoctk_test_script.sh
+RUN chmod +x exoctk_test_script.sh
 
 # Run exoctk
 WORKDIR /exoctk/exoctk/exoctk
