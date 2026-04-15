@@ -1,4 +1,120 @@
 #!/usr/bin/env python
+"""
+Script that uses Selenium to test the exoctk website by navigating to all the sub-pages,
+entering values into those pages as needed, hitting "submit", and then making sure that
+the results page loads. If the results page is supposed to include any specific download
+links, also download those files and check that they exist.
+
+The heart of running a page is the "params" dictionary. This is a dictionary describing
+which page to load, what to do there before submitting, how to submit, how to make sure
+the results page has loaded, and what (if anything) to do after the results page has 
+loaded.
+
+The dictionary has the following form:
+
+{
+    'url': "http://localhost:5000/",
+        This is a string containing the base URL. Because this script is intended
+        primarily to be run on the same docker container that exoctk is running on, it
+        always looks at localhost, at the port that docker opens for connections.
+
+    'extension': "contam_visibility",
+        This is a string containing the sub-page. The driver will effective load the URL
+        URL/EXTENSION
+
+    'target_id': "targname",
+        The ID to search for to find the field where the target star can be set. String.
+
+    'target': "Wasp 18 b",
+        The value to set the target star field *to*. String.
+
+    'target_check': "ra",
+        The ID of a field to look at that should change when the target is resolved.
+        Currently the value of this field isn't checked, but it likely should be. String.
+
+    'pre_steps': [
+        {
+            "type": "print_head"
+        }
+    ],
+        This is a list of dictionaries of steps to run *before* the target star has been
+        resolved. The dictionary has the form:
+            {
+                "type": 'TYPE',
+            }
+        where 'TYPE' is a string that can currently take either the value of "print_title",
+        which prints out the title, and "print_head", which prints out the text of the
+        first <h1> tag found on the page.
+        In the future, this dictionary could also take a "value" field, in case there's
+        a desire to set the value of a field before resolving the target.
+
+    'resolved_steps': [
+         {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
+    ],
+        This is a list of dictionaries of steps to run *after* the target star has been
+        resolved. The dictionary has the form:
+            {
+                "type": 'TYPE',
+                "find_by": 'BY'
+                "find_value": 'ID_VALUE',
+                "value": 'VALUE'
+            }
+        where 
+            - 'TYPE' is a string that can currently only take the value of "set_value",
+              which tells the function to set the value of some form element on the page.
+            - 'BY' is a value of the selenium.webdriver.common.by submodule. This tells
+              the "find" function what it's using to find the element. By.ID and By.NAME
+              are the most common, and look for those elements in the HTML element. It is
+              also possible to search by class, by contained text, or by something else.
+              Note that if multiple page elements have the same value in whatever you're
+              searching for, only the first will be returned.
+            - 'ID_VALUE' is the value that is being searched for. For example, to search
+              a form for an item with id="ra", 'BY' would be By.ID, and 'ID_VALUE' would
+              be "ra". String.
+            - 'VALUE': The value to set the item *to*. Whatever class that field is 
+              expecting.
+
+    'submit_id': "calculate_contam_submit",
+        The id="VALUE" value of the form submit button. String.
+
+    'submit_done_type': By.CLASS_NAME,
+        A value of the "by" submodule. See above for more.
+
+    'submit_done_id': "bk-Figure",
+        What form element *will* be present after the calculation has finished that is
+        *not* present until it has finished. Almost always a string.
+
+    'post_steps': [
+        {'type': "print_done"},
+        {
+            'type': "download",
+            'find_by': By.ID,
+            'id': "download_csv",
+            'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
+        }
+    ]
+        This is a list of dictionaries of steps to run after the form results have loaded.
+        It has the value
+            {
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_csv",
+                'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
+            }
+        where
+            - 'type' is a string giving the type of action. Accepted values are "table",
+              which finds and prints all tables corresponding to a particular tag, 
+              "print_done", which prints out a message that the calculation is done,
+              and "download", which indicates that Selenium should attempt to download a 
+              file from the results page.
+            - "find_by" is a by value. See above.
+            - "id" is the by value being searched for.
+            - "file" is only needed for downloads, and holds the name that the file will
+              download as.
+}
+
+
+"""
 from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
