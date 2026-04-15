@@ -156,7 +156,7 @@ def do_resolve_submit(options, service, params):
     with webdriver.Firefox(options=options, service=service) as driver:
         # Load groups-integrations page
         driver.get(params['url'] + params['extension'])
-        wait = WebDriverWait(driver, 3600)
+        wait = WebDriverWait(driver, 7200)
 
         for action in params['pre_steps']:
             if action["type"] == "print_title":
