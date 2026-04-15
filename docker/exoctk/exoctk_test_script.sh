@@ -4,6 +4,11 @@
 # The URL is http://localhost:5000/WHATEVER
 # Sub-sites are:
 #   /groups_integrations
+#       - Enter a target star
+#       - invoke "resolve"
+#       - Invoke "submit"
+#       - Check that the output tables (all of which appear under the id="myTable" HTML)
+#         exist and print them out.
 #   /contam_visibility
 #       - Enter a target star
 #       - Invoke "resolve"
@@ -35,7 +40,10 @@
 #       - Enter a target star
 #       - Invoke "resolve"
 #       - Invoke "Calculate phase constraint"
-
+#
+#   In the future, we may also want to actually parse values out of the output and check
+#   them for accuracy, but for the moment this is testing whether you can *do* things,
+#   with the rest of the test suite making sure the module results are accurate.
 
 until cd /exoctk/exoctk/
 do
