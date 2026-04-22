@@ -124,6 +124,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
+
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
                                             'tracex_offset': 0, 'tracey_offset': 0,
@@ -1449,6 +1450,7 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
         The 2D trace
     """
     if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
+
         aperpath = 'NRCA5_DHS_F150W2'
     elif 'NIS' in aperture:
         aperpath = 'NIS_SUBSTRIP256'
@@ -1469,8 +1471,6 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
 
     # Get data
     if 'NIS' in aperture:
-
-        # SOSS traces are already in the correct positions on the subarray so just scale them
 
         # Orders stored separately just in case ;)
         traceo1 = fits.getdata(file, ext=0)

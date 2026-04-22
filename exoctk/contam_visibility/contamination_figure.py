@@ -27,7 +27,11 @@ if not EXOCTK_DATA:
     LAM_FILE = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
+<<<<<<< HEAD
     LAM_FILE = resource_filename('exoctk', 'data/contam_visibility/lambda_order1-2.txt')
+=======
+    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+>>>>>>> bfe91f8b08ed9694ae1cffd24f95f3cbf6ee8191
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369
