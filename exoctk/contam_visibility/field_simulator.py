@@ -4,10 +4,13 @@
 A module to calculate the contamination and visibility of a target on a JWST detector
 """
 
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
 import glob
-from multiprocessing import pool, cpu_count, set_start_method
+import requests
+from io import StringIO
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
 import re
 import json
@@ -16,6 +19,10 @@ from pkg_resources import resource_filename
 import logging
 import datetime
 from urllib.parse import quote_plus
+import time
+import requests
+import io
+import warnings
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -31,13 +38,12 @@ from astroquery.xmatch import XMatch
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, LegendItem
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from scipy.ndimage.interpolation import rotate
 import numpy as np
 import pysiaf
-import regions
 
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -234,7 +240,7 @@ class GaiaFailoverTAP:
                 "LANG": "ADQL",
                 "FORMAT": "csv",
                 "QUERY": adql,
-                "PHASE": "RUN",  # ? THIS IS THE KEY FIX
+                "PHASE": "RUN",
             },
             timeout=self.timeout,
             allow_redirects=False,
