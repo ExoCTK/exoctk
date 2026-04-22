@@ -33,7 +33,6 @@ from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astroquery.irsa import Irsa
-from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
@@ -51,7 +50,7 @@ from . import contamination_figure as cf
 from exoctk import utils
 
 try:
-    set_start_method('spawn')
+    multiprocessing.set_start_method('spawn')
 except RuntimeError:
     pass
 
@@ -88,7 +87,6 @@ def parse_log():
     for ts, msg in zip(timestamps, messages):
         print(f'{ts}: {msg}')
 
-Vizier.columns = ["**", "+_r"]
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
@@ -182,6 +180,26 @@ class GaiaFailoverTAP:
         self.poll_interval = poll_interval
         self.max_polls = max_polls
 
+    def _filter_rectangle(self, stars, ra0, dec0, width_deg, height_deg):
+
+        half_width = width_deg / 2.0
+        half_height = height_deg / 2.0
+
+        cos_dec = np.cos(np.deg2rad(dec0))
+        if np.abs(cos_dec) < 1e-6:
+            cos_dec = 1e-6
+
+        ra_half_width = half_width / cos_dec
+
+        ra_vals = stars['ra']
+        dec_vals = stars['dec']
+
+        # Proper RA wrap handling
+        dra = (ra_vals - ra0 + 180) % 360 - 180
+        mask = ((np.abs(dra) <= ra_half_width) & (np.abs(dec_vals - dec0) <= half_height))
+
+        return stars[mask]
+
     def query_region(self, coordinate, width, height=None):
         """
         Drop-in replacement for Gaia.query_object_async(...)
@@ -194,31 +212,23 @@ class GaiaFailoverTAP:
 
         width_deg = width.to(u.deg).value
         height_deg = height.to(u.deg).value
-
-        radius_deg = float(max(width_deg, height_deg) / 2.0)
+        radius_deg = 0.5 * np.sqrt(width_deg ** 2 + height_deg ** 2)
 
         if not np.isfinite(radius_deg) or radius_deg <= 0:
             raise ValueError(f"Invalid radius: {radius_deg}")
 
-        adql = f"""
-        SELECT
-            source_id, ra, dec,
-            pmra, pmdec, ref_epoch,
-            phot_g_mean_flux, phot_g_mean_mag,
-            bp_rp, parallax, astrometric_excess_noise,
-            phot_bp_rp_excess_factor
-        FROM gaiadr3.gaia_source
-        WHERE 1=CONTAINS(
-            POINT('ICRS', ra, dec),
-            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
-        )
-        """
+        adql = f"SELECT * FROM gaiadr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {ra}, {dec}, {radius_deg}))"
 
         last_error = None
-
         for endpoint in self.endpoints:
             try:
-                return self._run_query(endpoint, adql)
+                stars_circle = self._run_query(endpoint, adql)
+
+                # Apply rectangular filter
+                stars = self._filter_rectangle(stars_circle, ra0=ra, dec0=dec, width_deg=width_deg, height_deg=height_deg)
+
+                return stars
+
             except Exception as e:
                 last_error = e
                 print(f"[Gaia failover] {endpoint} failed: {e}")
@@ -422,7 +432,7 @@ def NIRISS_SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
-def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), verbose=False, pm_corr=True):
+def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.now(), verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -543,6 +553,33 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
 
     # Add detector location to the table
     stars.add_columns(np.zeros((10, len(stars))), names=['xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci', 'xord0', 'yord0', 'xord1', 'yord1'])
+
+    if plot:
+        ra0 = float(targetcrd.ra.deg)
+        dec0 = float(targetcrd.dec.deg)
+
+        ra_vals = np.array(stars['ra'])
+        dec_vals = np.array(stars['dec'])
+
+        # Convert to relative arcsec offsets
+        cos_dec = np.cos(np.deg2rad(dec0))
+        dra = (ra_vals - ra0 + 180) % 360 - 180
+
+        x_arcsec = dra * cos_dec * 3600.0
+        y_arcsec = (dec_vals - dec0) * 3600.0
+
+        # Marker size scaled by flux (robust scaling)
+        flux = np.array(stars['fluxscale'])
+        size = 5 + 15 * (flux / np.max(flux))**0.5
+
+        source = ColumnDataSource(data=dict(x=x_arcsec, y=y_arcsec, name=stars['name'], flux=flux, size=size))
+        p = figure(title="Source Field", x_axis_label="?RA (arcsec)", y_axis_label="?Dec (arcsec)", width=500, height=500, match_aspect=True, tools="pan,wheel_zoom,box_zoom,reset,hover")
+        p.scatter('x', 'y', size='size', source=source, alpha=0.6)
+
+        # Center marker (target)
+        p.scatter(0, 0, size=15, marker='cross')
+
+        show(p)
 
     return stars
 
@@ -1027,7 +1064,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     return result
 
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False,
                      title='My Target', multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -1045,8 +1082,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         The target epoch year of the observation, e.g. '2025'
     n_jobs: int
         Number of cores to use (-1 = All)
-    interpolate: bool
-        Skip every other PA and interpolate to speed up calculation
     plot: bool
         Return a plot
 
@@ -1148,7 +1183,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     # Or to take arms against a sea of troubles,
     # And by multiprocessing end them?
     if multi:
-        pl = pool.ThreadPool(n_jobs)
+        pl = multiprocessing.pool.ThreadPool(n_jobs)
         func = partial(calc_v3pa, stars=stars, aperture=aper, plot=False, verbose=False, logging=False)
         results = pl.map(func, goodPA_list)
         pl.close()
