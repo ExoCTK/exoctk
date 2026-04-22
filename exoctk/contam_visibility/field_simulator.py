@@ -28,7 +28,6 @@ from astropy.time import Time
 from astroquery.irsa import Irsa
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
-from astroquery.gaia import Gaia
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
@@ -84,8 +83,6 @@ def parse_log():
         print(f'{ts}: {msg}')
 
 Vizier.columns = ["**", "+_r"]
-Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
-Gaia.ROW_LIMIT = 100
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
@@ -166,6 +163,132 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
+
+
+class GaiaFailoverTAP:
+    def __init__(self, timeout=30, poll_interval=1.0, max_polls=120):
+        self.endpoints = [
+            "https://gea.esac.esa.int/tap-server/tap",
+            "https://datalab.noirlab.edu/tap",
+            "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
+        ]
+        self.timeout = timeout
+        self.poll_interval = poll_interval
+        self.max_polls = max_polls
+
+    def query_region(self, coordinate, width, height=None):
+        """
+        Drop-in replacement for Gaia.query_object_async(...)
+        Returns astropy.table.Table
+        """
+        height = width if height is None else height
+
+        ra = coordinate.ra.deg
+        dec = coordinate.dec.deg
+
+        width_deg = width.to(u.deg).value
+        height_deg = height.to(u.deg).value
+
+        radius_deg = float(max(width_deg, height_deg) / 2.0)
+
+        if not np.isfinite(radius_deg) or radius_deg <= 0:
+            raise ValueError(f"Invalid radius: {radius_deg}")
+
+        adql = f"""
+        SELECT
+            source_id, ra, dec,
+            pmra, pmdec, ref_epoch,
+            phot_g_mean_flux, phot_g_mean_mag,
+            bp_rp, parallax, astrometric_excess_noise,
+            phot_bp_rp_excess_factor
+        FROM gaiadr3.gaia_source
+        WHERE 1=CONTAINS(
+            POINT('ICRS', ra, dec),
+            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
+        )
+        """
+
+        last_error = None
+
+        for endpoint in self.endpoints:
+            try:
+                return self._run_query(endpoint, adql)
+            except Exception as e:
+                last_error = e
+                print(f"[Gaia failover] {endpoint} failed: {e}")
+
+        raise RuntimeError(f"All Gaia TAP endpoints failed: {last_error}")
+
+    def _run_query(self, endpoint, adql):
+        job_url = self._submit_async_job(endpoint, adql)
+        self._poll_job(job_url)
+        return self._fetch_result(job_url)
+
+    def _submit_async_job(self, endpoint, adql):
+        url = f"{endpoint}/async"
+
+        r = requests.post(
+            url,
+            data={
+                "REQUEST": "doQuery",
+                "LANG": "ADQL",
+                "FORMAT": "csv",
+                "QUERY": adql,
+                "PHASE": "RUN",  # ? THIS IS THE KEY FIX
+            },
+            timeout=self.timeout,
+            allow_redirects=False,
+        )
+
+        # Case 1: Proper TAP async response (303 redirect)
+        if r.status_code in (303, 302):
+            job_url = r.headers.get("Location")
+            if job_url:
+                return job_url
+
+        # Case 2: Some servers return 200 + Location
+        job_url = r.headers.get("Location")
+        if job_url:
+            return job_url
+
+        # Case 3: Server returned error payload (VERY COMMON)
+        raise RuntimeError(
+            f"No TAP job URL returned. Status={r.status_code}. "
+            f"Response:\n{r.text[:500]}"
+        )
+
+    def _poll_job(self, job_url):
+        phase_url = f"{job_url}/phase"
+
+        for _ in range(self.max_polls):
+            r = requests.get(phase_url, timeout=self.timeout)
+            r.raise_for_status()
+
+            phase = r.text.strip()
+
+            if phase == "COMPLETED":
+                return
+
+            if phase in ("ERROR", "ABORTED"):
+                raise RuntimeError(f"TAP job failed: {phase}")
+
+            time.sleep(self.poll_interval)
+
+        raise TimeoutError("Gaia TAP polling timeout")
+
+    def _fetch_result(self, job_url):
+        r = requests.get(
+            f"{job_url}/results/result",
+            timeout=self.timeout,
+        )
+        r.raise_for_status()
+
+        # Use bytes, not StringIO
+        return Table.read(io.BytesIO(r.content), format="ascii.csv")
+
+
+GAIA_TAP = GaiaFailoverTAP()
+
 
 def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
     """
