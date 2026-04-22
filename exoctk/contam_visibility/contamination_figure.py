@@ -1,6 +1,7 @@
 import os
 import sys
 from itertools import groupby, count
+from pkg_resources import resource_filename
 
 from astropy.io import fits
 from bokeh.layouts import gridplot
@@ -26,7 +27,7 @@ if not EXOCTK_DATA:
     LAM_FILE = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+    LAM_FILE = resource_filename('exoctk', 'data/contam_visibility/lambda_order1-2.txt')
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369

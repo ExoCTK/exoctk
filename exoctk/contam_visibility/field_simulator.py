@@ -4,10 +4,12 @@
 A module to calculate the contamination and visibility of a target on a JWST detector
 """
 
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
 import glob
-from multiprocessing import pool, cpu_count, set_start_method
+import requests
+from io import StringIO
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
 import re
@@ -17,6 +19,10 @@ from pkg_resources import resource_filename
 import logging
 import datetime
 from urllib.parse import quote_plus
+import time
+import requests
+import io
+import warnings
 
 import astropy.coordinates as crd
 from astropy.io import fits
@@ -29,7 +35,6 @@ from astropy.time import Time
 from astroquery.irsa import Irsa
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
-from astroquery.gaia import Gaia
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
@@ -40,6 +45,7 @@ from scipy.ndimage.interpolation import rotate
 import numpy as np
 import pysiaf
 import regions
+import celery
 
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -47,11 +53,10 @@ from . import contamination_figure as cf
 from exoctk import utils
 
 try:
-    set_start_method('spawn')
+    multiprocessing.set_start_method('spawn')
 except RuntimeError:
     pass
 
-import warnings
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 
 log_file = 'contam_tool.log'
@@ -85,14 +90,13 @@ def parse_log():
         print(f'{ts}: {msg}')
 
 Vizier.columns = ["**", "+_r"]
-Gaia.MAIN_GAIA_TABLE = "gaiaedr3.gaia_source" # DR2 is default catalog
-Gaia.ROW_LIMIT = 100
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.065, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                               'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                              'tracex_offset': 0, 'tracey_offset': 0,
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                          [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -102,6 +106,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                                'tracex_offset': 0, 'tracey_offset': 0,
                                 'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                            [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -111,32 +116,45 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                  'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                                 'tracex_offset': 0, 'tracey_offset': 0,
                                  'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
              'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 00, 'c1x1': 0, 'c2y1': 0,
+                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                            'tracex_offset': 0, 'tracey_offset': 0,
                                             'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
-                                            'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
-                                                       [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
-                                                       [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
-                                                       [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
-                                                       [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
+                                            'coeffs': [[2.81442298e-06, 1.48386268e-04, 2.65239356e+03],
+                                                       [ 2.74877495e-06, -5.87120866e-04,  2.54183316e+03],
+                                                       [ 2.91085676e-06, -3.23811050e-03,  2.42654889e+03],
+                                                       [ 2.79902255e-06, -4.32186046e-03,  2.29838977e+03],
+                                                       [ 2.59964469e-06, -4.05419001e-03,  2.17587590e+03],
+                                                       [ 2.40026684e-06, -3.78651956e-03,  2.05336203e+03],
+                                                       [ 2.20088898e-06, -3.51884910e-03,  1.93084815e+03],
+                                                       [ 1.99460079e-06, -3.82768919e-03,  1.81847599e+03],
+                                                       [ 2.13733247e-06, -6.65892407e-03,  1.69728819e+03],
+                                                       [ 2.22766890e-06, -8.81816227e-03,  1.56836400e+03]]},
              'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                           'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                           'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                            'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                           'tracex_offset': -1175, 'tracey_offset': 22,
                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
-                                           'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
-                                                      [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
-                                                      [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
-                                                      [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
-                                                      [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]}}
+                                           'coeffs': [[ 3.52279496e-06, -1.22488543e-03,  2.66463106e+03],
+                                                     [ 2.93109211e-06, -1.22659432e-03,  2.55345870e+03],
+                                                     [ 2.93877311e-06, -2.71105945e-03,  2.43496188e+03],
+                                                     [ 2.59336772e-06, -2.78664360e-03,  2.30392880e+03],
+                                                     [ 2.76081057e-06, -3.64650141e-03,  2.18155923e+03],
+                                                     [ 2.92825343e-06, -4.50635923e-03,  2.05918966e+03],
+                                                     [ 3.09569628e-06, -5.36621705e-03,  1.93682010e+03],
+                                                     [ 2.12912185e-06, -3.98286955e-03,  1.82258917e+03],
+                                                     [ 2.12853718e-06, -6.00260391e-03,  1.69798335e+03],
+                                                     [ 2.47832831e-06, -8.20469374e-03,  1.56572619e+03]]}}
 
 DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
@@ -162,6 +180,132 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
+
+
+class GaiaFailoverTAP:
+    def __init__(self, timeout=30, poll_interval=1.0, max_polls=120):
+        self.endpoints = [
+            "https://gea.esac.esa.int/tap-server/tap",
+            "https://datalab.noirlab.edu/tap",
+            "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
+        ]
+        self.timeout = timeout
+        self.poll_interval = poll_interval
+        self.max_polls = max_polls
+
+    def query_region(self, coordinate, width, height=None):
+        """
+        Drop-in replacement for Gaia.query_object_async(...)
+        Returns astropy.table.Table
+        """
+        height = width if height is None else height
+
+        ra = coordinate.ra.deg
+        dec = coordinate.dec.deg
+
+        width_deg = width.to(u.deg).value
+        height_deg = height.to(u.deg).value
+
+        radius_deg = float(max(width_deg, height_deg) / 2.0)
+
+        if not np.isfinite(radius_deg) or radius_deg <= 0:
+            raise ValueError(f"Invalid radius: {radius_deg}")
+
+        adql = f"""
+        SELECT
+            source_id, ra, dec,
+            pmra, pmdec, ref_epoch,
+            phot_g_mean_flux, phot_g_mean_mag,
+            bp_rp, parallax, astrometric_excess_noise,
+            phot_bp_rp_excess_factor
+        FROM gaiadr3.gaia_source
+        WHERE 1=CONTAINS(
+            POINT('ICRS', ra, dec),
+            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
+        )
+        """
+
+        last_error = None
+
+        for endpoint in self.endpoints:
+            try:
+                return self._run_query(endpoint, adql)
+            except Exception as e:
+                last_error = e
+                print(f"[Gaia failover] {endpoint} failed: {e}")
+
+        raise RuntimeError(f"All Gaia TAP endpoints failed: {last_error}")
+
+    def _run_query(self, endpoint, adql):
+        job_url = self._submit_async_job(endpoint, adql)
+        self._poll_job(job_url)
+        return self._fetch_result(job_url)
+
+    def _submit_async_job(self, endpoint, adql):
+        url = f"{endpoint}/async"
+
+        r = requests.post(
+            url,
+            data={
+                "REQUEST": "doQuery",
+                "LANG": "ADQL",
+                "FORMAT": "csv",
+                "QUERY": adql,
+                "PHASE": "RUN",  # ? THIS IS THE KEY FIX
+            },
+            timeout=self.timeout,
+            allow_redirects=False,
+        )
+
+        # Case 1: Proper TAP async response (303 redirect)
+        if r.status_code in (303, 302):
+            job_url = r.headers.get("Location")
+            if job_url:
+                return job_url
+
+        # Case 2: Some servers return 200 + Location
+        job_url = r.headers.get("Location")
+        if job_url:
+            return job_url
+
+        # Case 3: Server returned error payload (VERY COMMON)
+        raise RuntimeError(
+            f"No TAP job URL returned. Status={r.status_code}. "
+            f"Response:\n{r.text[:500]}"
+        )
+
+    def _poll_job(self, job_url):
+        phase_url = f"{job_url}/phase"
+
+        for _ in range(self.max_polls):
+            r = requests.get(phase_url, timeout=self.timeout)
+            r.raise_for_status()
+
+            phase = r.text.strip()
+
+            if phase == "COMPLETED":
+                return
+
+            if phase in ("ERROR", "ABORTED"):
+                raise RuntimeError(f"TAP job failed: {phase}")
+
+            time.sleep(self.poll_interval)
+
+        raise TimeoutError("Gaia TAP polling timeout")
+
+    def _fetch_result(self, job_url):
+        r = requests.get(
+            f"{job_url}/results/result",
+            timeout=self.timeout,
+        )
+        r.raise_for_status()
+
+        # Use bytes, not StringIO
+        return Table.read(io.BytesIO(r.content), format="ascii.csv")
+
+
+GAIA_TAP = GaiaFailoverTAP()
+
 
 def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
     """
@@ -324,7 +468,8 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
         if verbose:
             print('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
 
-        stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
+        # stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
+        stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
 
         # Perform XMatch between Gaia and SDSS DR16
         xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
@@ -671,7 +816,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         star['xord0'] = int(star['xsci'] + aper['c0x0'] + aper['c1x0'] * (stars['xsci'][0] - star['xsci']))
         star['yord0'] = int(star['ysci'] + aper['c0y0'] + aper['c1y0'] * (stars['ysci'][0] - star['ysci']))
 
-        # Order 1/2/3 location relative to order 0 location (with distortion corrections)
+        # Order 1/2/3 locations relative to order 0 location (with distortion corrections)
         x_shift = int(aper['c1x1'] * (stars[0]['xord0'] - star['xord0']))
         y_shift = int(aper['c1y1'] * (stars[0]['yord0'] - star['yord0'])) + int(aper['c2y1'] * (stars[0]['xord0'] - star['xord0']))
         star['xord1'] = star['xord0'] + aper['xord0to1'] + x_shift
@@ -688,8 +833,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
     if source_cutoff is not None:
 
         cutoff_FOVstars = FOVstars[FOVstars['fluxscale'] > source_cutoff]
-        print(f"{len(cutoff_FOVstars)}/{len(FOVstars)} sources with relative fluxes greater than {source_cutoff}")
         FOVstars = cutoff_FOVstars
+        if verbose:
+            print(f"{len(cutoff_FOVstars)}/{len(FOVstars)} sources with relative fluxes greater than {source_cutoff}")
 
     # Get the traces for sources in the FOV and add the column to the source table
     star_traces = [get_trace(aperture.AperName, temp, typ, verbose=False) for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])]
@@ -728,7 +874,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
             for n, trace in enumerate(traces):
 
                 # Assumes the lower lft corner of the trace is in the lower left corner of the 'targframe' array
-                targframes[n] = add_array_at_position(targframes[n], trace, 0, 0)
+                targframes[n] = add_array_at_position(targframes[n], trace, int(aper['tracex_offset']), int(aper['tracey_offset']))
 
         # Add all orders to the same frame (if it is a STAR)
         else:
@@ -744,7 +890,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
                 for trace in traces:
-                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0]), int(star['yord1'] - stars['yord1'][0]))
+                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0] + aper['tracex_offset']), int(star['yord1'] - stars['yord1'][0] + aper['tracey_offset']))
 
     if logging:
         log_checkpoint(f'Added {len(FOVstars)} sources to the simulated frames.')
@@ -868,7 +1014,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
                     data_dict[f'y{n}'] = y_ranges[n] + star['yord1']
 
                 source = ColumnDataSource(data=data_dict)
-                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1, legend_label='name')
+                line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
                 lines.append(line)
 
         # Add order 0 hover and taptool
@@ -888,7 +1034,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, verbose=Fals
         pad = 20
         fig.x_range = Range1d(aper['subarr_x'][0] - pad, aper['subarr_x'][1] + pad)
         fig.y_range = Range1d(aper['subarr_y'][1] - pad, aper['subarr_y'][2] + pad)
-        fig.legend.click_policy = "hide"
+        # fig.legend.click_policy = "hide"
 
         # Source for ratio plot
         data = {f'pct_{n}': pct for n, pct in enumerate(pctlines)}
@@ -940,11 +1086,11 @@ def _calc_v3pa_worker(v3pa, stars_template, aperture):
     Worker function: each process gets its own copy of stars and shared aperture.
     extra_kwargs: dict of extra arguments to calc_v3pa
     """
-    stars = copy.deepcopy(stars_template)
+    stars = deepcopy(stars_template)
     return calc_v3pa(V3PA=v3pa, stars=stars, aperture=aperture)
 
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, interpolate=False, plot=False,
+def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_jobs=-1, plot=False,
                      title='My Target', multi=True, verbose=True):
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -962,8 +1108,6 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
         The target epoch year of the observation, e.g. '2025'
     n_jobs: int
         Number of cores to use (-1 = All)
-    interpolate: bool
-        Skip every other PA and interpolate to speed up calculation
     plot: bool
         Return a plot
 
@@ -1050,14 +1194,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
     goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
 
-    # Try to speed it up by doing every other visible PA and then interpolating
-    # if interpolate:
-
-
     log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
-
-    # Flatten list and check against 360 angles to get all bad PAs
-    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
     if verbose:
@@ -1311,7 +1448,7 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
     np.ndarray
         The 2D trace
     """
-    if 'DHS_F322W2' in aperture or 'DHS_444W' in aperture:
+    if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
         aperpath = 'NRCA5_DHS_F150W2'
     elif 'NIS' in aperture:
         aperpath = 'NIS_SUBSTRIP256'
@@ -1332,6 +1469,8 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
 
     # Get data
     if 'NIS' in aperture:
+
+        # SOSS traces are already in the correct positions on the subarray so just scale them
 
         # Orders stored separately just in case ;)
         traceo1 = fits.getdata(file, ext=0)
@@ -1354,19 +1493,21 @@ def get_trace(aperture, teff, stype, verbose=False, plot=False):
 
     elif 'NRCA5' in aperture:
 
-        # Get the trace and replace the NaN values
-        trace = fits.getdata(file, extname='TRACE')
+        # Only a single NIRCam DHS traces is retrieved so it needs to be scaled, wavelength calibrated,
+        # and placed on the detector in the 10 correct positions
+        aper = APERTURES[aperture]
+
+        # Get the trace, reflect it along x so wavelength decreases from left-to-right, and replace the NaN values
+        trace = fits.getdata(file, extname='TRACE')[:, :-1]
+        waves = fits.getdata(file, extname='WAV')[::-1]
         trace = replace_NaNs(trace)
 
-        # Trim trace (to match observations)
-        # TODO: wavelength calibrate the traces to observations, then trim
-        trace[:, :500] = 0
-
-        # Put the trace in each of the DHS trace positions
+        # Put the trace of shape (60, 4335) in each of the DHS trace positions
+        # First wavelength of trace lines up with the first column of the detector so no trimming necessary
         traces = []
         for stripe in DHS_STRIPES[aperture].values():
-            y, x = int((stripe['y1'] + stripe['y0']) / 2.), int((stripe['x1'] + stripe['x0']) / 2.)
-            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y, centered=True)
+            y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
+            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
             traces.append(dhs_trace)
 
         if stype == 'GALAXY':
@@ -1412,7 +1553,6 @@ def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, w
     PAs, rows, cols = starcube.shape
 
     for targframe in [targframe_o1, targframe_o2, targframe_o3]:
-
 
         # Remove background values < 1 as it can blow up contamination
         targframe = np.where(targframe < 1, 0, targframe)

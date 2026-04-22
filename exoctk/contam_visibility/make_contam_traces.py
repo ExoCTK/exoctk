@@ -8,7 +8,7 @@ from hotsoss.plotting import plot_frame
 
 def generate_pandeia_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=10., outdir=None):
     """
-    Generate the precomputed traces for a range of Teff values
+    Generate the precomputed 2D traces for a range of Teff values
     to be used by the contamination tool
 
     Parameters
