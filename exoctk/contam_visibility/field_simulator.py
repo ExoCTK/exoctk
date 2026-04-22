@@ -1132,14 +1132,7 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), n_
     good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
     goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
 
-    # Try to speed it up by doing every other visible PA and then interpolating
-    # if interpolate:
-
-
     log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
-
-    # Flatten list and check against 360 angles to get all bad PAs
-    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
 
     # Time it
     if verbose:
