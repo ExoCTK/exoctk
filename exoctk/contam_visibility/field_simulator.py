@@ -457,7 +457,8 @@ def find_sources(ra, dec, width=7.5*u.arcmin, catalog='Gaia', target_date=Time.n
         if verbose:
             print('Searching {} Catalog to find all stars within {} of RA={}, Dec={}...'.format(catalog, width, ra, dec))
 
-        stars = Gaia.query_object_async(coordinate=targetcrd, width=width, height=width)
+        # Query Gaia from several potential endpoints
+        stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
 
         # Perform XMatch between Gaia and SDSS DR16
         xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
