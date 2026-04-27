@@ -174,6 +174,7 @@ def do_resolve_submit(options, service, params):
         target = driver.find_element(By.ID, params["target_id"])
         target.send_keys(params['target'])
         resolve = wait.until(EC.element_to_be_clickable((By.ID, "resolve_submit")))
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
         resolve.click()
         check_element = driver.find_element(By.ID, params["target_check"])
         check_value = check_element.get_attribute('value')
