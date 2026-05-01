@@ -112,31 +112,39 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
              'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                            'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
+
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                            'tracex_offset': 0, 'tracey_offset': 0,
                                             'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
-                                            'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
-                                                       [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
-                                                       [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
-                                                       [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
-                                                       [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
+                                            'coeffs': [[2.81442298e-06, 1.48386268e-04, 2.65239356e+03],
+                                                       [ 2.74877495e-06, -5.87120866e-04,  2.54183316e+03],
+                                                       [ 2.91085676e-06, -3.23811050e-03,  2.42654889e+03],
+                                                       [ 2.79902255e-06, -4.32186046e-03,  2.29838977e+03],
+                                                       [ 2.59964469e-06, -4.05419001e-03,  2.17587590e+03],
+                                                       [ 2.40026684e-06, -3.78651956e-03,  2.05336203e+03],
+                                                       [ 2.20088898e-06, -3.51884910e-03,  1.93084815e+03],
+                                                       [ 1.99460079e-06, -3.82768919e-03,  1.81847599e+03],
+                                                       [ 2.13733247e-06, -6.65892407e-03,  1.69728819e+03],
+                                                       [ 2.22766890e-06, -8.81816227e-03,  1.56836400e+03]]},
              'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
-                                           'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                           'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                            'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                           'tracex_offset': -1175, 'tracey_offset': 22,
                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
-                                           'coeffs': [[5.31914894e-03, 2.65331915e+03], [5.31914894e-03, 2.54031915e+03],
-                                                      [5.31914894e-03, 2.42031915e+03], [5.31914894e-03, 2.28931915e+03],
-                                                      [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
-                                                      [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
-                                                      [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
-             'NRCA5_GRISM256_F277W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.395, 3.179], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
-             'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.835, 5.084], 'trim': [0, 1, 1250, 1]},
-             'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
+                                           'coeffs': [[ 3.52279496e-06, -1.22488543e-03,  2.66463106e+03],
+                                                     [ 2.93109211e-06, -1.22659432e-03,  2.55345870e+03],
+                                                     [ 2.93877311e-06, -2.71105945e-03,  2.43496188e+03],
+                                                     [ 2.59336772e-06, -2.78664360e-03,  2.30392880e+03],
+                                                     [ 2.76081057e-06, -3.64650141e-03,  2.18155923e+03],
+                                                     [ 2.92825343e-06, -4.50635923e-03,  2.05918966e+03],
+                                                     [ 3.09569628e-06, -5.36621705e-03,  1.93682010e+03],
+                                                     [ 2.12912185e-06, -3.98286955e-03,  1.82258917e+03],
+                                                     [ 2.12853718e-06, -6.00260391e-03,  1.69798335e+03],
+                                                     [ 2.47832831e-06, -8.20469374e-03,  1.56572619e+03]]}}
 
 DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
@@ -420,7 +428,7 @@ def NIRISS_SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
-def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=Time.now(), verbose=False, pm_corr=True, plot=False):
+def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=Time.now(), pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -436,8 +444,6 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
         The width of the square search box
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    verbose: bool
-        Print details
     pm_corr: bool
         Correct source coordinates based on their proper motion
 
@@ -687,7 +693,7 @@ def classify_source(row):
     return stype
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False, source_cutoff=0.001, plot_order0s=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -703,6 +709,13 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         The data to use instead of making a simulation (to check accuracy or ID sources)
     plot: bool
         Plot the full frame and subarray bounds with all traces
+    POM: bool
+        Show the pick off mirror footprint in the plot
+    source_cutoff: float
+        The cutoff value for a contaminant 'fluxscale' value (ignores very faint contaminants)
+    plot_order0s: bool
+        Add order 0 traces to the contamination plot
+
 
     Returns
     -------
@@ -790,6 +803,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     lft, rgt, top, bot = aper['lft'], aper['rgt'], aper['top'], aper['bot']
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
+    # Filter out sources that are very faint to save computational resources
+    if source_cutoff is not None:
+        cutoff_FOVstars = FOVstars[FOVstars['fluxscale'] > source_cutoff]
+        FOVstars = cutoff_FOVstars
+        logging.info(f"{len(cutoff_FOVstars)}/{len(FOVstars)} sources with relative fluxes greater than {source_cutoff}")
+
     # Get the traces for sources in the FOV and add the column to the source table
     star_traces = [get_trace(aperture.AperName, temp, typ) for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['traces'] = star_traces
@@ -820,7 +839,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
             for n, trace in enumerate(traces):
 
                 # Assumes the lower lft corner of the trace is in the lower left corner of the 'targframe' array
-                targframes[n] = add_array_at_position(targframes[n], trace, 0, 0)
+                targframes[n] = add_array_at_position(targframes[n], trace, int(aper['tracex_offset']), int(aper['tracey_offset']))
 
         # Add all orders to the same frame (if it is a STAR)
         else:
@@ -829,13 +848,14 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
             order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type']) * 1.5e3  # Scaling factor based on observations
 
             # Scale the order 0 image and add it to the starframe
-            scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
-            starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
+            if plot_order0s:
+                scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
+                starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
 
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
                 for trace in traces:
-                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0]), int(star['yord1'] - stars['yord1'][0]))
+                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0] + aper['tracex_offset']), int(star['yord1'] - stars['yord1'][0] + aper['tracey_offset']))
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
@@ -1333,10 +1353,8 @@ def get_trace(aperture, teff, stype, plot=False):
     np.ndarray
         The 2D trace
     """
-    if 'DHS_F322W2' in aperture:
-        aperpath = 'NRCA5_GRISM256_F322W2'
-    elif 'DHS_F444W' in aperture:
-        aperpath = 'NRCA5_GRISM256_F444W'
+    if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
+        aperpath = 'NRCA5_DHS_F150W2'
     elif 'NIS' in aperture:
         aperpath = 'NIS_SUBSTRIP256'
     else:
@@ -1376,15 +1394,21 @@ def get_trace(aperture, teff, stype, plot=False):
 
     elif 'NRCA5' in aperture:
 
-        # Get the trace and replace the NaN values
-        trace = fits.getdata(file)[0]
+        # Only a single NIRCam DHS traces is retrieved so it needs to be scaled, wavelength calibrated,
+        # and placed on the detector in the 10 correct positions
+        # aper = APERTURES[aperture]
+
+        # Get the trace, reflect it along x so wavelength decreases from left-to-right, and replace the NaN values
+        # waves = fits.getdata(file, extname='WAV')[::-1]
+        trace = fits.getdata(file, extname='TRACE')[:, :-1]
         trace = replace_NaNs(trace)
 
-        # Put the trace in each of the DHS trace positions
+        # Put the trace of shape (60, 4335) in each of the DHS trace positions
+        # First wavelength of trace lines up with the first column of the detector so no trimming necessary
         traces = []
         for stripe in DHS_STRIPES[aperture].values():
-            y, x = int((stripe['y1'] + stripe['y0']) / 2.), int((stripe['x1'] + stripe['x0']) / 2.)
-            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y, centered=True)
+            y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
+            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
             traces.append(dhs_trace)
 
         if stype == 'GALAXY':
