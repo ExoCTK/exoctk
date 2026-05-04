@@ -38,6 +38,7 @@ from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, Colo
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from scipy.ndimage.interpolation import rotate
+import h5py
 import numpy as np
 import pysiaf
 import regions
@@ -46,7 +47,6 @@ from ..utils import get_env_variables, check_for_data, add_array_at_position, re
 from ..pkgdata import resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from . import contamination_figure as cf
-from exoctk import utils
 
 import warnings
 warnings.filterwarnings("ignore", message="Mean of empty slice")
@@ -997,8 +997,9 @@ def update_task(task, new_state):
     if task is not None:
         task.update_state(state=new_state)
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), interpolate=False,plot=False,
-                     task=None, title='My Target'):
+
+def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=Time.now(), plot=False,
+                     task=None, title='My Target', target_db=None):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1008,15 +1009,19 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
     dec : float
         The Dec of the target
     aperture: str
-        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2', 'MIRI_SLITLESSPRISM']
+        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2']
+    targname: str
+        The name of the target to look up in ExoMAST
     binComp : dict
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    interpolate: bool
-        Skip every other PA and interpolate to speed up calculation
     plot: bool
         Return a plot
+    title: str
+        The plot title to use
+    target_db: str
+        The path to the precomputed .h5 database of results
 
     Returns
     -------
@@ -1033,98 +1038,123 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
     ra, dec = 91.872242, -25.594934
     targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
-    logging.info("Setting up simulation")
-    # Check for contam tool data
-    check_for_data('exoctk_contam')
-
     # Aperture names
     if aperture not in APERTURES:
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
 
-    # Instantiate a pySIAF object
-    logging.info('Getting info from pysiaf for {} aperture...'.format(aperture))
+    # Check for contam tool data
+    check_for_data('exoctk_contam')
 
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
-    inst = APERTURES[aperture]
-    siaf = pysiaf.Siaf(inst['inst'])
-
-    # Get the full and subarray apertures
-    full = siaf.apertures[inst['full']]
-    aper = siaf.apertures[aperture]
-    subX, subY = aper.XSciSize, aper.YSciSize
-
-    # Full frame pixel positions
-    rows, cols = full.corners('det')
-    aper.minrow, aper.maxrow = rows.min(), rows.max()
-    aper.minrow, aper.maxrow = rows.min(), rows.max()
-    aper.mincol, aper.maxcol = cols.min(), cols.max()
-
-    # Find stars in the vicinity
-    update_task(task, "RUNNING SOURCE QUERY")
-    stars = find_sources(ra, dec, target_date=target_date)
-
-    # Add stars manually
-    if isinstance(binComp, dict):
-        stars = add_source(stars, **binComp)
-
-    # Get full list from ephemeris
-    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
-
-    # Get all observable PAs and convert to ints
-    goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
-    goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
-
-    # Group good PAs to find gaps in visibility
-    good_groups = []
-    current_group = [goodPA_ints[0]]
-    max_gap = 7 # Biggest PA gap considered to still be observable
-    for i in range(1, len(goodPA_ints)):
-        if goodPA_ints[i] - current_group[-1] <= max_gap:
-            current_group.append(goodPA_ints[i])
-        else:
-            good_groups.append(current_group)
-            current_group = [goodPA_ints[i]]
-
-    good_groups.append(current_group)
-    good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
-    goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
-
-    # Try to speed it up by doing every other visible PA and then interpolating
-    # if interpolate:
-
-
-    log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
-
-    # Flatten list and check against 360 angles to get all bad PAs
-    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
-
-    # Time it
-    logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+    # Bookkeeping
+    logging.info("Setting up simulation")
     start = time.time()
 
-    # Calculate contamination of all stars at each PA
-    # -----------------------------------------------
-    # To multiprocess, or not to multiprocess. That is the question.
-    # Whether 'tis nobler in the code to suffer
-    # The slings and arrows of outrageous list comprehensions,
-    # Or to take arms against a sea of troubles,
-    # And by multiprocessing end them?
-    results = []
-    for i, pa in enumerate(goodPA_list):
-        update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
-        logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
-        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
-        results.append(result)
+    # Resolve target in ExoMAST if possible
+    if targname is not None:
+        targname = get_canonical_name(targname)
+        data, _ = get_target_data(targname)
+        ra = data.get('RA')
+        dec = data.get('DEC')
+        logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) in ExoMAST.")
 
-    # We only need one target frame frames
-    targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
+    # Check to see if the planet is in the DB
+    precomputed = False
+    if target_db is not None and targname is not None:
+        grp_name = get_canonical_name(targname).strip().replace("/", "_")
+        with h5py.File(target_db, "r") as f:
+            precomputed = grp_name in f
 
-    # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
-    # Make the contamination plot
-    for result in results:
-        starcube[result['pa'], :, :] = result['contaminants']
+    # Grab data from DB if precomputed
+    if precomputed:
+
+        # Get the results from the database
+        targframes, starcube, attrs = fetch_contam_results(targname, target_db)
+        goodPA_list = attrs["goodPA_list"]
+
+    # Otherwise calculate it now
+    else:
+        logging.info('Target has not been precomputed. Computing now...')
+
+        # Instantiate a pySIAF object
+        logging.info(f'Getting info from pysiaf for {aperture} aperture...')
+
+        targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
+        inst = APERTURES[aperture]
+        siaf = pysiaf.Siaf(inst['inst'])
+
+        # Get the full and subarray apertures
+        full = siaf.apertures[inst['full']]
+        aper = siaf.apertures[aperture]
+        subX, subY = aper.XSciSize, aper.YSciSize
+
+        # Full frame pixel positions
+        rows, cols = full.corners('det')
+        aper.minrow, aper.maxrow = rows.min(), rows.max()
+        aper.minrow, aper.maxrow = rows.min(), rows.max()
+        aper.mincol, aper.maxcol = cols.min(), cols.max()
+
+        # Find stars in the vicinity
+        update_task(task, "RUNNING SOURCE QUERY")
+        stars = find_sources(ra, dec, target_date=target_date)
+
+        # Add stars manually
+        if isinstance(binComp, dict):
+            stars = add_source(stars, **binComp)
+
+        # Get full list from ephemeris
+        ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
+        goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
+
+        # Get all observable PAs and convert to ints
+        goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
+        goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
+
+        # Group good PAs to find gaps in visibility
+        good_groups = []
+        current_group = [goodPA_ints[0]]
+        max_gap = 7 # Biggest PA gap considered to still be observable
+        for i in range(1, len(goodPA_ints)):
+            if goodPA_ints[i] - current_group[-1] <= max_gap:
+                current_group.append(goodPA_ints[i])
+            else:
+                good_groups.append(current_group)
+                current_group = [goodPA_ints[i]]
+
+        good_groups.append(current_group)
+        good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
+        goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
+
+        log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
+
+        # Time it
+        logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+
+        # Calculate contamination of all stars at each PA
+        # -----------------------------------------------
+        # To multiprocess, or not to multiprocess. That is the question.
+        # Whether 'tis nobler in the code to suffer
+        # The slings and arrows of outrageous list comprehensions,
+        # Or to take arms against a sea of troubles,
+        # And by multiprocessing end them?
+        results = []
+        for i, pa in enumerate(goodPA_list):
+            update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
+            logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
+            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
+            results.append(result)
+
+        # We only need one target frame frames
+        targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
+
+        # Make sure starcube is of shape (PA, rows, cols)
+        starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
+
+        # Copy good PA results into completed starcube
+        for result in results:
+            starcube[result['pa'], :, :] = result['contaminants']
+
+        # We don't need this anymore
+        del results
 
     logging.info('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
@@ -1137,18 +1167,62 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
         badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
 
         # Make old contam plot
-        starcube_targ = np.zeros((362, 2048, 96 if aperture == 'NIS_SUBSTRIP96' else 256))
+        starcube_targ = np.zeros((362, targframes[0].shape[1], targframes[0].shape[0]))
         starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
         starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
-        starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+        starcube_targ[3:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
         contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
-        return targframes, starcube, results, contam_plot
+        return targframes, starcube, contam_plot
 
         # # Slider plot
         # contam_plot = contam_slider_plot(results, plot=False)
 
-    return targframes, starcube, results
+    return targframes, starcube, goodPA_list
+
+
+def fetch_contam_results(exoplanet_name, db_filename):
+    """
+    Load target trace and reconstruct full contamination cube.
+
+    Returns
+    -------
+    target_trace : ndarray (n_traces, nrows, ncols)
+    contamination : ndarray (n_planes, nrows, ncols)
+    attrs : dict (metadata)
+    """
+    name = get_canonical_name(exoplanet_name)
+    grp_name = name.strip().replace("/", "_")
+
+    with h5py.File(db_filename, "r") as f:
+        if grp_name not in f:
+            raise KeyError(
+                f"Exoplanet '{exoplanet_name}' (canonical: '{grp_name}') "
+                f"not found in {filename}. Available: {list(f.keys())}"
+            )
+
+        grp = f[grp_name]
+        target_trace = grp["target_trace"][:]
+        stored = grp["contamination"][:]
+        plane_index = grp["plane_index"][:]
+
+        # Reconstruct contamination cube
+        if len(plane_index) == 0:
+            contamination = np.zeros(
+                (0, target_trace.shape[1], target_trace.shape[2]),
+                dtype=stored.dtype
+            )
+        else:
+            n_planes = plane_index.max() + 1
+            contamination = np.zeros(
+                (n_planes, target_trace.shape[1], target_trace.shape[2]),
+                dtype=stored.dtype
+            )
+            contamination[plane_index] = stored
+
+        attrs = dict(grp.attrs)
+
+    return target_trace, contamination, attrs
 
 
 def contam_slider_plot(contam_results, threshold=0.05, plot=False):

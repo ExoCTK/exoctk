@@ -11,6 +11,7 @@ import numpy as np
 
 from . import visibilityPA as vpa
 from ..utils import fill_between
+from exoctk.pkgdata import resource_filename
 
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
@@ -23,10 +24,11 @@ if not EXOCTK_DATA:
         '"ExoCTK Data Download" button on the ExoCTK website, or by using '
         'the exoctk.utils.download_exoctk_data() function.')
     TRACES_PATH = None
-    LAM_FILE = None
+
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+
+LAM_FILE = resource_filename('exoctk', 'data/contam_visibility/lambda_order1-2.txt')
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369
