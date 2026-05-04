@@ -44,10 +44,10 @@ class ContamVisForm(BaseForm):
     epoch = IntegerField('epoch', default=Time.now().value.year, validators=[NumberRange(min=2000, max=2050, message='Epoch must be between 2000 and 2050')])
     inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'),
                                         ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'),
-                                        ('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'),
                                         ('NRCA5_40STRIPE1_DHS_F322W2', 'NIRCam - SW Grism Time Series - F150W2 + F322W2'),
                                         ('NRCA5_40STRIPE1_DHS_F444W', 'NIRCam - SW Grism Time Series - F150W2 + F444W'),
-                                        ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W (Visibility Only)'),
+                                        ('NRCA5_GRISM256_F322W2', 'NIRCam - LW Grism Time Series - F322W2 (Visibility Only)'),
+                                        ('NRCA5_GRISM256_F444W', 'NIRCam - LW Grism Time Series - F444W (Visibility Only)'),
                                         ('MIRIM_SLITLESSPRISM', 'MIRI - LRS (Visibility Only)'),
                                         ('NIRSpec', 'NIRSpec (Visibility Only)')])
     delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
