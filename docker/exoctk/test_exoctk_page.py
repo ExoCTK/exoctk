@@ -85,7 +85,6 @@ The dictionary has the following form:
         *not* present until it has finished. Almost always a string.
 
     'post_steps': [
-        {'type': "print_done"},
         {
             'type': "download",
             'find_by': By.ID,
@@ -152,125 +151,93 @@ def print_tables(driver, find_by, id):
             table_list.append(row_list)
         print_table(table_list)
 
-def do_submit(options, service, params):
-    run_str = f"Running Test {params['name']}"
-    print()
-    print(run_str)
-    print("-" * len(run_str))
-    with webdriver.Firefox(options=options, service=service) as driver:
-        # Load groups-integrations page
-        driver.get(params['url'] + params['extension'])
-        wait = WebDriverWait(driver, 7200)
+def run_action(driver, action, wait_time=1.0, timeout=10.0):
+    """
+    Runs arbitrary actions (at least if they're defined below)
+    """
+    wait = WebDriverWait(driver, timeout)
 
-        for action in params['pre_steps']:
-            if action["type"] == "print_title":
-                print(driver.title)
-            elif action["type"] == "print_head":
-                h1_elements = driver.find_elements(By.TAG_NAME, "h1")
-                if len(h1_elements) > 0:
-                    print(h1_elements[0].text)
-            elif action["type"] == "set_text":
-                element = driver.find_element(action["find_by"], action["find_value"])
-                print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
-                element.clear()
-                element.send_keys(action["value"])
-                print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
-
-        # Submit the form
-        submit = wait.until(EC.element_to_be_clickable((By.ID, params["submit_id"])))
-        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
-        submit.click()
-        print("Starting Calculation")
-        submit_done = wait.until(EC.presence_of_element_located((params["submit_done_type"], params['submit_done_id'])))
-
-        # Do all the post-calculation steps
-        for action in params["post_steps"]:
-            if action['type'] == "table":
-                print_tables(driver, action['find_by'], action['id'])
-            elif action['type'] == "print_done":
-                print("Finished Calculation")
-            elif action['type'] == "download":
-                element = driver.find_element(action['find_by'], action['id'])
-                element.click()
-                driver.implicitly_wait(2)
-                file_location = Path(f"/root/Downloads/{action['file']}")
-                if file_location.is_file():
-                    print(f"Downloaded {action['file']}")
-                else:
-                    raise FileNotFoundError(f"Downloaded file {action['file']} not found")
-            elif action['type'] == "print_value":
-                element = driver.find_element(action['find_by'], action['id'])
-                print(f"Element {action['id']} has value {element.get_attribute('value')}")
-
-def do_resolve_submit(options, service, params):
-    run_str = f"Running Test {params['name']}"
-    print()
-    print(run_str)
-    print("-" * len(run_str))
-    with webdriver.Firefox(options=options, service=service) as driver:
-        # Load groups-integrations page
-        driver.get(params['url'] + params['extension'])
-        wait = WebDriverWait(driver, 7200)
-
-        for action in params['pre_steps']:
-            if action["type"] == "print_title":
-                print(driver.title)
-            elif action["type"] == "print_head":
-                h1_elements = driver.find_elements(By.TAG_NAME, "h1")
-                if len(h1_elements) > 0:
-                    print(h1_elements[0].text)
-
+    if action["type"] == "print_title":
+        # Print the page title
+        print(driver.title)
+    elif action["type"] == "print_head":
+        # Print the text in the first <h1> element in the page
+        h1_elements = driver.find_elements(By.TAG_NAME, "h1")
+        if len(h1_elements) > 0:
+            print(h1_elements[0].text)
+    elif action['type'] == "print_table":
+        print_tables(driver, action['find_by'], action['id'])
+    elif action['type'] == "print_value":
+        element = driver.find_element(action['find_by'], action['id'])
+        print(f"Element {action['id']} has value {element.get_attribute('value')}")
+    elif action["type"] == "set_text":
+        # Set a field whose value can be set with `send_keys()`
+        element = driver.find_element(action["find_by"], action["find_value"])
+        print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+        element.clear()
+        element.send_keys(action["value"])
+        print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+    elif action["type"] == "resolve_target":
         # Set the target of observation to the provided value, trigger it.
         # Print out the provided check element before and after to make sure it took.
-        check_element = driver.find_element(By.ID, params["target_check"])
+        check_element = driver.find_element(By.ID, action["target_check"])
         check_value = check_element.get_attribute('value')
-        print(f"Element {params['target_check']} before target resolution: {check_value}")
-        target = driver.find_element(By.ID, params["target_id"])
-        target.send_keys(params['target'])
+        print(f"Element {action['target_check']} before target resolution: {check_value}")
+        target = driver.find_element(By.ID, action["target_id"])
+        target.send_keys(action['target'])
         resolve = wait.until(EC.element_to_be_clickable((By.ID, "resolve_submit")))
-        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
+        wait.until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
         resolve.click()
-        check_element = driver.find_element(By.ID, params["target_check"])
+        check_element = driver.find_element(By.ID, action["target_check"])
         check_value = check_element.get_attribute('value')
-        print(f"Element {params['target_check']} after target resolution: {check_value}")
+        print(f"Element {action['target_check']} after target resolution: {check_value}")
+    elif action['type'] == "download":
+        element = driver.find_element(action['find_by'], action['id'])
+        element.click()
+        driver.implicitly_wait(timeout)
+        file_location = Path(f"/root/Downloads/{action['file']}")
+        if file_location.is_file():
+            print(f"Downloaded {action['file']}")
+            file_location.unlink()
+        else:
+            raise FileNotFoundError(f"Downloaded file {action['file']} not found")
 
-        for action in params["resolved_steps"]:
-            if action["type"] == "set_text":
-                element = driver.find_element(action["find_by"], action["find_value"])
-                print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
-                element.clear()
-                element.send_keys(action["value"])
-                print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+def do_submit(driver, params, calculation_timeout=7200):
+    """
+    Finds the submit button, waits for it to be pushable, and pushes it.
+    """
+    wait = WebDriverWait(driver, 2.5)
+    submit_element = wait.until(EC.element_to_be_clickable(By.ID, params["submit_id"]))
+    wait.until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
+    submit_element.click()
+    wait = WebDriverWait(driver, calculation_timeout)
+    submit_done = wait.until(
+        EC.presence_of_element_located((params["submit_done_type"],
+        params['submit_done_id']))
+    )
+
+def do_form(options, service, params):
+    run_str = f"Running Test {params['name']}"
+    print()
+    print(run_str)
+    print("-" * len(run_str))
+    with webdriver.Firefox(options=options, service=service) as driver:
+        # Load groups-integrations page
+        driver.get(params['url'] + params['extension'])
+
+        for action in params['pre_steps']:
+            run_action(driver, action)
 
         # Submit the form
-        submit = wait.until(EC.element_to_be_clickable((By.ID, params["submit_id"])))
-        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
-        submit.click()
         print("Starting Calculation")
-        if params["submit_done_type"] == "simple_wait":
-            driver.implicitly_wait(params["submit_done_value"])
-        else:
-            submit_done = wait.until(EC.presence_of_element_located((params["submit_done_type"], params['submit_done_id'])))
+        do_submit(driver, params)
+        print("Finished Calculation")
 
         # Do all the post-calculation steps
         for action in params["post_steps"]:
-            if action['type'] == "table":
-                print_tables(driver, action['find_by'], action['id'])
-            elif action['type'] == "print_done":
-                print("Finished Calculation")
-            elif action['type'] == "download":
-                element = driver.find_element(action['find_by'], action['id'])
-                element.click()
-                driver.implicitly_wait(2)
-                file_location = Path(f"/root/Downloads/{action['file']}")
-                if file_location.is_file():
-                    print(f"Downloaded {action['file']}")
-                    file_location.unlink()
-                else:
-                    raise FileNotFoundError(f"Downloaded file {action['file']} not found")
-            elif action['type'] == "print_value":
-                element = driver.find_element(action['find_by'], action['id'])
-                print(f"Element {action['id']} has value {element.get_attribute('value')}")
+            run_action(driver, action)
+    print("-" * len(run_str))
+    print()
 
 if __name__ == "__main__":
     # Let's make functions
@@ -287,45 +254,41 @@ if __name__ == "__main__":
         'name': 'Groups/Integrations',
         'url': "http://localhost:5000/",
         'extension': "groups_integrations",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "kmag",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
-        'resolved_steps': [],
         'submit_id': "calculate_submit",
         'submit_done_type': By.ID,
         'submit_done_id': 'myTable',
         'post_steps': [
-            {'type': 'table', 'find_by': By.ID, 'id': 'myTable'}
+            {'type': 'print_table', 'find_by': By.ID, 'id': 'myTable'}
         ]
     }
-    do_resolve_submit(options, service, group_integration_params)
-    print()
+    do_form(options, service, group_integration_params)
 
     limb_darkening_params = {
         'name': 'Limb Darkening',
         'url': "http://localhost:5000/",
         'extension': "limb_darkening",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "teff",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
-        ],
-        'resolved_steps': [
-#            {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
         'submit_id': "calculate_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
@@ -340,8 +303,7 @@ if __name__ == "__main__":
             },
         ]
     }
-    do_resolve_submit(options, service, limb_darkening_params)
-    print()
+    do_form(options, service, limb_darkening_params)
 
     fortney_grid_params = {
         'name': 'Fortney Grid',
@@ -360,7 +322,6 @@ if __name__ == "__main__":
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
@@ -369,8 +330,7 @@ if __name__ == "__main__":
             },
         ]
     }
-    do_submit(options, service, fortney_grid_params)
-    print()
+    do_form(options, service, fortney_grid_params)
 
     generic_grid_params = {
         'name': 'Generic Grid',
@@ -407,37 +367,34 @@ if __name__ == "__main__":
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_file",
                 'file': 'generic.dat'
             },
-            {'type': 'table', 'find_by': By.ID, 'id': 'myTable'},
+            {'type': 'print_table', 'find_by': By.ID, 'id': 'myTable'},
         ]
     }
-    do_submit(options, service, generic_grid_params)
-    print()
+    do_form(options, service, generic_grid_params)
 
     phase_constraint_params = {
         'name': 'Phase Constraint',
         'url': "http://localhost:5000/",
         'extension': "phase_constraint",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "eccentricity",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
-        'resolved_steps': [],
         'submit_id': "calculate_submit",
         'submit_done_type': "simple_wait",
         'submit_done_value': 1.0,
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "print_value",
                 'find_by': By.ID,
@@ -450,29 +407,25 @@ if __name__ == "__main__":
             },
         ]
     }
-    do_resolve_submit(options, service, phase_constraint_params)
-    print()
+    do_form(options, service, phase_constraint_params)
 
     contam_visibility_only_params = {
         'name': 'Visibility Check',
         'url': "http://localhost:5000/",
         'extension': "contam_visibility",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "ra",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
-        ],
-        'resolved_steps': [
-#            {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
         'submit_id': "calculate_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
@@ -481,29 +434,26 @@ if __name__ == "__main__":
             }
         ]
     }
-    do_resolve_submit(options, service, contam_visibility_only_params)
-    print()
+    do_form(options, service, contam_visibility_only_params)
 
     contam_overlap_single_params = {
         'name': 'Contamination/Overlap (single PA check)',
         'url': "http://localhost:5000/",
         'extension': "contam_visibility",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "ra",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
-        ],
-        'resolved_steps': [
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
             {"type": "set_text", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
         ],
         'submit_id': "calculate_contam_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
@@ -512,29 +462,25 @@ if __name__ == "__main__":
             }
         ]
     }
-    do_resolve_submit(options, service, contam_overlap_single_params)
-    print()
+    do_form(options, service, contam_overlap_single_params)
 
     contam_overlap_full_params = {
         'name': 'Contamination/Overlap (full field check)',
         'url': "http://localhost:5000/",
         'extension': "contam_visibility",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "ra",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
-        ],
-        'resolved_steps': [
-#            {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
         'submit_id': "calculate_contam_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
                 'type': "download",
                 'find_by': By.ID,
@@ -543,5 +489,4 @@ if __name__ == "__main__":
             }
         ]
     }
-    do_resolve_submit(options, service, contam_overlap_full_params)
-    print()
+    do_form(options, service, contam_overlap_full_params)
