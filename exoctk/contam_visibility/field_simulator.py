@@ -1224,10 +1224,7 @@ def fetch_contam_results(exoplanet_name, db_filename):
 
     with h5py.File(db_filename, "r") as f:
         if grp_name not in f:
-            raise KeyError(
-                f"Exoplanet '{exoplanet_name}' (canonical: '{grp_name}') "
-                f"not found in {filename}. Available: {list(f.keys())}"
-            )
+            raise KeyError(f"Exoplanet '{exoplanet_name}' (canonical: '{grp_name}') not found in {filename}. Available: {list(f.keys())}")
 
         grp = f[grp_name]
         target_trace = grp["target_trace"][:]
@@ -1236,16 +1233,9 @@ def fetch_contam_results(exoplanet_name, db_filename):
 
         # Reconstruct contamination cube
         if len(plane_index) == 0:
-            contamination = np.zeros(
-                (0, target_trace.shape[1], target_trace.shape[2]),
-                dtype=stored.dtype
-            )
+            contamination = np.zeros((0, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
         else:
-            n_planes = plane_index.max() + 1
-            contamination = np.zeros(
-                (n_planes, target_trace.shape[1], target_trace.shape[2]),
-                dtype=stored.dtype
-            )
+            contamination = np.zeros((360, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
             contamination[plane_index] = stored
 
         attrs = dict(grp.attrs)
