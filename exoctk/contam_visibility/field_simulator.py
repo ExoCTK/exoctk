@@ -704,6 +704,10 @@ def fraction_contaminated(aperture, targframes, starcube):
     list
         The 1D fractional contamination per trace
     """
+    # Check for 2D
+    if starcube.ndim == 2:
+        starcube = starcube[None, :, :]
+
     # Get the trace masks
     trace_masks = NIRCam_DHS_trace_mask(aperture) if 'NRCA5' in aperture else NIRISS_SOSS_trace_mask(aperture)
 
@@ -874,12 +878,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
     # Get percentage of contamination per trace
-    pctlines = fraction_contaminated(aperture.AperName, targframes, starframe)
+    pctlines = [i[0] for i in fraction_contaminated(aperture.AperName, targframes, starframe)]
 
     # Make results dict
-    result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
-              'contaminants': starframe, 'contam_levels': pctlines}
-
+    result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes, 'contaminants': starframe}
     logging.info('Compiled final results.')
 
     if plot:
@@ -1232,10 +1234,8 @@ def fetch_contam_results(exoplanet_name, db_filename):
         plane_index = grp["plane_index"][:]
 
         # Reconstruct contamination cube
-        if len(plane_index) == 0:
-            contamination = np.zeros((0, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
-        else:
-            contamination = np.zeros((360, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
+        contamination = np.zeros((360, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
+        if len(plane_index) > 0:
             contamination[plane_index] = stored
 
         attrs = dict(grp.attrs)
