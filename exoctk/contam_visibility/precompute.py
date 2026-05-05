@@ -6,12 +6,8 @@ Author: Joe Filippazzo
 Date: 01/13/26
 
 Example:
-filename = "soss_contam.h5"
-data = load_exoplanet(filename, "WASP-39b")
-
-print(data["target_trace"].shape)     # (256, 2048)
-print(data["contamination"].shape)    # (360, 256, 2048)
-print(len(data["plane_index"]))       # number of non-zero planes
+from exoctk.contam_visibility import precompute as p
+p.generate_database(['WASP-39', 'TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256')
 """
 
 import h5py
@@ -112,7 +108,7 @@ def generate_database(planet_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
             count += 1
 
-    print(f"Finished! Saved structure for {count}/{len(planet_names)} exoplanets to {filename}.")
+    print(f"Saved structure for {count}/{len(planet_names)} exoplanets to {filename}.")
 
     # Generate the contam figures and save to file
     for targname in planet_names:

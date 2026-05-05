@@ -686,6 +686,43 @@ def classify_source(row):
 
     return stype
 
+def fraction_contaminated(aperture, targframes, starcube):
+    """
+    Calculate the fraction of contamination per spectral trace
+
+    Parameters
+    ----------
+    aperture: str
+        The name of the aperture
+    targframes: np.ndarray
+        The list of target traces
+    starcube: np.ndarray
+        The 2D or 3D contamination frame(s)
+
+    Returns
+    -------
+    list
+        The 1D fractional contamination per trace
+    """
+    # Get the trace masks
+    trace_masks = NIRCam_DHS_trace_mask(aperture) if 'NRCA5' in aperture else NIRISS_SOSS_trace_mask(aperture)
+
+    # Adding frames together
+    simframes = [tframe + starcube for tframe in targframes]
+
+    # Divide contam/(trace + contam) to get fraction of contamination
+    pctframes = [np.divide(starcube, sframe, out=np.full_like(starcube, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
+
+    # Sum along columns inside trace masks
+    pctlines = []
+    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
+        masked = pframe * mask
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mean_line = np.nanmean(masked, axis=1)
+        pctlines.append(mean_line)
+
+    return pctlines
+
 
 def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     """
@@ -805,9 +842,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
-    # Get trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
-
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
 
@@ -839,16 +873,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
-    # Adding frames together
-    simframes = [tframe + starframe for tframe in targframes]
-    simframe = np.sum(targframes, axis=0) + starframe
-    pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
-    pctlines = []
-    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
-        masked = pframe * mask
-        with np.errstate(invalid='ignore', divide='ignore'):
-            mean_line = np.nanmean(masked, axis=0)
-        pctlines.append(mean_line)
+    # Get percentage of contamination per trace
+    pctlines = fraction_contaminated(aperture.AperName, targframes, starframe)
 
     # Make results dict
     result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
@@ -869,9 +895,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         scale = 'log'
         color_map = 'Viridis256'
 
-        # Plot the obs data if possible...
-        if data is not None:
-            simframe = data
+        # Plot the real or simulated frame
+        simframe = data if data is not None else np.sum(targframes, axis=0) + starframe
 
         # Replace negatives
         simframe[simframe < 0] = 0
@@ -999,7 +1024,7 @@ def update_task(task, new_state):
 
 
 def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=Time.now(), plot=False,
-                     task=None, title='My Target', target_db=None):
+                     task=None, title='My Target', target_db=None, slider=False):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1166,17 +1191,20 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         # Get bad PA list from missing angles between 0 and 360
         badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
 
+        # Make slider contam plot
+        if slider:
+            pctlines = fraction_contaminated(aperture, targframes, starcube)
+            contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+
         # Make old contam plot
-        starcube_targ = np.zeros((362, targframes[0].shape[1], targframes[0].shape[0]))
-        starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
-        starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
-        starcube_targ[3:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-        contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
+        else:
+            starcube_targ = np.zeros((362, targframes[0].shape[1], targframes[0].shape[0]))
+            starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
+            starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+            contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
         return targframes, starcube, contam_plot
-
-        # # Slider plot
-        # contam_plot = contam_slider_plot(results, plot=False)
 
     return targframes, starcube, goodPA_list
 
@@ -1223,126 +1251,6 @@ def fetch_contam_results(exoplanet_name, db_filename):
         attrs = dict(grp.attrs)
 
     return target_trace, contamination, attrs
-
-
-def contam_slider_plot(contam_results, threshold=0.05, plot=False):
-    """
-    Make the contamination plot with a slider
-
-    Parameters
-    ----------
-    contam_results: dict
-        The dictionary of results from the field_simulation function
-    plot: bool
-        Show the plot if True
-
-    Returns
-    -------
-    bokeh.layouts.column
-        The column of plots
-    """
-    # Full PA list
-    pa_list = np.arange(360)
-    goodPA_list = [result['pa'] for result in contam_results]
-    badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
-
-    # Grab one target frame
-    targframe = np.asarray(contam_results[0]['target'])
-
-    # Make the contamination plot
-    order1_contam = np.zeros((360, targframe.shape[1]))
-    order2_contam = np.zeros((360, targframe.shape[1]))
-    order3_contam = np.zeros((360, targframe.shape[1]))
-    for result in contam_results:
-        order1_contam[result['pa'], :] = result['order1_contam']
-        order2_contam[result['pa'], :] = result['order2_contam']
-        order3_contam[result['pa'], :] = result['order3_contam']
-
-    # Define data
-    contam_dict = {'contam1_{}'.format(result['pa']): result['order1_contam'] for result in contam_results}
-    contam_dict.update({'contam2_{}'.format(result['pa']): result['order2_contam'] for result in contam_results})
-    contam_dict.update({'contam3_{}'.format(result['pa']): result['order3_contam'] for result in contam_results})
-
-    # Wrap the data in two ColumnDataSources
-    source_visible = ColumnDataSource(
-        data=dict(col=np.arange(2048), zeros=np.zeros(2048), contam1=order1_contam[0], contam2=order2_contam[0],
-                  contam3=order3_contam[0]))
-    source_available = ColumnDataSource(data=contam_dict)
-
-    # Define plot elements
-    plt = figure(width=900, height=300, tools=['reset', 'save'])
-    plt.line('col', 'contam1', source=source_visible, color='blue', line_width=2, line_alpha=0.6,
-             legend_label='Order 1')
-    plt.line('col', 'contam2', source=source_visible, color='red', line_width=2, line_alpha=0.6, legend_label='Order 2')
-    plt.line('col', 'contam3', source=source_visible, color='green', line_width=2, line_alpha=0.6,
-             legend_label='Order 3')
-    glyph1 = VArea(x="col", y1="zeros", y2="contam1", fill_color="blue", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph1)
-    glyph2 = VArea(x="col", y1="zeros", y2="contam2", fill_color="red", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph2)
-    glyph3 = VArea(x="col", y1="zeros", y2="contam3", fill_color="green", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph3)
-    plt.y_range = Range1d(0, min(1, max(np.nanmax(order1_contam), np.nanmax(order2_contam), np.nanmax(order3_contam))))
-    plt.x_range = Range1d(0, 2048)
-    plt.xaxis.axis_label = ''
-    plt.yaxis.axis_label = 'Contamination / Target Flux'
-    slider = Slider(title='Position Angle',
-                    value=pa_list[0],
-                    start=min(pa_list),
-                    end=max(pa_list),
-                    step=int((max(pa_list) - min(pa_list)) / (len(pa_list) - 1)),
-                    sizing_mode='stretch_width')
-
-    span = Span(line_width=2, location=slider.value, dimension='height')
-
-    # Define CustomJS callback, which updates the plot based on selected function by updating the source_visible
-    callback = CustomJS(
-        args=dict(source_visible=source_visible, source_available=source_available, span=span), code="""
-            var selected_pa = (cb_obj.value).toString();
-            var data_visible = source_visible.data;
-            var data_available = source_available.data;
-            data_visible['contam1'] = data_available['contam1_' + selected_pa];
-            data_visible['contam2'] = data_available['contam2_' + selected_pa];
-            data_visible['contam3'] = data_available['contam3_' + selected_pa];
-            span.location = cb_obj.value;
-            source_visible.change.emit();
-        """)
-
-    # Make a guide that shows which PAs are unobservable
-    viz_none = np.array([1 if i in badPA_list else 0 for i in pa_list])
-    viz_ord1 = np.array([1 if i > threshold else 0 for i in np.nanmax(order1_contam, axis=1)])
-    viz_ord2 = np.array([1 if i > threshold else 0 for i in np.nanmax(order2_contam, axis=1)])
-    viz_ord3 = np.array([1 if i > threshold else 0 for i in np.nanmax(order3_contam, axis=1)])
-
-    # Make the plot
-    viz_plt = figure(width=900, height=300, x_range=Range1d(0, 359))
-    viz_plt.step(np.arange(360), np.mean(order1_contam, axis=1), color='blue', mode="center")
-    viz_plt.step(np.arange(360), np.mean(order2_contam, axis=1), color='red', mode="center")
-    viz_plt.step(np.arange(360), np.mean(order3_contam, axis=1), color='green', mode="center")
-    c1 = viz_plt.vbar(x=np.arange(360), top=viz_ord1, line_color=None, fill_color='blue', alpha=0.2)
-    c2 = viz_plt.vbar(x=np.arange(360), top=viz_ord2, line_color=None, fill_color='red', alpha=0.2)
-    c3 = viz_plt.vbar(x=np.arange(360), top=viz_ord3, line_color=None, fill_color='green', alpha=0.2)
-    c0 = viz_plt.vbar(x=np.arange(360), top=viz_none, width=1.1, line_color=None, fill_color='#555555')
-    viz_plt.x_range = Range1d(0, 359)
-    viz_plt.y_range = Range1d(0, 1)
-    viz_plt.add_layout(span)
-
-    legend = Legend(items=[
-        ('Ord 1 > {}% Contaminated'.format(threshold * 100), [c1]),
-        ('Ord 2 > {}% Contaminated'.format(threshold * 100), [c2]),
-        ('Ord 3 > {}% Contaminated'.format(threshold * 100), [c3]),
-        ("Target not visible", [c0]),
-    ], location=(50, 0), orientation='horizontal', border_line_alpha=0)
-    viz_plt.add_layout(legend, 'below')
-
-    # Put plot together
-    slider.js_on_change('value', callback)
-    layout = column(plt, slider, viz_plt)
-
-    if plot:
-        show(layout)
-
-    return layout
 
 
 def get_order0(aperture, teff, stype='STAR'):
