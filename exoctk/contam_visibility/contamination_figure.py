@@ -3,8 +3,8 @@ import sys
 from itertools import groupby, count
 
 from astropy.io import fits
-from bokeh.layouts import gridplot, column
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
+from bokeh.layouts import gridplot, column, row
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.plotting import figure
 import numpy as np
@@ -89,8 +89,8 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
                     value=pa_init,
                     start=min(pa_list),
                     end=max(pa_list),
-                    step=int((max(pa_list) - min(pa_list)) / (len(pa_list) - 1)),
-                    sizing_mode='stretch_width')
+                    step=1,
+                    width=830)
 
     span = Span(line_width=2, location=slider.value, dimension='height')
 
@@ -114,7 +114,11 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
     # Add contamination for each order
     vis_ords = []
     for order in orders:
-        viz_plt.step(pa_list, np.mean(pctlines[order - 1], axis=1), color=colors[order - 1], mode="center")
+
+        # Plot step to show maximum contamination per channel
+        viz_plt.step(pa_list, np.nanmean(pctlines[order - 1], axis=1), line_width=2, color=colors[order - 1], mode="center")
+
+        # PLot columns that indicate >5% contamination
         viz_ord = np.array([1 if i > threshold else 0 for i in np.nanmax(pctlines[order - 1], axis=1)])
         vis_ords.append(viz_plt.vbar(x=pa_list, top=viz_ord, width=1.1, alpha=0.2, line_color=None, fill_color=colors[order - 1]))
 
@@ -133,7 +137,8 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
 
     # Put plot together
     slider.js_on_change('value', callback)
-    layout = column(plt, slider, viz_plt)
+    slider_row = row(Spacer(width=40), slider, Spacer(width=30))
+    layout = column(plt, slider_row, viz_plt)
 
     return layout
 
