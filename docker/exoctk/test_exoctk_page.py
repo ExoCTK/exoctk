@@ -22,67 +22,28 @@ The dictionary has the following form:
         This is a string containing the sub-page. The driver will effective load the URL
         URL/EXTENSION
 
-    'target_id': "targname",
-        The ID to search for to find the field where the target star can be set. String.
-
-    'target': "Wasp 18 b",
-        The value to set the target star field *to*. String.
-
-    'target_check': "ra",
-        The ID of a field to look at that should change when the target is resolved.
-        Currently the value of this field isn't checked, but it likely should be. String.
-
     'pre_steps': [
         {
             "type": "print_head"
         }
     ],
-        This is a list of dictionaries of steps to run *before* the target star has been
-        resolved. The dictionary has the form:
-            {
-                "type": 'TYPE',
-            }
-        where 'TYPE' is a string that can currently take either the value of "print_title",
-        which prints out the title, and "print_head", which prints out the text of the
-        first <h1> tag found on the page.
-        In the future, this dictionary could also take a "value" field, in case there's
-        a desire to set the value of a field before resolving the target.
+        This is a list of dictionaries of steps to run *before* the form has been 
+        submitted. The dictionary format is described in the `run_action()` documentation.
 
-    'resolved_steps': [
-         {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
-    ],
-        This is a list of dictionaries of steps to run *after* the target star has been
-        resolved. The dictionary has the form:
-            {
-                "type": 'TYPE',
-                "find_by": 'BY'
-                "find_value": 'ID_VALUE',
-                "value": 'VALUE'
-            }
-        where 
-            - 'TYPE' is a string that can currently only take the value of "set_value",
-              which tells the function to set the value of some form element on the page.
-            - 'BY' is a value of the selenium.webdriver.common.by submodule. This tells
-              the "find" function what it's using to find the element. By.ID and By.NAME
-              are the most common, and look for those elements in the HTML element. It is
-              also possible to search by class, by contained text, or by something else.
-              Note that if multiple page elements have the same value in whatever you're
-              searching for, only the first will be returned.
-            - 'ID_VALUE' is the value that is being searched for. For example, to search
-              a form for an item with id="ra", 'BY' would be By.ID, and 'ID_VALUE' would
-              be "ra". String.
-            - 'VALUE': The value to set the item *to*. Whatever class that field is 
-              expecting.
 
     'submit_id': "calculate_contam_submit",
         The id="VALUE" value of the form submit button. String.
 
     'submit_done_type': By.CLASS_NAME,
-        A value of the "by" submodule. See above for more.
+        A value of the "by" submodule. See above for more. Or the string "simple_wait" if
+        it is known that the calculation will be finished in a certain time.
 
     'submit_done_id': "bk-Figure",
         What form element *will* be present after the calculation has finished that is
         *not* present until it has finished. Almost always a string.
+
+    'submit_done_value': value
+        The time to wait in seconds if submit_done_type is "simple_wait"
 
     'post_steps': [
         {
@@ -93,26 +54,7 @@ The dictionary has the following form:
         }
     ]
         This is a list of dictionaries of steps to run after the form results have loaded.
-        It has the value
-            {
-                'type': "download",
-                'find_by': By.ID,
-                'id': "download_csv",
-                'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
-            }
-        where
-            - 'type' is a string giving the type of action. Accepted values are "table",
-              which finds and prints all tables corresponding to a particular tag, 
-              "print_done", which prints out a message that the calculation is done,
-              and "download", which indicates that Selenium should attempt to download a 
-              file from the results page.
-            - "find_by" is a by value. See above.
-            - "id" is the by value being searched for.
-            - "file" is only needed for downloads, and holds the name that the file will
-              download as.
-}
-
-
+        The dictionary format is described in the `run_action()` documentation.
 """
 from pathlib import Path
 from selenium import webdriver
@@ -154,6 +96,51 @@ def print_tables(driver, find_by, id):
 def run_action(driver, action, wait_time=1.0, timeout=10.0):
     """
     Runs arbitrary actions (at least if they're defined below)
+
+    Parameters
+    ----------
+    driver : selenium web driver
+    action : dict (see below)
+    wait_time : optional float (default 1.0) 
+        Time to wait for a download to finish
+    timeout : optional float (default 10.0)
+        Time to wait for a button to be clickable.
+
+    The action dictionary must have an "action_type" key that can have any of the values
+    below:
+
+    - "print_title": No additional arguments. Prints the page title.
+    - "print_head": No additional arguments. Prints the text in the first <h1> tag on the
+      page.
+    - "print_table": Prints all tables with a given ID. Arguments are:
+    
+        - "find_by": a By value indicating what parameter to search for
+        - "id": a string containing the value of the parameter
+
+    - "print_value": Prints the value of a form element. Arguments are:
+
+        - "find_by": a By value
+        - "id": The ID to search for
+
+    - "set_text": Set the value of an input element that can be set by `send_keys()`.
+      Arguments are:
+
+            - "find_by": a By value
+            - "find_value": string containing the value to search for
+            - "value": the value to input to the element
+
+    - "resolve_target": Sets the value of the target field and clicks "resolve".
+      Arguments are:
+
+        - "target_id": the ID of the form element where the target can be entered
+        - "target": the target to resolve
+        - "target_check": ID of a form element that will change when the target is resolved
+
+    - "download": Downloads a file and checks for its existence. Arguments are:
+
+        - "find_by": a By value
+        - "id": The value to search for
+        - "file": The name of the file that will be downloaded
     """
     wait = WebDriverWait(driver, timeout)
 
@@ -173,7 +160,7 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
     elif action["type"] == "set_text":
         # Set a field whose value can be set with `send_keys()`
         element = driver.find_element(action["find_by"], action["find_value"])
-        print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+        print(f"Set {action['find_value']} from {element.get_attribute('value')} to {action['value']}")
         element.clear()
         element.send_keys(action["value"])
         print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
@@ -194,7 +181,7 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
     elif action['type'] == "download":
         element = driver.find_element(action['find_by'], action['id'])
         element.click()
-        driver.implicitly_wait(timeout)
+        driver.implicitly_wait(wait_time)
         file_location = Path(f"/root/Downloads/{action['file']}")
         if file_location.is_file():
             print(f"Downloaded {action['file']}")
@@ -206,17 +193,27 @@ def do_submit(driver, params, calculation_timeout=7200):
     """
     Finds the submit button, waits for it to be pushable, and pushes it.
     """
-    wait = WebDriverWait(driver, 2.5)
-    submit_element = wait.until(EC.element_to_be_clickable(By.ID, params["submit_id"]))
-    wait.until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
-    submit_element.click()
-    wait = WebDriverWait(driver, calculation_timeout)
-    submit_done = wait.until(
-        EC.presence_of_element_located((params["submit_done_type"],
-        params['submit_done_id']))
+    submit_element = WebDriverWait(driver, "10").until(
+        EC.element_to_be_clickable((By.ID, params["submit_id"]))
     )
+    WebDriverWait(driver, "10").until(
+        EC.invisibility_of_element_located((By.ID, "MathJax_Message"))
+    )
+    submit_element.click()
+    if params['submit_done_type'] == "simple_wait":
+        driver.implicitly_wait(params['submit_done_value'])
+    else:
+        submit_done = WebDriverWait(driver, calculation_timeout).until(
+            EC.presence_of_element_located((params["submit_done_type"],
+            params['submit_done_id']))
+        )
 
 def do_form(options, service, params):
+    """
+    Runs all the elements in the pre_steps in order.
+    Submits the form.
+    Runs all the elements in the post_steps in order.
+    """
     run_str = f"Running Test {params['name']}"
     print()
     print(run_str)
@@ -282,7 +279,7 @@ if __name__ == "__main__":
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
-                'target_check': "kmag",
+                'target_check': "teff",
             },
         ],
         'submit_id': "calculate_submit",
@@ -388,7 +385,7 @@ if __name__ == "__main__":
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
-                'target_check': "kmag",
+                'target_check': "orbital_period",
             },
         ],
         'submit_id': "calculate_submit",
@@ -419,7 +416,7 @@ if __name__ == "__main__":
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
-                'target_check': "kmag",
+                'target_check': "ra",
             },
         ],
         'submit_id': "calculate_submit",
@@ -446,7 +443,7 @@ if __name__ == "__main__":
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
-                'target_check': "kmag",
+                'target_check': "ra",
             },
             {"type": "set_text", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
         ],
@@ -474,7 +471,7 @@ if __name__ == "__main__":
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
-                'target_check': "kmag",
+                'target_check': "ra",
             },
         ],
         'submit_id': "calculate_contam_submit",
