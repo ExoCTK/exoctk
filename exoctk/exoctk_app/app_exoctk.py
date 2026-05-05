@@ -876,165 +876,169 @@ def limb_darkening():
     # Validate form and submit for results
     if form.validate_on_submit() and form.calculate_submit.data:
 
-        # Form inputs for logging
-        form_input = dict(request.form)
-        print("Got form input")
+        try:
+            # Form inputs for logging
+            form_input = dict(request.form)
+            print("Got form input")
 
-        # Get the stellar parameters
-        star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
-        print("Got star parameters")
+            # Get the stellar parameters
+            star_params = [float(form.teff.data), float(form.logg.data), float(form.feh.data)]
+            print("Got star parameters")
 
-        # Load the model grid
-        model_grid = ModelGrid(form.modeldir.data, resolution=500)
-        form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
-        print("Got model grid")
+            # Load the model grid
+            model_grid = ModelGrid(form.modeldir.data, resolution=500)
+            form.modeldir.data = [j for i, j in form.modeldir.choices if i == form.modeldir.data][0]
+            print("Got model grid")
 
-        # Grism details
-        kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
+            # Grism details
+            kwargs = {'n_bins': form.n_bins.data, 'wave_min': form.wave_min.data * u.um, 'wave_max': form.wave_max.data * u.um}
 
-        # Make filter object and plot
-        bandpass = Throughput(form.bandpass.data, **kwargs)
-        bk_plot = bandpass.plot(draw=False)
-        bk_plot.width = 580
-        bk_plot.height = 280
-        js_resources = INLINE.render_js()
-        css_resources = INLINE.render_css()
-        filt_script, filt_plot = components(bk_plot)
-        print("Made filter and plot")
+            # Make filter object and plot
+            bandpass = Throughput(form.bandpass.data, **kwargs)
+            bk_plot = bandpass.plot(draw=False)
+            bk_plot.width = 580
+            bk_plot.height = 280
+            js_resources = INLINE.render_js()
+            css_resources = INLINE.render_css()
+            filt_script, filt_plot = components(bk_plot)
+            print("Made filter and plot")
 
-        # Trim the grid to nearby grid points to speed up calculation
-        # full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
-        # trim_rng = find_closest(full_rng, star_params, n=1, values=True)
+            # Trim the grid to nearby grid points to speed up calculation
+            # full_rng = [model_grid.Teff_vals, model_grid.logg_vals, model_grid.FeH_vals]
+            # trim_rng = find_closest(full_rng, star_params, n=1, values=True)
 
-        # Calculate the coefficients for each profile
-        ld = lf.LDC(model_grid)
-        for prof in form.profiles.data:
-            ld.calculate(*star_params, str(prof), mu_min=float(form.mu_min.data), bandpass=bandpass)
-        print("Calculated coefficients")
+            # Calculate the coefficients for each profile
+            ld = lf.LDC(model_grid)
+            for prof in form.profiles.data:
+                ld.calculate(*star_params, str(prof), mu_min=float(form.mu_min.data), bandpass=bandpass)
+            print("Calculated coefficients")
 
-        # Check if spam coefficients can be calculated
-        planet_data = {param: getattr(form, param).data for param in planet_properties}
-        planet_data['Rp/Rs'] = planet_data['rp_rs']
-        planet_data['a/Rs'] = planet_data['a_rs']
-        spam_calc = all([val is not None and val != '' for key, val in planet_data.items()])
-        if spam_calc:
+            # Check if spam coefficients can be calculated
+            planet_data = {param: getattr(form, param).data for param in planet_properties}
+            planet_data['Rp/Rs'] = planet_data['rp_rs']
+            planet_data['a/Rs'] = planet_data['a_rs']
+            spam_calc = all([val is not None and val != '' for key, val in planet_data.items()])
+            if spam_calc:
 
-            # Make sure non-linear profile is included for spam calculation if all planet parameters are provided
-            if '4-parameter' not in form.profiles.data:
-                ld.calculate(*star_params, '4-parameter', mu_min=float(form.mu_min.data), bandpass=bandpass)
+                # Make sure non-linear profile is included for spam calculation if all planet parameters are provided
+                if '4-parameter' not in form.profiles.data:
+                    ld.calculate(*star_params, '4-parameter', mu_min=float(form.mu_min.data), bandpass=bandpass)
 
-            # Calculate spam coeffs
-            planet_data = {key: float(val) for key, val in planet_data.items()}
-            ld.spam(planet_data=planet_data)
-        print("Got planet data and SPAM coefficient")
+                # Calculate spam coeffs
+                planet_data = {key: float(val) for key, val in planet_data.items()}
+                ld.spam(planet_data=planet_data)
+            print("Got planet data and SPAM coefficient")
 
-        # Draw tabbed figure
-        final = ld.plot_tabs()
-        print("Drew tabbed figure")
+            # Draw tabbed figure
+            final = ld.plot_tabs()
+            print("Drew tabbed figure")
 
-        # Get HTML
-        script, div = components(final)
-        print("Got HTML")
+            # Get HTML
+            script, div = components(final)
+            print("Got HTML")
 
-        # Store the tables as a string
-        keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
-        print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
-        print("Made table")
+            # Store the tables as a string
+            keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'e1', 'c2', 'e2', 'c3', 'e3', 'c4', 'e4']
+            print_table = ld.results[[col for col in keep_cols if col in ld.results.colnames]]
+            print("Made table")
 
-        # Make a table for each profile with a row for each wavelength bin
-        profile_tables = []
-        for profile in form.profiles.data:
-            print(f"Creating profile table for {profile}")
-            profile = str(profile)
-
-            # Make LaTeX for polynomials
-            latex = lf.ld_profile(profile, latex=True)
-            poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
-            print("\tMade LaTeX")
-
-            # Make the table into LaTeX
-            table = filter_table(ld.results, profile=profile)
-            co_cols = [c for c in ld.results.colnames if (c.startswith('c') or c.startswith('e')) and len(c) == 2 and not np.all([np.isnan(i) for i in table[c]])]
-            table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
-            table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
-            table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
-            table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
-            print("\tMade table info")
-
-            # Add the results to the lists
-            html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-            print("\tMade HTML table")
-
-            # Add the table title
-            header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
-            html_table = header + html_table
-
-            profile_tables.append(html_table)
-
-            # Add the profile to the form inputs
-            form_input[profile] = 'true'
-            print(f"\tFinished {profile}")
-
-        # Log the successful form inputs
-        log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
-        print("Logged form")
-
-        # Make a table for each profile with a row for each wavelength bin
-        profile_spam_tables = ''
-        if ld.spam_results is not None:
-            print("Making spam table")
-
-            # Store SPAM tables as string
-            keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'c2']
-            print_spam_table = ld.spam_results[[col for col in keep_cols if col in ld.spam_results.colnames]]
-            profile_spam_tables = []
-            for profile in list(np.unique(ld.spam_results['profile'])):
+            # Make a table for each profile with a row for each wavelength bin
+            profile_tables = []
+            for profile in form.profiles.data:
+                print(f"Creating profile table for {profile}")
                 profile = str(profile)
-                print(f"\tStarting spam table profile {profile}")
 
                 # Make LaTeX for polynomials
                 latex = lf.ld_profile(profile, latex=True)
                 poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
-                print("\t\tMade latex and polynomial")
+                print("\tMade LaTeX")
 
                 # Make the table into LaTeX
-                table = filter_table(ld.spam_results, profile=profile)
-                co_cols = [c for c in ld.spam_results.colnames if c.startswith('c') and c not in ['coeffs', 'color']]
+                table = filter_table(ld.results, profile=profile)
+                co_cols = [c for c in ld.results.colnames if (c.startswith('c') or c.startswith('e')) and len(c) == 2 and not np.all([np.isnan(i) for i in table[c]])]
                 table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
                 table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
                 table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
                 table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
-                print("\t\tMade table")
+                print("\tMade table info")
 
                 # Add the results to the lists
                 html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
-                print("\t\tMade HTML table")
+                print("\tMade HTML table")
 
                 # Add the table title
                 header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
                 html_table = header + html_table
-                profile_spam_tables.append(html_table)
-                print(f"\t\tFinished {profile} table")
 
-        # make sure tmp folder exists
-        tmp_dir = os.path.join(os.getcwd(), 'tmp')
-        os.makedirs(tmp_dir, exist_ok=True)
+                profile_tables.append(html_table)
 
-        # define a filepath (you can use UUIDs to make unique)
-        ldc_filename = 'ldc_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-        ldc_filepath = os.path.join(tmp_dir, ldc_filename)
-        print_table.write(ldc_filepath, format='ascii.ecsv', overwrite=True)
-        session['ldc_result_path'] = ldc_filepath
-        print("Created LDC path")
+                # Add the profile to the form inputs
+                form_input[profile] = 'true'
+                print(f"\tFinished {profile}")
 
-        # Store the tables in session (as ECSV strings)
-        if profile_spam_tables == '':
-            pass
-        else:
-            spam_filename = 'spam_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-            spam_filepath = os.path.join(tmp_dir, spam_filename)
-            print_spam_table.write(spam_filepath, format='ascii.ecsv', overwrite=True)
-            session['spam_result_path'] = spam_filepath
+            # Log the successful form inputs
+            log_exoctk.log_form_input(form_input, 'limb_darkening', DB)
+            print("Logged form")
+
+            # Make a table for each profile with a row for each wavelength bin
+            profile_spam_tables = ''
+            if ld.spam_results is not None:
+                print("Making spam table")
+
+                # Store SPAM tables as string
+                keep_cols = ['Teff', 'logg', 'FeH', 'profile', 'filter', 'wave_min', 'wave_eff', 'wave_max', 'c1', 'c2']
+                print_spam_table = ld.spam_results[[col for col in keep_cols if col in ld.spam_results.colnames]]
+                profile_spam_tables = []
+                for profile in list(np.unique(ld.spam_results['profile'])):
+                    profile = str(profile)
+                    print(f"\tStarting spam table profile {profile}")
+
+                    # Make LaTeX for polynomials
+                    latex = lf.ld_profile(profile, latex=True)
+                    poly = '\({}\)'.format(latex).replace('*', '\cdot').replace('\e', 'e')
+                    print("\t\tMade latex and polynomial")
+
+                    # Make the table into LaTeX
+                    table = filter_table(ld.spam_results, profile=profile)
+                    co_cols = [c for c in ld.spam_results.colnames if c.startswith('c') and c not in ['coeffs', 'color']]
+                    table = table[['wave_eff', 'wave_min', 'wave_max'] + co_cols]
+                    table.rename_column('wave_eff', '\(\lambda_\mbox{eff}\hspace{5px}(\mu m)\)')
+                    table.rename_column('wave_min', '\(\lambda_\mbox{min}\hspace{5px}(\mu m)\)')
+                    table.rename_column('wave_max', '\(\lambda_\mbox{max}\hspace{5px}(\mu m)\)')
+                    print("\t\tMade table")
+
+                    # Add the results to the lists
+                    html_table = '\n'.join(table.pformat(max_width=-1, max_lines=-1, html=True)).replace('<table', '<table id="myTable" class="table table-striped table-hover"')
+                    print("\t\tMade HTML table")
+
+                    # Add the table title
+                    header = '<br></br><strong>{}</strong><br><p>\(I(\mu)/I(\mu=1)\) = {}</p>'.format(profile, poly)
+                    html_table = header + html_table
+                    profile_spam_tables.append(html_table)
+                    print(f"\t\tFinished {profile} table")
+
+            # make sure tmp folder exists
+            tmp_dir = os.path.join(os.getcwd(), 'tmp')
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            # define a filepath (you can use UUIDs to make unique)
+            ldc_filename = 'ldc_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+            ldc_filepath = os.path.join(tmp_dir, ldc_filename)
+            print_table.write(ldc_filepath, format='ascii.ecsv', overwrite=True)
+            session['ldc_result_path'] = ldc_filepath
+            print("Created LDC path")
+
+            # Store the tables in session (as ECSV strings)
+            if profile_spam_tables == '':
+                pass
+            else:
+                spam_filename = 'spam_result_{}.ecsv'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+                spam_filepath = os.path.join(tmp_dir, spam_filename)
+                print_spam_table.write(spam_filepath, format='ascii.ecsv', overwrite=True)
+                session['spam_result_path'] = spam_filepath
+        except Exception as e:
+            print(e)
+            raise(e)
 
         print("Rendering")
         return render_template('limb_darkening_results.html', form=form, table=profile_tables,

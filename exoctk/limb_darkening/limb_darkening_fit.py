@@ -487,7 +487,7 @@ class LDC:
                 fig.legend.location = "bottom_right"
 
                 # Plot the fitted points
-                fig.circle(row['raw_mu'], row['raw_ld'], fill_color='black')
+                fig.circle(row['raw_mu'], row['raw_ld'], radius=0.01, fill_color='black')
 
                 # Plot the mu cutoff
                 fig.line([row['mu_min']] * 2, [0, 1], legend_label='cutoff', line_color='#6b6ecf', line_dash='dotted')
