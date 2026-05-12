@@ -106,6 +106,8 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
     timeout : optional float (default 10.0)
         Time to wait for a button to be clickable.
 
+    Notes
+    -----
     The action dictionary must have an "action_type" key that can have any of the values
     below:
 
