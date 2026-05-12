@@ -236,6 +236,7 @@ def do_form(options, service, params):
     print("-" * len(run_str))
     print()
 
+
 if __name__ == "__main__":
     # Let's make functions
     options = Options()
@@ -252,8 +253,11 @@ if __name__ == "__main__":
         'url': "http://localhost:5000/",
         'extension': "groups_integrations",
         'pre_steps': [
+            # Print out the page (inline) title
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
@@ -264,6 +268,8 @@ if __name__ == "__main__":
         'submit_done_type': By.ID,
         'submit_done_id': 'myTable',
         'post_steps': [
+            # Groups/Integrations makes 3 tables, each with the ID 'myTable'. This will
+            # print them all out so that we can make sure they have useful data.
             {'type': 'print_table', 'find_by': By.ID, 'id': 'myTable'}
         ]
     }
@@ -276,17 +282,24 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
                 'target_check': "teff",
             },
         ],
+        # The main thing that distinguishes the output page from the form submit page is
+        # that the output page contains Bokeh figures
         'submit_id': "calculate_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # The output page contains downloadable results. In the past the team has
+                # accidentally broken these downloads, so we want to make sure that they
+                # can all be successfully downloaded
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_coefficients",
@@ -309,6 +322,8 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # The Fortney grid comes up with a default grid that's already set and
+                # displayed, so here we just tweak one parameter and then send it back.
                 "type": "set_text",
                 "find_by": By.ID,
                 "find_value": "rstar",
@@ -320,6 +335,7 @@ if __name__ == "__main__":
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # The fortney output page has a download, so we test it.
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_file",
@@ -336,6 +352,10 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # The generic grid has a range of valid parameters, and will set whatever
+                # parameters you enter to their closest equivalents in the grid. Here we
+                # choose a set of parameters that should, in fact, be in the grid, and
+                # will be valid.
                 "type": "set_text",
                 "find_by": By.NAME,
                 "find_value": "temperature",
@@ -365,6 +385,7 @@ if __name__ == "__main__":
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # We test that the download works.
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_file",
@@ -382,17 +403,26 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
                 'target_check': "orbital_period",
             },
         ],
+        # In this case, the results page is identical to the input page, except that the
+        # 'minimum_phase' and 'maximum_phase' fields have been populated with non-default
+        # data. So we can't look for a specific element to be present. Instead, we know
+        # that this is a fairly fast calculation, so we just wait a second for it to be
+        # done.
         'submit_id': "calculate_submit",
         'submit_done_type': "simple_wait",
         'submit_done_value': 1.0,
         'post_steps': [
             {
+                # The phase values are the only thing that changes, so we make sure that
+                # they're not set to default values
                 'type': "print_value",
                 'find_by': By.ID,
                 'id': "minimum_phase",
@@ -413,6 +443,8 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
@@ -424,6 +456,7 @@ if __name__ == "__main__":
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # There's a test download here
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_csv",
@@ -440,6 +473,8 @@ if __name__ == "__main__":
         'pre_steps': [
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
@@ -452,6 +487,7 @@ if __name__ == "__main__":
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # There's a test download
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_csv",
@@ -462,12 +498,17 @@ if __name__ == "__main__":
     do_form(options, service, contam_overlap_single_params)
 
     contam_overlap_full_params = {
+        # This test takes a lot of time to finish. In the future some targets will be
+        # pre-calculated, so we'll probably want to exercise both forms, and/or have a 
+        # way to skip this test in particular.
         'name': 'Contamination/Overlap (full field check)',
         'url': "http://localhost:5000/",
         'extension': "contam_visibility",
         'pre_steps': [
             {"type": "print_head"},
             {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
                 "type": "resolve_target",
                 'target_id': "targname",
                 'target': "Wasp 18 b",
@@ -479,6 +520,7 @@ if __name__ == "__main__":
         'submit_done_id': "bk-Figure",
         'post_steps': [
             {
+                # There's a test download.
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_csv",
