@@ -15,6 +15,7 @@ import sys
 
 from astropy.io import fits
 import bokeh.palettes as bpal
+from pathlib import Path
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import generic_filter
 import numpy as np
@@ -78,7 +79,8 @@ if not ON_GITHUB_ACTIONS_OR_RTD:
         # If the variable exists, points to a real location, but is missing contents
         for item in DATA_URLS.keys():
             if item not in [os.path.basename(item) for item in glob.glob(os.path.join(EXOCTK_DATA, '*'))]:
-                os.makedirs(os.path.join(EXOCTK_DATA, item))
+                data_path = Path(EXOCTK_DATA) / item
+                data_path.mkdir(parents=True, exist_ok=True)
 
         EXOCTK_CONTAM_DIR = os.path.join(EXOCTK_DATA, 'exoctk_contam/')
         EXOCTKLOG_DIR = os.path.join(EXOCTK_DATA, 'exoctk_log/')
@@ -86,6 +88,7 @@ if not ON_GITHUB_ACTIONS_OR_RTD:
         GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
         GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+
 
 def blockPrint():
     """Function to suppress print statements"""
@@ -222,7 +225,10 @@ def check_for_data(tool):
     files = glob.glob(os.path.join(path, '*'))
 
     if len(files) == 0:
-        raise IOError("This tool requires the '{0}' data. Try downloading with exoctk.utils.download_exoctk_data('{0}')".format(tool))
+        msg = f"This tool requires the '{tool}' data."
+        msg += f" Try downloading with exoctk.utils.download_exoctk_data('{tool}')"
+        msg += f" Search path is {path}"
+        raise IOError(msg)
 
 
 def color_gen(colormap='viridis', key=None, n=10):

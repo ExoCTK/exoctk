@@ -25,7 +25,7 @@ Dependencies
     - ``numpy``
 """
 
-from pkg_resources import resource_filename
+from .pkgdata import resource_filename
 
 import astropy.constants as ac
 from astropy.io import fits, ascii

@@ -17,12 +17,11 @@ Use
         pytest -s test_limb_darkening.py
 """
 
-from pkg_resources import resource_filename
-
 from svo_filters import Filter
 
 from exoctk import modelgrid as mg
 from exoctk.limb_darkening import limb_darkening_fit as ldf
+from exoctk.pkgdata import resource_filename
 
 
 # Load local modelgrid

@@ -22,5 +22,4 @@ setup(
     name="exoctk",
     version=get_version(),
     include_dirs=[np.get_include()],
-    # You likely have more fields to include from pyproject.toml
 )

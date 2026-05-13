@@ -35,6 +35,7 @@ class ContamVisForm(BaseForm):
     calculate_submit = SubmitField('Calculate Visibility')
     calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
     mode_submit = SubmitField('Mode Selected')
+    task_submit = SubmitField('Task Running')
 
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
@@ -46,6 +47,7 @@ class ContamVisForm(BaseForm):
     dist = DecimalField('dist', default=None, validators=[Optional()])
     pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
     teff = DecimalField('teff', validators=[Optional(), NumberRange(min=500, max=6000, message="Effective Temperature must be between 500 and 6000K")])
+    task_id = StringField('task_id', default='blank', validators=[Optional()])
 
 
 class FortneyModelForm(BaseForm):

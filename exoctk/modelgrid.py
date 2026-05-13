@@ -9,7 +9,6 @@ from glob import glob
 import multiprocessing
 import os
 import pickle
-from pkg_resources import resource_filename
 import time
 import warnings
 
@@ -23,6 +22,7 @@ from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import zoom
 
 from . import utils
+from .pkgdata import resource_filename
 
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=FutureWarning)
@@ -491,9 +491,14 @@ class ModelGrid(object):
         if in_grid:
 
             # See if the model with the desired parameters is a true grid point
-            on_grid = self.data[(self.data['Teff'] == Teff) &
-                                (self.data['logg'] == logg) &
-                                (self.data['FeH'] == FeH)] in self.data
+            # Note that the current method is done rather than the previous method (which
+            # relied on the `in` construct) because of an exception involving the truth
+            # value of arrays being ambiguous. In this case, what we care about is whether
+            # there is *any* matching value, and looking at the length of the array 
+            # produced when we restrict seems the best way of doing that.
+            on_grid = len(self.data[(self.data['Teff'] == Teff) &
+                                    (self.data['logg'] == logg) &
+                                    (self.data['FeH'] == FeH)]) > 0
 
             # Grab the data if the point is on the grid
             if on_grid:

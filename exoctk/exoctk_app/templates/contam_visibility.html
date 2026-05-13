@@ -4,16 +4,50 @@
 <!doctype html>
 
 <script>
+    function task_check(task_value) {
+          const poll = () => {
+            fetch(`/status/${task_value}`)
+              .then(response => response.json())
+              .then(data => {
+                if (!data["ready"]) {
+                  if (data["state"] === "PENDING") {
+                    document.getElementById("task-status").innerHTML = data["state"];
+                  } else {
+                    document.getElementById("task-status").innerHTML = data["state"];
+                  }
+                  setTimeout(poll, 2500)
+                } else {
+                  console.log(data);
+                  document.getElementById("task-status").innerHTML = data["state"];
+                  $('#tasksubmit').click();
+                }
+              })
+          }
+          
+          poll();
+    }
+
     $(document).ready(function(){
 
         $('#inst').on('change', function() {
             $('#modesubmit').click();
         });
 
+        var task_value = document.getElementById("task_id").value;
+        console.log("task value is:");
+        console.log(task_value);
+        if (task_value !== "blank") {
+            document.getElementById("form-content").hidden = true;
+            document.getElementById("task-running").hidden = false;
+            task_check(task_value);
+        } else {
+            document.getElementById("task-running").hidden = true;
+        }
+
     });
 </script>
 
-<div class='form-group'>
+<div class='form-group' id="form-content">
 	<h1>Contamination & Visibility Calculator</h1>
     <br>
 
@@ -133,6 +167,8 @@
 				</div>
 		</div>
         {{ form.mode_submit(id='modesubmit', style="visibility: hidden;") }}
+        {{ form.task_submit(id='tasksubmit', style="visibility: hidden;") }}
+        {{ form.task_id(id='task_id', size=10, rows=1, class='form-control', style="visibility: hidden;") }}
 
         <hr class="col-md-12">
 
@@ -205,6 +241,10 @@
             </div>
         </div>
     </form>
+</div>
+<div id="task-running">
+	<h1>Contamination & Visibility Calculator</h1>
+    <h2><span id="task-status"></span></h2>
 </div>
 
 

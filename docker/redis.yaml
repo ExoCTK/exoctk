@@ -1,4 +1,13 @@
 services:
   redis:
     image: "redis:alpine"
+<<<<<<< HEAD
+=======
+    ports:
+      - "8800:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+>>>>>>> upstream/main
     restart: unless-stopped
