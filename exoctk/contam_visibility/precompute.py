@@ -7,7 +7,11 @@ Date: 01/13/26
 
 Example:
 from exoctk.contam_visibility import precompute as p
-p.generate_database(['WASP-39', 'TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256')
+target_list = p.precomputed_target_list()
+p.generate_database(target_list, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256')
+
+Or for a test database:
+p.generate_database(['WASP-39', 'TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_test_db.h5', aperture='NIS_SUBSTRIP256')
 """
 
 import h5py
@@ -16,6 +20,15 @@ import requests
 
 from . import field_simulator as fs
 from ..utils import get_target_data, get_canonical_name
+from ..pkgdata import resource_filename
+
+
+def precomputed_target_list():
+    """"
+    Read in list of targets to precompute
+    """
+    target_list = np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/contam_precompute_targets.txt'), delimiter=', ', dtype=str)
+    return target_list
 
 
 def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, goodPA_list=np.arange(360)):
@@ -59,7 +72,7 @@ def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, g
     print(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
 
 
-def generate_database(planet_names, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256'):
+def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256'):
     """
     Compute the contamination data and save to the file
     """
@@ -79,7 +92,7 @@ def generate_database(planet_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
     # Make the empty file
     count = 0
     with h5py.File(filename, "w") as f:
-        for targname in planet_names:
+        for targname in target_names:
 
             # Canonical name and get coordinates
             name = get_canonical_name(targname)
@@ -108,10 +121,10 @@ def generate_database(planet_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
             count += 1
 
-    print(f"Saved structure for {count}/{len(planet_names)} exoplanets to {filename}.")
+    print(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
 
     # Generate the contam figures and save to file
-    for targname in planet_names:
+    for targname in target_names:
 
         # Run contamination tool
         target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
