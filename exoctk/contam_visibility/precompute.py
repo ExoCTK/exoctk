@@ -108,7 +108,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
             # Make the group in the H5 file
             grp_name = name.strip().replace("/", "_")
-            print(targname, name, grp_name)
+            if targname != name:
+                print(f"'{targname}', using '{name}'")
             grp = f.create_group(grp_name)
             grp.attrs["name"] = name
             grp.attrs["ra"] = ra_deg
