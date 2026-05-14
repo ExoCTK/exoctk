@@ -11,7 +11,7 @@ target_list = p.precomputed_target_list()
 p.generate_database(target_list, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256')
 
 Or for a test database:
-p.generate_database(['WASP-39', 'TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_test_db.h5', aperture='NIS_SUBSTRIP256')
+p.generate_database(['TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_test_db.h5', aperture='NIS_SUBSTRIP256')
 """
 
 import h5py

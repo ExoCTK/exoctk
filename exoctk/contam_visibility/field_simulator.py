@@ -463,18 +463,18 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     # Query Gaia from several potential endpoints
     stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
 
-    # Perform XMatch between Gaia and SDSS DR16
-    xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
-
     try:
+        # Perform XMatch between Gaia and SDSS DR16
+        xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
+
         # Join Gaia results with XMatch results based on source_id
         merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
         # Extract SDSS DR16 source types from XMatch results
         stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
 
-    except ValueError:
-        pass
+    except Exception as e:
+        logging.info(f"Could not perform SDSS crossmatch: {e}")
 
     # Or infer galaxy from parallax
     stars['type'] = [classify_source(row) for row in stars]
