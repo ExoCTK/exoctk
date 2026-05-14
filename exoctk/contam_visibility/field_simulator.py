@@ -162,61 +162,113 @@ GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_v
 
 
 class GaiaFailoverTAP:
-    def __init__(self, timeout=30, poll_interval=1.0, max_polls=120):
+    def __init__(
+        self,
+        timeout=30,
+        poll_interval=1.0,
+        max_polls=120,
+        max_retries=3,
+        retry_delay=5,
+    ):
         self.endpoints = [
             "https://gea.esac.esa.int/tap-server/tap",
             "https://datalab.noirlab.edu/tap",
             "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
         ]
+
         self.timeout = timeout
         self.poll_interval = poll_interval
         self.max_polls = max_polls
 
+        # NEW
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
+
+        self.last_endpoint = None
+
     def query_region(self, coordinate, width, height=None):
         """
         Drop-in replacement for Gaia.query_object_async(...)
-        Returns astropy.table.Table
+
+        Returns
+        -------
+        astropy.table.Table
         """
         height = width if height is None else height
 
-        ra = coordinate.ra.deg
-        dec = coordinate.dec.deg
+        ra = float(coordinate.ra.deg)
+        dec = float(coordinate.dec.deg)
 
-        width_deg = width.to(u.deg).value
-        height_deg = height.to(u.deg).value
-        radius_deg = 0.5 * np.sqrt(width_deg ** 2 + height_deg ** 2)
+        width_deg = float(width.to(u.deg).value)
+        height_deg = float(height.to(u.deg).value)
+
+        # Query enclosing circle
+        radius_deg = 0.5 * np.sqrt(width_deg**2 + height_deg**2)
 
         if not np.isfinite(radius_deg) or radius_deg <= 0:
             raise ValueError(f"Invalid radius: {radius_deg}")
 
         adql = f"""
-                SELECT *,
-                    DISTANCE(
-                        POINT('ICRS', ra, dec),
-                        POINT('ICRS', {ra}, {dec})
-                    ) AS dist
-                FROM gaiadr3.gaia_source
-                WHERE 1=CONTAINS(
-                    POINT('ICRS', ra, dec),
-                    CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
-                )
-                ORDER BY dist
-                """
+        SELECT *,
+            DISTANCE(
+                POINT('ICRS', ra, dec),
+                POINT('ICRS', {ra}, {dec})
+            ) AS dist
+        FROM gaiadr3.gaia_source
+        WHERE 1=CONTAINS(
+            POINT('ICRS', ra, dec),
+            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
+        )
+        ORDER BY dist
+        """
 
-        last_error = None
-        for endpoint in self.endpoints:
-            try:
-                # Query the cone
-                stars = self._run_query(endpoint, adql)
-                logging.info(f"Found {len(stars)} sources in Gain DR3 within {width} using endpoint `{endpoint}'")
+        all_errors = []
 
-                return stars
+        # GLOBAL RETRY LOOP
+        for retry in range(self.max_retries):
 
-            except Exception as e:
-                last_error = e
-                logging.info(f"[Gaia failover] {endpoint} failed: {e}")
+            logging.info(
+                f"[Gaia TAP] Global retry "
+                f"{retry + 1}/{self.max_retries}"
+            )
 
-        raise RuntimeError(f"All Gaia TAP endpoints failed: {last_error}")
+            # ENDPOINT FAILOVER LOOP
+            for endpoint in self.endpoints:
+
+                try:
+                    stars = self._run_query(endpoint, adql)
+                    self.last_endpoint = endpoint
+                    logging.info(
+                        f"[Gaia TAP] SUCCESS "
+                        f"endpoint={endpoint} "
+                        f"rows={len(stars)}"
+                    )
+
+                    return stars
+
+                except Exception as e:
+                    err_msg = (
+                        f"[Gaia failover] "
+                        f"retry={retry + 1} "
+                        f"endpoint={endpoint} "
+                        f"error={e}"
+                    )
+
+                    logging.warning(err_msg)
+                    all_errors.append(err_msg)
+
+            # Sleep before next global retry
+            if retry < self.max_retries - 1:
+                delay = self.retry_delay * (2**retry)
+                logging.info(f"[Gaia TAP] Sleeping {delay}s before retry")
+                time.sleep(delay)
+
+        # TOTAL FAILURE
+        raise RuntimeError(
+            "All Gaia TAP endpoints failed after "
+            f"{self.max_retries} retries.\n\n"
+            + "\n".join(all_errors)
+        )
 
     def _run_query(self, endpoint, adql):
         job_url = self._submit_async_job(endpoint, adql)
@@ -225,34 +277,24 @@ class GaiaFailoverTAP:
 
     def _submit_async_job(self, endpoint, adql):
         url = f"{endpoint}/async"
+        r = requests.post(url, data={"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv", "QUERY": adql, "PHASE": "RUN"}, timeout=self.timeout, allow_redirects=False)
 
-        r = requests.post(
-            url,
-            data={
-                "REQUEST": "doQuery",
-                "LANG": "ADQL",
-                "FORMAT": "csv",
-                "QUERY": adql,
-                "PHASE": "RUN",
-            },
-            timeout=self.timeout,
-            allow_redirects=False,
-        )
+        # Proper TAP async redirect
+        if r.status_code in (302, 303):
 
-        # Case 1: Proper TAP async response (303 redirect)
-        if r.status_code in (303, 302):
             job_url = r.headers.get("Location")
             if job_url:
                 return job_url
 
-        # Case 2: Some servers return 200 + Location
+        # Some TAP services return 200 + Location
         job_url = r.headers.get("Location")
+
         if job_url:
             return job_url
 
-        # Case 3: Server returned error payload (VERY COMMON)
         raise RuntimeError(
-            f"No TAP job URL returned. Status={r.status_code}. "
+            f"No TAP job URL returned. "
+            f"Status={r.status_code}. "
             f"Response:\n{r.text[:500]}"
         )
 
@@ -262,7 +304,6 @@ class GaiaFailoverTAP:
         for _ in range(self.max_polls):
             r = requests.get(phase_url, timeout=self.timeout)
             r.raise_for_status()
-
             phase = r.text.strip()
 
             if phase == "COMPLETED":
@@ -276,13 +317,10 @@ class GaiaFailoverTAP:
         raise TimeoutError("Gaia TAP polling timeout")
 
     def _fetch_result(self, job_url):
-        r = requests.get(
-            f"{job_url}/results/result",
-            timeout=self.timeout,
-        )
+
+        r = requests.get(f"{job_url}/results/result", timeout=self.timeout)
         r.raise_for_status()
 
-        # Use bytes, not StringIO
         return Table.read(io.BytesIO(r.content), format="ascii.csv")
 
 
