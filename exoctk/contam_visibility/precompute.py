@@ -98,35 +98,39 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
     count = 0
     with h5py.File(filename, "w") as f:
         for targname in target_names:
+            try:
 
-            # Canonical name and get coordinates
-            name = get_canonical_name(targname)
-            data, _ = get_target_data(name)
-            ra_deg = data.get('RA')
-            dec_deg = data.get('DEC')
-            lookup[targname] = {'canonical_name': name, 'ra': ra_deg, 'dec': dec_deg}
+                # Canonical name and get coordinates
+                name = get_canonical_name(targname)
+                data, _ = get_target_data(name)
+                ra_deg = data.get('RA')
+                dec_deg = data.get('DEC')
+                lookup[targname] = {'canonical_name': name, 'ra': ra_deg, 'dec': dec_deg}
 
-            # Make the group in the H5 file
-            grp_name = name.strip().replace("/", "_")
-            if targname != name:
-                print(f"'{targname}', using '{name}'")
-            grp = f.create_group(grp_name)
-            grp.attrs["name"] = name
-            grp.attrs["ra"] = ra_deg
-            grp.attrs["dec"] = dec_deg
+                # Make the group in the H5 file
+                grp_name = name.strip().replace("/", "_")
+                if targname != name:
+                    print(f"'{targname}', using '{name}'")
+                grp = f.create_group(grp_name)
+                grp.attrs["name"] = name
+                grp.attrs["ra"] = ra_deg
+                grp.attrs["dec"] = dec_deg
 
-            # Target trace
-            grp.create_dataset("target_trace", shape=(n_traces, nrows, ncols), dtype="float32", compression="gzip",
-                               compression_opts=4, chunks=(1, nrows, ncols))
+                # Target trace
+                grp.create_dataset("target_trace", shape=(n_traces, nrows, ncols), dtype="float32", compression="gzip",
+                                   compression_opts=4, chunks=(1, nrows, ncols))
 
-            # Contamination placeholder (0 planes initially)
-            grp.create_dataset("contamination", shape=(0, nrows, ncols), maxshape=(None, nrows, ncols), dtype="float32",
-                               compression="gzip", compression_opts=4, chunks=(1, nrows, ncols))
+                # Contamination placeholder (0 planes initially)
+                grp.create_dataset("contamination", shape=(0, nrows, ncols), maxshape=(None, nrows, ncols), dtype="float32",
+                                   compression="gzip", compression_opts=4, chunks=(1, nrows, ncols))
 
-            # Plane index placeholder
-            grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
+                # Plane index placeholder
+                grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
 
-            count += 1
+                count += 1
+
+            except Exception as e:
+                print(f"Could not add {name}: \n{e}")
 
     print(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
 

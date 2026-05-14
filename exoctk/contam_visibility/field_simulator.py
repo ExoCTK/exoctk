@@ -453,7 +453,7 @@ def NIRISS_SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
-def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=Time.now(), verbose=False, pm_corr=True, plot=False):
+def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -533,6 +533,10 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     stars.add_column(stars['ra'], name='obs_ra')
     stars.add_column(stars['dec'], name='obs_dec')
 
+    # Set target data
+    if target_date is None:
+        target_date = Time.now()
+
     # Update RA and Dec using proper motion data
     if pm_corr:
         for row in stars:
@@ -582,7 +586,7 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     return stars
 
 
-def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=None):
     """
     Get the proper motion corrected coordinates of a source
 
@@ -606,6 +610,10 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
     new_ra, new_dec
         The corrected RA and Dec for the source
     """
+    # Set target data
+    if target_date is None:
+        target_date = Time.now()
+
     # Convert observation year to Time object
     if isinstance(target_date, (int, float, str)):
         target_date = Time('{}-01-01'.format(int(target_date)))
@@ -1058,7 +1066,7 @@ def update_task(task, new_state):
         task.update_state(state=new_state)
 
 
-def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=Time.now(), plot=False,
+def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=None, plot=False,
                      task=None, title='My Target', target_db=None, slider=False):
     """Produce a contamination field simulation at the given sky coordinates
 
@@ -1120,16 +1128,16 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) in ExoMAST.")
 
     # Check to see if the planet is in the DB
+    # Require target_db and targname
+    # Require None for binComp and target_date, since these change the results
     precomputed = False
-    if target_db is not None and targname is not None:
+    if target_db is not None and targname is not None and binComp is None and target_date is None:
         grp_name = get_canonical_name(targname).strip().replace("/", "_")
         with h5py.File(target_db, "r") as f:
             precomputed = grp_name in f
 
     # Grab data from DB if precomputed
     if precomputed:
-
-        # Get the results from the database
         targframes, starcube, attrs = fetch_contam_results(targname, target_db)
         goodPA_list = attrs["goodPA_list"]
 
@@ -1157,6 +1165,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
 
         # Find stars in the vicinity
         update_task(task, "RUNNING SOURCE QUERY")
+        if target_date is None:
+            target_date = Time.now()
         stars = find_sources(ra, dec, target_date=target_date)
 
         # Add stars manually
