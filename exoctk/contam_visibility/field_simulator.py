@@ -27,17 +27,14 @@ from astropy.stats import sigma_clip
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
-from astroquery.irsa import Irsa
-from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
-from astroquery.gaia import Gaia
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage import rotate
 import h5py
 import numpy as np
 import pysiaf
@@ -212,8 +209,6 @@ class GaiaFailoverTAP:
                 # Query the cone
                 stars = self._run_query(endpoint, adql)
                 logging.info(f"Found {len(stars)} sources in Gain DR3 within {width} using endpoint `{endpoint}'")
-
-                print()
 
                 return stars
 
@@ -1049,6 +1044,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         The plot title to use
     target_db: str
         The path to the precomputed .h5 database of results
+    slider: bool
+        Make the PA slider plot instead of the legacy wavelength vs. PA plots
 
     Returns
     -------

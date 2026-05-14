@@ -27,7 +27,12 @@ def precomputed_target_list():
     """"
     Read in list of targets to precompute
     """
+    # Generate list from file of 2117 targets
     target_list = np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/contam_precompute_targets.txt'), delimiter=', ', dtype=str)
+
+    # Add a 'b' to each target since Exo.MAST is looking for planets, not stars
+    target_list = [f"{t} b" for t in target_list]
+
     return target_list
 
 
@@ -103,6 +108,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
             # Make the group in the H5 file
             grp_name = name.strip().replace("/", "_")
+            print(targname, name, grp_name)
             grp = f.create_group(grp_name)
             grp.attrs["name"] = name
             grp.attrs["ra"] = ra_deg
