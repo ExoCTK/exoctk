@@ -22,70 +22,30 @@ The dictionary has the following form:
         This is a string containing the sub-page. The driver will effective load the URL
         URL/EXTENSION
 
-    'target_id': "targname",
-        The ID to search for to find the field where the target star can be set. String.
-
-    'target': "Wasp 18 b",
-        The value to set the target star field *to*. String.
-
-    'target_check': "ra",
-        The ID of a field to look at that should change when the target is resolved.
-        Currently the value of this field isn't checked, but it likely should be. String.
-
     'pre_steps': [
         {
             "type": "print_head"
         }
     ],
-        This is a list of dictionaries of steps to run *before* the target star has been
-        resolved. The dictionary has the form:
-            {
-                "type": 'TYPE',
-            }
-        where 'TYPE' is a string that can currently take either the value of "print_title",
-        which prints out the title, and "print_head", which prints out the text of the
-        first <h1> tag found on the page.
-        In the future, this dictionary could also take a "value" field, in case there's
-        a desire to set the value of a field before resolving the target.
+        This is a list of dictionaries of steps to run *before* the form has been 
+        submitted. The dictionary format is described in the `run_action()` documentation.
 
-    'resolved_steps': [
-         {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
-    ],
-        This is a list of dictionaries of steps to run *after* the target star has been
-        resolved. The dictionary has the form:
-            {
-                "type": 'TYPE',
-                "find_by": 'BY'
-                "find_value": 'ID_VALUE',
-                "value": 'VALUE'
-            }
-        where 
-            - 'TYPE' is a string that can currently only take the value of "set_value",
-              which tells the function to set the value of some form element on the page.
-            - 'BY' is a value of the selenium.webdriver.common.by submodule. This tells
-              the "find" function what it's using to find the element. By.ID and By.NAME
-              are the most common, and look for those elements in the HTML element. It is
-              also possible to search by class, by contained text, or by something else.
-              Note that if multiple page elements have the same value in whatever you're
-              searching for, only the first will be returned.
-            - 'ID_VALUE' is the value that is being searched for. For example, to search
-              a form for an item with id="ra", 'BY' would be By.ID, and 'ID_VALUE' would
-              be "ra". String.
-            - 'VALUE': The value to set the item *to*. Whatever class that field is 
-              expecting.
 
     'submit_id': "calculate_contam_submit",
         The id="VALUE" value of the form submit button. String.
 
     'submit_done_type': By.CLASS_NAME,
-        A value of the "by" submodule. See above for more.
+        A value of the "by" submodule. See above for more. Or the string "simple_wait" if
+        it is known that the calculation will be finished in a certain time.
 
     'submit_done_id': "bk-Figure",
         What form element *will* be present after the calculation has finished that is
         *not* present until it has finished. Almost always a string.
 
+    'submit_done_value': value
+        The time to wait in seconds if submit_done_type is "simple_wait"
+
     'post_steps': [
-        {'type': "print_done"},
         {
             'type': "download",
             'find_by': By.ID,
@@ -94,26 +54,7 @@ The dictionary has the following form:
         }
     ]
         This is a list of dictionaries of steps to run after the form results have loaded.
-        It has the value
-            {
-                'type': "download",
-                'find_by': By.ID,
-                'id': "download_csv",
-                'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
-            }
-        where
-            - 'type' is a string giving the type of action. Accepted values are "table",
-              which finds and prints all tables corresponding to a particular tag, 
-              "print_done", which prints out a message that the calculation is done,
-              and "download", which indicates that Selenium should attempt to download a 
-              file from the results page.
-            - "find_by" is a by value. See above.
-            - "id" is the by value being searched for.
-            - "file" is only needed for downloads, and holds the name that the file will
-              download as.
-}
-
-
+        The dictionary format is described in the `run_action()` documentation.
 """
 from pathlib import Path
 from selenium import webdriver
@@ -152,62 +93,151 @@ def print_tables(driver, find_by, id):
             table_list.append(row_list)
         print_table(table_list)
 
-def do_resolve_submit(options, service, params):
+def run_action(driver, action, wait_time=1.0, timeout=10.0):
+    """
+    Runs arbitrary actions (at least if they're defined below)
+
+    Parameters
+    ----------
+    driver : selenium web driver
+    action : dict (see below)
+    wait_time : optional float (default 1.0) 
+        Time to wait for a download to finish
+    timeout : optional float (default 10.0)
+        Time to wait for a button to be clickable.
+
+    Notes
+    -----
+    The action dictionary must have an "action_type" key that can have any of the values
+    below:
+
+    - "print_title": No additional arguments. Prints the page title.
+    - "print_head": No additional arguments. Prints the text in the first <h1> tag on the
+      page.
+    - "print_table": Prints all tables with a given ID. Arguments are:
+    
+        - "find_by": a By value indicating what parameter to search for
+        - "id": a string containing the value of the parameter
+
+    - "print_value": Prints the value of a form element. Arguments are:
+
+        - "find_by": a By value
+        - "id": The ID to search for
+
+    - "set_text": Set the value of an input element that can be set by `send_keys()`.
+      Arguments are:
+
+            - "find_by": a By value
+            - "find_value": string containing the value to search for
+            - "value": the value to input to the element
+
+    - "resolve_target": Sets the value of the target field and clicks "resolve".
+      Arguments are:
+
+        - "target_id": the ID of the form element where the target can be entered
+        - "target": the target to resolve
+        - "target_check": ID of a form element that will change when the target is resolved
+
+    - "download": Downloads a file and checks for its existence. Arguments are:
+
+        - "find_by": a By value
+        - "id": The value to search for
+        - "file": The name of the file that will be downloaded
+    """
+    wait = WebDriverWait(driver, timeout)
+
+    if action["type"] == "print_title":
+        # Print the page title
+        print(driver.title)
+    elif action["type"] == "print_head":
+        # Print the text in the first <h1> element in the page
+        h1_elements = driver.find_elements(By.TAG_NAME, "h1")
+        if len(h1_elements) > 0:
+            print(h1_elements[0].text)
+    elif action['type'] == "print_table":
+        print_tables(driver, action['find_by'], action['id'])
+    elif action['type'] == "print_value":
+        element = driver.find_element(action['find_by'], action['id'])
+        print(f"Element {action['id']} has value {element.get_attribute('value')}")
+    elif action["type"] == "set_text":
+        # Set a field whose value can be set with `send_keys()`
+        element = driver.find_element(action["find_by"], action["find_value"])
+        print(f"Set {action['find_value']} from {element.get_attribute('value')} to {action['value']}")
+        element.clear()
+        element.send_keys(action["value"])
+        print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+    elif action["type"] == "resolve_target":
+        # Set the target of observation to the provided value, trigger it.
+        # Print out the provided check element before and after to make sure it took.
+        check_element = driver.find_element(By.ID, action["target_check"])
+        check_value = check_element.get_attribute('value')
+        print(f"Element {action['target_check']} before target resolution: {check_value}")
+        target = driver.find_element(By.ID, action["target_id"])
+        target.send_keys(action['target'])
+        resolve = wait.until(EC.element_to_be_clickable((By.ID, "resolve_submit")))
+        wait.until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
+        resolve.click()
+        check_element = driver.find_element(By.ID, action["target_check"])
+        check_value = check_element.get_attribute('value')
+        print(f"Element {action['target_check']} after target resolution: {check_value}")
+    elif action['type'] == "download":
+        element = driver.find_element(action['find_by'], action['id'])
+        element.click()
+        driver.implicitly_wait(wait_time)
+        file_location = Path(f"/root/Downloads/{action['file']}")
+        if file_location.is_file():
+            print(f"Downloaded {action['file']}")
+            file_location.unlink()
+        else:
+            raise FileNotFoundError(f"Downloaded file {action['file']} not found")
+
+def do_submit(driver, params, calculation_timeout=7200):
+    """
+    Finds the submit button, waits for it to be pushable, and pushes it.
+    """
+    submit_element = WebDriverWait(driver, "10").until(
+        EC.element_to_be_clickable((By.ID, params["submit_id"]))
+    )
+    WebDriverWait(driver, "10").until(
+        EC.invisibility_of_element_located((By.ID, "MathJax_Message"))
+    )
+    submit_element.click()
+    if params['submit_done_type'] == "simple_wait":
+        driver.implicitly_wait(params['submit_done_value'])
+    else:
+        submit_done = WebDriverWait(driver, calculation_timeout).until(
+            EC.presence_of_element_located((params["submit_done_type"],
+            params['submit_done_id']))
+        )
+
+def do_form(options, service, params):
+    """
+    Runs all the elements in the pre_steps in order.
+    Submits the form.
+    Runs all the elements in the post_steps in order.
+    """
+    run_str = f"Running Test {params['name']}"
+    print()
+    print(run_str)
+    print("-" * len(run_str))
     with webdriver.Firefox(options=options, service=service) as driver:
         # Load groups-integrations page
         driver.get(params['url'] + params['extension'])
-        wait = WebDriverWait(driver, 7200)
 
         for action in params['pre_steps']:
-            if action["type"] == "print_title":
-                print(driver.title)
-            elif action["type"] == "print_head":
-                h1_elements = driver.find_elements(By.TAG_NAME, "h1")
-                if len(h1_elements) > 0:
-                    print(h1_elements[0].text)
-
-        # Set the target of observation to the provided value, trigger it.
-        # Print out the provided check element before and after to make sure it took.
-        check_element = driver.find_element(By.ID, params["target_check"])
-        check_value = check_element.get_attribute('value')
-        print(f"Element {params['target_check']} before target resolution: {check_value}")
-        target = driver.find_element(By.ID, params["target_id"])
-        target.send_keys(params['target'])
-        resolve = wait.until(EC.element_to_be_clickable((By.ID, "resolve_submit")))
-        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.ID, "MathJax_Message")))
-        resolve.click()
-        check_element = driver.find_element(By.ID, params["target_check"])
-        check_value = check_element.get_attribute('value')
-        print(f"Element {params['target_check']} after target resolution: {check_value}")
-
-        for action in params["resolved_steps"]:
-            if action["type"] == "set_value":
-                element = driver.find_element(action["find_by"], action["find_value"])
-                element.send_keys(action["value"])
-                print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+            run_action(driver, action)
 
         # Submit the form
-        submit = wait.until(EC.element_to_be_clickable((By.ID, params["submit_id"])))
-        submit.click()
         print("Starting Calculation")
-        submit_done = wait.until(EC.presence_of_element_located((params["submit_done_type"], params['submit_done_id'])))
+        do_submit(driver, params)
+        print("Finished Calculation")
 
         # Do all the post-calculation steps
         for action in params["post_steps"]:
-            if action['type'] == "table":
-                print_tables(driver, action['find_by'], action['id'])
-            elif action['type'] == "print_done":
-                print("Finished Calculation")
-            elif action['type'] == "download":
-                element = driver.find_element(action['find_by'], action['id'])
-                element.click()
-                driver.implicitly_wait(2)
-                file_location = Path(f"/root/Downloads/{action['file']}")
-                if file_location.is_file():
-                    print(f"Downloaded {action['file']}")
-                else:
-                    raise FileNotFoundError(f"Downloaded file {action['file']} not found")
-                    
+            run_action(driver, action)
+    print("-" * len(run_str))
+    print()
+
 
 if __name__ == "__main__":
     # Let's make functions
@@ -221,47 +251,214 @@ if __name__ == "__main__":
     print()
 
     group_integration_params = {
+        'name': 'Groups/Integrations',
         'url': "http://localhost:5000/",
         'extension': "groups_integrations",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "kmag",
         'pre_steps': [
+            # Print out the page (inline) title
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "kmag",
+            },
         ],
-        'resolved_steps': [],
         'submit_id': "calculate_submit",
         'submit_done_type': By.ID,
         'submit_done_id': 'myTable',
         'post_steps': [
-            {'type': 'table', 'find_by': By.ID, 'id': 'myTable'}
+            # Groups/Integrations makes 3 tables, each with the ID 'myTable'. This will
+            # print them all out so that we can make sure they have useful data.
+            {'type': 'print_table', 'find_by': By.ID, 'id': 'myTable'}
         ]
     }
-    do_resolve_submit(options, service, group_integration_params)
-    print()
+    do_form(options, service, group_integration_params)
 
-    contam_overlap_params = {
+    limb_darkening_params = {
+        'name': 'Limb Darkening',
         'url': "http://localhost:5000/",
-        'extension': "contam_visibility",
-        'target_id': "targname",
-        'target': "Wasp 18 b",
-        'target_check': "ra",
+        'extension': "limb_darkening",
         'pre_steps': [
+            {"type": "print_head"},
             {
-                "type": "print_head"
-            }
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "teff",
+            },
         ],
-        'resolved_steps': [
-#            {"type": "set_value", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
-        ],
-        'submit_id': "calculate_contam_submit",
+        # The main thing that distinguishes the output page from the form submit page is
+        # that the output page contains Bokeh figures
+        'submit_id': "calculate_submit",
         'submit_done_type': By.CLASS_NAME,
         'submit_done_id': "bk-Figure",
         'post_steps': [
-            {'type': "print_done"},
             {
+                # The output page contains downloadable results. In the past the team has
+                # accidentally broken these downloads, so we want to make sure that they
+                # can all be successfully downloaded
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_coefficients",
+                'file': 'ldc_result.csv'
+            },
+            {
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_spam_coefficients",
+                'file': 'spam_result.csv'
+            },
+        ]
+    }
+    do_form(options, service, limb_darkening_params)
+
+    fortney_grid_params = {
+        'name': 'Fortney Grid',
+        'url': "http://localhost:5000/",
+        'extension': "fortney",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # The Fortney grid comes up with a default grid that's already set and
+                # displayed, so here we just tweak one parameter and then send it back.
+                "type": "set_text",
+                "find_by": By.ID,
+                "find_value": "rstar",
+                "value": "2.0"
+            },
+        ],
+        'submit_id': "calculate_submit",
+        'submit_done_type': By.CLASS_NAME,
+        'submit_done_id': "bk-Figure",
+        'post_steps': [
+            {
+                # The fortney output page has a download, so we test it.
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_file",
+                'file': 'fortney.dat'
+            },
+        ]
+    }
+    do_form(options, service, fortney_grid_params)
+
+    generic_grid_params = {
+        'name': 'Generic Grid',
+        'url': "http://localhost:5000/",
+        'extension': "generic",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # The generic grid has a range of valid parameters, and will set whatever
+                # parameters you enter to their closest equivalents in the grid. Here we
+                # choose a set of parameters that should, in fact, be in the grid, and
+                # will be valid.
+                "type": "set_text",
+                "find_by": By.NAME,
+                "find_value": "temperature",
+                "value": "700"
+            },
+            {
+                "type": "set_text",
+                "find_by": By.NAME,
+                "find_value": "gravity",
+                "value": "10"
+            },
+            {
+                "type": "set_text",
+                "find_by": By.NAME,
+                "find_value": "r_star",
+                "value": "5.5"
+            },
+            {
+                "type": "set_text",
+                "find_by": By.NAME,
+                "find_value": "r_planet",
+                "value": "2.0"
+            },
+        ],
+        'submit_id': "calculate_submit",
+        'submit_done_type': By.CLASS_NAME,
+        'submit_done_id': "bk-Figure",
+        'post_steps': [
+            {
+                # We test that the download works.
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_file",
+                'file': 'generic.dat'
+            },
+            {'type': 'print_table', 'find_by': By.ID, 'id': 'myTable'},
+        ]
+    }
+    do_form(options, service, generic_grid_params)
+
+    phase_constraint_params = {
+        'name': 'Phase Constraint',
+        'url': "http://localhost:5000/",
+        'extension': "phase_constraint",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "orbital_period",
+            },
+        ],
+        # In this case, the results page is identical to the input page, except that the
+        # 'minimum_phase' and 'maximum_phase' fields have been populated with non-default
+        # data. So we can't look for a specific element to be present. Instead, we know
+        # that this is a fairly fast calculation, so we just wait a second for it to be
+        # done.
+        'submit_id': "calculate_submit",
+        'submit_done_type': "simple_wait",
+        'submit_done_value': 1.0,
+        'post_steps': [
+            {
+                # The phase values are the only thing that changes, so we make sure that
+                # they're not set to default values
+                'type': "print_value",
+                'find_by': By.ID,
+                'id': "minimum_phase",
+            },
+            {
+                'type': "print_value",
+                'find_by': By.ID,
+                'id': "maximum_phase",
+            },
+        ]
+    }
+    do_form(options, service, phase_constraint_params)
+
+    contam_visibility_only_params = {
+        'name': 'Visibility Check',
+        'url': "http://localhost:5000/",
+        'extension': "contam_visibility",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "ra",
+            },
+        ],
+        'submit_id': "calculate_submit",
+        'submit_done_type': By.CLASS_NAME,
+        'submit_done_id': "bk-Figure",
+        'post_steps': [
+            {
+                # There's a test download here
                 'type': "download",
                 'find_by': By.ID,
                 'id': "download_csv",
@@ -269,5 +466,68 @@ if __name__ == "__main__":
             }
         ]
     }
-    do_resolve_submit(options, service, contam_overlap_params)
-    print()
+    do_form(options, service, contam_visibility_only_params)
+
+    contam_overlap_single_params = {
+        'name': 'Contamination/Overlap (single PA check)',
+        'url': "http://localhost:5000/",
+        'extension': "contam_visibility",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "ra",
+            },
+            {"type": "set_text", "find_by": By.ID, "find_value": "v3pa", "value": "330"}
+        ],
+        'submit_id': "calculate_contam_submit",
+        'submit_done_type': By.CLASS_NAME,
+        'submit_done_id': "bk-Figure",
+        'post_steps': [
+            {
+                # There's a test download
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_csv",
+                'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
+            }
+        ]
+    }
+    do_form(options, service, contam_overlap_single_params)
+
+    contam_overlap_full_params = {
+        # This test takes a lot of time to finish. In the future some targets will be
+        # pre-calculated, so we'll probably want to exercise both forms, and/or have a 
+        # way to skip this test in particular.
+        'name': 'Contamination/Overlap (full field check)',
+        'url': "http://localhost:5000/",
+        'extension': "contam_visibility",
+        'pre_steps': [
+            {"type": "print_head"},
+            {
+                # Pick a test target and use the "resolve" button to resolve it and set
+                # RA/DEC/magnitude/whatever accordingly. We use WASP 18 b
+                "type": "resolve_target",
+                'target_id': "targname",
+                'target': "Wasp 18 b",
+                'target_check': "ra",
+            },
+        ],
+        'submit_id': "calculate_contam_submit",
+        'submit_done_type': By.CLASS_NAME,
+        'submit_done_id': "bk-Figure",
+        'post_steps': [
+            {
+                # There's a test download.
+                'type': "download",
+                'find_by': By.ID,
+                'id': "download_csv",
+                'file': 'WASP-18_b_NIS_SUBSTRIP256_visibility.csv'
+            }
+        ]
+    }
+    do_form(options, service, contam_overlap_full_params)
