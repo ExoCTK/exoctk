@@ -77,9 +77,21 @@ def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, g
     print(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
 
 
-def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256'):
+def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256', overwrite=False):
     """
     Compute the contamination data and save to the file
+
+    Parameters
+    ==========
+    target_names: list[str]
+        The list of target names
+    filename: str
+        The filepath for the database file
+    aperture: str
+        The aperture name
+    overwrite: bool
+        Make a new file
+    
     """
     # Get the aperture shape
     if aperture == 'NIS_SUBSTRIP256':
@@ -91,56 +103,75 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
     else:
         raise NameError(f"Did not recognize the aperture '{aperture}'")
 
-    # Save canonical name
-    lookup = {}
+    # Generate the database file
+    if overwrite:
+        
+        # Save canonical name
+        lookup = {}
+    
+        # Make the empty file
+        count = 0
+        with h5py.File(filename, "w") as f:
+            for targname in target_names:
+                try:
+    
+                    # Canonical name and get coordinates
+                    name = get_canonical_name(targname)
+                    data, _ = get_target_data(name)
+                    ra_deg = data.get('RA')
+                    dec_deg = data.get('DEC')
+                    lookup[targname] = {'canonical_name': name, 'ra': ra_deg, 'dec': dec_deg}
+    
+                    # Make the group in the H5 file
+                    grp_name = name.strip().replace("/", "_")
+                    if targname != name:
+                        print(f"'{targname}', using '{name}'")
+                    grp = f.create_group(grp_name)
+                    grp.attrs["name"] = name
+                    grp.attrs["ra"] = ra_deg
+                    grp.attrs["dec"] = dec_deg
+                    grp.attrs["filled"] = False
+    
+                    # Target trace
+                    grp.create_dataset("target_trace", shape=(n_traces, nrows, ncols), dtype="float32", compression="gzip",
+                                       compression_opts=4, chunks=(1, nrows, ncols))
+    
+                    # Contamination placeholder (0 planes initially)
+                    grp.create_dataset("contamination", shape=(0, nrows, ncols), maxshape=(None, nrows, ncols), dtype="float32",
+                                       compression="gzip", compression_opts=4, chunks=(1, nrows, ncols))
+    
+                    # Plane index placeholder
+                    grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
+    
+                    count += 1
+    
+                except Exception as e:
+                    print(f"Could not add {name}: \n{e}")
+    
+        print(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
 
-    # Make the empty file
-    count = 0
-    with h5py.File(filename, "w") as f:
-        for targname in target_names:
-            try:
+    else:
 
-                # Canonical name and get coordinates
-                name = get_canonical_name(targname)
-                data, _ = get_target_data(name)
-                ra_deg = data.get('RA')
-                dec_deg = data.get('DEC')
-                lookup[targname] = {'canonical_name': name, 'ra': ra_deg, 'dec': dec_deg}
-
-                # Make the group in the H5 file
-                grp_name = name.strip().replace("/", "_")
-                if targname != name:
-                    print(f"'{targname}', using '{name}'")
-                grp = f.create_group(grp_name)
-                grp.attrs["name"] = name
-                grp.attrs["ra"] = ra_deg
-                grp.attrs["dec"] = dec_deg
-
-                # Target trace
-                grp.create_dataset("target_trace", shape=(n_traces, nrows, ncols), dtype="float32", compression="gzip",
-                                   compression_opts=4, chunks=(1, nrows, ncols))
-
-                # Contamination placeholder (0 planes initially)
-                grp.create_dataset("contamination", shape=(0, nrows, ncols), maxshape=(None, nrows, ncols), dtype="float32",
-                                   compression="gzip", compression_opts=4, chunks=(1, nrows, ncols))
-
-                # Plane index placeholder
-                grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
-
-                count += 1
-
-            except Exception as e:
-                print(f"Could not add {name}: \n{e}")
-
-    print(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
-
+        # Make the lookup dict from the existing file
+        with h5py.File(filename, "r") as f:
+            lookup = {grp_name: {'canonical_name': grp.attrs['name'], 'ra': grp.attrs['ra'], 'dec': grp.attrs['dec'], 'filled': grp.attrs.get('filled', False)} for grp_name, grp in f.items()}
+    
     # Generate the contam figures and save to file
     for targname in target_names:
 
-        # Run contamination tool
-        target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
+        if targname in lookup:
+            if not lookup[targname].get('filled', False):
 
-        # Save data to file with mask and plane index
-        save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
+                # Run contamination tool
+                target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
+        
+                # Save data to file with mask and plane index
+                save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
+        
+                print(f"Saved '{targname}' contamination results to {filename}")
 
-        print(f"Saved '{targname}' contamination results to {filename}")
+            else:
+                print(f"Target '{targname}' already saved to {filename}")
+
+        else:
+            print(f"{targname} not found in {filename}.")
