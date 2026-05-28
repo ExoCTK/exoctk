@@ -162,13 +162,17 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         if targname in lookup:
             if not lookup[targname].get('filled', False):
 
-                # Run contamination tool
-                target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
-        
-                # Save data to file with mask and plane index
-                save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
-        
-                print(f"Saved '{targname}' contamination results to {filename}")
+                try:
+                    # Run contamination tool
+                    target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
+
+                    # Save data to file with mask and plane index
+                    save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
+
+                    print(f"Saved '{targname}' contamination results to {filename}")
+
+                except Exception as e:
+                    print(f"Target '{targname}' NOT saved: {e}")
 
             else:
                 print(f"Target '{targname}' already saved to {filename}")
