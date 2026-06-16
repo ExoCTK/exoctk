@@ -3,6 +3,7 @@ name = "exoctk"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
+license-files = ["LICENSE.rst"]
 authors = [
   { name= "Matthew Bourque" },
   { name="Néstor Espinoza" },
@@ -69,10 +70,6 @@ container-test = [
   "selenium>=4,<5",
   "tabulate>=0.10.0,<1",
 ]
-
-[project.license]
-file = "LICENSE"
-content-type = "text/plain"
 
 [project.urls]
 Repository = "https://github.com/ExoCTK/exoctk"
