@@ -49,7 +49,7 @@ jobs:
           name: requirements-py${{ matrix.python-version }}-${{ matrix.runs-on }}
           path: requirements-py${{ matrix.python-version }}-${{ matrix.runs-on }}.txt
       - if: (github.event_name == 'release' && github.event.action == 'published')
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # v2
         with:
           file: requirements-py${{ matrix.python-version }}-${{ matrix.runs-on }}.txt
 
