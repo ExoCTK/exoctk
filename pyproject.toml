@@ -36,7 +36,7 @@ dependencies = [
   'h5py>=3.2.1',
   'hotsoss>=0.1.11',
   'matplotlib>=3.4.1',
-  'numpy>=2.4.4',
+  'numpy>=2.0.0',
   'pandas>=2.0.3',
   'platon>=5.1.2',
   'pysiaf>=0.10.0',
@@ -80,7 +80,7 @@ Repository = "https://github.com/ExoCTK/exoctk"
 [build-system]
 requires = [
   "setuptools>=68.0.0",
-  "numpy>=2.4.4",
+  "numpy>=2.0.0",
   "wheel>=0.40",
   "setuptools_scm>=7",
 ]
