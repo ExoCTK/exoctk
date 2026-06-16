@@ -60,7 +60,7 @@ To obtain the ``exoctk`` package with the necessary environment file, clone the 
 
 Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-You can install the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file with the following ``conda`` (or ``mamba``) command: 
+You can create the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file with the following ``conda`` (or ``mamba``) command:
 
 .. code-block:: sh
 
@@ -71,14 +71,16 @@ You can install the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file
 
     .. code-block:: sh
 
-        conda env create -f exoctk-env.yml python==3.9
-       
+        conda env create -f exoctk-env.yml python==3.10
+
 
 One can activate the newly-created environment with:
 
 .. code-block:: sh
 
     conda activate exoctk-env
+
+After activating the environment, install ``exoctk`` from the cloned source.
 
 Package Installation From Source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
