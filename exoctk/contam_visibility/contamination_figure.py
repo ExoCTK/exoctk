@@ -26,7 +26,7 @@ if not EXOCTK_DATA:
     LAM_FILE = None
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS_old', 'lambda_order1-2.txt')
+    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369
@@ -216,6 +216,7 @@ def miriContam(cube, paRange=[0, 360]):
 
 
 def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
+    print("Started contam")
 
     rows, cols = cube.shape[1], cube.shape[2]
 
@@ -243,6 +244,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     TOOLS = 'pan, box_zoom, reset, save'
     dPA = 1
+    print("Contam figure setup done")
 
     # Order 1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -263,12 +265,15 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
     contamO1 = contamO1 if 'NRCA' in instrument else contamO1.T
     contamO1 = np.fliplr(contamO1) if (instrument == 'MIRIM_SLITLESSPRISM') or (instrument == 'NRCA5_GRISM256_F322W2') else contamO1
     fig_data = np.log10(np.clip(contamO1, 1.e-10, 1.))
+    print("Contam order 1 started")
 
     # Begin plotting ~~~~~~~~~~~~~~~~~~~~~~~~
 
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
     s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
+
+    print("Contam plot started")
 
     # Line plot
     #ax = 1 if 'NIRCam' in instrument else 0
@@ -286,6 +291,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
     s3.xaxis.axis_label = '% channels contam.'
     s3.yaxis.major_label_text_font_size = '0pt'
     s3.ygrid.grid_line_color = None
+
+    print("Contam done line plot")
 
     # Add shaded region for bad PAs
     bad_PA_color = '#555555'
@@ -310,6 +317,8 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
         s2.quad(top=tops, bottom=bottoms, left=lefts, right=rights, color=bad_PA_color, alpha=bad_PA_alpha)
         s3.quad(top=tops, bottom=bottoms, left=lefts_line, right=rights_line, color=bad_PA_color, alpha=bad_PA_alpha)
+
+    print("Contam order 1 done")
 
     # ~~~~~~ Order 2 ~~~~~~
 

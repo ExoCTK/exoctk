@@ -26,16 +26,16 @@ classifiers = ["Programming Language :: Python"]
 dependencies = [
   'astropy>=5.3.1',
   'astroquery>=0.4.6',
-  'batman-package>=2.4.8',
+  'batman-package>=2.5.3',
   'bibtexparser>=1.2.0',
-  'bokeh>=3.0,<=3.2.1',
+  'bokeh>=3.0,<=3.9.0',
   'docopt>=0.6.2',
   'flask>=1.1.2',
   'flask_wtf>=0.14.3',
   'h5py>=3.2.1',
   'hotsoss',
   'matplotlib>=3.4.1',
-  'numpy>=1.25.1,<2.0',
+  'numpy>=2.0.0',
   'pandas>=2.0.3',
   'platon>=5.1.2',
   'pysiaf>=0.10.0',
@@ -59,6 +59,10 @@ docs = [
   "sphinx_rtd_theme",
   "stsci_rtd_theme",
   "numpydoc"
+]
+server = [
+  "celery[redis]",
+  "gunicorn",
 ]
 
 [project.license]

@@ -52,7 +52,7 @@ Obtain the ``exoctk`` Package
 
 To obtain the ``exoctk`` package with the necessary environment file, clone the repository directly from GitHub:
 
-..code-block:: sh
+.. code-block:: sh
 
     git clone https://github.com/ExoCTK/exoctk.git
     cd exoctk
@@ -62,20 +62,21 @@ Environment Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 You can install the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file with the following ``conda`` (or ``mamba``) command: 
 
-..code-block:: sh
+.. code-block:: sh
 
     conda env create -f exoctk-env.yml
 
 .. tip::
     To specify a specific Python version (or any additional Conda packages), add them to the end of the ``conda env create`` command:
 
-    ..code-block:: sh
+    .. code-block:: sh
+
         conda env create -f exoctk-env.yml python==3.9
        
 
 One can activate the newly-created environment with:
 
-..code-block:: sh
+.. code-block:: sh
 
     conda activate exoctk-env
 
@@ -84,7 +85,7 @@ Package Installation From Source
 
 To install the latest development version of ``exoctk`` use ``pip`` to install directly from the cloned source:
 
-..code-block:: sh
+.. code-block:: sh
 
     pip install -e .
 
@@ -101,7 +102,7 @@ Lastly, export an environment variable for ``EXOCTK_DATA``.
 
 - For Mac OS/Linux, add the line
 
-..code-block:: sh
+.. code-block:: sh
 
     export EXOCTK_DATA='/path/to/your/unzipped/directory/exoctk_data/'
 

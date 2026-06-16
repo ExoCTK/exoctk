@@ -35,6 +35,7 @@ class ContamVisForm(BaseForm):
     calculate_submit = SubmitField('Calculate Visibility')
     calculate_contam_submit = SubmitField('Calculate Visibility and Contamination')
     mode_submit = SubmitField('Mode Selected')
+    task_submit = SubmitField('Task Running')
 
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
@@ -46,6 +47,7 @@ class ContamVisForm(BaseForm):
     dist = DecimalField('dist', default=None, validators=[Optional()])
     pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
     teff = DecimalField('teff', validators=[Optional(), NumberRange(min=500, max=6000, message="Effective Temperature must be between 500 and 6000K")])
+    task_id = StringField('task_id', default='blank', validators=[Optional()])
 
 
 class FortneyModelForm(BaseForm):
@@ -74,14 +76,14 @@ class GroupsIntsForm(BaseForm):
     kmag = DecimalField('kmag', default=10.5, validators=[InputRequired('A K-band magnitude is required!'), NumberRange(min=5.1, max=11.9, message='K-band mag must be between 5-12, non-inclusive.')])
     obs_duration = DecimalField('obs_duration', default=3, validators=[InputRequired('An observation duration is required!'), NumberRange(min=0, message='Observation duration must be a positive number')])
     time_unit = SelectField('time_unit', default='hour', choices=[('hour', 'hours'), ('day', 'days')])
-    models = [('a0i', 'A0I 9750 2.0'), ('aov', 'A0V 9500 2.0'), ('a1v', 'A1V 9250 4.0'), ('a5i', 'A5I 8500 2.0'), ('a3v', 'A3V 8250 4.0'), ('a5v', 'A5V 8250 4.0'), ('f0i', 'F0I 7750 2.0'), ('f0v', 'F0V 7250 1.5'), ('f5i', 'F5I 7000 4.0'), ('f2v', 'F2V 7000 4.0'), ('f5v', 'F5V 6500 4.0'), ('f8v', 'F8V 6250 4.5'), ('g0v', 'G0V 6000 4.5'), ('g0iii', 'G0III 5750 3.0'), ('g2v', 'G2V 5750 4.5'), ('g5v', 'G5V 5750 4.5'), ('g0i', 'G0I 5500 1.5'), ('g8v', 'G8V 5500 4.5'), ('g5iii', 'G5III 5250 2.5'), ('g5i', 'G5I 4740 1.0'), ('k0v', 'K0V 5250 4.5'), ('k0iii', 'K0III 4750 2.0'), ('k2v', 'K2V 4750 4.5'), ('k0i', 'K0I 4500 1.0'), ('k5v', 'K5V 4250 1.5'), ('k5iii', 'K5III 4000 1.5'), ('k7v', 'K7V 4000 4.5'), ('k5i', 'K5I 3750 0.5'), ('m0i', 'M0I 3750 0.0'), ('m0iii', 'M0III 3750 1.5'), ('m0v', 'M0V 3750 4.5'), ('m2i', 'M2I 3500 0.0'), ('m2v', 'M2V 3500 4.5'), ('m5v', 'M5V 3500 5.0')]
+    models = [('a0i', 'A0I 9750 2.0'), ('a0v', 'A0V 9500 2.0'), ('a1v', 'A1V 9250 4.0'), ('a5i', 'A5I 8500 2.0'), ('a3v', 'A3V 8250 4.0'), ('a5v', 'A5V 8250 4.0'), ('f0i', 'F0I 7750 2.0'), ('f0v', 'F0V 7250 1.5'), ('f5i', 'F5I 7000 4.0'), ('f2v', 'F2V 7000 4.0'), ('f5v', 'F5V 6500 4.0'), ('f8v', 'F8V 6250 4.5'), ('g0v', 'G0V 6000 4.5'), ('g0iii', 'G0III 5750 3.0'), ('g2v', 'G2V 5750 4.5'), ('g5v', 'G5V 5750 4.5'), ('g0i', 'G0I 5500 1.5'), ('g8v', 'G8V 5500 4.5'), ('g5iii', 'G5III 5250 2.5'), ('g5i', 'G5I 4740 1.0'), ('k0v', 'K0V 5250 4.5'), ('k0iii', 'K0III 4750 2.0'), ('k2v', 'K2V 4750 4.5'), ('k0i', 'K0I 4500 1.0'), ('k5v', 'K5V 4250 1.5'), ('k5iii', 'K5III 4000 1.5'), ('k7v', 'K7V 4000 4.5'), ('k5i', 'K5I 3750 0.5'), ('m0i', 'M0I 3750 0.0'), ('m0iii', 'M0III 3750 1.5'), ('m0v', 'M0V 3750 4.5'), ('m2i', 'M2I 3500 0.0'), ('m2v', 'M2V 3500 4.5'), ('m5v', 'M5V 3500 5.0')]
     mod = SelectField('mod', choices=models)
     n_group = IntegerField('n_group', default=0)
     ins = SelectField('ins', default='miri', choices=[('niriss', 'NIRISS'), ('nircam', 'NIRCam'), ('nirspec', 'NIRSpec'), ('miri', 'MIRI')])
 
     # Filter selects
     miri_filt = SelectField('miri_filt', choices=[('lrs', 'LRS')])
-    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M')])
+    nirspec_filt = SelectField('nirspec_filt', choices=[('f070lp_g140h', 'F070LP/G140H'), ('f100lp_g140h', 'F100LP/G140H'), ('f070lp_g140m', 'F070LP/G140M'), ('f100lp_g140m', 'F100LP/G140M'), ('f170lp_g235h', 'F170LP/G235H'), ('f170lp_g235m', 'F170LP/G235M'), ('f290lp_g395h', 'F290LP/G395H'), ('f290lp_g395m', 'F290LP/G395M'), ('clear_prism', 'CLEAR/PRISM')])
     niriss_filt = SelectField('niriss_filt', choices=[('soss', 'SOSS')])
     nircam_filt = SelectField('nircam_filt', choices=[('f322w2', 'F322W2'), ('f444w', 'F444W'), ('f277w', 'F277W')])
 

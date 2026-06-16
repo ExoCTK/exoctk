@@ -6,6 +6,9 @@
 *.so
 *.x
 
+# tmp files for LDC
+*.ecsv
+
 # Directories
 __pycache__
 exoctk/__pycache__
@@ -15,12 +18,12 @@ exoctk/__pycache__
 *.c
 
 # Other generated files
-*/_version.py
 */cython_version.py
 htmlcov
 .coverage
 MANIFEST
 .ipynb_checkpoints
+contam_tool.log
 
 # Sphinx
 docs/api
@@ -57,6 +60,8 @@ distribute-*.tar.gz
 .project
 .pydevproject
 .settings
+*.vscode
+*.code-workspace
 
 # Mac OSX
 .DS_Store
@@ -73,3 +78,4 @@ exoctk/atmospheric_retrievals/*.dat
 exoctk/atmospheric_retrievals/*.txt
 exoctk/atmospheric_retrievals/*.png
 exoctk/atmospheric_retrievals/*.obj
+docker/.env

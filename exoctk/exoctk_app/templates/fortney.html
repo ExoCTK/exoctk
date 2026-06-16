@@ -133,7 +133,7 @@
 
                 <label for="sub" class="col-sm-2 control-label"></label>
                 <div class="col-md-3 form-inline">
-                    <button type="submit" class="btn btn-success">Submit</button>
+                    <button id="calculate_submit" type="submit" class="btn btn-success">Submit</button>
                 </div>
             </div>
 
@@ -153,7 +153,7 @@
 <div>
     <form action="/fortney_result" method="post">
         <input type="hidden" name="data_file" value="{{ table_string }}" />
-        <input class="btn btn-primary" type='submit' value='Save File'></p>
+        <input class="btn btn-primary" id="download_file" type='submit' value='Save File'></p>
     </form>
 </div>
 

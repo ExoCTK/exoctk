@@ -1,0 +1,39 @@
+# Create Container
+ARG has_exo
+FROM alpine AS base
+
+# Define how to load exoctk data if a copy is already present locally
+FROM base AS copy
+WORKDIR /tmp/data
+ADD . /tmp/data/
+
+# Define how to load exoctk data by download
+FROM base AS download
+WORKDIR /tmp/data
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1.tar.gz modelgrid_ACES_1.tar.gz
+RUN tar zxf modelgrid_ACES_1.tar.gz
+RUN mv modelgrid.ACES_1 modelgrid
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2.tar.gz  modelgrid_ACES_2.tar.gz
+RUN tar zxf modelgrid_ACES_2.tar.gz
+RUN mv modelgrid.ACES_2/* ./modelgrid/
+WORKDIR /tmp/data/modelgrid
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9.tar.gz modelgrid_ATLAS9.tar.gz
+RUN tar zxf modelgrid_ATLAS9.tar.gz
+RUN mv modelgrid.ATLAS9 ATLAS9
+WORKDIR /tmp/data
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic.tar.gz generic.tar.gz
+RUN tar zxf generic.tar.gz
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney.tar.gz fortney.tar.gz
+RUN tar zxf fortney.tar.gz
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations.tar.gz groups_integrations.tar.gz
+RUN tar zxf groups_integrations.tar.gz
+ADD https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam.tar.gz exoctk_contam.tar.gz
+RUN tar zxf exoctk_contam.tar.gz
+
+# And now combine together and do whichever one the environment tells us to
+FROM ${has_exo} AS final
+
+RUN mv /tmp/data /data
+WORKDIR /data
+CMD ["/bin/sh", "echo", "'Built from ${has_exo}'"]
+# CMD ["tail", "-f", "/dev/null"]

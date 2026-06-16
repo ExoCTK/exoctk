@@ -1,0 +1,10 @@
+services:
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "8800:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    restart: unless-stopped

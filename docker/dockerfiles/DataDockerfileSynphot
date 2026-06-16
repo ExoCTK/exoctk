@@ -1,0 +1,25 @@
+# Create Container
+ARG has_syn
+FROM alpine AS base
+
+# Define how to load synphot data if a copy is already present locally
+FROM base AS copy
+WORKDIR /tmp/data
+ADD . /tmp/data/
+
+# Define how to load synphot data by download
+FROM base AS download
+WORKDIR /tmp/data
+ADD https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar pysyn_data.tar
+RUN tar xf pysyn_data.tar
+ADD https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v11_sed.tar pysyn_norm.tar
+RUN tar xf pysyn_norm.tar
+RUN cp -r /tmp/data/grp/redcat/trds /tmp/data
+
+# And now combine together and do whichever one the environment tells us to
+FROM ${has_syn} AS final
+
+RUN mv /tmp/data /data
+WORKDIR /data
+CMD ["/bin/sh", "echo", "'Built from ${has_syn}'"]
+# CMD ["tail", "-f", "/dev/null"]
