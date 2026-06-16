@@ -2,7 +2,7 @@
 name = "exoctk"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
   { name= "Matthew Bourque" },
   { name="Néstor Espinoza" },
@@ -12,6 +12,7 @@ authors = [
   { name="Catherine Martlin" },
   { name="Jennifer Medina" },
   { name="Natasha Batalha" },
+  { name="Taylor James Bell" },
   { name="Michael Fox" },
   { name="Jules Fowler" },
   { name="Jonathan Fraine" },
@@ -33,39 +34,39 @@ dependencies = [
   'flask>=1.1.2',
   'flask_wtf>=0.14.3',
   'h5py>=3.2.1',
-  'hotsoss',
+  'hotsoss>=0.1.11',
   'matplotlib>=3.4.1',
-  'numpy>=2.0.0',
+  'numpy>=2.4.4',
   'pandas>=2.0.3',
   'platon>=5.1.2',
   'pysiaf>=0.10.0',
   'regions>=0.5',
   'scipy>=1.11.1',
   'sqlalchemy>=1.4.4',
-  'svo_filters>=0.4.4',
+  'svo_filters>=0.5.3',
   'wtforms>=2.3.3',
-  'jwst_gtvt',
+  'jwst_gtvt>=1.1.1',
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
-  "pytest",
-  "pytest-cov",
+  "pytest>=6.2.2",
+  "pytest-cov>=7.0.0",
 ]
 docs = [
-  "sphinx",
-  'sphinx_astropy',
-  "sphinx_rtd_theme",
-  "stsci_rtd_theme",
-  "numpydoc"
+  "sphinx>=3.5.3",
+  "sphinx_astropy>=1.10",
+  "sphinx_rtd_theme>1.2.0",
+  "stsci_rtd_theme>=1.0.1",
+  "numpydoc>=1.1.0"
 ]
 server = [
-  "celery[redis]",
-  "gunicorn",
+  "celery[redis]>=5",
+  "gunicorn>=20.1.0",
 ]
 container-test = [
-  "selenium",
+  "selenium>=4",
   "tabulate",
 ]
 
@@ -77,7 +78,12 @@ content-type = "text/plain"
 Repository = "https://github.com/ExoCTK/exoctk"
 
 [build-system]
-requires = ["setuptools>=68.0.0", "numpy", "wheel", "setuptools_scm"]
+requires = [
+  "setuptools>=68.0.0",
+  "numpy>=2.4.4",
+  "wheel>=0.40",
+  "setuptools_scm>=7",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

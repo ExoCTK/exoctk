@@ -33,7 +33,6 @@ RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 WORKDIR /exoctk
 
 RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
-RUN pip install svo-filters==0.5.3
 
 ARG exoctk_repo
 
