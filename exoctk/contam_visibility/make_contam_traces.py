@@ -82,8 +82,7 @@ def generate_pandeia_traces(min_teff=2800, max_teff=6000, increment=100, norm_ma
                 outdir = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces')
 
             fullpath = os.path.join(outdir, name)
-            if not os.path.exists(fullpath):
-                os.system('mkdir {}'.format(fullpath))
+            os.makedirs(fullpath, exist_ok=True)
 
             # Save the file
             hdu0 = fits.PrimaryHDU()

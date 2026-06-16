@@ -38,6 +38,7 @@ except TypeError:
 
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
+REQUEST_TIMEOUT = 60
 
 PATCHVER = 'v' + '.'.join(__version__.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
 DATA_URLS = {
@@ -309,7 +310,7 @@ def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
     for i, url in enumerate(urls):
         landing_path = os.path.join(exoctk_data_dir, os.path.basename(url))
         print('({}/{}) Downloading data to {} from {}'.format(i + 1, len(urls), landing_path, url))
-        with requests.get(url, stream=True) as response:
+        with requests.get(url, stream=True, timeout=REQUEST_TIMEOUT) as response:
             with open(landing_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=2048):
                     if chunk:
@@ -456,30 +457,30 @@ def filter_table(table, **kwargs):
                 # Equality
                 if cond.startswith('='):
                     v = cond.replace('=', '')
-                    if v.replace('.', '', 1).isdigit():
-                        table = table[table[param] == eval(v)]
-                    else:
+                    try:
+                        table = table[table[param] == float(v)]
+                    except ValueError:
                         table = table[table[param] == v]
 
                 # Less than or equal
                 elif cond.startswith('<='):
                     v = cond.replace('<=', '')
-                    table = table[table[param] <= eval(v)]
+                    table = table[table[param] <= float(v)]
 
                 # Less than
                 elif cond.startswith('<'):
                     v = cond.replace('<', '')
-                    table = table[table[param] < eval(v)]
+                    table = table[table[param] < float(v)]
 
                 # Greater than or equal
                 elif cond.startswith('>='):
                     v = cond.replace('>=', '')
-                    table = table[table[param] >= eval(v)]
+                    table = table[table[param] >= float(v)]
 
                 # Greater than
                 elif cond.startswith('>'):
                     v = cond.replace('>', '')
-                    table = table[table[param] > eval(v)]
+                    table = table[table[param] > float(v)]
 
                 else:
                     raise ValueError("'{}' operator not valid.".format(cond))
@@ -547,7 +548,7 @@ def get_canonical_name(target_name):
     # Create params dict for url parsing. Easier than trying to format yourself.
     params = {"name": target_name}
 
-    r = requests.get(target_url, params=params)
+    r = requests.get(target_url, params=params, timeout=REQUEST_TIMEOUT)
     planetnames = r.json()
     canonical_name = planetnames['canonicalName']
 
@@ -617,7 +618,7 @@ def get_target_data(target_name):
 
     target_url = build_target_url(canonical_name)
 
-    r = requests.get(target_url)
+    r = requests.get(target_url, timeout=REQUEST_TIMEOUT)
 
     if r.status_code == 200:
         target_data = r.json()
@@ -855,7 +856,7 @@ def smooth(x, window_len=10, window='hanning'):
     if window == 'flat':
         w = np.ones(window_len, 'd')
     else:
-        w = eval('np.' + window + '(window_len)')
+        w = getattr(np, window)(window_len)
 
     y = np.convolve(w / w.sum(), s, mode='same')
 
