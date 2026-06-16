@@ -64,6 +64,10 @@ server = [
   "celery[redis]",
   "gunicorn",
 ]
+container-test = [
+  "selenium",
+  "tabulate",
+]
 
 [project.license]
 file = "LICENSE"
