@@ -30,7 +30,8 @@ RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c6
 
 # Install pandexo
 ARG pandexo_branch
-RUN pip install "pandexo.engine[all]@git+https://github.com/natashabatalha/PandExo.git@${pandexo_branch}"
+ADD https://api.github.com/repos/natashabatalha/PandExo/git/refs/heads/${pandexo_branch} /tmp/pandexo_ref.json
+RUN pip install --no-cache-dir "pandexo.engine[all]@git+https://github.com/natashabatalha/PandExo.git@${pandexo_branch}"
 
 # Add the entrypoint scripts
 COPY ./pandexo_entrypoint.sh pandexo_entrypoint.sh
