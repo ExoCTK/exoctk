@@ -25,49 +25,49 @@ authors = [
 keywords = ["astronomy", "python"]
 classifiers = ["Programming Language :: Python"]
 dependencies = [
-  'astropy>=5.3.1',
-  'astroquery>=0.4.6',
-  'batman-package>=2.5.3',
-  'bibtexparser>=1.2.0',
-  'bokeh>=3.0,<=3.9.0',
-  'docopt>=0.6.2',
-  'flask>=1.1.2',
-  'flask_wtf>=0.14.3',
-  'h5py>=3.2.1',
-  'hotsoss>=0.1.11',
-  'matplotlib>=3.4.1',
-  'numpy>=2.0.0',
-  'pandas>=2.0.3',
-  'platon>=5.1.2',
-  'pysiaf>=0.10.0',
-  'regions>=0.5',
-  'scipy>=1.11.1',
-  'sqlalchemy>=1.4.4',
-  'svo_filters>=0.5.3',
-  'wtforms>=2.3.3',
-  'jwst_gtvt>=1.1.1',
+  'astropy>=5.3.1,<8',
+  'astroquery>=0.4.6,<1',
+  'batman-package>=2.5.3,<3',
+  'bibtexparser>=1.2.0,<2',
+  'bokeh>=3.0,<4',
+  'docopt>=0.6.2,<1',
+  'flask>=1.1.2,<4',
+  'flask_wtf>=0.14.3,<2',
+  'h5py>=3.2.1,<4',
+  'hotsoss>=0.1.11,<1',
+  'matplotlib>=3.4.1,<4',
+  'numpy>=2.0.0,<3',
+  'pandas>=2.0.3,<4',
+  'platon>=5.1.2,<7',
+  'pysiaf>=0.10.0,<1',
+  'regions>=0.5,<1',
+  'scipy>=1.11.1,<2',
+  'sqlalchemy>=1.4.4,<3',
+  'svo_filters>=0.5.3,<1',
+  'wtforms>=2.3.3,<4',
+  'jwst_gtvt>=1.1.1,<2',
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
-  "pytest>=6.2.2",
-  "pytest-cov>=7.0.0",
+  "pytest>=6.2.2,<10",
+  "pytest-cov>=7.0.0,<8",
 ]
 docs = [
-  "sphinx>=3.5.3",
-  "sphinx_astropy>=1.10",
-  "sphinx_rtd_theme>1.2.0",
-  "stsci_rtd_theme>=1.0.1",
-  "numpydoc>=1.1.0"
+  "sphinx>=3.5.3,<10",
+  "sphinx_astropy>=1.10,<2",
+  "sphinx_rtd_theme>1.2.0,<4",
+  "stsci_rtd_theme>=1.0.1,<2",
+  "numpydoc>=1.1.0,<2"
 ]
 server = [
-  "celery[redis]>=5",
-  "gunicorn>=20.1.0",
+  "celery[redis]>=5,<6",
+  "gunicorn>=20.1.0,<27",
 ]
 container-test = [
-  "selenium>=4",
-  "tabulate",
+  "selenium>=4,<5",
+  "tabulate>=0.10.0,<1",
 ]
 
 [project.license]
@@ -79,10 +79,10 @@ Repository = "https://github.com/ExoCTK/exoctk"
 
 [build-system]
 requires = [
-  "setuptools>=68.0.0",
-  "numpy>=2.0.0",
-  "wheel>=0.40",
-  "setuptools_scm>=7",
+  "setuptools>=68.0.0,<83",
+  "numpy>=2.0.0,<3",
+  "wheel>=0.40,<1",
+  "setuptools_scm>=7,<11",
 ]
 build-backend = "setuptools.build_meta"
 
