@@ -486,7 +486,6 @@ class LDC:
                 fig.y_range = Range1d(0, 1)
                 fig.xaxis.axis_label = 'mu'
                 fig.yaxis.axis_label = 'Normalized Intensity'
-                fig.legend.location = "bottom_right"
 
                 # Plot the fitted points
                 fig.circle(row['raw_mu'], row['raw_ld'], radius=0.01, fill_color='black')
@@ -499,6 +498,7 @@ class LDC:
                 vals = np.append(mu_vals, mu_vals[::-1])
                 evals = np.append(dn_err, up_err[::-1])
                 fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
+                fig.legend.location = "bottom_right"
 
         if show:
             if isinstance(fig, matplotlib.figure.Figure):
