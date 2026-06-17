@@ -1,0 +1,56 @@
+name: build
+
+on:
+  pull_request:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3"
+      - run: pip install build
+      - run: python -m build --sdist --wheel
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist
+          path: ./dist/
+  publish:
+    if: (github.event_name == 'release') && (github.event.action == 'released')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    # To add required reviewers before deployment,
+    # edit the protection rules in GitHub Settings:
+    # Settings > Environments > pypi > Add required reviewers
+    environment:
+      name: pypi
+      url: https://pypi.org/p/exoctk
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: dist*
+          path: dist/
+          merge-multiple: true
+      - uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: "dist/*"
+      # To upload to PyPI without a token, add this workflow file as a Trusted Publisher in the project settings on the PyPI website
+      - uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0

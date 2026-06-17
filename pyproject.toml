@@ -54,6 +54,7 @@ dynamic = ["version"]
 test = [
   "pytest>=6.2.2,<10",
   "pytest-cov>=7.0.0,<8",
+  "pytest-xdist",
 ]
 docs = [
   "sphinx>=3.5.3,<10",

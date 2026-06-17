@@ -25,11 +25,11 @@ import sqlite3
 from exoctk import log_exoctk
 
 
-def test_create_db():
+def test_create_db(tmp_path):
     """Test the ``create_db`` function"""
 
     # Create the database
-    db_path = './test.db'
+    db_path = str(tmp_path / 'test.db')
     log_exoctk.create_db(db_path)
 
     # Ensure the database exists
@@ -39,26 +39,27 @@ def test_create_db():
     os.remove(db_path)
 
 
-def test_load_db():
+def test_load_db(tmp_path):
     """Test the ``load_db`` function"""
 
     # Create the database
-    db_path = './test.db'
+    db_path = str(tmp_path / 'test.db')
     log_exoctk.create_db(db_path)
 
     # Ensure the database can be loaded
     cursor = log_exoctk.load_db(db_path)
     assert isinstance(cursor, sqlite3.Cursor) and cursor is not None
+    cursor.connection.close()
 
     # Remove the database
     os.remove(db_path)
 
 
-def test_log_form_input():
+def test_log_form_input(tmp_path):
     """Test the ``log_form_input`` function"""
 
     # Create database
-    db_path = './test.db'
+    db_path = str(tmp_path / 'test.db')
     log_exoctk.create_db(db_path)
 
     # Define test parameters
@@ -76,6 +77,8 @@ def test_log_form_input():
         rows = cursor.fetchall()
         assert len(rows) > 0
 
+    database.close()
+
     # Remove the database
     os.remove(db_path)
 
@@ -89,11 +92,11 @@ def test_scrub():
     assert returned_name == 'DROPTABLEgroupsintegrations'
 
 
-def test_view_log():
+def test_view_log(tmp_path):
     """Test the ``view_log`` function"""
 
     # Create database
-    db_path = './test.db'
+    db_path = str(tmp_path / 'test.db')
     log_exoctk.create_db(db_path)
 
     # Define test parameters
@@ -105,6 +108,8 @@ def test_view_log():
     for table in tables:
         data = log_exoctk.view_log(database, table)
         assert isinstance(data, astropy.table.table.Table) and data is not None
+
+    conn.close()
 
     # Remove the database
     os.remove(db_path)
