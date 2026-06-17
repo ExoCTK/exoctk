@@ -32,13 +32,7 @@ RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 
 WORKDIR /exoctk
 
-# Install redis and celery
-RUN pip install gunicorn
 RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
-RUN pip install svo-filters==0.5.3
-RUN pip install selenium
-RUN pip install pytest-selenium
-RUN pip install tabulate
 
 ARG exoctk_repo
 
@@ -51,7 +45,7 @@ ADD https://api.github.com/repos/${exoctk_repo}/git/refs/heads/$EXOCTK_VERSION v
 RUN git clone https://github.com/${exoctk_repo}
 WORKDIR /exoctk/exoctk
 RUN git checkout $EXOCTK_VERSION
-RUN pip install -e .
+RUN pip install -e '.[server,container-test]'
 
 # Clone the repository from a detached-head release (if set to do that)
 FROM base AS release
@@ -61,7 +55,7 @@ WORKDIR /exoctk
 RUN git clone https://github.com/${exoctk_repo}
 WORKDIR /exoctk/exoctk
 RUN git checkout $EXOCTK_VERSION
-RUN pip install -e .
+RUN pip install -e '.[server,container-test]'
 
 # Copy the local repository (if the environment is set to do that)
 FROM base AS copy
@@ -69,7 +63,7 @@ FROM base AS copy
 # Add local exoctk repository
 ADD ./ /exoctk/exoctk/
 WORKDIR /exoctk/exoctk
-RUN pip install -e .
+RUN pip install -e '.[server,container-test]'
 
 # Bring it all back together
 FROM ${dev_source} AS final
