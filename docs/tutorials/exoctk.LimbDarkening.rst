@@ -191,3 +191,43 @@ Now we can caluclate the LDCs for each of the 15 wavelength bins of the G141 gri
     1.586 2511.0 5.22 0.04 4-parameter HST/WFC3_IR.G141 ... -0.825  0.01  0.308 0.011 -0.049 0.004
     1.628 2511.0 5.22 0.04 4-parameter HST/WFC3_IR.G141 ... -1.126 0.005   0.57 0.005 -0.131 0.002
     Length = 15 rows
+
+Calculating SPAM Coefficients
+-----------------------------
+
+The ``4-parameter`` coefficients can also be transformed into Synthetic-Photometry/Atmosphere-Model (SPAM) coefficients. SPAM coefficients depend on the planet geometry, so the calculation needs either a ``planet_name`` that can be resolved by ExoCTK or an explicit ``planet_data`` dictionary. Supplying the dictionary directly keeps the calculation reproducible and avoids a remote query.
+
+.. code-block:: python
+
+    planet_data = {
+        'transit_duration': 0.10,
+        'orbital_period': 3.0,
+        'Rp/Rs': 0.1,
+        'a/Rs': 10.0,
+        'inclination': 88.0,
+        'eccentricity': 0.0,
+        'omega': 90.0,
+    }
+
+    ld.spam(planet_data=planet_data, profiles=['quadratic'], ndatapoints=200)
+    print(ld.spam_results[['name', 'profile', 'c1', 'c2']])
+
+.. code-block:: text
+
+     name  profile    c1    c2
+    ----- --------- ----- -----
+    1.125 quadratic 0.294 0.362
+    1.155 quadratic  0.22 0.314
+    1.186 quadratic 0.223 0.315
+    1.218 quadratic 0.192 0.295
+    1.250 quadratic 0.209 0.306
+    ...       ...   ...   ...
+    1.427 quadratic  0.36 0.406
+    1.465 quadratic 0.336  0.39
+    1.504 quadratic 0.294 0.363
+    1.544 quadratic 0.274 0.349
+    1.586 quadratic 0.209 0.306
+    1.628 quadratic 0.182 0.288
+    Length = 15 rows
+
+The full ``ld.spam_results`` table also keeps the planet properties used for the transformation, along with the original filter and model-grid metadata.
