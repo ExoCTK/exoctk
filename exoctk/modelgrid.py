@@ -367,12 +367,13 @@ class ModelGrid(object):
         self.n_bins = n_bins or self.n_bins
 
         # Filter grid by given parameters
-        self.data = grid[[(grid['Teff'] >= Teff_rng[0]) &
-                          (grid['Teff'] <= Teff_rng[1]) &
-                          (grid['logg'] >= logg_rng[0]) &
-                          (grid['logg'] <= logg_rng[1]) &
-                          (grid['FeH'] >= FeH_rng[0]) &
-                          (grid['FeH'] <= FeH_rng[1])]]
+        grid_mask = ((grid['Teff'] >= Teff_rng[0]) &
+                     (grid['Teff'] <= Teff_rng[1]) &
+                     (grid['logg'] >= logg_rng[0]) &
+                     (grid['logg'] <= logg_rng[1]) &
+                     (grid['FeH'] >= FeH_rng[0]) &
+                     (grid['FeH'] <= FeH_rng[1]))
+        self.data = grid[grid_mask]
 
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data), len(grid)),
