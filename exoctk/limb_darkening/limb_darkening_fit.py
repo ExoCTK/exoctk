@@ -309,6 +309,8 @@ class LDC:
 
         # Get effective wavelengths
         wave_effs = np.mean(bandpass.wave, axis=1)
+        if hasattr(wave_effs, 'to_value'):
+            wave_effs = wave_effs.to_value(self.model_grid.wave_units)
 
         # Fit limb darkening coefficients for each wavelength bin
         for n, ldarr in enumerate(scaled_ld):
