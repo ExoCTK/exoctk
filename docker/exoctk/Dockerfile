@@ -23,6 +23,7 @@ ENV FLASK_APP=app_exoctk.py
 ENV FLASK_RUN_HOST="0.0.0.0"
 ENV FLASK_RUN_PORT="5000"
 ENV SHARED_DATA_DIR="/exoctk/data"
+ENV EXOCTK_CONTAM_CACHE="/exoctk/cache"
 
 # Install necessary base software
 RUN apk update
