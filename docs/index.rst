@@ -65,6 +65,11 @@ The limb_darkening tool calculates limb-darkening coefficients for a specified s
 .. toctree::
   :maxdepth: 1
 
+  tutorials/exoctk.LimbDarkening
+
+.. toctree::
+  :maxdepth: 1
+
   source/exoctk.limb_darkening
 
 **Phase Constraint Calculator**
@@ -74,12 +79,12 @@ The Phase Constraint Calculator provides a simple interface for calculating JWST
 .. toctree::
   :maxdepth: 1
 
-  source/exoctk.phase_constraint_overlap
+  tutorials/exoctk.PhaseConstraintCalculator
 
 .. toctree::
   :maxdepth: 1
 
-  tutorials/exoctk.PhaseConstraintCalculator
+  source/exoctk.phase_constraint_overlap
 
 ****************************************************
 Installation Instructions and Notebook Availability

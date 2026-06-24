@@ -57,6 +57,7 @@ test = [
   "pytest-xdist",
 ]
 docs = [
+  "esbonio>=2.0.0,<3",
   "sphinx>=3.5.3,<10",
   "sphinx_astropy>=1.10,<2",
   "sphinx_rtd_theme>1.2.0,<4",
