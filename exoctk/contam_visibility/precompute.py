@@ -27,14 +27,11 @@ from ..pkgdata import resource_filename
 log_file = 'contam_tool.log'
 logging.basicConfig(
     filename=log_file,
-    filemode='w',   # <-- THIS forces overwrite on every run
+    filemode='w',
     level=logging.INFO,
     format='%(asctime)s %(message)s',
     force=True
 )
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 def precomputed_target_list():
     """"

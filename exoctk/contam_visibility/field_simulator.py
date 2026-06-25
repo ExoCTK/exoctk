@@ -78,7 +78,6 @@ def parse_log():
     for ts, msg in zip(timestamps, messages):
         print(f'{ts}: {msg}')
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.066, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
