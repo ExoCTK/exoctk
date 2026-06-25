@@ -18,6 +18,7 @@ import h5py
 import numpy as np
 import requests
 import logging
+import sys
 
 from . import field_simulator as fs
 from ..utils import get_target_data, get_canonical_name
