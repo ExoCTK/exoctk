@@ -17,10 +17,22 @@ p.generate_database(['TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_test_db
 import h5py
 import numpy as np
 import requests
+import logging
 
 from . import field_simulator as fs
 from ..utils import get_target_data, get_canonical_name
 from ..pkgdata import resource_filename
+
+log_file = 'contam_tool.log'
+logging.basicConfig(
+    filename=log_file,
+    filemode='w',   # <-- THIS forces overwrite on every run
+    level=logging.INFO,
+    format='%(asctime)s %(message)s',
+    force=True
+)
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def precomputed_target_list():
@@ -74,7 +86,7 @@ def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, g
 
         grp.attrs["filled"] = True
 
-    print(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
+    logging.info(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
 
 
 def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='NIS_SUBSTRIP256', overwrite=False):
@@ -125,7 +137,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     # Make the group in the H5 file
                     grp_name = name.strip().replace("/", "_")
                     if targname != name:
-                        print(f"'{targname}', using '{name}'")
+                        logging.info(f"'{targname}', using '{name}'")
                     grp = f.create_group(grp_name)
                     grp.attrs["name"] = name
                     grp.attrs["ra"] = ra_deg
@@ -146,9 +158,9 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     count += 1
     
                 except Exception as e:
-                    print(f"Could not add {name}: \n{e}")
+                    logging.info(f"Could not add {name}: \n{e}")
     
-        print(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
+        logging.info(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
 
     else:
 
@@ -169,13 +181,13 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     # Save data to file with mask and plane index
                     save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
 
-                    print(f"Saved '{targname}' contamination results to {filename}")
+                    logging.info(f"Saved '{targname}' contamination results to {filename}")
 
                 except Exception as e:
-                    print(f"Target '{targname}' NOT saved: {e}")
+                    logging.info(f"Target '{targname}' NOT saved: {e}")
 
             else:
-                print(f"Target '{targname}' already saved to {filename}")
+                logging.info(f"Target '{targname}' already saved to {filename}")
 
         else:
-            print(f"{targname} not found in {filename}.")
+            logging.info(f"{targname} not found in {filename}.")
