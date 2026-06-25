@@ -160,7 +160,6 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
-
 class GaiaFailoverTAP:
     def __init__(
         self,
@@ -1127,6 +1126,13 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         dec = data.get('DEC')
         logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) in ExoMAST.")
 
+    # Check to see if there is a precomputed DB for this aperture in the user's
+    # environment variables if they don't explicitly supply one as 'target_db'
+    if target_db is None:
+        db_path = os.environ['EXOCTK_CONTAM_CACHE']
+        if db_path is not None:
+            target_db = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))[0]
+
     # Check to see if the planet is in the DB
     # Require target_db and targname
     # Require None for binComp and target_date, since these change the results
@@ -1140,6 +1146,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     if precomputed:
         targframes, starcube, attrs = fetch_contam_results(targname, target_db)
         goodPA_list = attrs["goodPA_list"]
+        logging.info(f'Using precomputed data for {targname} from {target_db}.')
 
     # Otherwise calculate it now
     else:
