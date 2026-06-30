@@ -1130,7 +1130,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     if target_db is None:
         db_path = os.environ.get('EXOCTK_CONTAM_CACHE', None)
         if db_path is not None:
-            target_db = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))[0]
+            aperture_dbs = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))
+            if len(aperture_dbs) > 0:
+                target_db = aperture_dbs[0]
 
     # Check to see if the planet is in the DB
     # Require target_db and targname
