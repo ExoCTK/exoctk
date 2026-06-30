@@ -3,14 +3,15 @@ import sys
 from itertools import groupby, count
 
 from astropy.io import fits
-from bokeh.layouts import gridplot
-from bokeh.models import Range1d, LinearColorMapper, CrosshairTool, HoverTool, Span
-from bokeh.palettes import PuBu
+from bokeh.layouts import gridplot, column, row
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer
+from bokeh.palettes import PuBu, Spectral6
 from bokeh.plotting import figure
 import numpy as np
 
 from . import visibilityPA as vpa
 from ..utils import fill_between
+from exoctk.pkgdata import resource_filename
 
 
 EXOCTK_DATA = os.environ.get('EXOCTK_DATA')
@@ -23,16 +24,123 @@ if not EXOCTK_DATA:
         '"ExoCTK Data Download" button on the ExoCTK website, or by using '
         'the exoctk.utils.download_exoctk_data() function.')
     TRACES_PATH = None
-    LAM_FILE = None
+
 else:
     TRACES_PATH = os.path.join(EXOCTK_DATA, 'exoctk_contam', 'traces')
-    LAM_FILE = os.path.join(TRACES_PATH, 'NIRISS', 'lambda_order1-2.txt')
+
+LAM_FILE = resource_filename('exoctk', 'data/contam_visibility/lambda_order1-2.txt')
 
 disp_nircam = 0.001  # microns
 lam0_nircam322w2 = 2.369
 lam1_nircam322w2 = 4.417
 lam0_nircam444w = 3.063
 lam1_nircam444w = 5.111
+
+
+def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
+    """
+    Make the contamination plot with a slider
+
+    Parameters
+    ----------
+    pctlines: list
+        The list of fractional contamination arrays
+    badPA_list: array-like
+        The position angles that are not observable
+    threshold: float
+        The threshold for contamination reporting in the plot
+
+    Returns
+    -------
+    bokeh.layouts.column
+        The column of plots
+    """
+    # Quantities
+    pa_list = np.arange(360)
+    orders = np.arange(1, len(pctlines)+1)
+    n_channels = pctlines[0].shape[1]
+
+    # Store individual contamination fractions for each order+PA combination
+    contam_dict = {}
+    for order in orders:
+        for pa, frac in enumerate(pctlines[order - 1]):
+            contam_dict[f'contam{order}_{pa}'] = frac
+
+    # Choose initial values and build visible and available dicts
+    pa_init = int(np.argmax(np.nansum(np.asarray(pctlines), axis=(0, 2)))) # Maximum contamination
+    vis_dict = {f'contam{order}': contam_dict[f'contam{order}_{pa_init}'] for order in orders}
+    vis_dict.update({'col': np.arange(n_channels), 'zeros': np.zeros(n_channels)})
+    source_visible = ColumnDataSource(data=vis_dict)
+    source_available = ColumnDataSource(data=contam_dict)
+
+    # Contamination fraction plot
+    plt = figure(width=900, height=300, tools=['reset', 'save'])
+    colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
+    for order in orders:
+        plt.line('col', f'contam{order}', source=source_visible, color=colors[order - 1], line_width=2, line_alpha=0.6, legend_label=f'Order {order}')
+        glyph = VArea(x="col", y1="zeros", y2=f"contam{order}", fill_color=colors[order - 1], fill_alpha=0.3)
+        plt.add_glyph(source_visible, glyph)
+
+    plt.y_range = Range1d(0, 1)
+    plt.x_range = Range1d(0, n_channels)
+    plt.xaxis.axis_label = 'Column Index'
+    plt.yaxis.axis_label = 'Contamination / Target Flux'
+    slider = Slider(title='Position Angle',
+                    value=pa_init,
+                    start=min(pa_list),
+                    end=max(pa_list),
+                    step=1,
+                    width=830)
+
+    span = Span(line_width=2, location=slider.value, dimension='height')
+
+    # Define CustomJS callback, which updates the plot based on selected function by updating the source_visible
+    js_orders = "\n".join([f"data_visible['contam{order}'] = data_available['contam{order}_' + selected_pa];" for order in orders])
+    callback = CustomJS(
+        args=dict(source_visible=source_visible, source_available=source_available, span=span), code=f"""
+            var selected_pa = (cb_obj.value).toString();
+            var data_visible = source_visible.data;
+            var data_available = source_available.data;
+            {js_orders}
+            span.location = cb_obj.value;
+            source_visible.change.emit();
+        """)
+
+    # Make a guide that shows which PAs are unobservable
+    viz_none = np.array([1 if i in badPA_list else 0 for i in pa_list])
+    viz_plt = figure(width=900, height=300, x_range=Range1d(0, 359))
+    c0 = viz_plt.vbar(x=np.arange(360), top=viz_none, width=1.1, alpha=0.5, line_color=None, fill_color='#555555')
+
+    # Add contamination for each order
+    vis_ords = []
+    for order in orders:
+
+        # Plot step to show maximum contamination per channel
+        viz_plt.step(pa_list, np.nanmean(pctlines[order - 1], axis=1), line_width=2, color=colors[order - 1], mode="center")
+
+        # PLot columns that indicate >5% contamination
+        viz_ord = np.array([1 if i > threshold else 0 for i in np.nanmax(pctlines[order - 1], axis=1)])
+        vis_ords.append(viz_plt.vbar(x=pa_list, top=viz_ord, width=1.1, alpha=0.2, line_color=None, fill_color=colors[order - 1]))
+
+    # Formatting
+    viz_plt.x_range = Range1d(0, 359)
+    viz_plt.y_range = Range1d(0, 1)
+    viz_plt.xaxis.axis_label = 'Position Angle'
+    viz_plt.yaxis.axis_label = 'Max(Contamination / Target Flux)'
+    viz_plt.add_layout(span)
+
+    items = [("Target not visible", [c0])]
+    for order, vis_ord in zip(orders, vis_ords):
+        items.append((f'Ord {order} > {threshold * 100}% Contaminated', [vis_ord]))
+    legend = Legend(items=items, location=(50, 0), orientation='horizontal', border_line_alpha=0)
+    viz_plt.add_layout(legend, 'below')
+
+    # Put plot together
+    slider.js_on_change('value', callback)
+    slider_row = row(Spacer(width=40), slider, Spacer(width=30))
+    layout = column(plt, slider_row, viz_plt)
+
+    return layout
 
 
 def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):

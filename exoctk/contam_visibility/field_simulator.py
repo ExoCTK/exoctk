@@ -27,17 +27,15 @@ from astropy.stats import sigma_clip
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
-from astroquery.irsa import Irsa
-from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
-from astroquery.gaia import Gaia
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
 from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage import rotate
+import h5py
 import numpy as np
 import pysiaf
 import regions
@@ -46,7 +44,6 @@ from ..utils import get_env_variables, check_for_data, add_array_at_position, re
 from ..pkgdata import resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from . import contamination_figure as cf
-from exoctk import utils
 
 import warnings
 warnings.filterwarnings("ignore", message="Mean of empty slice")
@@ -81,7 +78,6 @@ def parse_log():
     for ts, msg in zip(timestamps, messages):
         print(f'{ts}: {msg}')
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.066, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
@@ -163,65 +159,114 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
-
 class GaiaFailoverTAP:
-    def __init__(self, timeout=30, poll_interval=1.0, max_polls=120):
+    def __init__(
+        self,
+        timeout=30,
+        poll_interval=1.0,
+        max_polls=120,
+        max_retries=3,
+        retry_delay=5,
+    ):
         self.endpoints = [
             "https://gea.esac.esa.int/tap-server/tap",
             "https://datalab.noirlab.edu/tap",
             "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
         ]
+
         self.timeout = timeout
         self.poll_interval = poll_interval
         self.max_polls = max_polls
 
+        # NEW
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
+
+        self.last_endpoint = None
+
     def query_region(self, coordinate, width, height=None):
         """
         Drop-in replacement for Gaia.query_object_async(...)
-        Returns astropy.table.Table
+
+        Returns
+        -------
+        astropy.table.Table
         """
         height = width if height is None else height
 
-        ra = coordinate.ra.deg
-        dec = coordinate.dec.deg
+        ra = float(coordinate.ra.deg)
+        dec = float(coordinate.dec.deg)
 
-        width_deg = width.to(u.deg).value
-        height_deg = height.to(u.deg).value
-        radius_deg = 0.5 * np.sqrt(width_deg ** 2 + height_deg ** 2)
+        width_deg = float(width.to(u.deg).value)
+        height_deg = float(height.to(u.deg).value)
+
+        # Query enclosing circle
+        radius_deg = 0.5 * np.sqrt(width_deg**2 + height_deg**2)
 
         if not np.isfinite(radius_deg) or radius_deg <= 0:
             raise ValueError(f"Invalid radius: {radius_deg}")
 
         adql = f"""
-                SELECT *,
-                    DISTANCE(
-                        POINT('ICRS', ra, dec),
-                        POINT('ICRS', {ra}, {dec})
-                    ) AS dist
-                FROM gaiadr3.gaia_source
-                WHERE 1=CONTAINS(
-                    POINT('ICRS', ra, dec),
-                    CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
-                )
-                ORDER BY dist
-                """
+        SELECT *,
+            DISTANCE(
+                POINT('ICRS', ra, dec),
+                POINT('ICRS', {ra}, {dec})
+            ) AS dist
+        FROM gaiadr3.gaia_source
+        WHERE 1=CONTAINS(
+            POINT('ICRS', ra, dec),
+            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
+        )
+        ORDER BY dist
+        """
 
-        last_error = None
-        for endpoint in self.endpoints:
-            try:
-                # Query the cone
-                stars = self._run_query(endpoint, adql)
-                logging.info(f"Found {len(stars)} sources in Gain DR3 within {width} using endpoint `{endpoint}'")
+        all_errors = []
 
-                print()
+        # GLOBAL RETRY LOOP
+        for retry in range(self.max_retries):
 
-                return stars
+            logging.info(
+                f"[Gaia TAP] Global retry "
+                f"{retry + 1}/{self.max_retries}"
+            )
 
-            except Exception as e:
-                last_error = e
-                logging.info(f"[Gaia failover] {endpoint} failed: {e}")
+            # ENDPOINT FAILOVER LOOP
+            for endpoint in self.endpoints:
 
-        raise RuntimeError(f"All Gaia TAP endpoints failed: {last_error}")
+                try:
+                    stars = self._run_query(endpoint, adql)
+                    self.last_endpoint = endpoint
+                    logging.info(
+                        f"[Gaia TAP] SUCCESS "
+                        f"endpoint={endpoint} "
+                        f"rows={len(stars)}"
+                    )
+
+                    return stars
+
+                except Exception as e:
+                    err_msg = (
+                        f"[Gaia failover] "
+                        f"retry={retry + 1} "
+                        f"endpoint={endpoint} "
+                        f"error={e}"
+                    )
+
+                    logging.warning(err_msg)
+                    all_errors.append(err_msg)
+
+            # Sleep before next global retry
+            if retry < self.max_retries - 1:
+                delay = self.retry_delay * (2**retry)
+                logging.info(f"[Gaia TAP] Sleeping {delay}s before retry")
+                time.sleep(delay)
+
+        # TOTAL FAILURE
+        raise RuntimeError(
+            "All Gaia TAP endpoints failed after "
+            f"{self.max_retries} retries.\n\n"
+            + "\n".join(all_errors)
+        )
 
     def _run_query(self, endpoint, adql):
         job_url = self._submit_async_job(endpoint, adql)
@@ -230,34 +275,24 @@ class GaiaFailoverTAP:
 
     def _submit_async_job(self, endpoint, adql):
         url = f"{endpoint}/async"
+        r = requests.post(url, data={"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv", "QUERY": adql, "PHASE": "RUN"}, timeout=self.timeout, allow_redirects=False)
 
-        r = requests.post(
-            url,
-            data={
-                "REQUEST": "doQuery",
-                "LANG": "ADQL",
-                "FORMAT": "csv",
-                "QUERY": adql,
-                "PHASE": "RUN",
-            },
-            timeout=self.timeout,
-            allow_redirects=False,
-        )
+        # Proper TAP async redirect
+        if r.status_code in (302, 303):
 
-        # Case 1: Proper TAP async response (303 redirect)
-        if r.status_code in (303, 302):
             job_url = r.headers.get("Location")
             if job_url:
                 return job_url
 
-        # Case 2: Some servers return 200 + Location
+        # Some TAP services return 200 + Location
         job_url = r.headers.get("Location")
+
         if job_url:
             return job_url
 
-        # Case 3: Server returned error payload (VERY COMMON)
         raise RuntimeError(
-            f"No TAP job URL returned. Status={r.status_code}. "
+            f"No TAP job URL returned. "
+            f"Status={r.status_code}. "
             f"Response:\n{r.text[:500]}"
         )
 
@@ -267,7 +302,6 @@ class GaiaFailoverTAP:
         for _ in range(self.max_polls):
             r = requests.get(phase_url, timeout=self.timeout)
             r.raise_for_status()
-
             phase = r.text.strip()
 
             if phase == "COMPLETED":
@@ -281,13 +315,10 @@ class GaiaFailoverTAP:
         raise TimeoutError("Gaia TAP polling timeout")
 
     def _fetch_result(self, job_url):
-        r = requests.get(
-            f"{job_url}/results/result",
-            timeout=self.timeout,
-        )
+
+        r = requests.get(f"{job_url}/results/result", timeout=self.timeout)
         r.raise_for_status()
 
-        # Use bytes, not StringIO
         return Table.read(io.BytesIO(r.content), format="ascii.csv")
 
 
@@ -420,7 +451,7 @@ def NIRISS_SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
-def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=Time.now(), verbose=False, pm_corr=True, plot=False):
+def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -463,18 +494,18 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     # Query Gaia from several potential endpoints
     stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
 
-    # Perform XMatch between Gaia and SDSS DR16
-    xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
-
     try:
+        # Perform XMatch between Gaia and SDSS DR16
+        xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
+
         # Join Gaia results with XMatch results based on source_id
         merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
         # Extract SDSS DR16 source types from XMatch results
         stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
 
-    except ValueError:
-        pass
+    except Exception as e:
+        logging.info(f"Could not perform SDSS crossmatch: {e}")
 
     # Or infer galaxy from parallax
     stars['type'] = [classify_source(row) for row in stars]
@@ -499,6 +530,10 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     # Cope coordinates to new column
     stars.add_column(stars['ra'], name='obs_ra')
     stars.add_column(stars['dec'], name='obs_dec')
+
+    # Set target data
+    if target_date is None:
+        target_date = Time.now()
 
     # Update RA and Dec using proper motion data
     if pm_corr:
@@ -549,7 +584,7 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     return stars
 
 
-def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Time.now()):
+def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=None):
     """
     Get the proper motion corrected coordinates of a source
 
@@ -573,6 +608,10 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Tim
     new_ra, new_dec
         The corrected RA and Dec for the source
     """
+    # Set target data
+    if target_date is None:
+        target_date = Time.now()
+
     # Convert observation year to Time object
     if isinstance(target_date, (int, float, str)):
         target_date = Time('{}-01-01'.format(int(target_date)))
@@ -685,6 +724,47 @@ def classify_source(row):
     logging.info(msg)
 
     return stype
+
+def fraction_contaminated(aperture, targframes, starcube):
+    """
+    Calculate the fraction of contamination per spectral trace
+
+    Parameters
+    ----------
+    aperture: str
+        The name of the aperture
+    targframes: np.ndarray
+        The list of target traces
+    starcube: np.ndarray
+        The 2D or 3D contamination frame(s)
+
+    Returns
+    -------
+    list
+        The 1D fractional contamination per trace
+    """
+    # Check for 2D
+    if starcube.ndim == 2:
+        starcube = starcube[None, :, :]
+
+    # Get the trace masks
+    trace_masks = NIRCam_DHS_trace_mask(aperture) if 'NRCA5' in aperture else NIRISS_SOSS_trace_mask(aperture)
+
+    # Adding frames together
+    simframes = [tframe + starcube for tframe in targframes]
+
+    # Divide contam/(trace + contam) to get fraction of contamination
+    pctframes = [np.divide(starcube, sframe, out=np.full_like(starcube, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
+
+    # Sum along columns inside trace masks
+    pctlines = []
+    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
+        masked = pframe * mask
+        with np.errstate(invalid='ignore', divide='ignore'):
+            mean_line = np.nanmean(masked, axis=1)
+        pctlines.append(mean_line)
+
+    return pctlines
 
 
 def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
@@ -805,9 +885,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
-    # Get trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture.AperName) if 'NRCA5' in aperture.AperName else NIRISS_SOSS_trace_mask(aperture.AperName)
-
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
 
@@ -839,21 +916,11 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
-    # Adding frames together
-    simframes = [tframe + starframe for tframe in targframes]
-    simframe = np.sum(targframes, axis=0) + starframe
-    pctframes = [np.divide(starframe, sframe, out=np.full_like(starframe, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
-    pctlines = []
-    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
-        masked = pframe * mask
-        with np.errstate(invalid='ignore', divide='ignore'):
-            mean_line = np.nanmean(masked, axis=0)
-        pctlines.append(mean_line)
+    # Get percentage of contamination per trace
+    pctlines = [i[0] for i in fraction_contaminated(aperture.AperName, targframes, starframe)]
 
     # Make results dict
-    result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes,
-              'contaminants': starframe, 'contam_levels': pctlines}
-
+    result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes, 'contaminants': starframe}
     logging.info('Compiled final results.')
 
     if plot:
@@ -869,9 +936,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         scale = 'log'
         color_map = 'Viridis256'
 
-        # Plot the obs data if possible...
-        if data is not None:
-            simframe = data
+        # Plot the real or simulated frame
+        simframe = data if data is not None else np.sum(targframes, axis=0) + starframe
 
         # Replace negatives
         simframe[simframe < 0] = 0
@@ -997,8 +1063,9 @@ def update_task(task, new_state):
     if task is not None:
         task.update_state(state=new_state)
 
-def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), interpolate=False,plot=False,
-                     task=None, title='My Target'):
+
+def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=None, plot=False,
+                     task=None, title='My Target', target_db=None, slider=False):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1008,15 +1075,21 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
     dec : float
         The Dec of the target
     aperture: str
-        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2', 'MIRI_SLITLESSPRISM']
+        The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2']
+    targname: str
+        The name of the target to look up in ExoMAST
     binComp : dict
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
-    interpolate: bool
-        Skip every other PA and interpolate to speed up calculation
     plot: bool
         Return a plot
+    title: str
+        The plot title to use
+    target_db: str
+        The path to the precomputed .h5 database of results
+    slider: bool
+        Make the PA slider plot instead of the legacy wavelength vs. PA plots
 
     Returns
     -------
@@ -1033,98 +1106,133 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
     ra, dec = 91.872242, -25.594934
     targframe, starcube, results = fs.field_simulation(ra, dec, 'NIS_SUBSTRIP256')
     """
-    logging.info("Setting up simulation")
-    # Check for contam tool data
-    check_for_data('exoctk_contam')
-
     # Aperture names
     if aperture not in APERTURES:
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
 
-    # Instantiate a pySIAF object
-    logging.info('Getting info from pysiaf for {} aperture...'.format(aperture))
+    # Check for contam tool data
+    check_for_data('exoctk_contam')
 
-    targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
-    inst = APERTURES[aperture]
-    siaf = pysiaf.Siaf(inst['inst'])
-
-    # Get the full and subarray apertures
-    full = siaf.apertures[inst['full']]
-    aper = siaf.apertures[aperture]
-    subX, subY = aper.XSciSize, aper.YSciSize
-
-    # Full frame pixel positions
-    rows, cols = full.corners('det')
-    aper.minrow, aper.maxrow = rows.min(), rows.max()
-    aper.minrow, aper.maxrow = rows.min(), rows.max()
-    aper.mincol, aper.maxcol = cols.min(), cols.max()
-
-    # Find stars in the vicinity
-    update_task(task, "RUNNING SOURCE QUERY")
-    stars = find_sources(ra, dec, target_date=target_date)
-
-    # Add stars manually
-    if isinstance(binComp, dict):
-        stars = add_source(stars, **binComp)
-
-    # Get full list from ephemeris
-    ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
-    goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
-
-    # Get all observable PAs and convert to ints
-    goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
-    goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
-
-    # Group good PAs to find gaps in visibility
-    good_groups = []
-    current_group = [goodPA_ints[0]]
-    max_gap = 7 # Biggest PA gap considered to still be observable
-    for i in range(1, len(goodPA_ints)):
-        if goodPA_ints[i] - current_group[-1] <= max_gap:
-            current_group.append(goodPA_ints[i])
-        else:
-            good_groups.append(current_group)
-            current_group = [goodPA_ints[i]]
-
-    good_groups.append(current_group)
-    good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
-    goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
-
-    # Try to speed it up by doing every other visible PA and then interpolating
-    # if interpolate:
-
-
-    log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
-
-    # Flatten list and check against 360 angles to get all bad PAs
-    # badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
-
-    # Time it
-    logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+    # Bookkeeping
+    logging.info("Setting up simulation")
     start = time.time()
 
-    # Calculate contamination of all stars at each PA
-    # -----------------------------------------------
-    # To multiprocess, or not to multiprocess. That is the question.
-    # Whether 'tis nobler in the code to suffer
-    # The slings and arrows of outrageous list comprehensions,
-    # Or to take arms against a sea of troubles,
-    # And by multiprocessing end them?
-    results = []
-    for i, pa in enumerate(goodPA_list):
-        update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
-        logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
-        result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
-        results.append(result)
+    # Resolve target in ExoMAST if possible
+    if targname is not None:
+        targname = get_canonical_name(targname)
+        data, _ = get_target_data(targname)
+        ra = data.get('RA')
+        dec = data.get('DEC')
+        logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) in ExoMAST.")
 
-    # We only need one target frame frames
-    targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
+    # Check to see if there is a precomputed DB for this aperture in the user's
+    # environment variables if they don't explicitly supply one as 'target_db'
+    if target_db is None:
+        db_path = os.environ.get('EXOCTK_CONTAM_CACHE', None)
+        if db_path is not None:
+            target_db = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))[0]
 
-    # Make sure starcube is of shape (PA, rows, cols)
-    starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
-    # Make the contamination plot
-    for result in results:
-        starcube[result['pa'], :, :] = result['contaminants']
+    # Check to see if the planet is in the DB
+    # Require target_db and targname
+    # Require None for binComp and target_date, since these change the results
+    precomputed = False
+    if target_db is not None and targname is not None and binComp is None and target_date is None:
+        grp_name = get_canonical_name(targname).strip().replace("/", "_")
+        with h5py.File(target_db, "r") as f:
+            precomputed = grp_name in f
+
+    # Grab data from DB if precomputed
+    if precomputed:
+        targframes, starcube, attrs = fetch_contam_results(targname, target_db)
+        goodPA_list = attrs["goodPA_list"]
+        logging.info(f'Using precomputed data for {targname} from {target_db}.')
+
+    # Otherwise calculate it now
+    else:
+        logging.info('Target has not been precomputed. Computing now...')
+
+        # Instantiate a pySIAF object
+        logging.info(f'Getting info from pysiaf for {aperture} aperture...')
+
+        targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg)
+        inst = APERTURES[aperture]
+        siaf = pysiaf.Siaf(inst['inst'])
+
+        # Get the full and subarray apertures
+        full = siaf.apertures[inst['full']]
+        aper = siaf.apertures[aperture]
+        subX, subY = aper.XSciSize, aper.YSciSize
+
+        # Full frame pixel positions
+        rows, cols = full.corners('det')
+        aper.minrow, aper.maxrow = rows.min(), rows.max()
+        aper.minrow, aper.maxrow = rows.min(), rows.max()
+        aper.mincol, aper.maxcol = cols.min(), cols.max()
+
+        # Find stars in the vicinity
+        update_task(task, "RUNNING SOURCE QUERY")
+        if target_date is None:
+            target_date = Time.now()
+        stars = find_sources(ra, dec, target_date=target_date)
+
+        # Add stars manually
+        if isinstance(binComp, dict):
+            stars = add_source(stars, **binComp)
+
+        # Get full list from ephemeris
+        ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
+        goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
+
+        # Get all observable PAs and convert to ints
+        goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
+        goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
+
+        # Group good PAs to find gaps in visibility
+        good_groups = []
+        current_group = [goodPA_ints[0]]
+        max_gap = 7 # Biggest PA gap considered to still be observable
+        for i in range(1, len(goodPA_ints)):
+            if goodPA_ints[i] - current_group[-1] <= max_gap:
+                current_group.append(goodPA_ints[i])
+            else:
+                good_groups.append(current_group)
+                current_group = [goodPA_ints[i]]
+
+        good_groups.append(current_group)
+        good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
+        goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
+
+        log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
+
+        # Time it
+        logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+
+        # Calculate contamination of all stars at each PA
+        # -----------------------------------------------
+        # To multiprocess, or not to multiprocess. That is the question.
+        # Whether 'tis nobler in the code to suffer
+        # The slings and arrows of outrageous list comprehensions,
+        # Or to take arms against a sea of troubles,
+        # And by multiprocessing end them?
+        results = []
+        for i, pa in enumerate(goodPA_list):
+            update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
+            logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
+            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
+            results.append(result)
+
+        # We only need one target frame frames
+        targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
+
+        # Make sure starcube is of shape (PA, rows, cols)
+        starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
+
+        # Copy good PA results into completed starcube
+        for result in results:
+            starcube[result['pa'], :, :] = result['contaminants']
+
+        # We don't need this anymore
+        del results
 
     logging.info('Contamination calculation complete: {} {}'.format(round(time.time() - start, 3), 's'))
 
@@ -1136,139 +1244,54 @@ def field_simulation(ra, dec, aperture, binComp=None, target_date=Time.now(), in
         # Get bad PA list from missing angles between 0 and 360
         badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
 
+        # Make slider contam plot
+        if slider:
+            pctlines = fraction_contaminated(aperture, targframes, starcube)
+            contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+
         # Make old contam plot
-        starcube_targ = np.zeros((362, 2048, 96 if aperture == 'NIS_SUBSTRIP96' else 256))
-        starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
-        starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
-        starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-        contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
+        else:
+            starcube_targ = np.zeros((362, targframes[0].shape[1], targframes[0].shape[0]))
+            starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
+            starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+            contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
-        return targframes, starcube, results, contam_plot
+        return targframes, starcube, contam_plot
 
-        # # Slider plot
-        # contam_plot = contam_slider_plot(results, plot=False)
-
-    return targframes, starcube, results
+    return targframes, starcube, goodPA_list
 
 
-def contam_slider_plot(contam_results, threshold=0.05, plot=False):
+def fetch_contam_results(exoplanet_name, db_filename):
     """
-    Make the contamination plot with a slider
-
-    Parameters
-    ----------
-    contam_results: dict
-        The dictionary of results from the field_simulation function
-    plot: bool
-        Show the plot if True
+    Load target trace and reconstruct full contamination cube.
 
     Returns
     -------
-    bokeh.layouts.column
-        The column of plots
+    target_trace : ndarray (n_traces, nrows, ncols)
+    contamination : ndarray (n_planes, nrows, ncols)
+    attrs : dict (metadata)
     """
-    # Full PA list
-    pa_list = np.arange(360)
-    goodPA_list = [result['pa'] for result in contam_results]
-    badPA_list = [pa for pa in pa_list if pa not in goodPA_list]
+    name = get_canonical_name(exoplanet_name)
+    grp_name = name.strip().replace("/", "_")
 
-    # Grab one target frame
-    targframe = np.asarray(contam_results[0]['target'])
+    with h5py.File(db_filename, "r") as f:
+        if grp_name not in f:
+            raise KeyError(f"Exoplanet '{exoplanet_name}' (canonical: '{grp_name}') not found in {filename}. Available: {list(f.keys())}")
 
-    # Make the contamination plot
-    order1_contam = np.zeros((360, targframe.shape[1]))
-    order2_contam = np.zeros((360, targframe.shape[1]))
-    order3_contam = np.zeros((360, targframe.shape[1]))
-    for result in contam_results:
-        order1_contam[result['pa'], :] = result['order1_contam']
-        order2_contam[result['pa'], :] = result['order2_contam']
-        order3_contam[result['pa'], :] = result['order3_contam']
+        grp = f[grp_name]
+        target_trace = grp["target_trace"][:]
+        stored = grp["contamination"][:]
+        plane_index = grp["plane_index"][:]
 
-    # Define data
-    contam_dict = {'contam1_{}'.format(result['pa']): result['order1_contam'] for result in contam_results}
-    contam_dict.update({'contam2_{}'.format(result['pa']): result['order2_contam'] for result in contam_results})
-    contam_dict.update({'contam3_{}'.format(result['pa']): result['order3_contam'] for result in contam_results})
+        # Reconstruct contamination cube
+        contamination = np.zeros((360, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
+        if len(plane_index) > 0:
+            contamination[plane_index] = stored
 
-    # Wrap the data in two ColumnDataSources
-    source_visible = ColumnDataSource(
-        data=dict(col=np.arange(2048), zeros=np.zeros(2048), contam1=order1_contam[0], contam2=order2_contam[0],
-                  contam3=order3_contam[0]))
-    source_available = ColumnDataSource(data=contam_dict)
+        attrs = dict(grp.attrs)
 
-    # Define plot elements
-    plt = figure(width=900, height=300, tools=['reset', 'save'])
-    plt.line('col', 'contam1', source=source_visible, color='blue', line_width=2, line_alpha=0.6,
-             legend_label='Order 1')
-    plt.line('col', 'contam2', source=source_visible, color='red', line_width=2, line_alpha=0.6, legend_label='Order 2')
-    plt.line('col', 'contam3', source=source_visible, color='green', line_width=2, line_alpha=0.6,
-             legend_label='Order 3')
-    glyph1 = VArea(x="col", y1="zeros", y2="contam1", fill_color="blue", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph1)
-    glyph2 = VArea(x="col", y1="zeros", y2="contam2", fill_color="red", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph2)
-    glyph3 = VArea(x="col", y1="zeros", y2="contam3", fill_color="green", fill_alpha=0.3)
-    plt.add_glyph(source_visible, glyph3)
-    plt.y_range = Range1d(0, min(1, max(np.nanmax(order1_contam), np.nanmax(order2_contam), np.nanmax(order3_contam))))
-    plt.x_range = Range1d(0, 2048)
-    plt.xaxis.axis_label = ''
-    plt.yaxis.axis_label = 'Contamination / Target Flux'
-    slider = Slider(title='Position Angle',
-                    value=pa_list[0],
-                    start=min(pa_list),
-                    end=max(pa_list),
-                    step=int((max(pa_list) - min(pa_list)) / (len(pa_list) - 1)),
-                    sizing_mode='stretch_width')
-
-    span = Span(line_width=2, location=slider.value, dimension='height')
-
-    # Define CustomJS callback, which updates the plot based on selected function by updating the source_visible
-    callback = CustomJS(
-        args=dict(source_visible=source_visible, source_available=source_available, span=span), code="""
-            var selected_pa = (cb_obj.value).toString();
-            var data_visible = source_visible.data;
-            var data_available = source_available.data;
-            data_visible['contam1'] = data_available['contam1_' + selected_pa];
-            data_visible['contam2'] = data_available['contam2_' + selected_pa];
-            data_visible['contam3'] = data_available['contam3_' + selected_pa];
-            span.location = cb_obj.value;
-            source_visible.change.emit();
-        """)
-
-    # Make a guide that shows which PAs are unobservable
-    viz_none = np.array([1 if i in badPA_list else 0 for i in pa_list])
-    viz_ord1 = np.array([1 if i > threshold else 0 for i in np.nanmax(order1_contam, axis=1)])
-    viz_ord2 = np.array([1 if i > threshold else 0 for i in np.nanmax(order2_contam, axis=1)])
-    viz_ord3 = np.array([1 if i > threshold else 0 for i in np.nanmax(order3_contam, axis=1)])
-
-    # Make the plot
-    viz_plt = figure(width=900, height=300, x_range=Range1d(0, 359))
-    viz_plt.step(np.arange(360), np.mean(order1_contam, axis=1), color='blue', mode="center")
-    viz_plt.step(np.arange(360), np.mean(order2_contam, axis=1), color='red', mode="center")
-    viz_plt.step(np.arange(360), np.mean(order3_contam, axis=1), color='green', mode="center")
-    c1 = viz_plt.vbar(x=np.arange(360), top=viz_ord1, line_color=None, fill_color='blue', alpha=0.2)
-    c2 = viz_plt.vbar(x=np.arange(360), top=viz_ord2, line_color=None, fill_color='red', alpha=0.2)
-    c3 = viz_plt.vbar(x=np.arange(360), top=viz_ord3, line_color=None, fill_color='green', alpha=0.2)
-    c0 = viz_plt.vbar(x=np.arange(360), top=viz_none, width=1.1, line_color=None, fill_color='#555555')
-    viz_plt.x_range = Range1d(0, 359)
-    viz_plt.y_range = Range1d(0, 1)
-    viz_plt.add_layout(span)
-
-    legend = Legend(items=[
-        ('Ord 1 > {}% Contaminated'.format(threshold * 100), [c1]),
-        ('Ord 2 > {}% Contaminated'.format(threshold * 100), [c2]),
-        ('Ord 3 > {}% Contaminated'.format(threshold * 100), [c3]),
-        ("Target not visible", [c0]),
-    ], location=(50, 0), orientation='horizontal', border_line_alpha=0)
-    viz_plt.add_layout(legend, 'below')
-
-    # Put plot together
-    slider.js_on_change('value', callback)
-    layout = column(plt, slider, viz_plt)
-
-    if plot:
-        show(layout)
-
-    return layout
+    return target_trace, contamination, attrs
 
 
 def get_order0(aperture, teff, stype='STAR'):

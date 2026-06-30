@@ -22,6 +22,7 @@ Use
 
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -54,9 +55,29 @@ def test_field_simulation():
 
     ra = '04 25 29.0162'
     dec = '-30 36 01.603'
-    instrument = 'NIS_SUBSTRIP256'
+    aperture = 'NIS_SUBSTRIP256'
 
-    targframe, starcube, results = field_simulator.field_simulation(ra, dec, instrument)
+    targframe, starcube, results = field_simulator.field_simulation(ra, dec, aperture)
+
+    assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
+
+
+@pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Need access to trace data FITS files.  Please try running locally')
+def test_precomputed_field_simulation():
+    """Tests the ``field_simulation`` function in the ``field_simulator`` module using precomputed cache"""
+
+    # Should pass
+    targname = 'TRAPPIST-1'
+    aperture = 'NIS_SUBSTRIP256'
+    target_db = Path(__file__).parent / "test_data" / "NIS_SUBSTRIP256_test_db.h5"
+
+    targframe, starcube, results = field_simulator.field_simulation(targname=targname, aperture=aperture, target_db=target_db)
+
+    assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
+
+    # Should still pass if target is not in the database
+    bad_targname = 'WASP-18'
+    targframe, starcube, results = field_simulator.field_simulation(targname=bad_targname, aperture=aperture, target_db=target_db)
 
     assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
 
