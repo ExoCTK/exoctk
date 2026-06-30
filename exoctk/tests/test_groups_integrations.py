@@ -41,6 +41,22 @@ TEST_DATA = {
     'n_group': 'optimize',
     'infile': INFILE}
 
+NIRSPEC_PRISM_TEST_DATA = {
+    'ins': 'nirspec',
+    'mag': Decimal('8.131'),
+    'obs_time': Decimal('3'),
+    'sat_max': Decimal('0.95'),
+    'sat_mode': 'well',
+    'time_unit': 'hour',
+    'band': 'K',
+    'mod': 'f5v',
+    'filt': 'clear_prism',
+    'subarray': 'sub2048',
+    'filt_ta': 'clear',
+    'subarray_ta': 'sub32',
+    'n_group': 'optimize',
+    'infile': INFILE}
+
 EXPECTED_RESULTS = {
     'ins': 'miri',
     'mag': Decimal('8.131'),
@@ -77,6 +93,43 @@ EXPECTED_RESULTS = {
     'observation_efficiency': 0.972,
     'ramp_time': 5.565,
     'ta_frame_time': 0.15904}
+
+NIRSPEC_PRISM_EXPECTED_RESULTS = {
+    'ins': 'nirspec',
+    'mag': Decimal('8.131'),
+    'obs_time': Decimal('3'),
+    'sat_max': 61750.0,
+    'sat_mode': 'well',
+    'time_unit': 'hour',
+    'band': 'K',
+    'mod': 'f5v',
+    'filt': 'clear_prism',
+    'subarray': 'sub2048',
+    'filt_ta': 'clear',
+    'subarray_ta': 'sub32',
+    'n_group': 7,
+    'infile': INFILE,
+    'duration_time': 3.001,
+    'duration_time_ta_max': 0.01496,
+    'duration_time_ta_min': 0.01496,
+    'exposure_time': 2.626,
+    'frames_per_group': 1,
+    'frame_time': 0.902,
+    'integration_time': 6.314,
+    'max_saturation_prediction': 56845.323,
+    'max_saturation_ta': 0.0,
+    'min_saturation_ta': 0.0,
+    'max_ta_groups': 0,
+    'min_ta_groups': 0,
+    'num_amps': 1,
+    'num_columns': 32,
+    'num_integrations': 1497,
+    'num_reset_frames': 1,
+    'num_rows': 2048,
+    'num_skips': 0,
+    'observation_efficiency': 0.875,
+    'ramp_time': 6.314,
+    'ta_frame_time': 0.01496}
 
 
 def test_calc_duration_time():
@@ -170,6 +223,13 @@ def test_perform_calculation():
 
     params = groups_integrations.perform_calculation(TEST_DATA)
     assert params == EXPECTED_RESULTS
+
+
+def test_perform_calculation_nirspec_prism():
+    """Tests ``perform_calculation`` with the NIRSpec PRISM mode"""
+
+    params = groups_integrations.perform_calculation(NIRSPEC_PRISM_TEST_DATA.copy())
+    assert params == NIRSPEC_PRISM_EXPECTED_RESULTS
 
 
 def test_set_params_from_instrument():

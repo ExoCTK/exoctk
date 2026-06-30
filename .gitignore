@@ -19,6 +19,7 @@ exoctk/__pycache__
 
 # Other generated files
 */cython_version.py
+*/_version.py
 htmlcov
 .coverage
 MANIFEST
@@ -60,6 +61,8 @@ distribute-*.tar.gz
 .project
 .pydevproject
 .settings
+*.vscode
+*.code-workspace
 
 # Mac OSX
 .DS_Store
@@ -76,3 +79,4 @@ exoctk/atmospheric_retrievals/*.dat
 exoctk/atmospheric_retrievals/*.txt
 exoctk/atmospheric_retrievals/*.png
 exoctk/atmospheric_retrievals/*.obj
+docker/.env

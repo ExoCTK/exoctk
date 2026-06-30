@@ -2,6 +2,8 @@
 name = "exoctk"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
+requires-python = ">=3.10"
+license-files = ["LICENSE.rst"]
 authors = [
   { name= "Matthew Bourque" },
   { name="Néstor Espinoza" },
@@ -11,6 +13,7 @@ authors = [
   { name="Catherine Martlin" },
   { name="Jennifer Medina" },
   { name="Natasha Batalha" },
+  { name="Taylor James Bell" },
   { name="Michael Fox" },
   { name="Jules Fowler" },
   { name="Jonathan Fraine" },
@@ -23,71 +26,63 @@ authors = [
 keywords = ["astronomy", "python"]
 classifiers = ["Programming Language :: Python"]
 dependencies = [
-  'asteval',
-  'astropy',
-  'astroquery',
-  'bandit',
-  'batman-package',
-  'bibtexparser',
-  'bokeh>=3.0,<=3.9.0',
-  'boto3',
-  'celery',
-  'corner',
-  'cython',
-  'docopt',
-  'docutils',
-  'flake8',
-  'flask',
-  'flask_wtf',
-  'gunicorn',
-  'h5py',
-  'hotsoss',
-  'ipython',
-  'matplotlib',
-  'numpy',
-  'numpydoc',
-  'pandas',
-  'paramiko',
-  'platon',
-  'pysiaf',
-  'pysynphot',
-  'pytest',
-  'pyyaml',
-  'pyvo',
-  'redis',
-  'regions',
-  'scipy',
-  'scp',
-  'sphinx',
-  'sphinx_astropy',
-  'sqlalchemy',
-  'svo_filters',
-  'wtforms',
-  'werkzeug',
-  'jwst_gtvt',
+  'astropy>=5.3.1,<8',
+  'astroquery>=0.4.6,<1',
+  'batman-package>=2.5.3,<3',
+  'bibtexparser>=1.2.0,<2',
+  'bokeh>=3.0,<4',
+  'docopt>=0.6.2,<1',
+  'flask>=1.1.2,<4',
+  'flask_wtf>=0.14.3,<2',
+  'h5py>=3.2.1,<4',
+  'hotsoss>=0.1.11,<1',
+  'matplotlib>=3.4.1,<4',
+  'numpy>=2.0.0,<3',
+  'pandas>=2.0.3,<4',
+  'platon>=5.1.2,<7',
+  'pysiaf>=0.10.0,<1',
+  'regions>=0.5,<1',
+  'scipy>=1.11.1,<2',
+  'sqlalchemy>=1.4.4,<3',
+  'svo_filters>=0.5.3,<1',
+  'wtforms>=2.3.3,<4',
+  'jwst_gtvt>=1.1.1,<2',
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
-  "pytest",
-  "pytest-cov",
+  "pytest>=6.2.2,<10",
+  "pytest-cov>=7.0.0,<8",
+  "pytest-xdist",
 ]
 docs = [
-  "sphinx",
-  "sphinx_rtd_theme",
-  "stsci_rtd_theme",
+  "esbonio>=2.0.0,<3",
+  "sphinx>=3.5.3,<10",
+  "sphinx_astropy>=1.10,<2",
+  "sphinx_rtd_theme>1.2.0,<4",
+  "stsci_rtd_theme>=1.0.1,<2",
+  "numpydoc>=1.1.0,<2"
 ]
-
-[project.license]
-file = "LICENSE"
-content-type = "text/plain"
+server = [
+  "celery[redis]>=5,<6",
+  "gunicorn>=20.1.0,<27",
+]
+container-test = [
+  "selenium>=4,<5",
+  "tabulate>=0.10.0,<1",
+]
 
 [project.urls]
 Repository = "https://github.com/ExoCTK/exoctk"
 
 [build-system]
-requires = ["setuptools>=68.0.0", "numpy", "wheel", "setuptools_scm"]
+requires = [
+  "setuptools>=68.0.0,<83",
+  "numpy>=2.0.0,<3",
+  "wheel>=0.40,<1",
+  "setuptools_scm>=7,<11",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

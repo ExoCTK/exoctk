@@ -130,7 +130,7 @@
 
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <button type="submit" class="btn btn-success">Submit</button>
+                <button id="calculate_submit" type="submit" class="btn btn-success">Submit</button>
             </div>
         </div>
 
@@ -182,7 +182,7 @@
     <div>
         <form action="/generic_result" method="post">
             <input type="hidden" name="data_file" value="{{ table_string }}" />
-            <input class="btn btn-primary" type='submit' value='Save File'></p>
+            <input id="download_file" class="btn btn-primary" type='submit' value='Save File'></p>
         </form>
     </div>
     <div>

@@ -309,6 +309,8 @@ class LDC:
 
         # Get effective wavelengths
         wave_effs = np.mean(bandpass.wave, axis=1)
+        if hasattr(wave_effs, 'to_value'):
+            wave_effs = wave_effs.to_value(self.model_grid.wave_units)
 
         # Fit limb darkening coefficients for each wavelength bin
         for n, ldarr in enumerate(scaled_ld):
@@ -484,10 +486,9 @@ class LDC:
                 fig.y_range = Range1d(0, 1)
                 fig.xaxis.axis_label = 'mu'
                 fig.yaxis.axis_label = 'Normalized Intensity'
-                fig.legend.location = "bottom_right"
 
                 # Plot the fitted points
-                fig.circle(row['raw_mu'], row['raw_ld'], fill_color='black')
+                fig.circle(row['raw_mu'], row['raw_ld'], radius=0.01, fill_color='black')
 
                 # Plot the mu cutoff
                 fig.line([row['mu_min']] * 2, [0, 1], legend_label='cutoff', line_color='#6b6ecf', line_dash='dotted')
@@ -497,6 +498,7 @@ class LDC:
                 vals = np.append(mu_vals, mu_vals[::-1])
                 evals = np.append(dn_err, up_err[::-1])
                 fig.patch(vals, evals, color=color, fill_alpha=0.2, line_alpha=0)
+                fig.legend.location = "bottom_right"
 
         if show:
             if isinstance(fig, matplotlib.figure.Figure):

@@ -51,18 +51,21 @@ services:
       dockerfile: Dockerfile
       args:
         - pandexo_branch=$PANDEXO_BRANCH
-        - pandexo_version=3.0.0
+        - pandexo_version=2026.2
         - python_version=3.11
-        - pandeia_version=2025.7
+        - pandeia_version=2026.2
     entrypoint: /pandexo/pandexo_entrypoint.sh
+    environment:
+      PSF_DIR: /data/pandeia_psfs
     deploy:
       resources:
         limits:
           memory: 64g
     volumes:
       - exoctk_data:/data/exoctk
-      - pandeia_data:/data/pandeia
-      - synphot_data:/data/trds
+      - pandeia_data:/data/pandeia:ro
+      - pandeia_psfs:/data/pandeia_psfs:ro
+      - synphot_data:/data/trds:ro
     ports:
       - "1111:1111"
     restart: unless-stopped
@@ -79,6 +82,12 @@ volumes:
          type: none
          o: bind
          device: $pandeia_refdata
+  pandeia_psfs:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: $pandeia_psfs
   synphot_data:
       driver: local
       driver_opts:
