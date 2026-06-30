@@ -1128,7 +1128,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     # Check to see if there is a precomputed DB for this aperture in the user's
     # environment variables if they don't explicitly supply one as 'target_db'
     if target_db is None:
-        db_path = os.environ['EXOCTK_CONTAM_CACHE']
+        db_path = os.environ.get('EXOCTK_CONTAM_CACHE', None)
         if db_path is not None:
             target_db = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))[0]
 

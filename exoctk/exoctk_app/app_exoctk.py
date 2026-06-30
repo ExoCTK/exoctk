@@ -389,7 +389,7 @@ def run_contam_visibility_task(self, params):
     task_uuid = f"{self.request.id}"
     params["task"] = self
     params["plot"] = False
-    targframe, starcube, results = fs.field_simulation(**params)
+    targframe, starcube, pa_results = fs.field_simulation(**params)
 
     self.update_state(state="SAVING TARGET FRAME")
     targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
@@ -405,12 +405,11 @@ def run_contam_visibility_task(self, params):
         pickle.dump(starcube, f)
     print(f"Wrote starcube to {starcube_file}")
 
-    pa_results = [result['pa'] for result in results]
-    print("Serializing results")
+    print("Serializing PA list")
     results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
     with open(results_file, "wb") as f:
         pickle.dump(pa_results, f)
-    print(f"Wrote results to {results_file}")
+    print(f"Wrote PA list to {results_file}")
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
 
