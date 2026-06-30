@@ -11,6 +11,21 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
     """Use the jwst_gtvt to obtain positions of exoplanet.
     """
 
+    # ***** HACK HACK HACK HACK HACK *****
+    # I don't know why the input RA and DEC values sometimes end in a colon (':'),
+    # I only know that, when it does, the ephemeris errors out, and so does the
+    # calculation.
+    #
+    # As such, the only thing I can do right now to fix it is to kill any trailing
+    # characters that aren't numeric or decimals.
+    #
+    # When Joe is able to, this should be fixed at the source.
+    # ***** HACK HACK HACK HACK HACK *****
+    while ra[-1] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.']:
+        ra = ra[:-1]
+    while dec[-1] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.']:
+        dec = dec[:-1]
+
     # Set ephemeris to go from Cycle 3 to Cycle 6:
     eph = Ephemeris(start_date=Time('2024-07-30'), end_date=Time('2028-07-30'))
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)

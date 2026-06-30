@@ -10,3 +10,4 @@ from . import time_extensionsx
 from . import f_visibilityPeriods
 from . import quaternionx
 from . import field_simulator
+from . import precompute
