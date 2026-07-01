@@ -24,6 +24,8 @@ ENV FLASK_RUN_HOST="0.0.0.0"
 ENV FLASK_RUN_PORT="5000"
 ENV SHARED_DATA_DIR="/exoctk/data"
 ENV EXOCTK_CONTAM_CACHE="/exoctk/cache"
+ENV pandeia_refdata=/data/pandeia
+ENV pandeia_psfs=/data/pandeia
 
 # Install necessary base software
 RUN apk update
@@ -34,6 +36,7 @@ RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 WORKDIR /exoctk
 
 RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
+RUN pip install pandeia.engine
 
 ARG exoctk_repo
 

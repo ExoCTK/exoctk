@@ -20,6 +20,7 @@ services:
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
+      - pandeia_data:/data/pandeia:ro
       - exoctk_cache:/exoctk/cache
     ports:
       - "5000:5000"
@@ -37,6 +38,8 @@ services:
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
+      - pandeia_data:/data/pandeia:ro
+      - exoctk_cache:/exoctk/cache
     depends_on:
       - redis
       - exoctk
