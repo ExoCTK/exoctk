@@ -19,6 +19,7 @@ import numpy as np
 import requests
 import logging
 import sys
+from pathlib import Path
 
 from . import field_simulator as fs
 from ..utils import get_target_data, get_canonical_name
@@ -114,7 +115,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         raise NameError(f"Did not recognize the aperture '{aperture}'")
 
     # Generate the database file
-    if overwrite:
+    if overwrite or not Path(filename).is_file():
         
         # Save canonical name
         lookup = {}
@@ -124,7 +125,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         with h5py.File(filename, "w") as f:
             for targname in target_names:
                 try:
-    
+
+                    print(f"\tProcessing {targname}")
                     # Canonical name and get coordinates
                     name = get_canonical_name(targname)
                     data, _ = get_target_data(name)
@@ -156,9 +158,11 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     count += 1
     
                 except Exception as e:
+                    print(f"\t\tCould not add {name}")
                     logging.info(f"Could not add {name}: \n{e}")
     
         logging.info(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
+        print(f"Saved {count}/{len(target_names)} exoplanets to {filename}")
 
     else:
 
@@ -173,6 +177,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
             if not lookup[targname].get('filled', False):
 
                 try:
+                    print(f"\tProcessing {targname}")
                     # Run contamination tool
                     target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
 
@@ -182,10 +187,13 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     logging.info(f"Saved '{targname}' contamination results to {filename}")
 
                 except Exception as e:
+                    print(f"\t\tTarget {targname} not saved")
                     logging.info(f"Target '{targname}' NOT saved: {e}")
 
             else:
+                print(f"\tTarget {targname} already processed")
                 logging.info(f"Target '{targname}' already saved to {filename}")
 
         else:
+            print(f"\t\t{targname} not found in {filename}")
             logging.info(f"{targname} not found in {filename}.")
