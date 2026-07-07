@@ -19,6 +19,7 @@ import numpy as np
 import requests
 import logging
 import sys
+import time
 from pathlib import Path
 
 from . import field_simulator as fs
@@ -126,7 +127,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
             for targname in target_names:
                 try:
 
-                    print(f"\tProcessing {targname}")
+                    print(f"\tProcessing {targname} at {time.time()}")
                     # Canonical name and get coordinates
                     name = get_canonical_name(targname)
                     data, _ = get_target_data(name)
@@ -177,7 +178,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
             if not lookup[targname].get('filled', False):
 
                 try:
-                    print(f"\tProcessing {targname}")
+                    print(f"\tProcessing {targname} at {time.time()}")
                     # Run contamination tool
                     target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
 
