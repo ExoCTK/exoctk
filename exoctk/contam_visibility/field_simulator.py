@@ -5,6 +5,7 @@ A module to calculate the contamination and visibility of a target on a JWST det
 """
 
 from copy import copy
+from datetime import datetime
 from functools import partial
 import glob
 import logging
@@ -1138,10 +1139,23 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     # Require target_db and targname
     # Require None for binComp and target_date, since these change the results
     precomputed = False
-    if target_db is not None and targname is not None and binComp is None and target_date is None:
-        grp_name = get_canonical_name(targname).strip().replace("/", "_")
-        with h5py.File(target_db, "r") as f:
-            precomputed = grp_name in f
+    if target_db is not None:
+        logging.info(f"Found target DB {target_db}")
+        if targname is not None:
+            logging.info(f"Target name is {targname}")
+            if binComp is None:
+                logging.info(f"No binary companion included")
+                if target_date is None or str(target_date) == datetime.now().strftime("%Y"):
+                    logging.info(f"No epoch specified")
+                    grp_name = get_canonical_name(targname).strip().replace("/", "_")
+                    with h5py.File(target_db, "r") as f:
+                        precomputed = grp_name in f
+                else:
+                    logging.info("Can't precompute with non-current")
+            else:
+                logging.info("Can't precompute with binary companion")
+    else:
+        logging.warning(f"Precomputed database {target_db} not found")
 
     # Grab data from DB if precomputed
     if precomputed:
