@@ -195,5 +195,5 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                 logging.info(f"Target '{targname}' already saved to {filename}")
 
         else:
-            print(f"\t\t{targname} not found in {filename}")
+            print(f"\t{targname} not found in {filename}")
             logging.info(f"{targname} not found in {filename}.")
