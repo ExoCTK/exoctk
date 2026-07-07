@@ -1146,7 +1146,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
             if binComp is None:
                 logging.info(f"No binary companion included")
                 if target_date is None or str(target_date) == datetime.now().strftime("%Y"):
-                    logging.info(f"No epoch specified")
+                    logging.info(f"Looking for target in database")
                     grp_name = get_canonical_name(targname).strip().replace("/", "_")
                     with h5py.File(target_db, "r") as f:
                         precomputed = grp_name in f
@@ -1154,6 +1154,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
                     logging.info("Can't precompute with non-current")
             else:
                 logging.info("Can't precompute with binary companion")
+        else:
+            logging.info(f"Target name {targname} is None")
     else:
         logging.warning(f"Precomputed database {target_db} not found")
 
