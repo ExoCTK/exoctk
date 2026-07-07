@@ -1148,7 +1148,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
                     logging.info(f"Looking for target in database")
                     grp_name = get_canonical_name(targname).strip().replace("/", "_")
                     with h5py.File(target_db, "r") as f:
-                        precomputed = grp_name in f
+                        if grp_name in f:
+                            targframes, starcube, attrs = fetch_contam_results(targname, target_db)
+                            precomputed = "goodPA_list" in attrs
                 else:
                     logging.info("Can't precompute with non-current")
             else:
