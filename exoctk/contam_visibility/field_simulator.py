@@ -15,7 +15,6 @@ import re
 import sys
 import time
 import logging
-import datetime
 import io
 import requests
 from urllib.parse import quote_plus
@@ -58,10 +57,10 @@ logging.basicConfig(
     force=True
 )
 
-_last_time = datetime.datetime.now()
+_last_time = datetime.now()
 def log_checkpoint(message):
     global _last_time
-    now = datetime.datetime.now()
+    now = datetime.now()
     elapsed = (now - _last_time).total_seconds()
     logging.info(f'{message} (Elapsed: {elapsed:.2f} seconds)')
     _last_time = now
