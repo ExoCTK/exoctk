@@ -160,7 +160,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
     
                 except Exception as e:
                     print(f"\t\tCould not add {name}")
-                    logging.info(f"Could not add {name}: \n{e}")
+                    logging.error(f"Could not add {name}: \n{e}")
+                    logging.exception(e)
     
         logging.info(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
         print(f"Saved {count}/{len(target_names)} exoplanets to {filename}")
@@ -189,7 +190,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
                 except Exception as e:
                     print(f"\t\tTarget {targname} not saved")
-                    logging.info(f"Target '{targname}' NOT saved: {e}")
+                    logging.error(f"Target '{targname}' NOT saved: {e}")
+                    logging.exception(e)
 
             else:
                 print(f"\tTarget {targname} already processed")
