@@ -69,6 +69,7 @@ def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, g
 
         if plane_index.size == 0:
             # All-zero contamination
+            logging.info(f"Target trace {type(target_trace)}: {target_trace}")
             grp["contamination"].resize((0, target_trace.shape[0], target_trace.shape[1]))
             grp["plane_index"].resize((0,))
         else:
