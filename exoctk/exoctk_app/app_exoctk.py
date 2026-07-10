@@ -681,17 +681,28 @@ def contam_visibility():
             badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
             print("Made PA list")
 
-            # Make old contam plot
-            starcube_targ = np.zeros((362, 2048, 96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
-            print("Starcube Step 1")
-            starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
-            print("Starcube Step 2")
-            starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
-            print("Starcube Step 3")
-            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-            print("Made target starcube")
-            contam_plot = cf.contam(starcube_targ, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
-            print("Made contamination Plot")
+            if 'DHS' in form.inst.data:
+                pctlines = fs.fraction_contaminated(
+                    form.inst.data, targframe, starcube)
+                contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+                print("Made DHS contamination plot")
+            else:
+                # Make legacy SOSS contamination plot
+                starcube_targ = np.zeros(
+                    (362, 2048,
+                     96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
+                print("Starcube Step 1")
+                starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
+                print("Starcube Step 2")
+                starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
+                print("Starcube Step 3")
+                starcube_targ[2:, :, :] = starcube.swapaxes(
+                    1, 2)[:, ::-1, ::-1]
+                print("Made target starcube")
+                contam_plot = cf.contam(
+                    starcube_targ, form.inst.data,
+                    targetName=form.targname.data, badPAs=badPAs)
+                print("Made SOSS contamination plot")
 
             # Get scripts
             contam_js = INLINE.render_js()

@@ -32,6 +32,7 @@ from pandas import DataFrame
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
+from exoctk.exoctk_app.form_validation import ContamVisForm
 
 # Determine if tests are being run on Github Actions
 ON_GITHUB_ACTIONS = '/home/runner' in os.path.expanduser('~') or '/Users/runner' in os.path.expanduser('~')
@@ -115,3 +116,11 @@ def test_contamination_not_supported(aperture):
     """Visibility-only modes must not run contamination calculations."""
 
     assert not field_simulator.contamination_supported(aperture)
+
+
+def test_dhs_modes_available_in_web_form():
+    """The web form exposes both supported NIRCam DHS filters."""
+
+    choices = dict(ContamVisForm.inst.kwargs['choices'])
+    assert choices['NRCA5_40STRIPE1_DHS_F322W2'] == 'NIRCam - DHS - F322W2'
+    assert choices['NRCA5_40STRIPE1_DHS_F444W'] == 'NIRCam - DHS - F444W'
