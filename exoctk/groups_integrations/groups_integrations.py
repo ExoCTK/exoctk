@@ -40,7 +40,8 @@ import numpy as np
 from scipy import interpolate
 
 
-def calc_duration_time(num_groups, num_integrations, num_reset_frames, frame_time, frames_per_group=1):
+def calc_duration_time(num_groups, num_integrations, num_reset_frames,
+                       frame_time, frames_per_group=1, num_skips=0):
     """Calculates duration time (or exposure duration as told by APT)
 
     Parameters
@@ -55,6 +56,8 @@ def calc_duration_time(num_groups, num_integrations, num_reset_frames, frame_tim
         Frame time (in seconds)
     frames_per_group : int, optional
         Frames per group -- always one except brown dwarves
+    num_skips : int, optional
+        Frames skipped between groups.
 
     Returns
     -------
@@ -62,7 +65,8 @@ def calc_duration_time(num_groups, num_integrations, num_reset_frames, frame_tim
         Duration time (in seconds).
     """
 
-    duration_time = frame_time * (num_groups * frames_per_group + num_reset_frames) * num_integrations
+    integration_frames = num_groups * (frames_per_group + num_skips) - num_skips
+    duration_time = frame_time * (integration_frames + num_reset_frames) * num_integrations
 
     return duration_time
 
@@ -170,7 +174,8 @@ def calc_integration_time(num_groups, frame_time, frames_per_group, num_skips):
     return integration_time
 
 
-def calc_num_integrations(transit_time, num_groups, num_reset_frames, frame_time, frames_per_group):
+def calc_num_integrations(transit_time, num_groups, num_reset_frames,
+                          frame_time, frames_per_group, num_skips=0):
     """Calculates number of integrations required.
 
     Parameters
@@ -185,6 +190,8 @@ def calc_num_integrations(transit_time, num_groups, num_reset_frames, frame_time
         The frame time (in seconds)
     frames_per_group : int
         Frames per group -- always 1 except maybe for brown dwarves
+    num_skips : int, optional
+        Frames skipped between groups.
 
     Returns
     -------
@@ -192,7 +199,10 @@ def calc_num_integrations(transit_time, num_groups, num_reset_frames, frame_time
         The required number of integraitions.
     """
 
-    num_integrations = math.ceil((float(transit_time) * 3600) / (frame_time * (num_groups * frames_per_group + num_reset_frames)))
+    integration_frames = num_groups * (frames_per_group + num_skips) - num_skips
+    num_integrations = math.ceil(
+        (float(transit_time) * 3600) /
+        (frame_time * (integration_frames + num_reset_frames)))
 
     return num_integrations
 
@@ -475,9 +485,26 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     duration_time_ta_max = calc_duration_time(max_ta_groups, 1, 1, ta_frame_time)
 
     # Science obs
+    # NIRCam time-series observations support several readout patterns.  Keep
+    # RAPID as the default so existing API callers retain the old behaviour.
+    readout_patterns = {
+        'rapid': (1, 0),
+        'bright2': (2, 0),
+        'shallow4': (4, 1),
+    }
+    readout_pattern = str(params.get('readout_pattern', 'rapid')).lower()
+    if params['ins'] == 'nircam':
+        if readout_pattern not in readout_patterns:
+            raise ValueError('Unsupported NIRCam readout pattern: {}'.format(
+                readout_pattern))
+        frames_per_group, num_skips = readout_patterns[readout_pattern]
+    else:
+        readout_pattern = 'rapid'
+
     # Figure out the rows/cols/amps/pixel_size and saturation
-    instrument_params = set_params_from_instrument(params['ins'], params['subarray'])
-    frame_time = set_frame_time(params['infile'], params['ins'], params['subarray'])
+    requested_amps = params.get('num_amps') if params['ins'] == 'nircam' else None
+    instrument_params = set_params_from_instrument(
+        params['ins'], params['subarray'], requested_amps)
 
     # Run all the calculations
     num_rows, num_columns, num_amps, pixel_size, frame_time, num_reset_frames = instrument_params
@@ -487,10 +514,19 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     num_groups, saturation_rate = interpolate_from_pandeia(
         params['mag'], params['ins'], params['filt'], params['subarray'], params['mod'], params['band'],
         frame_time, params['sat_max'], params['infile'])
+    if frames_per_group != 1 or num_skips:
+        max_exposure_frames = num_groups
+        num_groups = np.floor(
+            (max_exposure_frames + num_skips) /
+            (frames_per_group + num_skips))
+        num_groups = num_groups or 1
     if str(params['n_group']) == 'optimize':
         params['n_group'] = int(num_groups)
     else:
         params['n_group'] = int(float(params['n_group']))
+    if params['ins'] == 'nircam':
+        params['group_limit_applied'] = params['n_group'] > 100
+        params['n_group'] = min(params['n_group'], 100)
 
     # Aditional helpful params
     # Calculate times/ramps/etc
@@ -498,11 +534,15 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     ramp_time = calc_ramp_time(integration_time, num_reset_frames, frame_time)
 
     # Calculate nubmer of integrations (THE MEAT)
-    num_integrations = calc_num_integrations(params['obs_time'], params['n_group'], num_reset_frames, frame_time, frames_per_group)
+    num_integrations = calc_num_integrations(
+        params['obs_time'], params['n_group'], num_reset_frames, frame_time,
+        frames_per_group, num_skips)
 
     # Other things that may come in handy who knows?
     exposure_time = calc_exposure_time(num_integrations, ramp_time)
-    duration_time = calc_duration_time(params['n_group'], num_integrations, num_reset_frames, frame_time, frames_per_group)
+    duration_time = calc_duration_time(
+        params['n_group'], num_integrations, num_reset_frames, frame_time,
+        frames_per_group, num_skips)
     observation_efficiency = calc_observation_efficiency(exposure_time, duration_time)
 
     # Update params with new information
@@ -513,7 +553,8 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     params['frames_per_group'] = frames_per_group
     params['frame_time'] = round(frame_time, 3)
     params['integration_time'] = round(integration_time, 3)
-    params['max_saturation_prediction'] = round(saturation_rate * frame_time * params['n_group'], 3)
+    params['max_saturation_prediction'] = round(
+        saturation_rate * integration_time, 3)
     params['max_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * max_ta_groups, 3)
     params['min_saturation_ta'] = round(saturation_rate_ta * ta_frame_time * min_ta_groups, 3)
     params['max_ta_groups'] = int(max_ta_groups)
@@ -524,6 +565,8 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     params['num_reset_frames'] = num_reset_frames
     params['num_rows'] = num_rows
     params['num_skips'] = num_skips
+    if params['ins'] == 'nircam':
+        params['readout_pattern'] = readout_pattern.upper()
     params['observation_efficiency'] = round(observation_efficiency, 3)
     params['ramp_time'] = round(ramp_time, 3)
     params['ta_frame_time'] = ta_frame_time
@@ -531,7 +574,7 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
     return params
 
 
-def set_params_from_instrument(instrument, subarray):
+def set_params_from_instrument(instrument, subarray, num_amps=None):
     """Sets/collects the running parameters from the instrument.
 
     Parameters
@@ -576,13 +619,16 @@ def set_params_from_instrument(instrument, subarray):
 
         pixel_size = (18e-4)**2
         if subarray == 'full':
-            rows, cols, amps = 2048, 2048, 4
+            rows, cols = 2048, 2048
         elif subarray == 'subgrism256':
-            rows, cols, amps = 256, 256, 1
+            rows, cols = 256, 2048
         elif subarray == 'subgrism128':
-            rows, cols, amps = 128, 2048, 1
+            rows, cols = 128, 2048
         elif subarray == 'subgrism64':
-            rows, cols, amps = 64, 2048, 1
+            rows, cols = 64, 2048
+        amps = 4 if num_amps is None else int(num_amps)
+        if amps not in (1, 4):
+            raise ValueError('NIRCam num_amps must be 1 or 4')
         frame_time = calc_frame_time(cols, rows, amps, instrument)
 
     elif instrument == 'miri':

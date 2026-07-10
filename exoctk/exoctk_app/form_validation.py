@@ -80,6 +80,13 @@ class GroupsIntsForm(BaseForm):
     mod = SelectField('mod', choices=models)
     n_group = IntegerField('n_group', default=0)
     ins = SelectField('ins', default='miri', choices=[('niriss', 'NIRISS'), ('nircam', 'NIRCam'), ('nirspec', 'NIRSpec'), ('miri', 'MIRI')])
+    nircam_num_amps = SelectField('nircam_num_amps', default='4',
+                                  choices=[('4', '4 amplifiers'),
+                                           ('1', '1 amplifier')])
+    nircam_readout_pattern = SelectField(
+        'nircam_readout_pattern', default='rapid',
+        choices=[('rapid', 'RAPID'), ('bright2', 'BRIGHT2'),
+                 ('shallow4', 'SHALLOW4')])
 
     # Filter selects
     miri_filt = SelectField('miri_filt', choices=[('lrs', 'LRS')])
