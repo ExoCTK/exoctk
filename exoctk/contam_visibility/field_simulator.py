@@ -134,6 +134,20 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.835, 5.084], 'trim': [0, 1, 1250, 1]},
              'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
 
+CONTAMINATION_APERTURES = frozenset({
+    'NIS_SOSSFULL',
+    'NIS_SUBSTRIP96',
+    'NIS_SUBSTRIP256',
+    'NRCA5_40STRIPE1_DHS_F322W2',
+    'NRCA5_40STRIPE1_DHS_F444W',
+})
+
+
+def contamination_supported(aperture):
+    """Return whether contamination calculations support an aperture."""
+
+    return aperture in CONTAMINATION_APERTURES
+
 DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
                                               'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},

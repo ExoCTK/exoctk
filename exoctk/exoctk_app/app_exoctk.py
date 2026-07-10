@@ -451,7 +451,8 @@ def contam_visibility():
     """
     # Load default form
     form = fv.ContamVisForm()
-    form.calculate_contam_submit.disabled = False
+    form.calculate_contam_submit.disabled = not fs.contamination_supported(
+        form.inst.data)
 
     if request.method == 'GET':
 
@@ -497,15 +498,20 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if form.inst.data == 'NIRSpec':
-            form.calculate_contam_submit.disabled = True
-        else:
-            form.calculate_contam_submit.disabled = False
+        form.calculate_contam_submit.disabled = not fs.contamination_supported(
+            form.inst.data)
 
         # Send it back to the main page
         return render_template('contam_visibility.html', form=form)
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
+
+        if (form.calculate_contam_submit.data and
+                not fs.contamination_supported(form.inst.data)):
+            form.calculate_contam_submit.disabled = True
+            form.inst.errors.append(
+                'Contamination calculations are available only for SOSS and DHS modes.')
+            return render_template('contam_visibility.html', form=form)
 
         if form.inst.data == "NIRSpec":
             instrument = form.inst.data

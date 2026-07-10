@@ -89,3 +89,29 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
+
+
+@pytest.mark.parametrize('aperture', [
+    'NIS_SOSSFULL',
+    'NIS_SUBSTRIP96',
+    'NIS_SUBSTRIP256',
+    'NRCA5_40STRIPE1_DHS_F322W2',
+    'NRCA5_40STRIPE1_DHS_F444W',
+])
+def test_contamination_supported(aperture):
+    """Contamination calculations support only SOSS and DHS apertures."""
+
+    assert field_simulator.contamination_supported(aperture)
+
+
+@pytest.mark.parametrize('aperture', [
+    'NRCA5_GRISM256_F322W2',
+    'NRCA5_GRISM256_F444W',
+    'MIRIM_SLITLESSPRISM',
+    'NIRSpec',
+    None,
+])
+def test_contamination_not_supported(aperture):
+    """Visibility-only modes must not run contamination calculations."""
+
+    assert not field_simulator.contamination_supported(aperture)
