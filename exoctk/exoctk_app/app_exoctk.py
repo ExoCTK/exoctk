@@ -324,9 +324,14 @@ def groups_integrations():
             if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
             if results_dict.get('group_limit_applied'):
-                one_group_error = ('NIRCam is limited to 100 groups per integration in APT. '
-                                   'The result has been limited to 100; '
-                                   'consider a 1-amplifier readout or a different readout pattern.')
+                instrument = {'nircam': 'NIRCam', 'niriss': 'NIRISS',
+                              'nirspec': 'NIRSpec', 'miri': 'MIRI'}[results_dict['ins']]
+                one_group_error = (
+                    f'{instrument} is limited to '
+                    f"{results_dict['group_limit']:,} groups per integration in APT. "
+                    f"The result has been limited to {results_dict['group_limit']:,}.")
+                if results_dict['ins'] == 'nircam':
+                    one_group_error += ' Consider a different readout pattern.'
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
@@ -442,7 +447,7 @@ def task_status(task_id):
 @app_exoctk.route('/contam_visibility', methods=['GET', 'POST'])
 def contam_visibility():
     """The contamination and visibility form page
-    
+
     Returns
     -------
     ``flask.render_template`` obj
