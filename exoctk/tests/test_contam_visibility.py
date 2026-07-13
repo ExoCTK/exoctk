@@ -93,19 +93,19 @@ def test_resolve_target():
 
 
 @pytest.mark.parametrize('aperture', [
-    'NIS_SOSSFULL',
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',
     'NRCA5_40STRIPE1_DHS_F322W2',
     'NRCA5_40STRIPE1_DHS_F444W',
 ])
 def test_contamination_supported(aperture):
-    """Contamination calculations support only SOSS and DHS apertures."""
+    """The web interface enables contamination only for its supported modes."""
 
     assert field_simulator.contamination_supported(aperture)
 
 
 @pytest.mark.parametrize('aperture', [
+    'NIS_SOSSFULL',
     'NRCA5_GRISM256_F322W2',
     'NRCA5_GRISM256_F444W',
     'MIRIM_SLITLESSPRISM',
