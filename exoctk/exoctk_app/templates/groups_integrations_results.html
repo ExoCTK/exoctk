@@ -97,6 +97,10 @@
                             <th>Subarray</th>
                             <th>Maximum Saturation Level</th>
                             <th> Frame Time </th>
+                            {% if results_dict['ins'] == 'NIRCam' %}
+                                <th> Amplifiers </th>
+                                <th> Readout Pattern </th>
+                            {% endif %}
                         </tr>
                         <tr>
                             <td>{{ results_dict['ins'] }}</td>
@@ -104,6 +108,10 @@
                             <td>{{ results_dict['subarray'] }}</td>
                             <td>{{ results_dict['sat_max']}}</td>
                             <td>{{ results_dict['frame_time'] }}</td>
+                            {% if results_dict['ins'] == 'NIRCam' %}
+                                <td>{{ results_dict['num_amps'] }}</td>
+                                <td>{{ results_dict['readout_pattern'] }}</td>
+                            {% endif %}
                         </tr>
                     </table>
                     </center>

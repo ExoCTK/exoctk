@@ -290,6 +290,10 @@ def groups_integrations():
                   'filt_ta'.format(ins): getattr(form, '{}_filt_ta'.format(ins)).data,
                   'subarray_ta'.format(ins): getattr(form, '{}_subarray_ta'.format(ins)).data}
 
+        if ins == 'nircam':
+            params['num_amps'] = int(form.nircam_num_amps.data)
+            params['readout_pattern'] = form.nircam_readout_pattern.data
+
         # Get ngroups
         params['n_group'] = 'optimize' if form.n_group.data == 0 else int(form.n_group.data)
 
@@ -319,6 +323,10 @@ def groups_integrations():
                 results_dict['duration_time_ta_max'] = 0
             if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
+            if results_dict.get('group_limit_applied'):
+                one_group_error = ('NIRCam is limited to 100 groups per integration in APT. '
+                                   'The result has been limited to 100; '
+                                   'consider a 1-amplifier readout or a different readout pattern.')
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
