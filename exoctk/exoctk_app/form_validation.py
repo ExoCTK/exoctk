@@ -9,6 +9,7 @@ from wtforms.validators import InputRequired, Length, NumberRange, AnyOf, Valida
 from wtforms.widgets import ListWidget, CheckboxInput
 
 from exoctk.modelgrid import ModelGrid
+from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 from exoctk.utils import get_env_variables, FILTERS_LIST, PROFILES
 from exoctk.throughputs import Throughput
 
@@ -42,7 +43,7 @@ class ContamVisForm(BaseForm):
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
     v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
     epoch = IntegerField('epoch', default=Time.now().value.year, validators=[NumberRange(min=2000, max=2050, message='Epoch must be between 2000 and 2050')])
-    inst = SelectField('inst', choices=[('NIS_SUBSTRIP256', 'NIRISS - SOSS - SUBSTRIP256'), ('NIS_SUBSTRIP96', 'NIRISS - SOSS - SUBSTRIP96'), ('NRCA5_GRISM256_F322W2', 'NIRCam - Grism Time Series - F322W2 (Visibility Only)'), ('NRCA5_GRISM256_F444W', 'NIRCam - Grism Time Series - F444W (Visibility Only)'), ('MIRIM_SLITLESSPRISM', 'MIRI - LRS (Visibility Only)'), ('NIRSpec', 'NIRSpec (Visibility Only)')])
+    inst = SelectField('inst', choices=CONTAM_VISIBILITY_MODES)
     delta_mag = DecimalField('delta_mag', default=None, validators=[Optional()])
     dist = DecimalField('dist', default=None, validators=[Optional()])
     pa = DecimalField('pa', default=None, validators=[Optional(), NumberRange(min=0, max=360, message='PA must be between 0 and 360 degrees')])
@@ -80,6 +81,13 @@ class GroupsIntsForm(BaseForm):
     mod = SelectField('mod', choices=models)
     n_group = IntegerField('n_group', default=0)
     ins = SelectField('ins', default='miri', choices=[('niriss', 'NIRISS'), ('nircam', 'NIRCam'), ('nirspec', 'NIRSpec'), ('miri', 'MIRI')])
+    nircam_num_amps = SelectField('nircam_num_amps', default='4',
+                                  choices=[('4', '4 amplifiers'),
+                                           ('1', '1 amplifier')])
+    nircam_readout_pattern = SelectField(
+        'nircam_readout_pattern', default='rapid',
+        choices=[('rapid', 'RAPID'), ('bright2', 'BRIGHT2'),
+                 ('shallow4', 'SHALLOW4')])
 
     # Filter selects
     miri_filt = SelectField('miri_filt', choices=[('lrs', 'LRS')])

@@ -32,6 +32,7 @@ from pandas import DataFrame
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
+from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 
 # Determine if tests are being run on Github Actions
 ON_GITHUB_ACTIONS = '/home/runner' in os.path.expanduser('~') or '/Users/runner' in os.path.expanduser('~')
@@ -89,3 +90,37 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
+
+
+@pytest.mark.parametrize('aperture', [
+    'NIS_SUBSTRIP96',
+    'NIS_SUBSTRIP256',
+    'NRCA5_40STRIPE1_DHS_F322W2',
+    'NRCA5_40STRIPE1_DHS_F444W',
+])
+def test_contamination_supported(aperture):
+    """The web interface enables contamination only for its supported modes."""
+
+    assert field_simulator.contamination_supported(aperture)
+
+
+@pytest.mark.parametrize('aperture', [
+    'NIS_SOSSFULL',
+    'NRCA5_GRISM256_F322W2',
+    'NRCA5_GRISM256_F444W',
+    'MIRIM_SLITLESSPRISM',
+    'NIRSpec',
+    None,
+])
+def test_contamination_not_supported(aperture):
+    """Visibility-only modes must not run contamination calculations."""
+
+    assert not field_simulator.contamination_supported(aperture)
+
+
+def test_dhs_modes_available_in_web_form():
+    """The web form exposes both supported NIRCam DHS filters."""
+
+    choices = dict(CONTAM_VISIBILITY_MODES)
+    assert choices['NRCA5_40STRIPE1_DHS_F322W2'] == 'NIRCam - DHS - F322W2'
+    assert choices['NRCA5_40STRIPE1_DHS_F444W'] == 'NIRCam - DHS - F444W'

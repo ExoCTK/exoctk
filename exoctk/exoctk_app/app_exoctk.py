@@ -290,6 +290,10 @@ def groups_integrations():
                   'filt_ta'.format(ins): getattr(form, '{}_filt_ta'.format(ins)).data,
                   'subarray_ta'.format(ins): getattr(form, '{}_subarray_ta'.format(ins)).data}
 
+        if ins == 'nircam':
+            params['num_amps'] = int(form.nircam_num_amps.data)
+            params['readout_pattern'] = form.nircam_readout_pattern.data
+
         # Get ngroups
         params['n_group'] = 'optimize' if form.n_group.data == 0 else int(form.n_group.data)
 
@@ -319,6 +323,10 @@ def groups_integrations():
                 results_dict['duration_time_ta_max'] = 0
             if results_dict['max_saturation_prediction'] > results_dict['sat_max']:
                 one_group_error = 'This many groups will oversaturate the detector! Proceed with caution!'
+            if results_dict.get('group_limit_applied'):
+                one_group_error = ('NIRCam is limited to 100 groups per integration in APT. '
+                                   'The result has been limited to 100; '
+                                   'consider a 1-amplifier readout or a different readout pattern.')
             # Do some formatting for a prettier end product
             results_dict['filt'] = results_dict['filt'].upper()
             results_dict['filt_ta'] = results_dict['filt_ta'].upper()
@@ -443,7 +451,8 @@ def contam_visibility():
     """
     # Load default form
     form = fv.ContamVisForm()
-    form.calculate_contam_submit.disabled = False
+    form.calculate_contam_submit.disabled = not fs.contamination_supported(
+        form.inst.data)
 
     if request.method == 'GET':
 
@@ -489,15 +498,20 @@ def contam_visibility():
     if form.mode_submit.data:
 
         # Update the button
-        if form.inst.data == 'NIRSpec':
-            form.calculate_contam_submit.disabled = True
-        else:
-            form.calculate_contam_submit.disabled = False
+        form.calculate_contam_submit.disabled = not fs.contamination_supported(
+            form.inst.data)
 
         # Send it back to the main page
         return render_template('contam_visibility.html', form=form)
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
+
+        if (form.calculate_contam_submit.data and
+                not fs.contamination_supported(form.inst.data)):
+            form.calculate_contam_submit.disabled = True
+            form.inst.errors.append(
+                'Contamination calculations are available only for SOSS and DHS modes.')
+            return render_template('contam_visibility.html', form=form)
 
         if form.inst.data == "NIRSpec":
             instrument = form.inst.data
@@ -669,17 +683,28 @@ def contam_visibility():
             badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
             print("Made PA list")
 
-            # Make old contam plot
-            starcube_targ = np.zeros((362, 2048, 96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
-            print("Starcube Step 1")
-            starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
-            print("Starcube Step 2")
-            starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
-            print("Starcube Step 3")
-            starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
-            print("Made target starcube")
-            contam_plot = cf.contam(starcube_targ, form.inst.data, targetName=form.targname.data, badPAs=badPAs)
-            print("Made contamination Plot")
+            if 'DHS' in form.inst.data:
+                pctlines = fs.fraction_contaminated(
+                    form.inst.data, targframe, starcube)
+                contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+                print("Made DHS contamination plot")
+            else:
+                # Make legacy SOSS contamination plot
+                starcube_targ = np.zeros(
+                    (362, 2048,
+                     96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))
+                print("Starcube Step 1")
+                starcube_targ[0, :, :] = (targframe[0]).T[::-1, ::-1]
+                print("Starcube Step 2")
+                starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
+                print("Starcube Step 3")
+                starcube_targ[2:, :, :] = starcube.swapaxes(
+                    1, 2)[:, ::-1, ::-1]
+                print("Made target starcube")
+                contam_plot = cf.contam(
+                    starcube_targ, form.inst.data,
+                    targetName=form.targname.data, badPAs=badPAs)
+                print("Made SOSS contamination plot")
 
             # Get scripts
             contam_js = INLINE.render_js()

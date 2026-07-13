@@ -57,6 +57,14 @@ NIRSPEC_PRISM_TEST_DATA = {
     'n_group': 'optimize',
     'infile': INFILE}
 
+NIRCAM_TEST_DATA = {
+    'ins': 'nircam', 'mag': Decimal('11.5'), 'obs_time': Decimal('3'),
+    'sat_max': Decimal('0.95'), 'sat_mode': 'well', 'time_unit': 'hour',
+    'band': 'K', 'mod': 'f5v', 'filt': 'f444w',
+    'subarray': 'subgrism256', 'filt_ta': 'f335m',
+    'subarray_ta': 'sub32tats', 'n_group': 'optimize', 'num_amps': 1,
+    'readout_pattern': 'shallow4', 'infile': INFILE}
+
 EXPECTED_RESULTS = {
     'ins': 'miri',
     'mag': Decimal('8.131'),
@@ -137,6 +145,14 @@ def test_calc_duration_time():
 
     duration_time = groups_integrations.calc_duration_time(36, 4674, 0, 0.159, 1)
     assert round(duration_time, 2) == 26753.98
+
+
+def test_calc_duration_time_with_skips():
+    """Tests that skipped frames are included in duration time."""
+
+    duration_time = groups_integrations.calc_duration_time(
+        3, 2, 1, 1, frames_per_group=4, num_skips=1)
+    assert duration_time == 30
 
 
 def test_calc_exposure_time():
@@ -230,6 +246,40 @@ def test_perform_calculation_nirspec_prism():
 
     params = groups_integrations.perform_calculation(NIRSPEC_PRISM_TEST_DATA.copy())
     assert params == NIRSPEC_PRISM_EXPECTED_RESULTS
+
+
+def test_perform_calculation_nircam_readout_options():
+    """Tests NIRCam amplifier and readout-pattern selections."""
+
+    params = groups_integrations.perform_calculation(NIRCAM_TEST_DATA.copy())
+    assert params['num_amps'] == 1
+    assert params['num_columns'] == 2048
+    assert params['frames_per_group'] == 4
+    assert params['num_skips'] == 1
+    assert params['readout_pattern'] == 'SHALLOW4'
+    assert params['frame_time'] == 5.294
+
+
+def test_nircam_group_limit():
+    """Tests the current APT limit of 100 groups per integration."""
+
+    test_data = NIRCAM_TEST_DATA.copy()
+    test_data['n_group'] = 101
+    params = groups_integrations.perform_calculation(test_data)
+    assert params['n_group'] == 100
+    assert params['group_limit_applied'] is True
+
+
+def test_set_params_from_instrument_nircam_amplifiers():
+    """Tests selectable NIRCam output amplifiers and grism dimensions."""
+
+    four_amp = groups_integrations.set_params_from_instrument(
+        'nircam', 'subgrism256', 4)
+    one_amp = groups_integrations.set_params_from_instrument(
+        'nircam', 'subgrism256', 1)
+    assert four_amp[:3] == (256, 2048, 4)
+    assert one_amp[:3] == (256, 2048, 1)
+    assert one_amp[4] > four_amp[4]
 
 
 def test_set_params_from_instrument():
