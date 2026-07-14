@@ -4,7 +4,7 @@
 ARG python_version
 FROM python:${python_version}-alpine
 
-ENV FORTGRID_DIR=/data/exoctk/fortney
+ENV FORTGRID_DIR=/data/exoctk/fortney/fortney_models.db
 ENV pandeia_refdata=/data/pandeia
 ENV PYSYN_CDBS=/data/trds
 
@@ -30,7 +30,9 @@ RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c6
 
 # Install pandexo
 ARG pandexo_branch
-ADD https://api.github.com/repos/natashabatalha/PandExo/git/refs/heads/${pandexo_branch} /tmp/pandexo_ref.json
+# This endpoint accepts either a branch name or an immutable commit SHA and
+# changes whenever the resolved commit changes, invalidating Docker's cache.
+ADD https://api.github.com/repos/natashabatalha/PandExo/commits/${pandexo_branch} /tmp/pandexo_ref.json
 RUN pip install --no-cache-dir "pandexo.engine[all]@git+https://github.com/natashabatalha/PandExo.git@${pandexo_branch}"
 
 # Add the entrypoint scripts
