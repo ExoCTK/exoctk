@@ -4,7 +4,7 @@
 ARG python_version
 FROM python:${python_version}-alpine
 
-ENV FORTGRID_DIR=/data/exoctk/fortney
+ENV FORTGRID_DIR=/data/exoctk/fortney/fortney_models.db
 ENV pandeia_refdata=/data/pandeia
 ENV PYSYN_CDBS=/data/trds
 
