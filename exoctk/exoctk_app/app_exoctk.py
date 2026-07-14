@@ -573,6 +573,7 @@ def contam_visibility():
                     'ra': ra_deg,
                     'dec': dec_deg,
                     'aperture': form.inst.data,
+                    'targname': form.targname.data,
                     'target_date': form.epoch.data,
                 }
                 if companion is not None:
@@ -589,6 +590,7 @@ def contam_visibility():
                     'ra': ra_deg,
                     'dec': dec_deg,
                     'aperture': form.inst.data,
+                    'targname': form.targname.data,
                     'target_date': form.epoch.data,
                 }
 

@@ -20,6 +20,8 @@ services:
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
+      - pandeia_data:/data/pandeia:ro
+      - exoctk_cache:/exoctk/cache
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -36,6 +38,8 @@ services:
     volumes:
       - exoctk_data:/exoctk/exoctk_data
       - shared_data:/exoctk/data
+      - pandeia_data:/data/pandeia:ro
+      - exoctk_cache:/exoctk/cache
     depends_on:
       - redis
       - exoctk
@@ -76,6 +80,12 @@ volumes:
          type: none
          o: bind
          device: $EXOCTK_DATA
+  exoctk_cache:
+      driver: local
+      driver_opts:
+        type: none
+        o: bind
+        device: $EXOCTK_CONTAM_CACHE
   pandeia_data:
       driver: local
       driver_opts:

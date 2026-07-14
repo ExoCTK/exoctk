@@ -5,6 +5,7 @@ A module to calculate the contamination and visibility of a target on a JWST det
 """
 
 from copy import copy
+from datetime import datetime
 from functools import partial
 import glob
 import logging
@@ -14,7 +15,6 @@ import re
 import sys
 import time
 import logging
-import datetime
 import io
 import requests
 from urllib.parse import quote_plus
@@ -57,10 +57,10 @@ logging.basicConfig(
     force=True
 )
 
-_last_time = datetime.datetime.now()
+_last_time = datetime.now()
 def log_checkpoint(message):
     global _last_time
-    now = datetime.datetime.now()
+    now = datetime.now()
     elapsed = (now - _last_time).total_seconds()
     logging.info(f'{message} (Elapsed: {elapsed:.2f} seconds)')
     _last_time = now
@@ -1143,16 +1143,35 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     if target_db is None:
         db_path = os.environ.get('EXOCTK_CONTAM_CACHE', None)
         if db_path is not None:
-            target_db = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))[0]
+            aperture_dbs = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))
+            if len(aperture_dbs) > 0:
+                target_db = aperture_dbs[0]
 
     # Check to see if the planet is in the DB
     # Require target_db and targname
     # Require None for binComp and target_date, since these change the results
     precomputed = False
-    if target_db is not None and targname is not None and binComp is None and target_date is None:
-        grp_name = get_canonical_name(targname).strip().replace("/", "_")
-        with h5py.File(target_db, "r") as f:
-            precomputed = grp_name in f
+    if target_db is not None:
+        logging.info(f"Found target DB {target_db}")
+        if targname is not None:
+            logging.info(f"Target name is {targname}")
+            if binComp is None:
+                logging.info(f"No binary companion included")
+                if target_date is None or str(target_date) == datetime.now().strftime("%Y"):
+                    logging.info(f"Looking for target in database")
+                    grp_name = get_canonical_name(targname).strip().replace("/", "_")
+                    with h5py.File(target_db, "r") as f:
+                        if grp_name in f:
+                            targframes, starcube, attrs = fetch_contam_results(targname, target_db)
+                            precomputed = "goodPA_list" in attrs
+                else:
+                    logging.info("Can't precompute with non-current")
+            else:
+                logging.info("Can't precompute with binary companion")
+        else:
+            logging.info(f"Target name {targname} is None")
+    else:
+        logging.warning(f"Precomputed database {target_db} not found")
 
     # Grab data from DB if precomputed
     if precomputed:
