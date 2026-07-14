@@ -72,6 +72,16 @@ RUN pip install -e '.[server,container-test]'
 # Bring it all back together
 FROM ${dev_source} AS final
 
+# Optionally install a local Pandeia release-candidate checkout.  Compose
+# supplies an inert fallback context when PANDEIA_SOURCE is unset, leaving
+# ExoCTK's normal dependency set unchanged.
+RUN --mount=type=bind,from=pandeia_rc,target=/tmp/pandeia \
+    if [ -f /tmp/pandeia/pyproject.toml ] || [ -f /tmp/pandeia/setup.py ]; then \
+        cp -a /tmp/pandeia /tmp/pandeia-build && \
+        pip install --no-cache-dir /tmp/pandeia-build && \
+        rm -rf /tmp/pandeia-build; \
+    fi
+
 # Set up the port that exoctk will listen on
 EXPOSE 5000
 
