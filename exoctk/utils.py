@@ -22,6 +22,8 @@ import numpy as np
 from svo_filters import svo
 from bokeh.plotting import figure, show
 
+from ._version import __version__
+
 try:
     from .throughputs import JWST_THROUGHPUTS
 
@@ -37,21 +39,23 @@ except TypeError:
 # Supported profiles
 PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', '3-parameter', '4-parameter']
 
-# The ExoCTK data packages are distributed as Box ZIP archives.  These links
-# are also used by the website test workflow.  The former versioned STScI tar
-# links now return a ``file_not_found`` response instead of an archive.
+PATCHVER = 'v' + '.'.join(__version__.split('.')[:2]) # So we don't have to update EXOCTK_DATA for nano releases
 DATA_URLS = {
-    'exoctk_contam': ['https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca'],
-    'groups_integrations': ['https://stsci.box.com/shared/static/1ag5x8ii1ko8h6lnoxwxljgdfw2mp894'],
-    'fortney': ['https://stsci.box.com/shared/static/702r4nkccc484noiggq5xt13agbkkevp'],
-    'generic': ['https://stsci.box.com/shared/static/p64c53rky00ojz1gvabe9hqirpat9azz'],
-    'exoctk_log': ['https://stsci.box.com/shared/static/4q75kt2xelk3zox26vii1i3clnm7nzt7'],
-    'modelgrid': ['https://stsci.box.com/shared/static/vcn1ff9nzg2qx3pnkmsz17dujjdzlsh1'],
-    'all': ['https://stsci.box.com/shared/static/vcn1ff9nzg2qx3pnkmsz17dujjdzlsh1',
-            'https://stsci.box.com/shared/static/p64c53rky00ojz1gvabe9hqirpat9azz',
-            'https://stsci.box.com/shared/static/702r4nkccc484noiggq5xt13agbkkevp',
-            'https://stsci.box.com/shared/static/1ag5x8ii1ko8h6lnoxwxljgdfw2mp894',
-            'https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca']}
+    'exoctk_contam': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz'],
+    'groups_integrations': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz'],
+    'fortney': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney{PATCHVER}.tar.gz'],
+    'generic': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic{PATCHVER}.tar.gz'],
+    'exoctk_log': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_log{PATCHVER}.tar.gz'],
+    'modelgrid': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9{PATCHVER}.tar.gz',
+                  f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1{PATCHVER}.tar.gz',
+                  f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2{PATCHVER}.tar.gz'],
+    'all': [f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ATLAS9{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_1{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/modelgrid_ACES_2{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/generic{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/fortney{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/groups_integrations{PATCHVER}.tar.gz',
+            f'https://data.science.stsci.edu/redirect/JWST/ExoCTK/compressed/exoctk_contam{PATCHVER}.tar.gz']}
 
 # If the variable is blank or doesn't exist
 HOME_DIR = os.path.expanduser('~')
@@ -274,8 +278,7 @@ def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
     Parameters
     ----------
     tool: str
-        The ExoCTK tool data to download.  ``all`` downloads every package;
-        individual package names can be used to limit the download.
+        The ExoCTK tool data to download
     exoctk_data_dir : string
         The path to where the ExoCTK data package will be downloaded.
         The default setting is the user's $HOME directory.
@@ -295,75 +298,55 @@ def download_exoctk_data(tool='all', exoctk_data_dir=EXOCTK_DATA):
     except PermissionError:
         print('Data download failed.  Unable to create {}.  Please check permissions.'.format(exoctk_data_dir))
 
-    # Select packages without mutating DATA_URLS.  The log database is useful
-    # to the application and is included with every individual package.
-    if tool == 'all':
-        package_names = ['modelgrid', 'generic', 'fortney', 'groups_integrations', 'exoctk_contam', 'exoctk_log']
-    else:
-        package_names = [tool]
-        if tool != 'exoctk_log':
-            package_names.append('exoctk_log')
+    # Select the URLs and always include the log files
+    urls = DATA_URLS[tool]
+    urls += DATA_URLS['exoctk_log']
 
-    archives = [(package_name, url)
-                for package_name in package_names
-                for url in DATA_URLS[package_name]]
-    download_paths = []
+    # Build landing paths for downloads
+    download_paths = [os.path.join(exoctk_data_dir, os.path.basename(url)) for url in urls]
 
     # Perform the downloads
-    for i, (package_name, url) in enumerate(archives):
-        landing_path = os.path.join(exoctk_data_dir, f'{package_name}_{i}.zip')
-        download_paths.append(landing_path)
-        print('({}/{}) Downloading data to {} from {}'.format(i + 1, len(archives), landing_path, url))
-        try:
-            with requests.get(url, stream=True, timeout=60) as response:
-                response.raise_for_status()
-                with open(landing_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=2048):
-                        if chunk:
-                            f.write(chunk)
-        except requests.RequestException as exc:
-            if os.path.exists(landing_path):
-                os.remove(landing_path)
-            raise RuntimeError(f'Unable to download ExoCTK data from {url}: {exc}') from exc
+    for i, url in enumerate(urls):
+        landing_path = os.path.join(exoctk_data_dir, os.path.basename(url))
+        print('({}/{}) Downloading data to {} from {}'.format(i + 1, len(urls), landing_path, url))
+        with requests.get(url, stream=True) as response:
+            with open(landing_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=2048):
+                    if chunk:
+                        f.write(chunk)
     print('\nDownload complete\n')
 
     # Uncompress data
     print('Uncompressing data:\n')
     for path in download_paths:
+        # Uncompress data
         print('\t{}'.format(path))
-        try:
-            shutil.unpack_archive(path, exoctk_data_dir)
-        except (shutil.ReadError, ValueError) as exc:
-            raise RuntimeError(f'Downloaded ExoCTK data archive is invalid: {path}') from exc
-        finally:
-            if os.path.exists(path):
-                os.remove(path)
+        shutil.unpack_archive(path, exoctk_data_dir)
+        # Remove original .tar.gz files
+        os.remove(path)
 
-    # Older model-grid archives extracted into modelgrid.* directories.  The
-    # current combined archive already has the final layout, so only organize
-    # legacy directories when they are present.
-    legacy_modelgrid = glob.glob(os.path.join(exoctk_data_dir, 'modelgrid.*'))
-    if legacy_modelgrid:
-        print('\nOrganizing files into exoctk_data/ directory')
-        modelgrid_dir = os.path.join(exoctk_data_dir, 'modelgrid')
-        os.makedirs(modelgrid_dir, exist_ok=True)
-        for source in legacy_modelgrid:
-            if not os.path.isdir(source):
-                continue
-            name = os.path.basename(source)
-            if name == 'modelgrid.ATLAS9':
-                destination = os.path.join(modelgrid_dir, 'ATLAS9')
-            elif name.startswith('modelgrid.ACES_'):
-                destination = os.path.join(modelgrid_dir, 'ACES')
-            else:
-                continue
-            os.makedirs(destination, exist_ok=True)
-            for item in glob.glob(os.path.join(source, '*')):
-                try:
-                    shutil.move(item, destination)
-                except shutil.Error:
-                    print('Unable to organize modelgrid/ directory')
-            shutil.rmtree(source)
+    # Combine modelgrid directories
+    print('\nOrganizing files into exoctk_data/ directory')
+    try:
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9'))
+        os.makedirs(os.path.join(exoctk_data_dir, 'modelgrid', 'ACES'))
+    except FileExistsError:
+        pass
+    modelgrid_files = glob.glob(os.path.join(exoctk_data_dir, 'modelgrid.*', '*'))
+    for src in modelgrid_files:
+        if 'ATLAS9' in src:
+            dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ATLAS9')
+        elif 'ACES_' in src:
+            dst = os.path.join(exoctk_data_dir, 'modelgrid', 'ACES')
+        try:
+            shutil.move(src, dst)
+        except shutil.Error:
+            print('Unable to organize modelgrid/ directory')
+
+    for dir in ['modelgrid.ATLAS9', 'modelgrid.ACES_1', 'modelgrid.ACES_2']:
+        path = os.path.join(exoctk_data_dir, dir)
+        if os.path.exists(path):
+            shutil.rmtree(path)
 
     print('Completed!')
 

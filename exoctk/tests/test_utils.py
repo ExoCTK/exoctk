@@ -20,9 +20,8 @@ Use
 from astropy.table import Table
 import numpy as np
 import pytest
-import requests
 
-from exoctk.utils import DATA_URLS, color_gen, download_exoctk_data, filter_table, get_canonical_name, get_target_data, medfilt
+from exoctk.utils import color_gen, filter_table, get_canonical_name, get_target_data, medfilt
 
 ARGS = ['planet_name', 'planet_data']
 
@@ -85,67 +84,3 @@ def test_color_gen(colormap):
 @pytest.mark.parametrize(['data', 'filter_window'], MEDFILT_DATA)
 def test_medfilt(data, filter_window):
     medfilt(data, filter_window)
-
-
-def test_download_exoctk_data_uses_selected_package_and_log(tmp_path, monkeypatch):
-    """Only the requested package and log archive should be downloaded."""
-
-    requests_seen = []
-    archives_seen = []
-
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def raise_for_status(self):
-            return None
-
-        def iter_content(self, chunk_size):
-            yield b'archive data'
-
-    def get(url, **kwargs):
-        requests_seen.append((url, kwargs))
-        return Response()
-
-    def unpack_archive(path, destination):
-        archives_seen.append((path, destination))
-
-    monkeypatch.setattr(requests, 'get', get)
-    monkeypatch.setattr('exoctk.utils.shutil.unpack_archive', unpack_archive)
-
-    contam_urls = list(DATA_URLS['exoctk_contam'])
-    log_urls = list(DATA_URLS['exoctk_log'])
-    download_exoctk_data('exoctk_contam', str(tmp_path))
-
-    assert [url for url, _ in requests_seen] == contam_urls + log_urls
-    assert all(kwargs == {'stream': True, 'timeout': 60} for _, kwargs in requests_seen)
-    assert len(archives_seen) == 2
-    assert all(destination == str(tmp_path) for _, destination in archives_seen)
-    assert DATA_URLS['exoctk_contam'] == contam_urls
-
-
-def test_download_exoctk_data_reports_http_failure(tmp_path, monkeypatch):
-    """An HTTP error should not be passed to the archive extractor."""
-
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def raise_for_status(self):
-            raise requests.HTTPError('404 Not Found')
-
-        def iter_content(self, chunk_size):
-            yield b'not reached'
-
-    monkeypatch.setattr('exoctk.utils.requests.get', lambda *args, **kwargs: Response())
-
-    with pytest.raises(RuntimeError, match='Unable to download ExoCTK data'):
-        download_exoctk_data('exoctk_contam', str(tmp_path))
-
-    assert list(tmp_path.iterdir()) == []
