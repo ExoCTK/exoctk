@@ -40,6 +40,14 @@ import numpy as np
 from scipy import interpolate
 
 
+GROUPS_PER_INTEGRATION_LIMITS = {
+    'nircam': 100,
+    'niriss': 30,
+    'nirspec': 65535,
+    'miri': 65535,
+}
+
+
 def calc_duration_time(num_groups, num_integrations, num_reset_frames,
                        frame_time, frames_per_group=1, num_skips=0):
     """Calculates duration time (or exposure duration as told by APT)
@@ -524,9 +532,11 @@ def perform_calculation(params, frames_per_group=1, num_skips=0):
         params['n_group'] = int(num_groups)
     else:
         params['n_group'] = int(float(params['n_group']))
-    if params['ins'] == 'nircam':
-        params['group_limit_applied'] = params['n_group'] > 100
-        params['n_group'] = min(params['n_group'], 100)
+    group_limit = GROUPS_PER_INTEGRATION_LIMITS[params['ins']]
+    if params['n_group'] > group_limit:
+        params['group_limit_applied'] = True
+        params['group_limit'] = group_limit
+        params['n_group'] = group_limit
 
     # Aditional helpful params
     # Calculate times/ramps/etc

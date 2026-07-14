@@ -57,6 +57,22 @@ NIRSPEC_PRISM_TEST_DATA = {
     'n_group': 'optimize',
     'infile': INFILE}
 
+NIRISS_TEST_DATA = {
+    'ins': 'niriss',
+    'mag': Decimal('8.131'),
+    'obs_time': Decimal('3'),
+    'sat_max': Decimal('0.95'),
+    'sat_mode': 'well',
+    'time_unit': 'hour',
+    'band': 'K',
+    'mod': 'f5v',
+    'filt': 'soss',
+    'subarray': 'substrip256',
+    'filt_ta': 'f480m',
+    'subarray_ta': 'im',
+    'n_group': 'optimize',
+    'infile': INFILE}
+
 NIRCAM_TEST_DATA = {
     'ins': 'nircam', 'mag': Decimal('11.5'), 'obs_time': Decimal('3'),
     'sat_max': Decimal('0.95'), 'sat_mode': 'well', 'time_unit': 'hour',
@@ -260,14 +276,22 @@ def test_perform_calculation_nircam_readout_options():
     assert params['frame_time'] == 5.294
 
 
-def test_nircam_group_limit():
-    """Tests the current APT limit of 100 groups per integration."""
+def test_instrument_group_limits():
+    """Tests the APT groups-per-integration limits for all instruments."""
 
-    test_data = NIRCAM_TEST_DATA.copy()
-    test_data['n_group'] = 101
-    params = groups_integrations.perform_calculation(test_data)
-    assert params['n_group'] == 100
-    assert params['group_limit_applied'] is True
+    cases = (
+        (NIRCAM_TEST_DATA, 101, 100),
+        (NIRISS_TEST_DATA, 31, 30),
+        (NIRSPEC_PRISM_TEST_DATA, 65536, 65535),
+        (TEST_DATA, 65536, 65535),
+    )
+    for test_data, requested_groups, group_limit in cases:
+        test_data = test_data.copy()
+        test_data['n_group'] = requested_groups
+        params = groups_integrations.perform_calculation(test_data)
+        assert params['n_group'] == group_limit
+        assert params['group_limit'] == group_limit
+        assert params['group_limit_applied'] is True
 
 
 def test_set_params_from_instrument_nircam_amplifiers():
