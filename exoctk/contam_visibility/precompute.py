@@ -107,24 +107,24 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         The aperture name
     overwrite: bool
         Make a new file
-    
+
     """
     # Get the aperture shape
     if aperture == 'NIS_SUBSTRIP256':
         n_traces, nrows, ncols = 3, 256, 2048
     elif aperture == 'NIS_SUBSTRIP96':
         n_traces, nrows, ncols = 3, 96, 2048
-    elif aperture in ['NRCA5_40STRIPE1_DHS_F322W2', 'NRCA5_40STRIPE1_DHS_F444W']:
+    elif aperture in ['NRCA5_41STRIPE1_DHS_F322W2', 'NRCA5_41STRIPE1_DHS_F444W']:
         n_traces, nrows, ncols = 10, 2128, 3192
     else:
         raise NameError(f"Did not recognize the aperture '{aperture}'")
 
     # Generate the database file
     if overwrite or not Path(filename).is_file():
-        
+
         # Save canonical name
         lookup = {}
-    
+
         # Make the empty file
         count = 0
         with h5py.File(filename, "w") as f:
@@ -138,7 +138,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     ra_deg = data.get('RA')
                     dec_deg = data.get('DEC')
                     lookup[targname] = {'canonical_name': name, 'ra': ra_deg, 'dec': dec_deg}
-    
+
                     # Make the group in the H5 file
                     grp_name = name.strip().replace("/", "_")
                     if targname != name:
@@ -148,25 +148,25 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     grp.attrs["ra"] = ra_deg
                     grp.attrs["dec"] = dec_deg
                     grp.attrs["filled"] = False
-    
+
                     # Target trace
                     grp.create_dataset("target_trace", shape=(n_traces, nrows, ncols), dtype="float32", compression="gzip",
                                        compression_opts=4, chunks=(1, nrows, ncols))
-    
+
                     # Contamination placeholder (0 planes initially)
                     grp.create_dataset("contamination", shape=(0, nrows, ncols), maxshape=(None, nrows, ncols), dtype="float32",
                                        compression="gzip", compression_opts=4, chunks=(1, nrows, ncols))
-    
+
                     # Plane index placeholder
                     grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
-    
+
                     count += 1
-    
+
                 except Exception as e:
                     print(f"\t\tCould not add {name}")
                     logging.error(f"Could not add {name}: \n{e}")
                     logging.exception(e)
-    
+
         logging.info(f"Saved structure for {count}/{len(target_names)} exoplanets to {filename}.")
         print(f"Saved {count}/{len(target_names)} exoplanets to {filename}")
 
@@ -175,7 +175,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         # Make the lookup dict from the existing file
         with h5py.File(filename, "r") as f:
             lookup = {grp_name: {'canonical_name': grp.attrs['name'], 'ra': grp.attrs['ra'], 'dec': grp.attrs['dec'], 'filled': grp.attrs.get('filled', False)} for grp_name, grp in f.items()}
-    
+
     # Generate the contam figures and save to file
     for targname in target_names:
 
