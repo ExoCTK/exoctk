@@ -71,7 +71,7 @@ You can create the ExoCTK ``conda`` environment via the ``exoctk-env.yml`` file 
 
     .. code-block:: sh
 
-        conda env create -f exoctk-env.yml python==3.10
+        conda env create -f exoctk-env.yml python==3.11
 
 
 One can activate the newly-created environment with:

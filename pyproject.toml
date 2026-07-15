@@ -2,7 +2,7 @@
 name = "exoctk"
 description = "Exoplanet Characterization Toolkit"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license-files = ["LICENSE.rst"]
 authors = [
   { name= "Matthew Bourque" },
