@@ -48,7 +48,7 @@ def precomputed_target_list():
     return target_list
 
 
-def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, goodPA_list=np.arange(360)):
+def save_exoplanet_data(filename, exoplanet_name, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
@@ -56,7 +56,11 @@ def save_exoplanet_data(filename, exoplanet_name, target_trace, contamination, g
 
     with h5py.File(filename, "r+") as f:
         if grp_name not in f:
-            raise KeyError(f"Exoplanet '{exoplanet_name}' not found in {filename}")
+            grp = f.create_group(grp_name)
+            grp.attrs["name"] = exoplanet_name
+            grp.attrs["ra"] = ra
+            grp.attrs["dec"] = dec
+            grp.attrs["filled"] = False
 
         grp = f[grp_name]
 
@@ -188,7 +192,14 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
 
                     # Save data to file with mask and plane index
-                    save_exoplanet_data(filename, lookup[targname]['canonical_name'], target_traces, contamination, goodPA_list=goodPA_list)
+                    save_exoplanet_data(
+                        filename,
+                        lookup[targname]['canonical_name'],
+                        lookup[targname]['ra'],
+                        lookup[targname]['dec'],
+                        target_traces,
+                        contamination,
+                        goodPA_list=goodPA_list)
 
                     logging.info(f"Saved '{targname}' contamination results to {filename}")
 
@@ -204,3 +215,25 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         else:
             print(f"\t{targname} not found in {filename}")
             logging.info(f"{targname} not found in {filename}.")
+            try:
+                name = get_canonical_name(targname)
+                data, _ = get_target_data(name)
+                ra_deg = data.get('RA')
+                dec_deg = data.get('DEC')
+                target_traces, contamination, goodPA_list = fs.field_simulation(ra_deg, dec_deg, aperture, plot=False)
+                # Save data to file with mask and plane index
+                save_exoplanet_data(
+                    filename,
+                    name,
+                    ra_deg,
+                    dec_deg,
+                    target_traces,
+                    contamination,
+                    goodPA_list=goodPA_list)
+
+                logging.info(f"Saved '{targname}' contamination results to {filename}")
+
+            except Exception as e:
+                print(f"\t\tTarget {targname} not saved")
+                logging.error(f"Target '{targname}' NOT saved: {e}")
+                logging.exception(e)
