@@ -106,7 +106,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
-             'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
+             'NRCA5_41STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
@@ -117,7 +117,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                                        [5.31914894e-03, 2.15831915e+03], [5.31914894e-03, 2.03531915e+03],
                                                        [3.54609929e-03, 1.92521277e+03], [3.54609929e-03, 1.81121277e+03],
                                                        [4.43262411e-03, 1.68126596e+03], [5.31914894e-03, 1.54531915e+03]]},
-             'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
+             'NRCA5_41STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
@@ -137,8 +137,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
 WEB_CONTAMINATION_APERTURES = frozenset({
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',
-    'NRCA5_40STRIPE1_DHS_F322W2',
-    'NRCA5_40STRIPE1_DHS_F444W',
+    'NRCA5_41STRIPE1_DHS_F322W2',
+    'NRCA5_41STRIPE1_DHS_F444W',
 })
 
 
@@ -147,7 +147,7 @@ def contamination_supported(aperture):
 
     return aperture in WEB_CONTAMINATION_APERTURES
 
-DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
+DHS_STRIPES = {'NRCA5_41STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
                                               'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},
                                               'DHS2': {'x0': 2196, 'x1': 3324, 'y0': 2301, 'y1': 2307},
@@ -157,7 +157,7 @@ DHS_STRIPES = {'NRCA5_40STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
                                               'DHS8': {'x0': 2196, 'x1': 3324, 'y0': 1819, 'y1': 1823},
                                               'DHS9': {'x0': 2196, 'x1': 3324, 'y0': 1691, 'y1': 1696},
                                               'DHS10': {'x0': 2196, 'x1': 3324, 'y0': 1557, 'y1': 1563}},
-                'NRCA5_40STRIPE1_DHS_F444W': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
+               'NRCA5_41STRIPE1_DHS_F444W': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
                                               'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},
                                               'DHS2': {'x0': 2196, 'x1': 3324, 'y0': 2301, 'y1': 2307},

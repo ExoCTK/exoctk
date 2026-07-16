@@ -191,7 +191,7 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
         else:
             raise FileNotFoundError(f"Downloaded file {action['file']} not found")
 
-def do_submit(driver, params, calculation_timeout=7200):
+def do_submit(driver, params, calculation_timeout=2700):
     """
     Finds the submit button, waits for it to be pushable, and pushes it.
     """
