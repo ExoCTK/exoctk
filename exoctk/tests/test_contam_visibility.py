@@ -28,6 +28,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
+from astropy.table import Table
 
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
@@ -90,6 +91,44 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
+
+
+def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
+    """Gaia query order must not replace a moving target with a field star."""
+
+    # At the Gaia 2016 epoch the faint source is closer to the supplied J2000
+    # coordinate than HD 189733. Back-propagating the proper motion identifies
+    # the bright second row as the intended target.
+    stars = Table({
+        'source_id': [1827242816182176512, 1827242816201846144],
+        'ra': [300.18318127620523, 300.1821218062407],
+        'dec': [22.711090387243765, 22.709741105168273],
+        'pmra': [0., -3.208339784864691],
+        'pmdec': [0., -250.32333085817578],
+        'ref_epoch': [2016., 2016.],
+        'phot_g_mean_flux': [402.513622149291, 2.0118629422041267e7],
+        'bp_rp': [1.5, 1.0959163],
+        'parallax': [1., 50.],
+        'astrometric_excess_noise': [0., 0.],
+        'phot_bp_rp_excess_factor': [1., 1.],
+    })
+
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+
+    def unavailable_xmatch(*args, **kwargs):
+        raise RuntimeError('XMatch unavailable in unit test')
+
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query', unavailable_xmatch)
+    result = field_simulator.find_sources(
+        300.1821375, 22.7108528, target_date=2026)
+
+    assert result['source_id'][0] == 1827242816201846144
+    assert result['fluxscale'][0] == pytest.approx(1.)
+    assert result['fluxscale'][1] < 1.e-4
+    assert result['distance'][0] == pytest.approx(0.)
 
 
 @pytest.mark.parametrize('aperture', [
