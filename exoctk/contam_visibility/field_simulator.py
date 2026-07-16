@@ -10,6 +10,7 @@ from functools import partial
 import glob
 import logging
 import os
+from pathlib import Path
 import pickle
 import re
 import sys
@@ -43,6 +44,7 @@ import regions
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, get_target_data, get_canonical_name
 from ..pkgdata import resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
+from .precompute import save_exoplanet_data
 from . import contamination_figure as cf
 
 import warnings
@@ -1184,6 +1186,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
             aperture_dbs = glob.glob(os.path.join(db_path, f'{aperture}*.h5'))
             if len(aperture_dbs) > 0:
                 target_db = aperture_dbs[0]
+            else:
+                target_db = os.path.join(db_path, f"{aperture}_db.h5")
 
     # Check to see if the planet is in the DB
     # Require target_db and targname
@@ -1198,12 +1202,12 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
                 if target_date is None or str(target_date) == datetime.now().strftime("%Y"):
                     logging.info(f"Looking for target in database")
                     grp_name = get_canonical_name(targname).strip().replace("/", "_")
-                    with h5py.File(target_db, "r") as f:
+                    with h5py.File(target_db, "a") as f:
                         if grp_name in f:
                             targframes, starcube, attrs = fetch_contam_results(targname, target_db)
                             precomputed = "goodPA_list" in attrs
                 else:
-                    logging.info("Can't precompute with non-current")
+                    logging.info("Can't precompute with non-current epoch")
             else:
                 logging.info("Can't precompute with binary companion")
         else:
@@ -1300,6 +1304,13 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         # Copy good PA results into completed starcube
         for result in results:
             starcube[result['pa'], :, :] = result['contaminants']
+
+        if (targname is not None) and (target_db is not None):
+            logging.info(f"Saving {targname} to cache {target_db}")
+            # Save entry in the cache
+            save_exoplanet_data(
+                target_db, targname, aperture, ra, dec, targframes, starcube, goodPA_list
+            )
 
         # We don't need this anymore
         del results
@@ -1437,12 +1448,15 @@ def get_trace(aperture, teff, stype, plot=False):
 
     # Get the path to the trace files
     traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperpath}/*.fits')
+    logging.info(f"Traces path is {traces_path}")
 
     # Glob the file names
     trace_files = glob.glob(traces_path)
+    logging.info(f"Found {len(trace_files)} traces")
 
     # Get closest Teff
     teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
+    logging.info(f"Found {len(teffs)} temperatures.")
     file = trace_files[np.argmin((teffs - teff)**2)]
     logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
 
