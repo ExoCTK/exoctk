@@ -48,7 +48,7 @@ def _get_shape(aperture):
         n_traces, nrows, ncols = 10, 2128, 3192
     else:
         raise NameError(f"Did not recognize the aperture '{aperture}'")
-    return n_traces, n_rows, n_cols
+    return n_traces, nrows, ncols
 
 
 def precomputed_target_list():
@@ -68,7 +68,7 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
-    n_traces, n_rows, n_cols = _get_shape(aperture)
+    n_traces, nrows, ncols = _get_shape(aperture)
 
     grp_name = exoplanet_name.strip().replace("/", "_")
 
@@ -87,11 +87,11 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
             # Target trace
             grp.create_dataset(
                 "target_trace",
-                shape=(n_traces, n_rows, n_cols),
+                shape=(n_traces, nrows, ncols),
                 dtype="float32",
                 compression="gzip",
                 compression_opts=4,
-                chunks=(1, n_rows, n_cols)
+                chunks=(1, nrows, ncols)
             )
         grp["target_trace"][:, :, :] = target_trace
 
@@ -101,12 +101,12 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
            # Contamination placeholder (0 planes initially)
            grp.create_dataset(
                 "contamination",
-                shape=(0, n_rows, n_cols),
-                maxshape=(None, n_rows, n_cols),
+                shape=(0, nrows, ncols),
+                maxshape=(None, nrows, ncols),
                 dtype="float32",
                 compression="gzip",
                 compression_opts=4,
-                chunks=(1, n_rows, n_cols)
+                chunks=(1, nrows, ncols)
             )
 
         if "plane_index" not in grp:
