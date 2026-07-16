@@ -54,7 +54,7 @@ def save_exoplanet_data(filename, exoplanet_name, ra, dec, target_trace, contami
     """
     grp_name = exoplanet_name.strip().replace("/", "_")
 
-    with h5py.File(filename, "r+") as f:
+    with h5py.File(filename, "a") as f:
         if grp_name not in f:
             grp = f.create_group(grp_name)
             grp.attrs["name"] = exoplanet_name
