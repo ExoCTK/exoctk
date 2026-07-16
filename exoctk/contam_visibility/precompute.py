@@ -64,7 +64,7 @@ def precomputed_target_list():
     return target_list
 
 
-def save_exoplanet_data(filename, aperture, exoplanet_name, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
+def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
