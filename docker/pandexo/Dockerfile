@@ -35,6 +35,16 @@ ARG pandexo_branch
 ADD https://api.github.com/repos/natashabatalha/PandExo/commits/${pandexo_branch} /tmp/pandexo_ref.json
 RUN pip install --no-cache-dir "pandexo.engine[all]@git+https://github.com/natashabatalha/PandExo.git@${pandexo_branch}"
 
+# Optionally replace PandExo's declared Pandeia dependency with a local
+# release-candidate checkout.  Compose supplies an inert fallback context
+# when PANDEIA_SOURCE is unset.
+RUN --mount=type=bind,from=pandeia_rc,target=/tmp/pandeia \
+    if [ -f /tmp/pandeia/pyproject.toml ] || [ -f /tmp/pandeia/setup.py ]; then \
+        cp -a /tmp/pandeia /tmp/pandeia-build && \
+        pip install --no-cache-dir /tmp/pandeia-build && \
+        rm -rf /tmp/pandeia-build; \
+    fi
+
 # Add the entrypoint scripts
 COPY ./pandexo_entrypoint.sh pandexo_entrypoint.sh
 RUN chmod +x pandexo_entrypoint.sh
