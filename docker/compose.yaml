@@ -7,6 +7,10 @@ services:
     build:
       context: ..
       dockerfile: ./docker/exoctk/Dockerfile
+      additional_contexts:
+        # Optionally install a local Pandeia release candidate; otherwise use
+        # an inert context and retain ExoCTK's normal dependency set.
+        pandeia_rc: ${PANDEIA_SOURCE:-./pandexo}
       args:
         - exoctk_version=$EXO_VERSION
         - python_version=$PYTHON_VERSION
@@ -29,6 +33,9 @@ services:
     build:
       context: ..
       dockerfile: ./docker/exoctk/Dockerfile
+      additional_contexts:
+        # Keep the worker's Pandeia engine in sync with the web image.
+        pandeia_rc: ${PANDEIA_SOURCE:-./pandexo}
       args:
         - exoctk_version=$EXO_VERSION
         - python_version=$PYTHON_VERSION
@@ -53,6 +60,11 @@ services:
     build:
       context: ./pandexo
       dockerfile: Dockerfile
+      additional_contexts:
+        # An optional local Pandeia engine checkout.  When it is unset, use
+        # the PandExo build context so the Dockerfile retains PandExo's
+        # declared Pandeia dependency.
+        pandeia_rc: ${PANDEIA_SOURCE:-./pandexo}
       args:
         - pandexo_branch=$PANDEXO_BRANCH
         - pandexo_version=2026.2
