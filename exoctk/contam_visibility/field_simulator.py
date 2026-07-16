@@ -464,6 +464,34 @@ def NIRISS_SOSS_trace_mask(aperture, radius=20):
     return mask1, mask2, mask3
 
 
+def _target_source_index(stars, target_coordinate, input_epoch=2000):
+    """Identify the Gaia source matching an input-epoch target coordinate.
+
+    Gaia DR3 coordinates are reported at each source's ``ref_epoch`` (normally
+    2016), while target coordinates supplied to ExoCTK are conventionally
+    J2000.  Matching the unpropagated catalog positions can select a nearby
+    field source instead of a high-proper-motion target.
+    """
+
+    if not len(stars):
+        raise ValueError("Gaia returned no sources near the target")
+
+    match_ra = np.asarray(stars['ra'], dtype=float).copy()
+    match_dec = np.asarray(stars['dec'], dtype=float).copy()
+    for index, row in enumerate(stars):
+        motion = (row['pmra'], row['pmdec'], row['ref_epoch'])
+        if any(np.ma.is_masked(value) or not np.isfinite(value)
+               for value in motion):
+            continue
+        match_ra[index], match_dec[index] = calculate_current_coordinates(
+            row['ra'], row['dec'], row['pmra'], row['pmdec'],
+            row['ref_epoch'], target_date=input_epoch)
+
+    catalog_at_input_epoch = crd.SkyCoord(
+        ra=match_ra * u.deg, dec=match_dec * u.deg)
+    return int(np.argmin(target_coordinate.separation(catalog_at_input_epoch)))
+
+
 def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
@@ -506,6 +534,14 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
 
     # Query Gaia from several potential endpoints
     stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
+
+    # Preserve the intended target as row zero throughout flux normalization,
+    # proper-motion correction, and detector rendering. Gaia query order alone
+    # is unsafe for targets that have moved since the input-coordinate epoch.
+    target_index = _target_source_index(stars, targetcrd)
+    order = np.concatenate(([target_index], np.delete(
+        np.arange(len(stars)), target_index)))
+    stars = stars[order]
 
     try:
         # Perform XMatch between Gaia and SDSS DR16
@@ -558,10 +594,12 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
             if not hasattr(new_dec, 'mask'):
                 row['dec'] = new_dec
 
-    # Find distance from target to each star
-    sindRA = (stars['ra'][0] - stars['ra']) * np.cos(stars['dec'][0])
-    cosdRA = stars['dec'][0] - stars['dec']
-    stars.add_column(np.sqrt(sindRA ** 2 + cosdRA ** 2) * u.deg.to(u.arcsec), name='distance')
+    # Find spherical distance from the identified target to each source.
+    coordinates = crd.SkyCoord(
+        ra=np.asarray(stars['ra'], dtype=float) * u.deg,
+        dec=np.asarray(stars['dec'], dtype=float) * u.deg)
+    distances = coordinates[0].separation(coordinates).to_value(u.arcsec)
+    stars.add_column(distances, name='distance')
     stars.sort('distance')
 
     # Add detector location to the table
