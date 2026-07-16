@@ -1271,7 +1271,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
             logging.info(f"Saving {targname} to cache {target_db}")
             # Save entry in the cache
             save_exoplanet_data(
-                target_db, targname, ra, dec, targframes, starcube, goodPA_list
+                target_db, targname, aperture, ra, dec, targframes, starcube, goodPA_list
             )
 
         # We don't need this anymore
@@ -1410,12 +1410,15 @@ def get_trace(aperture, teff, stype, plot=False):
 
     # Get the path to the trace files
     traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperpath}/*.fits')
+    logging.info(f"Traces path is {traces_path}")
 
     # Glob the file names
     trace_files = glob.glob(traces_path)
+    logging.info(f"Found {len(trace_files)} traces")
 
     # Get closest Teff
     teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
+    logging.info(f"Found {len(teffs)} temperatures.")
     file = trace_files[np.argmin((teffs - teff)**2)]
     logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
 

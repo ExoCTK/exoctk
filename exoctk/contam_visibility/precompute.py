@@ -35,6 +35,22 @@ logging.basicConfig(
     force=True
 )
 
+def _get_shape(aperture):
+    """
+    Based on the aperture, return a shape
+    """
+    # Get the aperture shape
+    if aperture == 'NIS_SUBSTRIP256':
+        n_traces, nrows, ncols = 3, 256, 2048
+    elif aperture == 'NIS_SUBSTRIP96':
+        n_traces, nrows, ncols = 3, 96, 2048
+    elif aperture in ['NRCA5_41STRIPE1_DHS_F322W2', 'NRCA5_41STRIPE1_DHS_F444W']:
+        n_traces, nrows, ncols = 10, 2128, 3192
+    else:
+        raise NameError(f"Did not recognize the aperture '{aperture}'")
+    return n_traces, n_rows, n_cols
+
+
 def precomputed_target_list():
     """"
     Read in list of targets to precompute
@@ -48,10 +64,12 @@ def precomputed_target_list():
     return target_list
 
 
-def save_exoplanet_data(filename, exoplanet_name, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
+def save_exoplanet_data(filename, aperture, exoplanet_name, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
+    n_traces, n_rows, n_cols = _get_shape(aperture)
+
     grp_name = exoplanet_name.strip().replace("/", "_")
 
     with h5py.File(filename, "a") as f:
@@ -65,8 +83,35 @@ def save_exoplanet_data(filename, exoplanet_name, ra, dec, target_trace, contami
         grp = f[grp_name]
 
         # --- Target trace ---
+        if "target_trace" not in grp:
+            # Target trace
+            grp.create_dataset(
+                "target_trace",
+                shape=(n_traces, n_rows, n_cols),
+                dtype="float32",
+                compression="gzip",
+                compression_opts=4,
+                chunks=(1, n_rows, n_cols)
+            )
         grp["target_trace"][:, :, :] = target_trace
+
         grp.attrs["goodPA_list"] = goodPA_list
+
+        if "contamination" not in grp:
+           # Contamination placeholder (0 planes initially)
+           grp.create_dataset(
+                "contamination",
+                shape=(0, n_rows, n_cols),
+                maxshape=(None, n_rows, n_cols),
+                dtype="float32",
+                compression="gzip",
+                compression_opts=4,
+                chunks=(1, n_rows, n_cols)
+            )
+
+        if "plane_index" not in grp:
+            # Plane index placeholder
+            grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
 
         # --- Sparse contamination ---
         plane_index = np.where(contamination.any(axis=(1, 2)))[0]
@@ -113,15 +158,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
         Make a new file
 
     """
-    # Get the aperture shape
-    if aperture == 'NIS_SUBSTRIP256':
-        n_traces, nrows, ncols = 3, 256, 2048
-    elif aperture == 'NIS_SUBSTRIP96':
-        n_traces, nrows, ncols = 3, 96, 2048
-    elif aperture in ['NRCA5_41STRIPE1_DHS_F322W2', 'NRCA5_41STRIPE1_DHS_F444W']:
-        n_traces, nrows, ncols = 10, 2128, 3192
-    else:
-        raise NameError(f"Did not recognize the aperture '{aperture}'")
+    n_traces, nrows, ncols = _get_shape(aperture)
 
     # Generate the database file
     if overwrite or not Path(filename).is_file():
@@ -195,6 +232,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     save_exoplanet_data(
                         filename,
                         lookup[targname]['canonical_name'],
+                        aperture,
                         lookup[targname]['ra'],
                         lookup[targname]['dec'],
                         target_traces,
@@ -225,6 +263,7 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                 save_exoplanet_data(
                     filename,
                     name,
+                    aperture,
                     ra_deg,
                     dec_deg,
                     target_traces,
