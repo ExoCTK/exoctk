@@ -118,12 +118,14 @@ jobs:
         run: docker compose up exoctk -d
         working-directory: ./docker
 
-      - name: Get logs
-        working-directory: ./docker
-        run: |
-            docker compose logs
-
       - name: Run tests
         working-directory: ./docker
         run: |
           docker compose exec -t exoctk /exoctk/exoctk_test_script.sh
+
+      - name: Get logs
+        working-directory: ./docker
+        if: always()
+        run: |
+            docker compose logs worker
+            docker compose logs exoctk
