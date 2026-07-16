@@ -42,7 +42,7 @@ def test_new_vis_plot():
     """Tests the `new_vis_plot.py` module"""
     ra, dec = '24.3544618', '-45.6777937' # WASP-18
     table = new_vis_plot.get_exoplanet_positions(ra, dec)
-    
+
     assert isinstance(table, DataFrame)
 
     plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
@@ -95,8 +95,8 @@ def test_resolve_target():
 @pytest.mark.parametrize('aperture', [
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',
-    'NRCA5_40STRIPE1_DHS_F322W2',
-    'NRCA5_40STRIPE1_DHS_F444W',
+    'NRCA5_41STRIPE1_DHS_F322W2',
+    'NRCA5_41STRIPE1_DHS_F444W',
 ])
 def test_contamination_supported(aperture):
     """The web interface enables contamination only for its supported modes."""
@@ -122,5 +122,5 @@ def test_dhs_modes_available_in_web_form():
     """The web form exposes both supported NIRCam DHS filters."""
 
     choices = dict(CONTAM_VISIBILITY_MODES)
-    assert choices['NRCA5_40STRIPE1_DHS_F322W2'] == 'NIRCam - DHS - F322W2'
-    assert choices['NRCA5_40STRIPE1_DHS_F444W'] == 'NIRCam - DHS - F444W'
+    assert choices['NRCA5_41STRIPE1_DHS_F322W2'] == 'NIRCam - DHS - F322W2'
+    assert choices['NRCA5_41STRIPE1_DHS_F444W'] == 'NIRCam - DHS - F444W'

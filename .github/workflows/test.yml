@@ -1,6 +1,6 @@
 name: test
 
-on: 
+on:
   pull_request:
   release:
     types:
@@ -14,13 +14,13 @@ jobs:
   test:
     strategy:
       matrix:
-        runs-on: 
+        runs-on:
           - ubuntu-latest
           - macos-latest
-        python-version: 
-          - '3.10'
+        python-version:
           - '3.11'
           - '3.12'
+          - '3.13'
       fail-fast: false
     runs-on: ${{ matrix.runs-on }}
     name: Python ${{ matrix.python-version }} (${{ matrix.runs-on }})
@@ -38,7 +38,7 @@ jobs:
       - run: pip install .
       - run: pip freeze > requirements-py${{ matrix.python-version }}-${{ matrix.runs-on }}.txt
       - run: pip install .[test]
-      - run: pytest exoctk/tests/ --cov ./ --cov-report term-missing --cov xml -n auto 
+      - run: pytest exoctk/tests/ --cov ./ --cov-report term-missing --cov xml -n auto
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: ./coverage.xml
@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      
+
       - name: Create environment file
         run: |
           mkdir /tmp/exoctk
@@ -104,7 +104,7 @@ jobs:
           unzip -o output.zip
           rm output.zip
           echo "ExoCTK data is installed"
-          
+
 
       - name: Start Redis
         run: docker compose up redis -d
@@ -118,12 +118,14 @@ jobs:
         run: docker compose up exoctk -d
         working-directory: ./docker
 
-      - name: Get logs
-        working-directory: ./docker
-        run: |
-            docker compose logs
-
       - name: Run tests
         working-directory: ./docker
         run: |
           docker compose exec -t exoctk /exoctk/exoctk_test_script.sh
+
+      - name: Get logs
+        working-directory: ./docker
+        if: always()
+        run: |
+            docker compose logs worker
+            docker compose logs exoctk
