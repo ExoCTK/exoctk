@@ -47,9 +47,6 @@ from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .precompute import save_exoplanet_data
 from . import contamination_figure as cf
 
-import warnings
-warnings.filterwarnings("ignore", message="Mean of empty slice")
-
 log_file = 'contam_tool.log'
 logging.basicConfig(
     filename=log_file,
@@ -494,6 +491,36 @@ def _target_source_index(stars, target_coordinate, input_epoch=2000):
     return int(np.argmin(target_coordinate.separation(catalog_at_input_epoch)))
 
 
+def _finite_positive_scalar(value):
+    """Return a finite positive float, or ``None`` for unusable values."""
+
+    if np.ma.is_masked(value):
+        return None
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    return value if np.isfinite(value) and value > 0 else None
+
+
+def _filter_valid_flux_sources(stars, column, label):
+    """Retain sources with usable fluxes, requiring a usable target flux."""
+
+    if column not in stars.colnames:
+        raise ValueError(f'Source table is missing the {label} column.')
+
+    valid_flux = np.array([
+        _finite_positive_scalar(value) is not None for value in stars[column]
+    ])
+    if not len(valid_flux) or not valid_flux[0]:
+        raise ValueError(f'The identified target does not have a valid {label}.')
+
+    rejected = np.count_nonzero(~valid_flux)
+    if rejected:
+        logging.info('Ignoring %d sources without valid %s.', rejected, label)
+    return stars[valid_flux]
+
+
 def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
@@ -544,6 +571,12 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
     order = np.concatenate(([target_index], np.delete(
         np.arange(len(stars)), target_index)))
     stars = stars[order]
+
+    # Sources without measured Gaia G fluxes cannot be normalized. In
+    # particular, masked values must not reach the detector arithmetic, where
+    # their underlying data could be treated as a valid flux scale.
+    stars = _filter_valid_flux_sources(
+        stars, 'phot_g_mean_flux', 'Gaia G-band flux')
 
     try:
         # Perform XMatch between Gaia and SDSS DR16
@@ -813,8 +846,16 @@ def fraction_contaminated(aperture, targframes, starcube):
     pctlines = []
     for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
         masked = pframe * mask
-        with np.errstate(invalid='ignore', divide='ignore'):
-            mean_line = np.nanmean(masked, axis=1)
+        # Keep empty spectral channels as NaN, but avoid NumPy's repeated
+        # ``Mean of empty slice`` warnings for the expected empty channels.
+        valid = ~np.isnan(masked)
+        numerator = np.nansum(masked, axis=1)
+        denominator = np.sum(valid, axis=1)
+        mean_line = np.divide(
+            numerator, denominator,
+            out=np.full(np.shape(numerator), np.nan, dtype=float),
+            where=denominator > 0,
+        )
         pctlines.append(mean_line)
 
     return pctlines
@@ -957,6 +998,11 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     lft, rgt, top, bot = aper['lft'], aper['rgt'], aper['top'], aper['bot']
     FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
 
+    # ``find_sources`` filters Gaia results, but callers may pass a custom
+    # table straight to this renderer. Apply the same validation at this
+    # boundary before multiplying detector traces by ``fluxscale``.
+    FOVstars = _filter_valid_flux_sources(FOVstars, 'fluxscale', 'flux scale')
+
     # Get the traces for sources in the FOV and add the column to the source table
     star_traces = [get_trace(aperture.AperName, temp, typ) for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['traces'] = star_traces
@@ -976,7 +1022,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     for idx, star in enumerate(FOVstars):
 
         # Scale the traces for this source
-        traces = [trace * star['fluxscale'] * aper['empirical_scale'][n + 1] for n, trace in enumerate(star['traces'])]
+        fluxscale = float(star['fluxscale'])
+        traces = [trace * fluxscale * aper['empirical_scale'][n + 1] for n, trace in enumerate(star['traces'])]
 
         # Add each target trace to it's own frame
         if idx == 0:
@@ -993,7 +1040,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
             order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type']) * 1.5e3  # Scaling factor based on observations
 
             # Scale the order 0 image and add it to the starframe
-            scale0 = copy(order0) * star['fluxscale'] * aper['empirical_scale'][0]
+            scale0 = copy(order0) * fluxscale * aper['empirical_scale'][0]
             starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
 
             # NOTE: Take this conditional out if you want to see galaxy traces!
