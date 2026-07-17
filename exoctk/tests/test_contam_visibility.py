@@ -22,13 +22,14 @@ Use
 
 import os
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from pandas import DataFrame
-from astropy.table import Table
+from astropy.table import MaskedColumn, Table
 
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
@@ -129,6 +130,76 @@ def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
     assert result['fluxscale'][0] == pytest.approx(1.)
     assert result['fluxscale'][1] < 1.e-4
     assert result['distance'][0] == pytest.approx(0.)
+
+
+def test_find_sources_ignores_invalid_gaia_fluxes(monkeypatch):
+    """Invalid Gaia G fluxes cannot become normalized field sources."""
+
+    stars = Table({
+        'source_id': [1, 2, 3, 4, 5, 6],
+        'ra': [10., 10.001, 10.002, 10.003, 10.004, 10.005],
+        'dec': [20., 20., 20., 20., 20., 20.],
+        'pmra': [0.] * 6,
+        'pmdec': [0.] * 6,
+        'ref_epoch': [2016.] * 6,
+        'bp_rp': [1.] * 6,
+        'parallax': [1.] * 6,
+        'astrometric_excess_noise': [0.] * 6,
+        'phot_bp_rp_excess_factor': [1.] * 6,
+    })
+    stars['phot_g_mean_flux'] = MaskedColumn(
+        [1000., 1., 0., -1., np.nan, np.inf],
+        mask=[False, True, False, False, False, False])
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query',
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError()))
+
+    result = field_simulator.find_sources(10., 20., target_date=2026)
+
+    assert list(result['source_id']) == [1]
+    assert result['fluxscale'][0] == pytest.approx(1.)
+
+
+def test_custom_source_flux_validation_rejects_invalid_target_and_sources():
+    """The rendering boundary validates direct custom source tables."""
+
+    sources = Table()
+    sources['fluxscale'] = MaskedColumn(
+        [1., 1., 0., -1., np.nan, np.inf],
+        mask=[False, True, False, False, False, False])
+    filtered = field_simulator._filter_valid_flux_sources(
+        sources, 'fluxscale', 'flux scale')
+    assert len(filtered) == 1
+    assert filtered['fluxscale'][0] == pytest.approx(1.)
+
+    sources['fluxscale'][0] = 0.
+    with pytest.raises(ValueError, match='target does not have a valid flux scale'):
+        field_simulator._filter_valid_flux_sources(
+            sources, 'fluxscale', 'flux scale')
+
+
+def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
+        monkeypatch):
+    """Expected empty extraction channels do not globally hide warnings."""
+
+    target = np.array([[1., 0.], [1., 0.]])
+    contaminants = np.zeros((1, 2, 2))
+    monkeypatch.setattr(
+        field_simulator, 'NIRISS_SOSS_trace_mask',
+        lambda aperture: [np.ones_like(target)])
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        result = field_simulator.fraction_contaminated(
+            'NIS_SUBSTRIP256', [target], contaminants)[0]
+
+    assert result.shape == (1, 2)
+    assert np.allclose(result[:, 0], 0.)
+    assert np.isnan(result[:, 1]).all()
+    assert not any('Mean of empty slice' in str(warning.message)
+                   for warning in caught)
 
 
 @pytest.mark.parametrize('aperture', [
