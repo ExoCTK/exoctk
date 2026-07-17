@@ -29,6 +29,10 @@ class ExoMASTError(RuntimeError):
     """Raised when ExoMAST cannot provide usable target information."""
 
 
+class ExoMASTServiceUnavailableError(ExoMASTError):
+    """Raised when ExoMAST is temporarily unavailable."""
+
+
 EXOMAST_TIMEOUT_SECONDS = 30
 
 try:
@@ -663,8 +667,19 @@ def _get_exomast_json(url, params=None):
         response = requests.get(
             url, params=params, timeout=EXOMAST_TIMEOUT_SECONDS)
         response.raise_for_status()
-    except requests.RequestException as exc:
+    except (requests.ConnectionError, requests.Timeout) as exc:
+        raise ExoMASTServiceUnavailableError(
+            f'ExoMAST is unavailable: {exc}') from exc
+    except requests.HTTPError as exc:
+        status_code = getattr(exc.response, 'status_code', None)
+        if status_code == 429 or (status_code is not None and
+                                  status_code >= 500):
+            raise ExoMASTServiceUnavailableError(
+                f'ExoMAST is unavailable: {exc}') from exc
         raise ExoMASTError(f'ExoMAST request failed: {exc}') from exc
+    except requests.RequestException as exc:
+        raise ExoMASTServiceUnavailableError(
+            f'ExoMAST is unavailable: {exc}') from exc
 
     try:
         return response.json()
