@@ -25,7 +25,8 @@ import pytest
 import requests
 
 from exoctk import utils
-from exoctk.utils import (DATA_URLS, ExoMASTError, color_gen,
+from exoctk.utils import (DATA_URLS, ExoMASTError,
+                          ExoMASTServiceUnavailableError, color_gen,
                           download_exoctk_data, filter_table,
                           get_canonical_name, get_target_data, medfilt)
 
@@ -111,6 +112,15 @@ def test_get_canonical_name_wraps_request_errors(monkeypatch):
         get_canonical_name('not-a-target')
 
 
+def test_get_canonical_name_identifies_service_outage(monkeypatch):
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(
+            None, error=requests.ConnectionError('connection refused')))
+    with pytest.raises(ExoMASTServiceUnavailableError, match='unavailable'):
+        get_canonical_name('not-a-target')
+
+
 def test_get_canonical_name_wraps_invalid_json(monkeypatch):
     monkeypatch.setattr(
         utils.requests, 'get',
@@ -129,6 +139,21 @@ def test_get_target_data_rejects_empty_response(monkeypatch):
     monkeypatch.setattr(utils.requests, 'get', mock_get)
     with pytest.raises(ExoMASTError, match='no usable target data'):
         get_target_data('HD108236f')
+
+
+@pytest.mark.integration
+def test_live_exomast_target_lookup_smoke():
+    """Verify the ExoMAST API still supplies the fields ExoCTK requires."""
+
+    try:
+        data, url = get_target_data('WASP-43b')
+    except ExoMASTServiceUnavailableError as exc:
+        pytest.xfail(f'ExoMAST is temporarily unavailable: {exc}')
+
+    assert isinstance(data['RA'], (int, float))
+    assert isinstance(data['DEC'], (int, float))
+    assert isinstance(data['Teff'], (int, float))
+    assert 'WASP43b' in url
 
 
 @pytest.fixture
