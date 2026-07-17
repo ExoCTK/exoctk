@@ -24,6 +24,13 @@ from bokeh.plotting import figure, show
 
 from ._version import __version__
 
+
+class ExoMASTError(RuntimeError):
+    """Raised when ExoMAST cannot provide usable target information."""
+
+
+EXOMAST_TIMEOUT_SECONDS = 30
+
 try:
     from .throughputs import JWST_THROUGHPUTS
 
@@ -547,9 +554,12 @@ def get_canonical_name(target_name):
     # Create params dict for url parsing. Easier than trying to format yourself.
     params = {"name": target_name}
 
-    r = requests.get(target_url, params=params)
-    planetnames = r.json()
-    canonical_name = planetnames['canonicalName']
+    planetnames = _get_exomast_json(target_url, params=params)
+    canonical_name = planetnames.get('canonicalName') if isinstance(
+        planetnames, dict) else None
+    if not isinstance(canonical_name, str) or not canonical_name.strip():
+        raise ExoMASTError(
+            f"ExoMAST returned no canonical name for '{target_name}'.")
 
     return canonical_name
 
@@ -617,12 +627,11 @@ def get_target_data(target_name):
 
     target_url = build_target_url(canonical_name)
 
-    r = requests.get(target_url)
-
-    if r.status_code == 200:
-        target_data = r.json()
-    else:
-        print('Whoops, no data for this target!')
+    target_data = _get_exomast_json(target_url)
+    if (not isinstance(target_data, list) or not target_data or
+            not all(isinstance(entry, dict) for entry in target_data)):
+        raise ExoMASTError(
+            f"ExoMAST returned no usable target data for '{canonical_name}'.")
 
     # Some targets have multiple catalogs
     # nexsci is the first choice.
@@ -645,6 +654,22 @@ def get_target_data(target_name):
     url = 'https://exo.mast.stsci.edu/exomast_planet.html?planet={}'.format(re.sub(r'\W+', '', canonical_name))
 
     return target_data, url
+
+
+def _get_exomast_json(url, params=None):
+    """Request and validate a JSON payload from an ExoMAST endpoint."""
+
+    try:
+        response = requests.get(
+            url, params=params, timeout=EXOMAST_TIMEOUT_SECONDS)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise ExoMASTError(f'ExoMAST request failed: {exc}') from exc
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ExoMASTError('ExoMAST returned an invalid JSON response.') from exc
 
 
 def interp_flux(mu, flux, params, values):
