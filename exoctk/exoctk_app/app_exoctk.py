@@ -688,13 +688,14 @@ def contam_visibility():
             badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
             print("Made PA list")
 
-            if 'DHS' in form.inst.data:
+            if fs.contamination_supported(form.inst.data):
                 pctlines = fs.fraction_contaminated(
                     form.inst.data, targframe, starcube)
                 contam_plot = cf.contam_slider_plot(pctlines, badPAs)
-                print("Made DHS contamination plot")
+                print("Made contamination slider plot")
             else:
-                # Make legacy SOSS contamination plot
+                # Retain the legacy image plot for any future mode that has not
+                # adopted the common contamination-slider representation.
                 starcube_targ = np.zeros(
                     (362, 2048,
                      96 if form.inst.data == 'NIS_SUBSTRIP96' else 256))

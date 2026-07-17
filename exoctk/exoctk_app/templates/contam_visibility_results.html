@@ -14,13 +14,10 @@
         <br>
 
 
-        <p>This tool is designed for the slitless observation modes of all JWST instruments.
-      	For slitless observations, the spectrum of a target star may be contaminated by partially overlapping spectra of
-      	nearby stars. For a given target, this contamination depends on the
-      	position angle (PA) at which the observations are taken. This tool simulates NIRISS SOSS observations of a
-      	given target, and produces an estimate of the level of contamination as a function of the PA of the
-      	observation, thus making it useful to plan observations at the optimal PA. The tool also computes the JWST
-      	accessibility windows of the target, along with the corresponding accessible PAs for the chosen instrument/observation mode.
+        <p>This tool estimates contamination from neighboring sources for supported JWST slitless modes.
+        For slitless observations, a target spectrum can overlap partially with spectra from nearby sources. The amount
+        of overlap depends on the telescope orientation. The calculator evaluates contamination as a function of V3
+        position angle and computes the target's JWST visibility windows and corresponding aperture position angles.
         </p>
 <!--        <p>-->
 <!--          <b>NIRCam and MIRI options</b>: Users can calculate contamination levels for NIRCam Grism Time Series (F322W2, F444W) and MIRI Low Resolution-->
@@ -30,7 +27,7 @@
 <!--        	</p>-->
         <p>Potential caveats:</p>
         <ul>
-          <li>The field stars used for this analysis are retrieved from the Gaia EDR3 point source catalogue, so all sources use epoch 2016.0 coordinates. Contamination from stars missing from this catalog is thus not modelled; this may be important for faint targets.</li>
+          <li>Field sources are retrieved from the Gaia DR3 point-source catalogue. Coordinates are propagated from each source's Gaia reference epoch to the requested observation epoch when proper-motion measurements are available. Sources absent from Gaia are not modelled.</li>
           <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.</li>
 <!--          <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>-->
         </ul>
@@ -74,26 +71,12 @@
     		<p>
                 {% if pa_val == -1 %}
                     <ul>
-                        <li>The larger panel shows, for each order, the contamination of the target star's spectrum due to orders 1 and 2 of its neighboring stars.</li>
-                        <li>The color scale denotes the contamination level (see scale below plot).</li>
-                        <li>The contamination level is defined as the ratio of the extracted flux coming from all field stars over the extracted flux coming from the target star, using the proper extraction weighing function for the target trace.</li>
-                        <li>The smaller panel shows, for each order, the fraction of all spectral channels that are contaminated at a level of at least 0.01 (green) or 0.001 (blue).</li>
-                        <li>The grey semi-transparent regions are the PAs that are inaccessible at the target RA & DEC.</li>
+                        <li>The upper panel shows contamination across the reported spectral channels at the V3 position angle selected with the slider.</li>
+                        <li>The lower curve shows the mean contamination across those channels at each V3 position angle. Shaded intervals identify angles where at least one channel exceeds the stated contamination threshold.</li>
+                        <li>Contamination is reported as the contaminant fraction, C/(T+C), evaluated from the target extraction region.</li>
+                        <li>Both axes are displayed from 0% to 10% to make low contamination easier to assess. Values above 10% are retained but clipped by the displayed range.</li>
+                        <li>Grey regions mark V3 position angles at which the target is not observable during the selected epoch.</li>
                     </ul>
-                    <div style="border:1px solid black; width:164px; height:21px;">
-                        <div style="border:none; width:20px; height:20px; background-color:#ffffff; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#d0d1e6; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#a6bddb; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#74a9cf; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#3690c0; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#0570b0; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#034e7b; float:left;"></div>
-                        <div style="border:none; width:20px; height:20px; background-color:#000000; float:left;"></div>
-                    </div>
-                    <div style="width:164px; height:22px; text-align:center;">
-                    -4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</div>
-                    <div style="width:164px; height:22px; text-align:center;">
-                    good&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bad</div>
                     <br><br>
 <!--                    <ul>-->
 <!--                        <li>The top plot shows the fractional contamination of orders 1 (blue), 2 (red), and 3 (green) in each detector column.</li>-->
