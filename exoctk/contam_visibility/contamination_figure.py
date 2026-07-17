@@ -85,7 +85,7 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
     plt.x_range = Range1d(0, n_channels)
     plt.xaxis.axis_label = 'Column Index'
     plt.yaxis.axis_label = 'Contamination / Target Flux'
-    slider = Slider(title='Position Angle',
+    slider = Slider(title='V3 Position Angle',
                     value=pa_init,
                     start=min(pa_list),
                     end=max(pa_list),
@@ -125,7 +125,7 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
     # Formatting
     viz_plt.x_range = Range1d(0, 359)
     viz_plt.y_range = Range1d(0, 1)
-    viz_plt.xaxis.axis_label = 'Position Angle'
+    viz_plt.xaxis.axis_label = 'V3 Position Angle'
     viz_plt.yaxis.axis_label = 'Max(Contamination / Target Flux)'
     viz_plt.add_layout(span)
 

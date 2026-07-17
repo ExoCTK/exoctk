@@ -131,6 +131,42 @@ def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
     assert result['distance'][0] == pytest.approx(0.)
 
 
+def test_observable_pa_ranges_use_v3pa_not_instrument_angle():
+    """Visibility selection must not apply the SIAF offset a second time."""
+
+    v3pas = np.arange(87., 107.)
+    position_table = DataFrame({
+        'V3PA_min_pa_angle': v3pas,
+        'V3PA_nominal_angle': v3pas,
+        'V3PA_max_pa_angle': v3pas,
+        'NIRISS_min_pa_angle': v3pas + 2.0,
+        'NIRISS_nominal_angle': v3pas + 2.0,
+        'NIRISS_max_pa_angle': v3pas + 2.0,
+    })
+
+    position_angles, bounds, sampled = (
+        field_simulator.observable_v3pa_ranges(position_table))
+
+    assert bounds == [(87, 106)]
+    assert np.array_equal(position_angles, np.arange(87, 107))
+    assert np.array_equal(sampled, np.arange(87, 107))
+
+
+@pytest.mark.parametrize('instrument, aperture_name', [
+    ('NIRISS', 'NIS_SUBSTRIP256'),
+    ('NIRCAM', 'NRCA5_41STRIPE1_DHS_F444W'),
+])
+def test_siaf_aperture_pa_is_derived_once_from_v3pa(
+        instrument, aperture_name):
+    """SOSS and DHS geometry receives the SIAF aperture PA exactly once."""
+
+    aperture = field_simulator.pysiaf.Siaf(instrument)[aperture_name]
+    v3pa = 123.4
+
+    assert field_simulator.aperture_pa_from_v3pa(v3pa, aperture) == (
+        pytest.approx((v3pa + aperture.V3IdlYAngle) % 360))
+
+
 @pytest.mark.parametrize('aperture', [
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',

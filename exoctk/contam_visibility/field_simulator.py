@@ -494,6 +494,53 @@ def _target_source_index(stars, target_coordinate, input_epoch=2000):
     return int(np.argmin(target_coordinate.separation(catalog_at_input_epoch)))
 
 
+def observable_v3pa_ranges(position_table, max_gap=7):
+    """Return integer V3PAs spanning GTVT visibility windows.
+
+    GTVT's instrument-specific columns are aperture position angles: they
+    already include the aperture's ``V3IdlYAngle``. The contamination renderer
+    instead accepts V3 position angles and applies the SIAF conversion itself,
+    so the V3PA columns must be used here to avoid applying that offset twice.
+    """
+
+    columns = [
+        'V3PA_min_pa_angle',
+        'V3PA_nominal_angle',
+        'V3PA_max_pa_angle',
+    ]
+    missing = [name for name in columns if name not in position_table]
+    if missing:
+        raise KeyError(f'Missing GTVT V3PA columns: {missing}')
+
+    values = []
+    for name in columns:
+        column_values = np.asarray(position_table[name], dtype=float)
+        values.extend(column_values[np.isfinite(column_values)])
+    if not values:
+        raise ValueError('GTVT returned no observable V3 position angles')
+
+    sampled = np.sort(np.unique(np.asarray(values).astype(int) % 360))
+    groups = [[sampled[0]]]
+    for value in sampled[1:]:
+        if value - groups[-1][-1] <= max_gap:
+            groups[-1].append(value)
+        else:
+            groups.append([value])
+
+    bounds = [(int(group[0]), int(group[-1])) for group in groups]
+    position_angles = np.concatenate([
+        np.arange(lower, upper + 1, dtype=int)
+        for lower, upper in bounds
+    ])
+    return position_angles, bounds, sampled
+
+
+def aperture_pa_from_v3pa(v3pa, aperture):
+    """Convert a V3 position angle to an aperture position angle."""
+
+    return (v3pa + aperture.V3IdlYAngle) % 360
+
+
 def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
@@ -865,12 +912,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         aperture.minrow, aperture.maxrow = rows.min(), rows.max()
         aperture.mincol, aperture.maxcol = cols.min(), cols.max()
 
-    # Get APA from V3PA
-    APA = V3PA + aperture.V3IdlYAngle
-    if APA > 360:
-        APA = APA - 360
-    elif APA < 0:
-        APA = APA + 360
+    # Convert the renderer's V3PA to the aperture PA required by SIAF.
+    APA = aperture_pa_from_v3pa(V3PA, aperture)
 
     # Aperture info
     aper = APERTURES[aperture.AperName]
@@ -1257,24 +1300,10 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
         goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
 
-        # Get all observable PAs and convert to ints
-        goodPA_vals = list(goodPAs[~goodPAs['{}_min_pa_angle'.format(inst['inst'].upper())].isna()]['{}_min_pa_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_nominal_angle'.format(inst['inst'].upper())].isna()]['{}_nominal_angle'.format(inst['inst'].upper())]) + list(goodPAs[~goodPAs['{}_max_pa_angle'.format(inst['inst'].upper())].isna()]['{}_max_pa_angle'.format(inst['inst'].upper())])
-        goodPA_ints = np.sort(np.unique(np.array(goodPA_vals).astype(int)))
-
-        # Group good PAs to find gaps in visibility
-        good_groups = []
-        current_group = [goodPA_ints[0]]
-        max_gap = 7 # Biggest PA gap considered to still be observable
-        for i in range(1, len(goodPA_ints)):
-            if goodPA_ints[i] - current_group[-1] <= max_gap:
-                current_group.append(goodPA_ints[i])
-            else:
-                good_groups.append(current_group)
-                current_group = [goodPA_ints[i]]
-
-        good_groups.append(current_group)
-        good_group_bounds = [(min(grp), max(grp)) for grp in good_groups]
-        goodPA_list = np.concatenate([np.arange(grp[0], grp[1]+1) for grp in good_group_bounds]).ravel()
+        # Calculate contamination at V3 PAs. The GTVT instrument columns are
+        # aperture PAs and would rotate a source field a second time here.
+        goodPA_list, good_group_bounds, goodPA_ints = observable_v3pa_ranges(
+            goodPAs)
 
         log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
 
