@@ -37,7 +37,7 @@ lam0_nircam444w = 3.063
 lam1_nircam444w = 5.111
 
 
-def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
+def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
     """
     Make the contamination plot with a slider
 
@@ -49,6 +49,9 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
         The position angles that are not observable
     threshold: float
         The threshold for contamination reporting in the plot
+    y_max: float
+        The fractional contamination at the top of both displayed axes. Values
+        above this limit remain in the data and are clipped only visually.
 
     Returns
     -------
@@ -59,12 +62,16 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
     pa_list = np.arange(360)
     orders = np.arange(1, len(pctlines)+1)
     n_channels = pctlines[0].shape[1]
+    if not 0 < y_max <= 1:
+        raise ValueError('y_max must be greater than zero and at most one')
+    percent_lines = [np.asarray(line) * 100 for line in pctlines]
+    display_y_max = y_max * 100
 
     # Store individual contamination fractions for each order+PA combination
     contam_dict = {}
     for order in orders:
-        for pa, frac in enumerate(pctlines[order - 1]):
-            contam_dict[f'contam{order}_{pa}'] = frac
+        for pa, percent in enumerate(percent_lines[order - 1]):
+            contam_dict[f'contam{order}_{pa}'] = percent
 
     # Choose initial values and build visible and available dicts
     pa_init = int(np.argmax(np.nansum(np.asarray(pctlines), axis=(0, 2)))) # Maximum contamination
@@ -81,11 +88,11 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
         glyph = VArea(x="col", y1="zeros", y2=f"contam{order}", fill_color=colors[order - 1], fill_alpha=0.3)
         plt.add_glyph(source_visible, glyph)
 
-    plt.y_range = Range1d(0, 1)
+    plt.y_range = Range1d(0, display_y_max)
     plt.x_range = Range1d(0, n_channels)
     plt.xaxis.axis_label = 'Column Index'
-    plt.yaxis.axis_label = 'Contamination / Target Flux'
-    slider = Slider(title='Position Angle',
+    plt.yaxis.axis_label = 'Contamination (%)'
+    slider = Slider(title='V3 Position Angle',
                     value=pa_init,
                     start=min(pa_list),
                     end=max(pa_list),
@@ -107,7 +114,8 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
         """)
 
     # Make a guide that shows which PAs are unobservable
-    viz_none = np.array([1 if i in badPA_list else 0 for i in pa_list])
+    viz_none = np.array([
+        display_y_max if i in badPA_list else 0 for i in pa_list])
     viz_plt = figure(width=900, height=300, x_range=Range1d(0, 359))
     c0 = viz_plt.vbar(x=np.arange(360), top=viz_none, width=1.1, alpha=0.5, line_color=None, fill_color='#555555')
 
@@ -115,21 +123,24 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05):
     vis_ords = []
     for order in orders:
 
-        # Plot step to show maximum contamination per channel
-        viz_plt.step(pa_list, np.nanmean(pctlines[order - 1], axis=1), line_width=2, color=colors[order - 1], mode="center")
+        # Plot the mean contamination across spectral channels.
+        viz_plt.step(pa_list, np.nanmean(percent_lines[order - 1], axis=1), line_width=2, color=colors[order - 1], mode="center")
 
         # PLot columns that indicate >5% contamination
-        viz_ord = np.array([1 if i > threshold else 0 for i in np.nanmax(pctlines[order - 1], axis=1)])
+        viz_ord = np.array([
+            display_y_max if value > threshold else 0
+            for value in np.nanmax(pctlines[order - 1], axis=1)
+        ])
         vis_ords.append(viz_plt.vbar(x=pa_list, top=viz_ord, width=1.1, alpha=0.2, line_color=None, fill_color=colors[order - 1]))
 
     # Formatting
     viz_plt.x_range = Range1d(0, 359)
-    viz_plt.y_range = Range1d(0, 1)
-    viz_plt.xaxis.axis_label = 'Position Angle'
-    viz_plt.yaxis.axis_label = 'Max(Contamination / Target Flux)'
+    viz_plt.y_range = Range1d(0, display_y_max)
+    viz_plt.xaxis.axis_label = 'V3 Position Angle'
+    viz_plt.yaxis.axis_label = 'Mean Contamination (%)'
     viz_plt.add_layout(span)
 
-    items = [("Target not visible", [c0])]
+    items = [("Target not observable", [c0])]
     for order, vis_ord in zip(orders, vis_ords):
         items.append((f'Ord {order} > {threshold * 100}% Contaminated', [vis_ord]))
     legend = Legend(items=items, location=(50, 0), orientation='horizontal', border_line_alpha=0)
