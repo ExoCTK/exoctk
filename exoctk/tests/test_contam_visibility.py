@@ -22,10 +22,12 @@ Use
 
 import os
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pytest
+from erfa import ErfaWarning
 
 from pandas import DataFrame
 from astropy.table import Table
@@ -51,6 +53,31 @@ def test_new_vis_plot():
     plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
 
     assert str(type(plt)) == "<class 'bokeh.plotting._figure.figure'>"
+
+
+def test_visibility_ephemeris_suppresses_only_expected_erfa_warning(monkeypatch):
+    """The jwst_gtvt future-date warning must not hide other warnings."""
+
+    class WarningEphemeris:
+        def __init__(self, *args, **kwargs):
+            warnings.warn(
+                'ERFA function "dtf2d" yielded 1 of "dubious year (Note 6)"',
+                ErfaWarning,
+            )
+            warnings.warn('unrelated ERFA warning', ErfaWarning)
+
+        def get_fixed_target_positions(self, ra, dec):
+            return DataFrame({'in_FOR': [True]})
+
+    monkeypatch.setattr(new_vis_plot, 'Ephemeris', WarningEphemeris)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        result = new_vis_plot.get_exoplanet_positions('24.3544618',
+                                                       '-45.6777937')
+
+    assert isinstance(result, DataFrame)
+    assert [str(warning.message) for warning in caught] == [
+        'unrelated ERFA warning']
 
 
 @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Need access to trace data FITS files.  Please try running locally')
