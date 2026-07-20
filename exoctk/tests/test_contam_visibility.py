@@ -260,6 +260,24 @@ def test_substrip96_contamination_plot_omits_order2(monkeypatch):
     assert len(plot.children) == 2
 
 
+def test_substrip96_slider_omits_uncalculated_orders():
+    """The web slider exposes only the calculated SUBSTRIP96 order."""
+
+    fractions = [np.full((360, 3), value) for value in (0.01, 0.02, 0.03)]
+    plot = contamination_figure.contam_slider_plot(
+        fractions, badPA_list=[], instrument='NIS_SUBSTRIP96')
+    spectrum_plot, _, pa_plot = plot.children
+
+    # One order produces one line and one filled area in the upper plot, and
+    # one mean curve plus one threshold region in the lower plot.
+    assert len(spectrum_plot.renderers) == 2
+    assert len(pa_plot.renderers) == 3
+    assert 'contam1' in spectrum_plot.renderers[0].data_source.data
+    assert 'contam2' not in spectrum_plot.renderers[0].data_source.data
+    assert not any(key.startswith('contam2_')
+                   for key in spectrum_plot.renderers[0].data_source.data)
+
+
 def test_dhs_modes_available_in_web_form():
     """The web form exposes both supported NIRCam DHS filters."""
 

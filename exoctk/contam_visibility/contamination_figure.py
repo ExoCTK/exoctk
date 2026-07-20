@@ -46,7 +46,8 @@ def has_order2_contamination(instrument):
     return instrument != 'NIS_SUBSTRIP96'
 
 
-def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
+def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
+                       instrument=None):
     """
     Make the contamination plot with a slider
 
@@ -61,12 +62,21 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
     y_max: float
         The fractional contamination at the top of both displayed axes. Values
         above this limit remain in the data and are clipped only visually.
+    instrument: str, optional
+        Instrument aperture name. ``NIS_SUBSTRIP96`` displays only the
+        calculated SOSS Order 1 result.
 
     Returns
     -------
     bokeh.layouts.column
         The column of plots
     """
+    # SUBSTRIP96 trace products provide only SOSS Order 1. The simulator
+    # reuses SUBSTRIP256 templates for source placement, so its extra internal
+    # trace arrays must not be presented as calculated contamination results.
+    if instrument == 'NIS_SUBSTRIP96':
+        pctlines = pctlines[:1]
+
     # Quantities
     pa_list = np.arange(360)
     orders = np.arange(1, len(pctlines)+1)

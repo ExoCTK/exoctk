@@ -691,7 +691,8 @@ def contam_visibility():
             if fs.contamination_supported(form.inst.data):
                 pctlines = fs.fraction_contaminated(
                     form.inst.data, targframe, starcube)
-                contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+                contam_plot = cf.contam_slider_plot(
+                    pctlines, badPAs, instrument=form.inst.data)
                 print("Made contamination slider plot")
             else:
                 # Retain the legacy image plot for any future mode that has not
