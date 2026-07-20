@@ -29,6 +29,7 @@ import pytest
 
 from pandas import DataFrame
 from astropy.table import Table
+import astropy.units as u
 
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import contamination_figure
@@ -131,6 +132,130 @@ def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
     assert result['fluxscale'][0] == pytest.approx(1.)
     assert result['fluxscale'][1] < 1.e-4
     assert result['distance'][0] == pytest.approx(0.)
+
+
+def test_source_projection_batches_pysiaf_detector_transform(monkeypatch):
+    """Batch projection preserves the scalar placement equations."""
+
+    stars = Table({
+        'ra': [0., 1.25, -2.75],
+        'dec': [0., 3.5, -4.5],
+        'xtel': np.zeros(3), 'ytel': np.zeros(3),
+        'xdet': np.zeros(3), 'ydet': np.zeros(3),
+        'xsci': [100., 0., 0.], 'ysci': [200., 0., 0.],
+        'xord0': [210, 0, 0], 'yord0': [410, 0, 0],
+        'xord1': np.zeros(3), 'yord1': np.zeros(3),
+    })
+    aper = {
+        'c0x0': 100., 'c0y0': 200., 'c1x0': -0.1, 'c1y0': 0.2,
+        'c1x1': -0.03, 'c1y1': 0.12, 'c2y1': -0.011,
+        'xord0to1': -500, 'yord0to1': 75,
+    }
+
+    def fake_sky_to_tel(attitude, ra, dec):
+        return np.asarray(ra) * u.arcsec, np.asarray(dec) * u.arcsec
+
+    class FakeAperture:
+        def __init__(self):
+            self.tel_to_det_calls = []
+
+        def tel_to_det(self, xtel, ytel):
+            self.tel_to_det_calls.append((np.asarray(xtel), np.asarray(ytel)))
+            return np.asarray(xtel) + 10., np.asarray(ytel) + 20.
+
+        def det_to_sci(self, xdet, ydet):
+            return np.asarray(xdet) * 2., np.asarray(ydet) * 3.
+
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'sky_to_tel', fake_sky_to_tel)
+    aperture = FakeAperture()
+
+    field_simulator._project_sources_to_detector(
+        np.eye(3), stars, aperture, aper)
+
+    assert len(aperture.tel_to_det_calls) == 1
+    np.testing.assert_allclose(aperture.tel_to_det_calls[0][0], [1.25, -2.75])
+    np.testing.assert_allclose(aperture.tel_to_det_calls[0][1], [3.5, -4.5])
+
+    # These are the scalar formulas formerly evaluated once per source.
+    for index in range(1, len(stars)):
+        xsci = (stars['ra'][index] + 10.) * 2.
+        ysci = (stars['dec'][index] + 20.) * 3.
+        xord0 = int(xsci + aper['c0x0']
+                    + aper['c1x0'] * (stars['xsci'][0] - xsci))
+        yord0 = int(ysci + aper['c0y0']
+                    + aper['c1y0'] * (stars['ysci'][0] - ysci))
+        xord1 = xord0 + aper['xord0to1'] + int(
+            aper['c1x1'] * (stars['xord0'][0] - xord0))
+        yord1 = yord0 + aper['yord0to1'] + int(
+            aper['c1y1'] * (stars['yord0'][0] - yord0)) + int(
+            aper['c2y1'] * (stars['xord0'][0] - xord0))
+
+        assert stars['xsci'][index] == xsci
+        assert stars['ysci'][index] == ysci
+        assert stars['xord0'][index] == xord0
+        assert stars['yord0'][index] == yord0
+        assert stars['xord1'][index] == xord1
+        assert stars['yord1'][index] == yord1
+
+
+def test_batched_source_projection_matches_scalar_pysiaf():
+    """Real pySIAF vector inputs retain the previous scalar placements."""
+
+    aperture = field_simulator.pysiaf.Siaf('NIRISS')['NIS_SUBSTRIP96']
+    aper = field_simulator.APERTURES[aperture.AperName]
+    stars = Table({
+        'ra': [300.1821375, 300.1830, 300.1814],
+        'dec': [22.7108528, 22.7113, 22.7100],
+        'xtel': np.zeros(3), 'ytel': np.zeros(3),
+        'xdet': np.zeros(3), 'ydet': np.zeros(3),
+        'xsci': np.zeros(3), 'ysci': np.zeros(3),
+        'xord0': np.zeros(3), 'yord0': np.zeros(3),
+        'xord1': np.zeros(3), 'yord1': np.zeros(3),
+    })
+
+    stars['xdet'][0], stars['ydet'][0] = aperture.reference_point('det')
+    stars['xtel'][0], stars['ytel'][0] = aperture.det_to_tel(
+        stars['xdet'][0], stars['ydet'][0])
+    stars['xsci'][0], stars['ysci'][0] = aperture.det_to_sci(
+        stars['xdet'][0], stars['ydet'][0])
+    stars['xord0'][0] = int(stars['xsci'][0] + aper['c0x0'])
+    stars['yord0'][0] = int(stars['ysci'][0] + aper['c0y0'])
+
+    v3pa = 240.
+    apa = (v3pa + aperture.V3IdlYAngle) % 360
+    attitude = field_simulator.pysiaf.utils.rotations.attitude_matrix(
+        stars['xtel'][0], stars['ytel'][0], stars['ra'][0], stars['dec'][0],
+        apa)
+
+    expected = stars.copy()
+    for index in range(1, len(expected)):
+        v2, v3 = field_simulator.pysiaf.utils.rotations.sky_to_tel(
+            attitude, expected['ra'][index], expected['dec'][index])
+        expected['xtel'][index] = v2.to_value(u.arcsec)
+        expected['ytel'][index] = v3.to_value(u.arcsec)
+        expected['xdet'][index], expected['ydet'][index] = aperture.tel_to_det(
+            expected['xtel'][index], expected['ytel'][index])
+        expected['xsci'][index], expected['ysci'][index] = aperture.det_to_sci(
+            expected['xdet'][index], expected['ydet'][index])
+        expected['xord0'][index] = int(
+            expected['xsci'][index] + aper['c0x0'] + aper['c1x0']
+            * (expected['xsci'][0] - expected['xsci'][index]))
+        expected['yord0'][index] = int(
+            expected['ysci'][index] + aper['c0y0'] + aper['c1y0']
+            * (expected['ysci'][0] - expected['ysci'][index]))
+        expected['xord1'][index] = expected['xord0'][index] + aper['xord0to1'] + int(
+            aper['c1x1'] * (expected['xord0'][0] - expected['xord0'][index]))
+        expected['yord1'][index] = expected['yord0'][index] + aper['yord0to1'] + int(
+            aper['c1y1'] * (expected['yord0'][0] - expected['yord0'][index])) + int(
+            aper['c2y1'] * (expected['xord0'][0] - expected['xord0'][index]))
+
+    field_simulator._project_sources_to_detector(attitude, stars, aperture, aper)
+
+    for name in ('xtel', 'ytel', 'xdet', 'ydet', 'xsci', 'ysci'):
+        np.testing.assert_allclose(stars[name], expected[name])
+    for name in ('xord0', 'yord0', 'xord1', 'yord1'):
+        np.testing.assert_array_equal(stars[name], expected[name])
 
 
 def test_trace_templates_are_cached_across_position_angles(monkeypatch):
