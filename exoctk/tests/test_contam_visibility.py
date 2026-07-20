@@ -33,6 +33,7 @@ from astropy.table import Table
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
+from exoctk.contam_visibility import contamination_figure
 from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 
 # Determine if tests are being run on Github Actions
@@ -129,6 +130,28 @@ def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
     assert result['fluxscale'][0] == pytest.approx(1.)
     assert result['fluxscale'][1] < 1.e-4
     assert result['distance'][0] == pytest.approx(0.)
+
+
+def test_contamination_slider_uses_percent_and_common_display_cap():
+    """All supported modes share a 0--10% percent-based display."""
+
+    fractions = np.full((360, 3), 0.125)
+    plot = contamination_figure.contam_slider_plot(
+        [fractions], badPA_list=[0])
+    spectrum_plot, slider_row, pa_plot = plot.children
+    slider = slider_row.children[1]
+    line_renderer = spectrum_plot.renderers[0]
+    shading_renderer = pa_plot.renderers[0]
+    threshold_renderer = pa_plot.renderers[-1]
+
+    assert spectrum_plot.yaxis.axis_label == 'Contamination (%)'
+    assert pa_plot.yaxis.axis_label == 'Mean Contamination (%)'
+    assert spectrum_plot.y_range.end == 10
+    assert pa_plot.y_range.end == 10
+    assert slider.title == 'V3 Position Angle'
+    assert np.all(line_renderer.data_source.data['contam1'] == 12.5)
+    assert shading_renderer.data_source.data['top'][0] == 10
+    assert threshold_renderer.data_source.data['top'][0] == 10
 
 
 @pytest.mark.parametrize('aperture', [
