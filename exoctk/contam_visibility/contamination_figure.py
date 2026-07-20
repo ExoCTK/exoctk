@@ -37,6 +37,15 @@ lam0_nircam444w = 3.063
 lam1_nircam444w = 5.111
 
 
+def has_order2_contamination(instrument):
+    """Return whether the contamination calculation includes SOSS Order 2."""
+
+    # SUBSTRIP96 trace products contain only Order 1.  The legacy simulator
+    # reuses SUBSTRIP256 templates for source placement, so plotting its Order
+    # 2 panel would incorrectly imply a contamination calculation was done.
+    return instrument != 'NIS_SUBSTRIP96'
+
+
 def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
     """
     Make the contamination plot with a slider
@@ -442,7 +451,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
     # ~~~~~~ Order 2 ~~~~~~
 
     # Contam plot
-    if instrument.startswith('NIS'):
+    if instrument.startswith('NIS') and has_order2_contamination(instrument):
         xlim0 = lamO2.min()
         xlim1 = lamO2.max()
         ylim0 = PA.min() - 0.5 * dPA
@@ -496,7 +505,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     # ~~~~~~ Plotting ~~~~~~
 
-    if instrument.startswith('NIS'):
+    if instrument.startswith('NIS') and has_order2_contamination(instrument):
         fig = gridplot(children=[[s2, s3], [s5, s6]])
     else:
         fig = gridplot(children=[[s2, s3]])

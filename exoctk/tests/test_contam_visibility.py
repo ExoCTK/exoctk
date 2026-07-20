@@ -31,6 +31,7 @@ from pandas import DataFrame
 from astropy.table import Table
 
 from exoctk.contam_visibility import field_simulator
+from exoctk.contam_visibility import contamination_figure
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
 from exoctk.contam_visibility import contamination_figure
@@ -231,6 +232,32 @@ def test_contamination_not_supported(aperture):
     """Visibility-only modes must not run contamination calculations."""
 
     assert not field_simulator.contamination_supported(aperture)
+
+
+@pytest.mark.parametrize(('aperture', 'expected'), [
+    ('NIS_SUBSTRIP96', False),
+    ('NIS_SUBSTRIP256', True),
+    ('NRCA5_41STRIPE1_DHS_F322W2', True),
+])
+def test_order2_contamination_availability(aperture, expected):
+    """Only SUBSTRIP96 omits its uncalculated SOSS Order 2 output."""
+
+    assert contamination_figure.has_order2_contamination(aperture) is expected
+
+
+def test_substrip96_contamination_plot_omits_order2(monkeypatch):
+    """SUBSTRIP96 renders only its calculated Order 1 contamination panel."""
+
+    class Cube:
+        shape = (362, 2048, 96)
+
+    monkeypatch.setattr(
+        contamination_figure, 'nirissContam',
+        lambda cube, lam_file: (np.zeros((2048, 360)), np.zeros((2048, 360))))
+
+    plot = contamination_figure.contam(Cube(), 'NIS_SUBSTRIP96')
+
+    assert len(plot.children) == 2
 
 
 def test_dhs_modes_available_in_web_form():
