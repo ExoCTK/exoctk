@@ -95,3 +95,6 @@ namespaces = false
 
 [tool.pytest]
 junit_family = "xunit2"
+markers = [
+  "integration: test requiring a live external service",
+]
