@@ -908,6 +908,60 @@ def fraction_contaminated(aperture, targframes, starcube):
     return pctlines
 
 
+def _project_sources_to_detector(attitude, stars, aperture, aper):
+    """Project all non-target sources for one PA using pySIAF array inputs.
+
+    ``JwstAperture.tel_to_det`` constructs the distortion models it needs for
+    every call.  Calling it once for an array of sources therefore avoids
+    rebuilding identical immutable models for every Gaia row.  The placement
+    equations intentionally retain the scalar implementation's independent
+    integer conversions, because those conversions define the rendered pixel
+    positions.
+    """
+    if len(stars) <= 1:
+        return
+
+    source_slice = slice(1, None)
+    ra = np.asarray(stars['ra'][source_slice], dtype=float)
+    dec = np.asarray(stars['dec'][source_slice], dtype=float)
+
+    v2, v3 = pysiaf.utils.rotations.sky_to_tel(attitude, ra, dec)
+    xtel = np.asarray(v2.to_value(u.arcsec), dtype=float)
+    ytel = np.asarray(v3.to_value(u.arcsec), dtype=float)
+    xdet, ydet = aperture.tel_to_det(xtel, ytel)
+    xsci, ysci = aperture.det_to_sci(xdet, ydet)
+    xsci = np.asarray(xsci, dtype=float)
+    ysci = np.asarray(ysci, dtype=float)
+
+    stars['xtel'][source_slice] = xtel
+    stars['ytel'][source_slice] = ytel
+    stars['xdet'][source_slice] = xdet
+    stars['ydet'][source_slice] = ydet
+    stars['xsci'][source_slice] = xsci
+    stars['ysci'][source_slice] = ysci
+
+    target_xsci = stars['xsci'][0]
+    target_ysci = stars['ysci'][0]
+    target_xord0 = stars['xord0'][0]
+    target_yord0 = stars['yord0'][0]
+
+    xord0 = np.asarray(
+        xsci + aper['c0x0'] + aper['c1x0'] * (target_xsci - xsci),
+        dtype=int)
+    yord0 = np.asarray(
+        ysci + aper['c0y0'] + aper['c1y0'] * (target_ysci - ysci),
+        dtype=int)
+    x_shift = np.asarray(aper['c1x1'] * (target_xord0 - xord0), dtype=int)
+    y_shift = (
+        np.asarray(aper['c1y1'] * (target_yord0 - yord0), dtype=int)
+        + np.asarray(aper['c2y1'] * (target_xord0 - xord0), dtype=int))
+
+    stars['xord0'][source_slice] = xord0
+    stars['yord0'][source_slice] = yord0
+    stars['xord1'][source_slice] = xord0 + aper['xord0to1'] + x_shift
+    stars['yord1'][source_slice] = yord0 + aper['yord0to1'] + y_shift
+
+
 def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     """
     Calculate the V3 position angle for each target at the given PA
@@ -979,27 +1033,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     # Get relative coordinates of the stars based on target attitude
     logging.info("Getting star locations for {} stars at PA={} from pysiaf...".format(len(stars), APA))
 
-    for idx, star in enumerate(stars[1:]):
-
-        # Get the TEL coordinates (V2, V3) of the star
-        V2, V3 = pysiaf.utils.rotations.sky_to_tel(attitude, star['ra'], star['dec'])
-        star['xtel'], star['ytel'] = V2.to(u.arcsec).value, V3.to(u.arcsec).value
-
-        # Get the DET coordinates of the star
-        star['xdet'], star['ydet'] = aperture.tel_to_det(star['xtel'], star['ytel'])
-
-        # Get the DET coordinates of the star
-        star['xsci'], star['ysci'] = aperture.det_to_sci(star['xdet'], star['ydet'])
-
-        # Order 0 location relative to pysiaf SCI coordinates (with distortion corrections)
-        star['xord0'] = int(star['xsci'] + aper['c0x0'] + aper['c1x0'] * (stars['xsci'][0] - star['xsci']))
-        star['yord0'] = int(star['ysci'] + aper['c0y0'] + aper['c1y0'] * (stars['ysci'][0] - star['ysci']))
-
-        # Order 1/2/3 location relative to order 0 location (with distortion corrections)
-        x_shift = int(aper['c1x1'] * (stars[0]['xord0'] - star['xord0']))
-        y_shift = int(aper['c1y1'] * (stars[0]['yord0'] - star['yord0'])) + int(aper['c2y1'] * (stars[0]['xord0'] - star['xord0']))
-        star['xord1'] = star['xord0'] + aper['xord0to1'] + x_shift
-        star['yord1'] = star['yord0'] + aper['yord0to1'] + y_shift
+    _project_sources_to_detector(attitude, stars, aperture, aper)
 
     logging.info(f'Calculated target and {len(stars)-1} source sci coordinates.')
 
