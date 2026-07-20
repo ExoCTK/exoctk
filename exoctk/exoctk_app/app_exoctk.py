@@ -691,9 +691,15 @@ def contam_visibility():
             if fs.contamination_supported(form.inst.data):
                 pctlines = fs.fraction_contaminated(
                     form.inst.data, targframe, starcube)
-                contam_plot = cf.contam_slider_plot(
-                    pctlines, badPAs, instrument=form.inst.data)
-                print("Made contamination slider plot")
+                if form.inst.data.startswith('NIS'):
+                    contam_plot = cf.soss_contamination_plot_layout(
+                        targframe, starcube, pctlines, badPAs,
+                        form.inst.data, form.targname.data)
+                    print("Made legacy and slider SOSS contamination plots")
+                else:
+                    contam_plot = cf.contam_slider_plot(
+                        pctlines, badPAs, instrument=form.inst.data)
+                    print("Made contamination slider plot")
             else:
                 # Retain the legacy image plot for any future mode that has not
                 # adopted the common contamination-slider representation.

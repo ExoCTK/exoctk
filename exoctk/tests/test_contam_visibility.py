@@ -278,6 +278,49 @@ def test_substrip96_slider_omits_uncalculated_orders():
                    for key in spectrum_plot.renderers[0].data_source.data)
 
 
+def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
+    """SOSS results retain the legacy view above the slider summary."""
+
+    legacy_plot = contamination_figure.Spacer(width=1, height=1)
+    slider_plot = contamination_figure.Spacer(width=2, height=2)
+    captured = {}
+
+    def fake_legacy(cube, instrument, targetName, badPAs):
+        captured['cube'] = cube
+        captured['instrument'] = instrument
+        captured['target_name'] = targetName
+        captured['bad_pas'] = badPAs
+        return legacy_plot
+
+    def fake_slider(pctlines, badPA_list, instrument):
+        captured['pctlines'] = pctlines
+        captured['slider_bad_pas'] = badPA_list
+        captured['slider_instrument'] = instrument
+        return slider_plot
+
+    monkeypatch.setattr(contamination_figure, 'contam', fake_legacy)
+    monkeypatch.setattr(contamination_figure, 'contam_slider_plot', fake_slider)
+    targframes = [np.arange(6).reshape(2, 3), np.arange(6, 12).reshape(2, 3)]
+    starcube = np.arange(24).reshape(4, 2, 3)
+    pctlines = [np.zeros((4, 3)), np.ones((4, 3))]
+
+    layout = contamination_figure.soss_contamination_plot_layout(
+        targframes, starcube, pctlines, [7], 'NIS_SUBSTRIP96', 'Target')
+
+    assert layout.children == [legacy_plot, slider_plot]
+    assert captured['instrument'] == 'NIS_SUBSTRIP96'
+    assert captured['slider_instrument'] == 'NIS_SUBSTRIP96'
+    assert captured['target_name'] == 'Target'
+    assert captured['bad_pas'] == [7]
+    assert captured['slider_bad_pas'] == [7]
+    np.testing.assert_array_equal(
+        captured['cube'][0], targframes[0].T[::-1, ::-1])
+    np.testing.assert_array_equal(
+        captured['cube'][1], targframes[1].T[::-1, ::-1])
+    np.testing.assert_array_equal(
+        captured['cube'][2:], starcube.swapaxes(1, 2)[:, ::-1, ::-1])
+
+
 def test_dhs_modes_available_in_web_form():
     """The web form exposes both supported NIRCam DHS filters."""
 

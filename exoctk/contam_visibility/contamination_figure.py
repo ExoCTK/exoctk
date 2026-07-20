@@ -173,6 +173,32 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     return layout
 
 
+def soss_contamination_plot_layout(targframes, starcube, pctlines,
+                                   badPA_list, instrument, target_name):
+    """Return the legacy SOSS plot above the common slider plot.
+
+    The legacy image plot retains its wavelength-versus-position-angle view,
+    while the slider plot provides the extracted-contamination summary.  Both
+    are shown for SOSS so that established planning workflows remain available.
+    """
+    if not instrument.startswith('NIS'):
+        raise ValueError('Legacy contamination plots are available only for SOSS')
+    if len(targframes) < 2:
+        raise ValueError('SOSS legacy plots require target Orders 1 and 2')
+
+    n_pa, n_rows, n_columns = starcube.shape
+    legacy_cube = np.zeros((n_pa + 2, n_columns, n_rows))
+    legacy_cube[0] = targframes[0].T[::-1, ::-1]
+    legacy_cube[1] = targframes[1].T[::-1, ::-1]
+    legacy_cube[2:] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+
+    legacy_plot = contam(
+        legacy_cube, instrument, targetName=target_name, badPAs=badPA_list)
+    slider_plot = contam_slider_plot(
+        pctlines, badPA_list, instrument=instrument)
+    return column(legacy_plot, slider_plot)
+
+
 def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
     """ Generates the contamination figure that will be plotted on the website
     for NIRISS SOSS.
