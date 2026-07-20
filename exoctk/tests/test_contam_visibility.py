@@ -132,6 +132,59 @@ def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
     assert result['distance'][0] == pytest.approx(0.)
 
 
+def test_trace_templates_are_cached_across_position_angles(monkeypatch):
+    """Repeated source templates avoid repeated trace-file reads."""
+
+    calls = []
+    monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+    monkeypatch.setattr(
+        field_simulator.glob, 'glob',
+        lambda path: ['/synthetic-data/exoctk_contam/traces/'
+                      'NIS_SUBSTRIP256/trace_5000.fits'])
+
+    def synthetic_trace(filename, ext=0):
+        calls.append((filename, ext))
+        return np.full((2, 2), ext + 1., dtype=float)
+
+    monkeypatch.setattr(field_simulator.fits, 'getdata', synthetic_trace)
+    field_simulator._get_trace_cached.cache_clear()
+    try:
+        first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+        second = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+    finally:
+        field_simulator._get_trace_cached.cache_clear()
+
+    assert len(calls) == 3
+    assert all(np.array_equal(before, after)
+               for before, after in zip(first, second))
+    assert all(not trace.flags.writeable for trace in first)
+
+
+def test_order_zero_templates_are_cached_across_position_angles(monkeypatch):
+    """Order-zero templates are also reused when rendering crowded fields."""
+
+    calls = []
+    monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+    monkeypatch.setattr(
+        field_simulator.glob, 'glob',
+        lambda path: ['/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy'])
+
+    def synthetic_order_zero(filename):
+        calls.append(filename)
+        return np.ones((2, 2), dtype=float)
+
+    monkeypatch.setattr(field_simulator.np, 'load', synthetic_order_zero)
+    field_simulator._get_order0_cached.cache_clear()
+    try:
+        first = field_simulator.get_order0('NIS_SUBSTRIP256', 5000., 'STAR')
+        second = field_simulator.get_order0('NIS_SUBSTRIP256', 5000., 'STAR')
+    finally:
+        field_simulator._get_order0_cached.cache_clear()
+
+    assert calls == [
+        '/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy']
+    assert np.array_equal(first, second)
+    assert not first.flags.writeable
 def test_contamination_slider_uses_percent_and_common_display_cap():
     """All supported modes share a 0--10% percent-based display."""
 
