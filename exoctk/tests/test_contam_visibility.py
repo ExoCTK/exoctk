@@ -31,6 +31,7 @@ from pandas import DataFrame
 from astropy.table import Table
 
 from exoctk.contam_visibility import field_simulator
+from exoctk.contam_visibility import contamination_figure
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
 from exoctk.contam_visibility import contamination_figure
@@ -231,6 +232,93 @@ def test_contamination_not_supported(aperture):
     """Visibility-only modes must not run contamination calculations."""
 
     assert not field_simulator.contamination_supported(aperture)
+
+
+@pytest.mark.parametrize(('aperture', 'expected'), [
+    ('NIS_SUBSTRIP96', False),
+    ('NIS_SUBSTRIP256', True),
+    ('NRCA5_41STRIPE1_DHS_F322W2', True),
+])
+def test_order2_contamination_availability(aperture, expected):
+    """Only SUBSTRIP96 omits its uncalculated SOSS Order 2 output."""
+
+    assert contamination_figure.has_order2_contamination(aperture) is expected
+
+
+def test_substrip96_contamination_plot_omits_order2(monkeypatch):
+    """SUBSTRIP96 renders only its calculated Order 1 contamination panel."""
+
+    class Cube:
+        shape = (362, 2048, 96)
+
+    monkeypatch.setattr(
+        contamination_figure, 'nirissContam',
+        lambda cube, lam_file: (np.zeros((2048, 360)), np.zeros((2048, 360))))
+
+    plot = contamination_figure.contam(Cube(), 'NIS_SUBSTRIP96')
+
+    assert len(plot.children) == 2
+
+
+def test_substrip96_slider_omits_uncalculated_orders():
+    """The web slider exposes only the calculated SUBSTRIP96 order."""
+
+    fractions = [np.full((360, 3), value) for value in (0.01, 0.02, 0.03)]
+    plot = contamination_figure.contam_slider_plot(
+        fractions, badPA_list=[], instrument='NIS_SUBSTRIP96')
+    spectrum_plot, _, pa_plot = plot.children
+
+    # One order produces one line and one filled area in the upper plot, and
+    # one mean curve plus one threshold region in the lower plot.
+    assert len(spectrum_plot.renderers) == 2
+    assert len(pa_plot.renderers) == 3
+    assert 'contam1' in spectrum_plot.renderers[0].data_source.data
+    assert 'contam2' not in spectrum_plot.renderers[0].data_source.data
+    assert not any(key.startswith('contam2_')
+                   for key in spectrum_plot.renderers[0].data_source.data)
+
+
+def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
+    """SOSS results retain the legacy view above the slider summary."""
+
+    legacy_plot = contamination_figure.Spacer(width=1, height=1)
+    slider_plot = contamination_figure.Spacer(width=2, height=2)
+    captured = {}
+
+    def fake_legacy(cube, instrument, targetName, badPAs):
+        captured['cube'] = cube
+        captured['instrument'] = instrument
+        captured['target_name'] = targetName
+        captured['bad_pas'] = badPAs
+        return legacy_plot
+
+    def fake_slider(pctlines, badPA_list, instrument):
+        captured['pctlines'] = pctlines
+        captured['slider_bad_pas'] = badPA_list
+        captured['slider_instrument'] = instrument
+        return slider_plot
+
+    monkeypatch.setattr(contamination_figure, 'contam', fake_legacy)
+    monkeypatch.setattr(contamination_figure, 'contam_slider_plot', fake_slider)
+    targframes = [np.arange(6).reshape(2, 3), np.arange(6, 12).reshape(2, 3)]
+    starcube = np.arange(24).reshape(4, 2, 3)
+    pctlines = [np.zeros((4, 3)), np.ones((4, 3))]
+
+    layout = contamination_figure.soss_contamination_plot_layout(
+        targframes, starcube, pctlines, [7], 'NIS_SUBSTRIP96', 'Target')
+
+    assert layout.children == [legacy_plot, slider_plot]
+    assert captured['instrument'] == 'NIS_SUBSTRIP96'
+    assert captured['slider_instrument'] == 'NIS_SUBSTRIP96'
+    assert captured['target_name'] == 'Target'
+    assert captured['bad_pas'] == [7]
+    assert captured['slider_bad_pas'] == [7]
+    np.testing.assert_array_equal(
+        captured['cube'][0], targframes[0].T[::-1, ::-1])
+    np.testing.assert_array_equal(
+        captured['cube'][1], targframes[1].T[::-1, ::-1])
+    np.testing.assert_array_equal(
+        captured['cube'][2:], starcube.swapaxes(1, 2)[:, ::-1, ::-1])
 
 
 def test_dhs_modes_available_in_web_form():

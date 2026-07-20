@@ -1328,7 +1328,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         # Make slider contam plot
         if slider:
             pctlines = fraction_contaminated(aperture, targframes, starcube)
-            contam_plot = cf.contam_slider_plot(pctlines, badPAs)
+            contam_plot = cf.contam_slider_plot(
+                pctlines, badPAs, instrument=aperture)
 
         # Make old contam plot
         else:

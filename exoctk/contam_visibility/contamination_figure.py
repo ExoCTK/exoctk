@@ -37,7 +37,17 @@ lam0_nircam444w = 3.063
 lam1_nircam444w = 5.111
 
 
-def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
+def has_order2_contamination(instrument):
+    """Return whether the contamination calculation includes SOSS Order 2."""
+
+    # SUBSTRIP96 trace products contain only Order 1.  The legacy simulator
+    # reuses SUBSTRIP256 templates for source placement, so plotting its Order
+    # 2 panel would incorrectly imply a contamination calculation was done.
+    return instrument != 'NIS_SUBSTRIP96'
+
+
+def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
+                       instrument=None):
     """
     Make the contamination plot with a slider
 
@@ -52,12 +62,21 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
     y_max: float
         The fractional contamination at the top of both displayed axes. Values
         above this limit remain in the data and are clipped only visually.
+    instrument: str, optional
+        Instrument aperture name. ``NIS_SUBSTRIP96`` displays only the
+        calculated SOSS Order 1 result.
 
     Returns
     -------
     bokeh.layouts.column
         The column of plots
     """
+    # SUBSTRIP96 trace products provide only SOSS Order 1. The simulator
+    # reuses SUBSTRIP256 templates for source placement, so its extra internal
+    # trace arrays must not be presented as calculated contamination results.
+    if instrument == 'NIS_SUBSTRIP96':
+        pctlines = pctlines[:1]
+
     # Quantities
     pa_list = np.arange(360)
     orders = np.arange(1, len(pctlines)+1)
@@ -152,6 +171,32 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1):
     layout = column(plt, slider_row, viz_plt)
 
     return layout
+
+
+def soss_contamination_plot_layout(targframes, starcube, pctlines,
+                                   badPA_list, instrument, target_name):
+    """Return the legacy SOSS plot above the common slider plot.
+
+    The legacy image plot retains its wavelength-versus-position-angle view,
+    while the slider plot provides the extracted-contamination summary.  Both
+    are shown for SOSS so that established planning workflows remain available.
+    """
+    if not instrument.startswith('NIS'):
+        raise ValueError('Legacy contamination plots are available only for SOSS')
+    if len(targframes) < 2:
+        raise ValueError('SOSS legacy plots require target Orders 1 and 2')
+
+    n_pa, n_rows, n_columns = starcube.shape
+    legacy_cube = np.zeros((n_pa + 2, n_columns, n_rows))
+    legacy_cube[0] = targframes[0].T[::-1, ::-1]
+    legacy_cube[1] = targframes[1].T[::-1, ::-1]
+    legacy_cube[2:] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
+
+    legacy_plot = contam(
+        legacy_cube, instrument, targetName=target_name, badPAs=badPA_list)
+    slider_plot = contam_slider_plot(
+        pctlines, badPA_list, instrument=instrument)
+    return column(legacy_plot, slider_plot)
 
 
 def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
@@ -442,7 +487,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
     # ~~~~~~ Order 2 ~~~~~~
 
     # Contam plot
-    if instrument.startswith('NIS'):
+    if instrument.startswith('NIS') and has_order2_contamination(instrument):
         xlim0 = lamO2.min()
         xlim1 = lamO2.max()
         ylim0 = PA.min() - 0.5 * dPA
@@ -496,7 +541,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     # ~~~~~~ Plotting ~~~~~~
 
-    if instrument.startswith('NIS'):
+    if instrument.startswith('NIS') and has_order2_contamination(instrument):
         fig = gridplot(children=[[s2, s3], [s5, s6]])
     else:
         fig = gridplot(children=[[s2, s3]])
