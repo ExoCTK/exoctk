@@ -6,7 +6,7 @@ A module to calculate the contamination and visibility of a target on a JWST det
 
 from copy import copy
 from datetime import datetime
-from functools import partial
+from functools import lru_cache, partial
 import glob
 import logging
 import os
@@ -1404,8 +1404,9 @@ def fetch_contam_results(exoplanet_name, db_filename):
     return target_trace, contamination, attrs
 
 
-def get_order0(aperture, teff, stype='STAR'):
-    """Get the order 0 image for the given aperture
+@lru_cache(maxsize=128)
+def _get_order0_cached(aperture, teff, stype):
+    """Load an immutable order-zero template for repeated rendering.
 
     Parameters
     ----------
@@ -1444,11 +1445,26 @@ def get_order0(aperture, teff, stype='STAR'):
             logging.info('Fetching {} galaxy trace from {}'.format(aperture, gal_path))
             trace = np.load(gal_path)
 
+    trace.setflags(write=False)
     return trace
 
 
-def get_trace(aperture, teff, stype, plot=False):
-    """Get the trace for the given aperture at the given temperature
+def get_order0(aperture, teff, stype='STAR'):
+    """Get an order-zero image, reusing the cached source template."""
+
+    cache_teff = int(round(float(teff))) if stype == 'STAR' else 0
+    return _get_order0_cached(aperture, cache_teff, stype)
+
+
+def _trace_cache_temperature(teff, stype):
+    """Return a stable cache key for a source template temperature."""
+
+    return int(round(float(teff))) if stype == 'STAR' else 0
+
+
+@lru_cache(maxsize=128)
+def _get_trace_cached(aperture, teff, stype):
+    """Load and prepare an immutable trace template for repeated rendering.
 
     Parameters
     ----------
@@ -1458,13 +1474,10 @@ def get_trace(aperture, teff, stype, plot=False):
         The temperature [K]
     stype: str
         The source type, ['STAR', 'GALAXY']
-    plot: bool
-        Plot the trace
-
     Returns
     -------
-    np.ndarray
-        The 2D trace
+    tuple of np.ndarray
+        Prepared trace templates. Callers must treat the arrays as read-only.
     """
     if 'DHS_F322W2' in aperture:
         aperpath = 'NRCA5_GRISM256_F322W2'
@@ -1531,10 +1544,24 @@ def get_trace(aperture, teff, stype, plot=False):
     else:
         traces = [fits.getdata(file)]
 
+    for trace in traces:
+        trace.setflags(write=False)
+
+    return tuple(traces)
+
+
+def get_trace(aperture, teff, stype, plot=False):
+    """Get prepared traces for a source, reusing cached detector templates."""
+
+    traces = list(_get_trace_cached(
+        aperture, _trace_cache_temperature(teff, stype), stype))
+
     if plot:
         f = figure(width=900, height=450)
         final = np.sum(traces, axis=0)
-        f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0])
+        f.image([final], x=APERTURES[aperture]['subarr_x'][0],
+                y=APERTURES[aperture]['subarr_y'][1],
+                dw=final.shape[1], dh=final.shape[0])
         show(f)
 
     return traces

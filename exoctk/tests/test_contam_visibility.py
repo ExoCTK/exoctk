@@ -33,6 +33,7 @@ from astropy.table import Table
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
+from exoctk.contam_visibility import contamination_figure
 from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 
 # Determine if tests are being run on Github Actions
@@ -165,6 +166,83 @@ def test_siaf_aperture_pa_is_derived_once_from_v3pa(
 
     assert field_simulator.aperture_pa_from_v3pa(v3pa, aperture) == (
         pytest.approx((v3pa + aperture.V3IdlYAngle) % 360))
+
+
+def test_trace_templates_are_cached_across_position_angles(monkeypatch):
+    """Repeated source templates avoid repeated trace-file reads."""
+
+    calls = []
+    monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+    monkeypatch.setattr(
+        field_simulator.glob, 'glob',
+        lambda path: ['/synthetic-data/exoctk_contam/traces/'
+                      'NIS_SUBSTRIP256/trace_5000.fits'])
+
+    def synthetic_trace(filename, ext=0):
+        calls.append((filename, ext))
+        return np.full((2, 2), ext + 1., dtype=float)
+
+    monkeypatch.setattr(field_simulator.fits, 'getdata', synthetic_trace)
+    field_simulator._get_trace_cached.cache_clear()
+    try:
+        first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+        second = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+    finally:
+        field_simulator._get_trace_cached.cache_clear()
+
+    assert len(calls) == 3
+    assert all(np.array_equal(before, after)
+               for before, after in zip(first, second))
+    assert all(not trace.flags.writeable for trace in first)
+
+
+def test_order_zero_templates_are_cached_across_position_angles(monkeypatch):
+    """Order-zero templates are also reused when rendering crowded fields."""
+
+    calls = []
+    monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+    monkeypatch.setattr(
+        field_simulator.glob, 'glob',
+        lambda path: ['/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy'])
+
+    def synthetic_order_zero(filename):
+        calls.append(filename)
+        return np.ones((2, 2), dtype=float)
+
+    monkeypatch.setattr(field_simulator.np, 'load', synthetic_order_zero)
+    field_simulator._get_order0_cached.cache_clear()
+    try:
+        first = field_simulator.get_order0('NIS_SUBSTRIP256', 5000., 'STAR')
+        second = field_simulator.get_order0('NIS_SUBSTRIP256', 5000., 'STAR')
+    finally:
+        field_simulator._get_order0_cached.cache_clear()
+
+    assert calls == [
+        '/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy']
+    assert np.array_equal(first, second)
+    assert not first.flags.writeable
+
+
+def test_contamination_slider_uses_percent_and_common_display_cap():
+    """All supported modes share a 0--10% percent-based display."""
+
+    fractions = np.full((360, 3), 0.125)
+    plot = contamination_figure.contam_slider_plot(
+        [fractions], badPA_list=[0])
+    spectrum_plot, slider_row, pa_plot = plot.children
+    slider = slider_row.children[1]
+    line_renderer = spectrum_plot.renderers[0]
+    shading_renderer = pa_plot.renderers[0]
+    threshold_renderer = pa_plot.renderers[-1]
+
+    assert spectrum_plot.yaxis.axis_label == 'Contamination (%)'
+    assert pa_plot.yaxis.axis_label == 'Mean Contamination (%)'
+    assert spectrum_plot.y_range.end == 10
+    assert pa_plot.y_range.end == 10
+    assert slider.title == 'V3 Position Angle'
+    assert np.all(line_renderer.data_source.data['contam1'] == 12.5)
+    assert shading_renderer.data_source.data['top'][0] == 10
+    assert threshold_renderer.data_source.data['top'][0] == 10
 
 
 @pytest.mark.parametrize('aperture', [
