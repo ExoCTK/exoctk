@@ -1,4 +1,7 @@
+import warnings
+
 from astropy.time import Time
+from erfa import ErfaWarning
 
 from bokeh.models import Band, ColumnDataSource, HoverTool
 from bokeh.plotting import figure, show
@@ -26,8 +29,20 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
     while dec[-1] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.']:
         dec = dec[:-1]
 
-    # Set ephemeris to go from Cycle 3 to Cycle 6:
-    eph = Ephemeris(start_date=Time('2024-07-30'), end_date=Time('2028-07-30'))
+    # Set ephemeris to go from Cycle 3 to Cycle 6. jwst_gtvt validates its
+    # own future maximum date during construction, which can emit an ERFA
+    # warning about uncertain leap seconds even though that date is not part
+    # of this visibility calculation. Keep this suppression local so other
+    # ERFA warnings remain visible to callers.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=(r'ERFA function "dtf2d" yielded .*'
+                     r'"dubious year \(Note 6\)"'),
+            category=ErfaWarning,
+        )
+        eph = Ephemeris(
+            start_date=Time('2024-07-30'), end_date=Time('2028-07-30'))
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
 
     if in_FOR is None:
