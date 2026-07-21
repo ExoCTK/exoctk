@@ -126,6 +126,8 @@ def test_resolve_target():
     ((0.9, 0.05, 0.05), 'STAR'),
     ((0.05, 0.9, 0.05), 'GALAXY'),
     ((0.05, 0.05, 0.9), 'STAR'),
+    ((0.3, 0.5, 0.2), 'GALAXY'),
+    ((0.5, 0.5, 0.), 'STAR'),
     ((0.4, 0.4, 0.2), 'STAR'),
 ])
 def test_classify_source_uses_gaia_dsc(probabilities, expected):
@@ -147,6 +149,19 @@ def test_classify_source_masked_dsc_uses_fallback():
     row = classification_row(mask_dsc=True, parallax=0.1)
 
     assert field_simulator.classify_source(row) == 'GALAXY'
+
+
+def test_classify_source_one_masked_dsc_probability_defaults_to_star():
+    """One missing DSC probability makes the full DSC result unusable."""
+
+    row = classification_row(
+        mask_columns=('classprob_dsc_combmod_quasar',),
+        classprob_dsc_combmod_star=0.1,
+        classprob_dsc_combmod_galaxy=0.9,
+        classprob_dsc_combmod_quasar=0.,
+        parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
 
 
 def test_classify_source_nan_and_masked_values_match():
@@ -187,6 +202,47 @@ def test_classify_source_preserves_valid_upstream_type(source_type):
     row = classification_row(type=source_type, parallax=10.)
 
     assert field_simulator.classify_source(row) == source_type
+
+
+@pytest.mark.parametrize(('sdss_type', 'expected'), [
+    ('STAR', 'STAR'),
+    ('', 'GALAXY'),
+    (None, 'GALAXY'),
+])
+def test_find_sources_preserves_only_explicit_sdss_type(
+        monkeypatch, sdss_type, expected):
+    """Blank or missing SDSS spCl must reach the fallback classifier."""
+
+    stars = Table({
+        'source_id': [1],
+        'ra': [10.],
+        'dec': [20.],
+        'pmra': [0.],
+        'pmdec': [0.],
+        'ref_epoch': [2016.],
+        'phot_g_mean_flux': [100.],
+        'bp_rp': [1.],
+        'parallax': [0.1],
+        'astrometric_excess_noise': [0.],
+        'phot_bp_rp_excess_factor': [1.],
+        'classprob_dsc_combmod_star': [np.nan],
+        'classprob_dsc_combmod_galaxy': [np.nan],
+        'classprob_dsc_combmod_quasar': [np.nan],
+    })
+    if sdss_type is None:
+        xmatch = Table(names=('source_id', 'spCl'), dtype=('i8', 'U10'))
+    else:
+        xmatch = Table({'source_id': [1], 'spCl': [sdss_type]})
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query',
+        lambda *args, **kwargs: xmatch)
+
+    result = field_simulator.find_sources(10., 20., pm_corr=False)
+
+    assert result['type'][0] == expected
 
 
 def test_find_sources_identifies_high_proper_motion_target(monkeypatch):

@@ -555,8 +555,12 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
         # Join Gaia results with XMatch results based on source_id
         merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
 
-        # Extract SDSS DR16 source types from XMatch results
-        stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+        # Preserve only explicit SDSS rendering classes. Missing or blank spCl
+        # values must reach classify_source rather than masquerade as STAR.
+        stars['type'] = [
+            sdss_type if (not np.ma.is_masked(sdss_type)
+                          and sdss_type in ('STAR', 'GALAXY')) else ''
+            for sdss_type in merged_results['spCl']]
 
     except Exception as e:
         logging.info(f"Could not perform SDSS crossmatch: {e}")
@@ -774,6 +778,8 @@ def classify_source(row):
     str
         ``GALAXY`` for a confidently extended source; otherwise ``STAR``.
     """
+    # Endpoint-specific Gaia queries must retain and normalize these exact
+    # gaiadr3.gaia_source column names.
     probabilities = [
         _finite_float(row, 'classprob_dsc_combmod_star'),
         _finite_float(row, 'classprob_dsc_combmod_galaxy'),
