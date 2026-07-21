@@ -143,6 +143,9 @@ WEB_CONTAMINATION_APERTURES = frozenset({
     'NRCA5_41STRIPE1_DHS_F444W',
 })
 
+# Require a majority probability before rendering a source as extended.
+GAIA_DSC_GALAXY_THRESHOLD = 0.5
+
 
 def contamination_supported(aperture):
     """Return whether the contamination web interface supports an aperture."""
@@ -739,44 +742,80 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
+def _finite_float(row, column_name):
+    """Return a finite scalar table value, or NaN when it is unusable."""
+
+    if (column_name not in row.colnames
+            or np.ma.is_masked(row[column_name])):
+        return np.nan
+
+    try:
+        value = float(row[column_name])
+    except (TypeError, ValueError):
+        return np.nan
+
+    return value if np.isfinite(value) else np.nan
+
+
 def classify_source(row):
     """
-    Classify a Gaia EDR3 source as STAR or GALAXY based on proxy criteria.
+    Classify a Gaia DR3 source as STAR or GALAXY for contamination rendering.
+
+    This binary rendering choice is not a complete astrophysical taxonomy:
+    quasars are point-like here and therefore render as ``STAR``.
 
     Parameters
     ----------
     row : astropy.table.Row
-        A single row from an Astropy Table with Gaia EDR3 columns.
+        A single row from an Astropy Table with Gaia DR3 columns.
 
     Returns
     -------
     str
-        'STAR' if the source appears to be stellar, 'GALAXY' otherwise.
+        ``GALAXY`` for a confidently extended source; otherwise ``STAR``.
     """
-    # Default is STAR
-    stype = 'STAR'
+    probabilities = [
+        _finite_float(row, 'classprob_dsc_combmod_star'),
+        _finite_float(row, 'classprob_dsc_combmod_galaxy'),
+        _finite_float(row, 'classprob_dsc_combmod_quasar'),
+    ]
+    if np.all(np.isfinite(probabilities)):
+        star_probability, galaxy_probability, quasar_probability = (
+            probabilities)
+        stype = 'GALAXY' if (
+            galaxy_probability >= GAIA_DSC_GALAXY_THRESHOLD
+            and galaxy_probability > star_probability
+            and galaxy_probability > quasar_probability
+        ) else 'STAR'
+        logging.info('Type=%s, Gaia DSC probabilities=%s', stype,
+                     probabilities)
+        return stype
 
-    # Check to see if GALAXY
-    if hasattr(row['parallax'], 'mask'):
+    upstream_type = row['type'] if 'type' in row.colnames else None
+    if (not np.ma.is_masked(upstream_type)
+            and upstream_type in ('STAR', 'GALAXY')):
+        return upstream_type
 
-        if hasattr(row['astrometric_excess_noise'], 'mask'):
-            if row['astrometric_excess_noise'] > 1.0:
-                stype = 'GALAXY'
+    parallax = _finite_float(row, 'parallax')
+    excess_noise = _finite_float(row, 'astrometric_excess_noise')
+    excess_factor = _finite_float(row, 'phot_bp_rp_excess_factor')
+    color = _finite_float(row, 'bp_rp')
 
-        if hasattr(row['phot_bp_rp_excess_factor'], 'mask') and hasattr(row['bp_rp'], 'mask'):
-            if row['phot_bp_rp_excess_factor'] > (1.0 + 0.015 * row['bp_rp']**2):
-                stype = 'GALAXY'
-
+    if np.isfinite(parallax):
+        stype = 'GALAXY' if parallax < 0.5 else 'STAR'
+    elif (np.isfinite(excess_noise) and excess_noise > 1.0) or (
+            np.isfinite(excess_factor) and np.isfinite(color)
+            and excess_factor > (1.0 + 0.015 * color**2)):
+        stype = 'GALAXY'
     else:
-        if row['parallax'] < 0.5:
-            stype = 'GALAXY'
+        stype = 'STAR'
 
-    msg = f"Type={stype}, parallax={row['parallax']}, excess noise="
-    msg += f"{row['astrometric_excess_noise']}, excess_factor="
-    msg += f"{row['phot_bp_rp_excess_factor']}"
+    msg = f"Type={stype}, parallax={parallax}, excess noise="
+    msg += f"{excess_noise}, excess_factor={excess_factor}"
     logging.info(msg)
 
     return stype
+
 
 def fraction_contaminated(aperture, targframes, starcube):
     """

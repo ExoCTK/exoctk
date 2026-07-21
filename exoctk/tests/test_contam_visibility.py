@@ -42,6 +42,32 @@ from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 ON_GITHUB_ACTIONS = '/home/runner' in os.path.expanduser('~') or '/Users/runner' in os.path.expanduser('~')
 
 
+def classification_row(mask_dsc=False, mask_columns=(), **values):
+    """Build one synthetic Gaia row for source-classification tests."""
+
+    defaults = {
+        'classprob_dsc_combmod_star': np.nan,
+        'classprob_dsc_combmod_galaxy': np.nan,
+        'classprob_dsc_combmod_quasar': np.nan,
+        'parallax': 1.,
+        'astrometric_excess_noise': 0.,
+        'phot_bp_rp_excess_factor': 1.,
+        'bp_rp': 1.,
+    }
+    defaults.update(values)
+    table = Table({name: [value] for name, value in defaults.items()},
+                  masked=True)
+    if mask_dsc:
+        for name in (
+                'classprob_dsc_combmod_star',
+                'classprob_dsc_combmod_galaxy',
+                'classprob_dsc_combmod_quasar'):
+            table[name].mask[0] = True
+    for name in mask_columns:
+        table[name].mask[0] = True
+    return table[0]
+
+
 def test_new_vis_plot():
     """Tests the `new_vis_plot.py` module"""
     ra, dec = '24.3544618', '-45.6777937' # WASP-18
@@ -94,6 +120,73 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
+
+
+@pytest.mark.parametrize(('probabilities', 'expected'), [
+    ((0.9, 0.05, 0.05), 'STAR'),
+    ((0.05, 0.9, 0.05), 'GALAXY'),
+    ((0.05, 0.05, 0.9), 'STAR'),
+    ((0.4, 0.4, 0.2), 'STAR'),
+])
+def test_classify_source_uses_gaia_dsc(probabilities, expected):
+    """Gaia DSC drives the binary contamination-rendering classification."""
+
+    star, galaxy, quasar = probabilities
+    row = classification_row(
+        classprob_dsc_combmod_star=star,
+        classprob_dsc_combmod_galaxy=galaxy,
+        classprob_dsc_combmod_quasar=quasar,
+        parallax=0.)
+
+    assert field_simulator.classify_source(row) == expected
+
+
+def test_classify_source_masked_dsc_uses_fallback():
+    """Masked DSC values use the finite astrometric proxy without crashing."""
+
+    row = classification_row(mask_dsc=True, parallax=0.1)
+
+    assert field_simulator.classify_source(row) == 'GALAXY'
+
+
+def test_classify_source_nan_and_masked_values_match():
+    """NaN and masked DSC and parallax values have the same safe default."""
+
+    nan_row = classification_row(parallax=np.nan)
+    masked_row = classification_row(
+        mask_dsc=True, mask_columns=('parallax',))
+
+    assert field_simulator.classify_source(nan_row) == 'STAR'
+    assert field_simulator.classify_source(masked_row) == 'STAR'
+
+
+def test_classify_source_missing_parallax_is_not_a_galaxy():
+    """Missing parallax alone must not suppress a dispersed contaminant."""
+
+    row = classification_row(mask_dsc=True, parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+def test_classify_source_regression_gaia_3910744542517589888():
+    """The independently confirmed point source remains a STAR."""
+
+    row = classification_row(
+        classprob_dsc_combmod_star=0.997072,
+        classprob_dsc_combmod_galaxy=0.000248,
+        classprob_dsc_combmod_quasar=0.001099,
+        parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+@pytest.mark.parametrize('source_type', ['STAR', 'GALAXY'])
+def test_classify_source_preserves_valid_upstream_type(source_type):
+    """A valid upstream type survives when Gaia DSC is unavailable."""
+
+    row = classification_row(type=source_type, parallax=10.)
+
+    assert field_simulator.classify_source(row) == source_type
 
 
 def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
