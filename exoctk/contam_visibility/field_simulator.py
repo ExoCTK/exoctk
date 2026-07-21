@@ -40,6 +40,7 @@ import regions
 
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, get_target_data, get_canonical_name
 from ..pkgdata import resource_filename
+from ..modelgrid import ACES
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .precompute import save_exoplanet_data
 from . import contamination_figure as cf
@@ -181,137 +182,294 @@ DHS_STRIPES = {'NRCA5_41STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
+ACES_GRID = ACES()
+
+class GaiaFailoverTAP:
+    def __init__(self, timeout=30, poll_interval=1.0, max_polls=120):
+        self.endpoints = [
+            "https://gea.esac.esa.int/tap-server/tap",
+            "https://datalab.noirlab.edu/tap",
+            "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
+        ]
+        self.timeout = timeout
+        self.poll_interval = poll_interval
+        self.max_polls = max_polls
+
+    def query_region(self, coordinate, width, height=None):
+        """
+        Drop-in replacement for Gaia.query_object_async(...)
+        Returns astropy.table.Table
+        """
+        height = width if height is None else height
+
+        ra = coordinate.ra.deg
+        dec = coordinate.dec.deg
+
+        width_deg = width.to(u.deg).value
+        height_deg = height.to(u.deg).value
+        radius_deg = 0.5 * np.sqrt(width_deg ** 2 + height_deg ** 2)
+
+        if not np.isfinite(radius_deg) or radius_deg <= 0:
+            raise ValueError(f"Invalid radius: {radius_deg}")
+
+        adql = f"""
+                SELECT *,
+                    DISTANCE(
+                        POINT('ICRS', ra, dec),
+                        POINT('ICRS', {ra}, {dec})
+                    ) AS dist
+                FROM gaiadr3.gaia_source
+                WHERE 1=CONTAINS(
+                    POINT('ICRS', ra, dec),
+                    CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
+                )
+                ORDER BY dist
+                """
+
+        last_error = None
+        for endpoint in self.endpoints:
+            try:
+                # Query the cone
+                stars = self._run_query(endpoint, adql)
+                logging.info(f"Found {len(stars)} sources in Gain DR3 within {width} using endpoint `{endpoint}'")
+
+                print()
+
+                return stars
+
+            except Exception as e:
+                last_error = e
+                logging.info(f"[Gaia failover] {endpoint} failed: {e}")
+
+        raise RuntimeError(f"All Gaia TAP endpoints failed: {last_error}")
+
+    def _run_query(self, endpoint, adql):
+        job_url = self._submit_async_job(endpoint, adql)
+        self._poll_job(job_url)
+        return self._fetch_result(job_url)
+
+    def _submit_async_job(self, endpoint, adql):
+        url = f"{endpoint}/async"
+
+        r = requests.post(
+            url,
+            data={
+                "REQUEST": "doQuery",
+                "LANG": "ADQL",
+                "FORMAT": "csv",
+                "QUERY": adql,
+                "PHASE": "RUN",
+            },
+            timeout=self.timeout,
+            allow_redirects=False,
+        )
+
+        # Case 1: Proper TAP async response (303 redirect)
+        if r.status_code in (303, 302):
+            job_url = r.headers.get("Location")
+            if job_url:
+                return job_url
+
+        # Case 2: Some servers return 200 + Location
+        job_url = r.headers.get("Location")
+        if job_url:
+            return job_url
+
+        # Case 3: Server returned error payload (VERY COMMON)
+        raise RuntimeError(
+            f"No TAP job URL returned. Status={r.status_code}. "
+            f"Response:\n{r.text[:500]}"
+        )
+
+    def _poll_job(self, job_url):
+        phase_url = f"{job_url}/phase"
+
+        for _ in range(self.max_polls):
+            r = requests.get(phase_url, timeout=self.timeout)
+            r.raise_for_status()
+
+            phase = r.text.strip()
+
+            if phase == "COMPLETED":
+                return
+
+            if phase in ("ERROR", "ABORTED"):
+                raise RuntimeError(f"TAP job failed: {phase}")
+
+            time.sleep(self.poll_interval)
+
+        raise TimeoutError("Gaia TAP polling timeout")
+
+    def _fetch_result(self, job_url):
+        r = requests.get(
+            f"{job_url}/results/result",
+            timeout=self.timeout,
+        )
+        r.raise_for_status()
+
+        # Use bytes, not StringIO
+        return Table.read(io.BytesIO(r.content), format="ascii.csv")
 
 GAIA_TAP = GaiaFailoverTAP()
 
 
-def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
-    """
-    Construct a trace mask for NIRCam DHS mode
+# def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
+#     """
+#     Construct a trace mask for NIRCam DHS mode
+#
+#     Parameters
+#     ----------
+#     aperture: str
+#         The sperture to use, [
+#     gap_value: float
+#         The value in the detector gap
+#     ref_value: float
+#         The value of the reference pixels
+#     substripe_value: float
+#         The value in the mask area
+#     combined: bool
+#         Return a single flattened image
+#     plot: bool
+#         Plot the final array
+#
+#     Returns
+#     -------
+#     list, array
+#         The final array or list of arrays for each trace
+#     """
+#     # The DHS uses four detectors
+#     starting = 0  # pixel
+#     ref_pixels = 8  # pixel
+#     det_size_full = 2048  # pixel
+#     det_size = det_size_full - ref_pixels  # pixel
+#
+#     # DHS has 2 field points configuration and each field points can be paired to 6 filter position
+#     # Depending on the field point/filter combination, the spectra will not fall on the same part of the 4 detectors nor have the same length
+#     stripes = DHS_STRIPES[aperture]
+#     pixel_scale = 0.031  # arcsec/pixel (on sky)
+#     gap_fov = 5  # arcsec
+#     gap = int(gap_fov / pixel_scale)  # pixel
+#
+#     # full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap))
+#     full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap)) * det_value
+#
+#     # now let's populate the full array with the corresponding gap, reference or substripe locations
+#     full[det_size_full:det_size_full + gap, :] = gap_value
+#     full[:, det_size_full:det_size_full + gap] = gap_value
+#
+#     # Add reference pixels
+#     full[starting:det_size_full, starting:ref_pixels] = ref_value
+#     full[det_size_full + gap:, starting:ref_pixels] = ref_value
+#     full[starting:det_size_full, det_size:det_size_full] = ref_value
+#     full[det_size_full + gap:, det_size:det_size_full] = ref_value
+#     full[starting:det_size_full, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
+#     full[det_size_full + gap:, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
+#     full[starting:det_size_full, det_size_full + gap + det_size:] = ref_value
+#     full[det_size_full + gap:, det_size_full + gap + det_size:] = ref_value
+#
+#     full[starting:ref_pixels, starting:det_size_full] = ref_value
+#     full[starting:ref_pixels, det_size_full + gap:] = ref_value
+#     full[det_size:det_size_full, starting:det_size_full] = ref_value
+#     full[det_size:det_size_full, det_size_full + gap:] = ref_value
+#     full[det_size_full + gap:det_size_full + gap + ref_pixels, starting:det_size_full] = ref_value
+#     full[det_size_full + gap:det_size_full + gap + ref_pixels, det_size_full + gap:] = ref_value
+#     full[det_size_full + gap + det_size:, starting:det_size_full] = ref_value
+#     full[det_size_full + gap + det_size:, det_size_full + gap:] = ref_value
+#
+#     # For the specific field point and filter specified above:
+#     traces = []
+#     for stripe in stripes.values():
+#         if combined:
+#             full[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] += substripe_value
+#         else:
+#             trace = copy(full)
+#             trace[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] = substripe_value
+#             traces.append(trace)
+#
+#     if plot:
+#         plt = figure(width=1000, height=1000)
+#         plt.image([full], x=0, y=0, dw=full.shape[0], dh=full.shape[1])
+#         for stripe in stripes.values():
+#             plt.line([stripe['x0'], stripe['x1']], [(stripe['y0']+stripe['y1'])/2.]*2)
+#         show(plt)
+#
+#     y1 = APERTURES[aperture]['subarr_y'][1]
+#     y2 = APERTURES[aperture]['subarr_y'][2]
+#
+#     return full[y1:y2, :] if combined else [trace[y1:y2] for trace in traces]
 
-    Parameters
-    ----------
-    aperture: str
-        The sperture to use, [
-    gap_value: float
-        The value in the detector gap
-    ref_value: float
-        The value of the reference pixels
-    substripe_value: float
-        The value in the mask area
-    combined: bool
-        Return a single flattened image
-    plot: bool
-        Plot the final array
 
-    Returns
-    -------
-    list, array
-        The final array or list of arrays for each trace
-    """
-    # The DHS uses four detectors
-    starting = 0  # pixel
-    ref_pixels = 8  # pixel
-    det_size_full = 2048  # pixel
-    det_size = det_size_full - ref_pixels  # pixel
-
-    # DHS has 2 field points configuration and each field points can be paired to 6 filter position
-    # Depending on the field point/filter combination, the spectra will not fall on the same part of the 4 detectors nor have the same length
-    stripes = DHS_STRIPES[aperture]
-    pixel_scale = 0.031  # arcsec/pixel (on sky)
-    gap_fov = 5  # arcsec
-    gap = int(gap_fov / pixel_scale)  # pixel
-
-    # full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap))
-    full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap)) * det_value
-
-    # now let's populate the full array with the corresponding gap, reference or substripe locations
-    full[det_size_full:det_size_full + gap, :] = gap_value
-    full[:, det_size_full:det_size_full + gap] = gap_value
-
-    # Add reference pixels
-    full[starting:det_size_full, starting:ref_pixels] = ref_value
-    full[det_size_full + gap:, starting:ref_pixels] = ref_value
-    full[starting:det_size_full, det_size:det_size_full] = ref_value
-    full[det_size_full + gap:, det_size:det_size_full] = ref_value
-    full[starting:det_size_full, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
-    full[det_size_full + gap:, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
-    full[starting:det_size_full, det_size_full + gap + det_size:] = ref_value
-    full[det_size_full + gap:, det_size_full + gap + det_size:] = ref_value
-
-    full[starting:ref_pixels, starting:det_size_full] = ref_value
-    full[starting:ref_pixels, det_size_full + gap:] = ref_value
-    full[det_size:det_size_full, starting:det_size_full] = ref_value
-    full[det_size:det_size_full, det_size_full + gap:] = ref_value
-    full[det_size_full + gap:det_size_full + gap + ref_pixels, starting:det_size_full] = ref_value
-    full[det_size_full + gap:det_size_full + gap + ref_pixels, det_size_full + gap:] = ref_value
-    full[det_size_full + gap + det_size:, starting:det_size_full] = ref_value
-    full[det_size_full + gap + det_size:, det_size_full + gap:] = ref_value
-
-    # For the specific field point and filter specified above:
-    traces = []
-    for stripe in stripes.values():
-        if combined:
-            full[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] += substripe_value
-        else:
-            trace = copy(full)
-            trace[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] = substripe_value
-            traces.append(trace)
-
-    if plot:
-        plt = figure(width=1000, height=1000)
-        plt.image([full], x=0, y=0, dw=full.shape[0], dh=full.shape[1])
-        for stripe in stripes.values():
-            plt.line([stripe['x0'], stripe['x1']], [(stripe['y0']+stripe['y1'])/2.]*2)
-        show(plt)
-
-    y1 = APERTURES[aperture]['subarr_y'][1]
-    y2 = APERTURES[aperture]['subarr_y'][2]
-
-    return full[y1:y2, :] if combined else [trace[y1:y2] for trace in traces]
-
-
-def NIRISS_SOSS_trace_mask(aperture, radius=20):
+def get_trace_mask(aperture, radius=20):
     """
     Construct a trace mask for SOSS data
 
     Parameters
     ----------
     radius: int
-        The radius in pixels of the trace
+        The radius in pixels of the extraction aperture
 
     Returns
     -------
     np.ndarray
-        The SOSS trace mask
+        The trace masks
     """
-    traces = np.array([np.polyval(coeff, np.arange(2048)) for coeff in APERTURES[aperture]['coeffs']])
+    # Get aperture parameters
     ydim = APERTURES[aperture]['subarr_y'][2] - APERTURES[aperture]['subarr_y'][1]
-    mask1 = np.zeros((ydim, 2048))
-    mask2 = np.zeros((ydim, 2048))
-    mask3 = np.zeros((ydim, 2048))
-    for col in np.arange(2048):
-        mask1[int(traces[0][col]) - radius: int(traces[0][col]) + radius, col] = 1
-        mask2[int(traces[1][col]) - radius: int(traces[1][col]) + radius, col] = 1
-        mask3[int(traces[2][col]) - radius: int(traces[2][col]) + radius, col] = 1
+    xdim = APERTURES[aperture]['subarr_x'][1] - APERTURES[aperture]['subarr_x'][0]
+    coeffs = APERTURES[aperture]['coeffs']
+    traces = np.array([np.polyval(coeff, np.arange(xdim)) for coeff in coeffs])
 
-    # Right referecnce pixels
-    mask1[:, :4] = 0
+    # Make masks for each trace
+    masks = np.zeros((len(coeffs), ydim, xdim))
+    for idx in np.arange(len(traces)):
+        mask = np.zeros((ydim, xdim))
+        mask[int(traces[idx][col]) - radius: int(traces[idx][col]) + radius, col] = 1
+        masks[idx, :, :] = mask
 
-    # Left reference pixels
-    mask1[:, -4:] = 0
-    mask2[:, :4] = 0
-    mask3[:, :4] = 0
+    return masks
 
-    # Top reference pixels
-    mask1[-5:, :] = 0
-    mask2[-5:, :] = 0
-    mask3[-5:, :] = 0
 
-    # Order 3 cutoff
-    mask3[:, 823:] = 0
-
-    return mask1, mask2, mask3
+# def NIRISS_SOSS_trace_mask(aperture, radius=20):
+#     """
+#     Construct a trace mask for SOSS data
+#
+#     Parameters
+#     ----------
+#     radius: int
+#         The radius in pixels of the trace
+#
+#     Returns
+#     -------
+#     np.ndarray
+#         The SOSS trace mask
+#     """
+#     traces = np.array([np.polyval(coeff, np.arange(2048)) for coeff in APERTURES[aperture]['coeffs']])
+#     ydim = APERTURES[aperture]['subarr_y'][2] - APERTURES[aperture]['subarr_y'][1]
+#     mask1 = np.zeros((ydim, 2048))
+#     mask2 = np.zeros((ydim, 2048))
+#     mask3 = np.zeros((ydim, 2048))
+#     for col in np.arange(2048):
+#         mask1[int(traces[0][col]) - radius: int(traces[0][col]) + radius, col] = 1
+#         mask2[int(traces[1][col]) - radius: int(traces[1][col]) + radius, col] = 1
+#         mask3[int(traces[2][col]) - radius: int(traces[2][col]) + radius, col] = 1
+#
+#     # Right referecnce pixels
+#     mask1[:, :4] = 0
+#
+#     # Left reference pixels
+#     mask1[:, -4:] = 0
+#     mask2[:, :4] = 0
+#     mask3[:, :4] = 0
+#
+#     # Top reference pixels
+#     mask1[-5:, :] = 0
+#     mask2[-5:, :] = 0
+#     mask3[-5:, :] = 0
+#
+#     # Order 3 cutoff
+#     mask3[:, 823:] = 0
+#
+#     return mask1, mask2, mask3
 
 
 def _target_source_index(stars, target_coordinate, input_epoch=2000):
@@ -990,6 +1148,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     targframes = [np.zeros((subY, subX))] * n_traces
     starframe = np.zeros((subY, subX))
 
+    # Get trace masks
+    trace_masks = get_trace_mask(aperture.AperName)
+
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
 
@@ -1495,99 +1656,220 @@ def _get_trace_cached(aperture, teff, stype):
     tuple of np.ndarray
         Prepared trace templates. Callers must treat the arrays as read-only.
     """
-    if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
-        aperpath = 'NRCA5_DHS_F150W2'
-    elif 'NIS' in aperture:
-        aperpath = 'NIS_SUBSTRIP256'
+    # if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
+    #     aperpath = 'NRCA5_DHS_F150W2'
+    # elif 'NIS' in aperture:
+    #     aperpath = 'NIS_SUBSTRIP256'
+    # else:
+    #     aperpath = aperture
+    #
+    # # Get the path to the trace files
+    # traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperpath}/*.fits')
+    # logging.info(f"Traces path is {traces_path}")
+    #
+    # # Glob the file names
+    # trace_files = glob.glob(traces_path)
+    # logging.info(f"Found {len(trace_files)} traces")
+    #
+    # # Get closest Teff
+    # teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
+    # logging.info(f"Found {len(teffs)} temperatures.")
+    # file = trace_files[np.argmin((teffs - teff)**2)]
+    # logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
+    #
+    # # Get data
+    # if 'NIS' in aperture:
+    #     # Orders stored separately just in case ;)
+    #     traceo1 = fits.getdata(file, ext=0)
+    #     traceo2 = fits.getdata(file, ext=1)
+    #     traceo3 = fits.getdata(file, ext=2)
+    #
+    #     # Zero out background
+    #     traceo1[traceo1 < 1] = 0
+    #     traceo2[traceo2 < 1] = 0
+    #     traceo3[traceo3 < 1] = 0
+    #
+    #     # 1.5 scaling based on comparison with observational data
+    #     obs_scale = 1.5
+    #     traces = [traceo1 * obs_scale, traceo2 * obs_scale, traceo3 * obs_scale]
+    #
+    #     if stype == 'GALAXY':
+    #
+    #         # Just mask trace area
+    #         traces = NIRISS_SOSS_trace_mask(aperture)
+    #
+    # elif 'NRCA5' in aperture:
+    #
+    #     # Only a single NIRCam DHS traces is retrieved so it needs to be scaled, wavelength calibrated,
+    #     # and placed on the detector in the 10 correct positions
+    #     # aper = APERTURES[aperture]
+    #
+    #     # Get the trace, reflect it along x so wavelength decreases from left-to-right, and replace the NaN values
+    #     # waves = fits.getdata(file, extname='WAV')[::-1]
+    #     trace = fits.getdata(file, extname='TRACE')[:, :-1]
+    #     trace = replace_NaNs(trace)
+    #
+    #     # Put the trace of shape (60, 4335) in each of the DHS trace positions
+    #     # First wavelength of trace lines up with the first column of the detector so no trimming necessary
+    #     traces = []
+    #     y1 = APERTURES[aperture]['subarr_y'][1]
+    #     y2 = APERTURES[aperture]['subarr_y'][2]
+    #     for stripe in DHS_STRIPES[aperture].values():
+    #         y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
+    #         dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
+    #         dhs_trace = dhs_trace[y1:y2, :]
+    #         traces.append(dhs_trace)
+    #
+    #     if stype == 'GALAXY':
+    #         traces = NIRCam_DHS_trace_mask(aperture, plot=False)
+    #
+    #     traces = [trace[APERTURES[aperture]['subarr_y'][1]:APERTURES[aperture]['subarr_y'][2], :] for trace in traces]
+
+    if stype == 'GALAXY':
+        traces = get_trace_mask(aperture)
+
     else:
-        aperpath = aperture
 
-    # Get the path to the trace files
-    traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperpath}/*.fits')
-    logging.info(f"Traces path is {traces_path}")
+        #     for trace in traces:
+        #         trace.setflags(write=False)
+        #
+        #     return tuple(traces)
+        #
+        #
+        # def get_trace(aperture, teff, stype, plot=False):
+        #     """Get prepared traces for a source, reusing cached detector templates."""
+        #
+        #     traces = list(_get_trace_cached(
+        #         aperture, _trace_cache_temperature(teff, stype), stype))
+        #
+        #     if plot:
+        #         f = figure(width=900, height=450)
+        #         final = np.sum(traces, axis=0)
+        #         f.image([final], x=APERTURES[aperture]['subarr_x'][0],
+        #                 y=APERTURES[aperture]['subarr_y'][1],
+        #                 dw=final.shape[1], dh=final.shape[0])
+        #         show(f)
 
-    # Glob the file names
-    trace_files = glob.glob(traces_path)
-    logging.info(f"Found {len(trace_files)} traces")
+        # Get the template trace file
+        trace_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy')
 
-    # Get closest Teff
-    teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
-    logging.info(f"Found {len(teffs)} temperatures.")
-    file = trace_files[np.argmin((teffs - teff)**2)]
-    logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
+        # Load the template traces (ntraces, ydim+1, xdim) and replace the NaN values
+        data = np.load(trace_file)
+        waves = data[:, 0, :] # Wavelengths in the first rows: shape=(ntraces, xdim)
+        traces = data[:, 1:, :] # Traces in the rest: shape=(ntraces, ydim, xdim)
+        traces = replace_NaNs(traces)
 
-    # Get data
-    if 'NIS' in aperture:
-        # Orders stored separately just in case ;)
-        traceo1 = fits.getdata(file, ext=0)
-        traceo2 = fits.getdata(file, ext=1)
-        traceo3 = fits.getdata(file, ext=2)
+        # Multiply each template trace by the interpolated stellar model
+        for idx, (wave, trace) in enumerate(zip(waves, traces)):
+            model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
+            model_w, model_f = model['wave'], model['flux']
+            scaled_f = np.interp(wave, model_w, model_f)
+            traces[idx] *= scaled_f[np.newaxis, :]
+            traces[idx][traces[idx] < 1] = 0
 
-        # Zero out background
-        traceo1[traceo1 < 1] = 0
-        traceo2[traceo2 < 1] = 0
-        traceo3[traceo3 < 1] = 0
-
-        # 1.5 scaling based on comparison with observational data
-        obs_scale = 1.5
-        traces = [traceo1 * obs_scale, traceo2 * obs_scale, traceo3 * obs_scale]
-
-        if stype == 'GALAXY':
-
-            # Just mask trace area
-            traces = NIRISS_SOSS_trace_mask(aperture)
-
-    elif 'NRCA5' in aperture:
-
-        # Only a single NIRCam DHS traces is retrieved so it needs to be scaled, wavelength calibrated,
-        # and placed on the detector in the 10 correct positions
-        # aper = APERTURES[aperture]
-
-        # Get the trace, reflect it along x so wavelength decreases from left-to-right, and replace the NaN values
-        # waves = fits.getdata(file, extname='WAV')[::-1]
-        trace = fits.getdata(file, extname='TRACE')[:, :-1]
-        trace = replace_NaNs(trace)
-
-        # Put the trace of shape (60, 4335) in each of the DHS trace positions
-        # First wavelength of trace lines up with the first column of the detector so no trimming necessary
-        traces = []
-        y1 = APERTURES[aperture]['subarr_y'][1]
-        y2 = APERTURES[aperture]['subarr_y'][2]
-        for stripe in DHS_STRIPES[aperture].values():
-            y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
-            dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
-            dhs_trace = dhs_trace[y1:y2, :]
-            traces.append(dhs_trace)
-
-        if stype == 'GALAXY':
-            traces = NIRCam_DHS_trace_mask(aperture, plot=False)
-
-        traces = [trace[APERTURES[aperture]['subarr_y'][1]:APERTURES[aperture]['subarr_y'][2], :] for trace in traces]
-
-    else:
-        traces = [fits.getdata(file)]
-
-    for trace in traces:
-        trace.setflags(write=False)
-
-    return tuple(traces)
-
-
-def get_trace(aperture, teff, stype, plot=False):
-    """Get prepared traces for a source, reusing cached detector templates."""
-
-    traces = list(_get_trace_cached(
-        aperture, _trace_cache_temperature(teff, stype), stype))
-
-    if plot:
-        f = figure(width=900, height=450)
-        final = np.sum(traces, axis=0)
-        f.image([final], x=APERTURES[aperture]['subarr_x'][0],
-                y=APERTURES[aperture]['subarr_y'][1],
-                dw=final.shape[1], dh=final.shape[0])
-        show(f)
+        if plot:
+            f = figure(width=900, height=450)
+            final = np.sum(traces, axis=0)
+            f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0])
+            show(f)
 
     return traces
+
+# def get_trace(aperture, teff, stype, plot=False):
+#     """Get the trace for the given aperture at the given temperature
+#
+#     Parameters
+#     ----------
+#     aperture: str
+#         The aperture to use
+#     teff: int
+#         The temperature [K]
+#     stype: str
+#         The source type, ['STAR', 'GALAXY']
+#     plot: bool
+#         Plot the trace
+#
+#     Returns
+#     -------
+#     np.ndarray
+#         The 2D trace
+#     """
+#     if 'DHS_F322W2' in aperture or 'DHS_F444W' in aperture:
+#         aperpath = 'NRCA5_DHS_F150W2'
+#     elif 'NIS' in aperture:
+#         aperpath = 'NIS_SUBSTRIP256'
+#     else:
+#         aperpath = aperture
+#
+#     # Get the path to the trace files
+#     traces_path = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperpath}/*.fits')
+#
+#     # Glob the file names
+#     trace_files = glob.glob(traces_path)
+#
+#     # Get closest Teff
+#     teffs = np.array([int(os.path.basename(file).split('_')[-1][:-5]) for file in trace_files])
+#     file = trace_files[np.argmin((teffs - teff)**2)]
+#     logging.info('Fetching {} {}K trace from {}'.format(aperture, teff, file))
+#
+#     # Get data
+#     if 'NIS' in aperture:
+#         # Orders stored separately just in case ;)
+#         traceo1 = fits.getdata(file, ext=0)
+#         traceo2 = fits.getdata(file, ext=1)
+#         traceo3 = fits.getdata(file, ext=2)
+#
+#         # Zero out background
+#         traceo1[traceo1 < 1] = 0
+#         traceo2[traceo2 < 1] = 0
+#         traceo3[traceo3 < 1] = 0
+#
+#         # 1.5 scaling based on comparison with observational data
+#         obs_scale = 1.5
+#         traces = [traceo1 * obs_scale, traceo2 * obs_scale, traceo3 * obs_scale]
+#
+#         if stype == 'GALAXY':
+#
+#             # Just mask trace area
+#             traces = NIRISS_SOSS_trace_mask(aperture)
+#
+#     elif 'NRCA5' in aperture:
+#
+#         # Only a single NIRCam DHS traces is retrieved so it needs to be scaled, wavelength calibrated,
+#         # and placed on the detector in the 10 correct positions
+#         # aper = APERTURES[aperture]
+#
+#         # Get the trace, reflect it along x so wavelength decreases from left-to-right, and replace the NaN values
+#         # waves = fits.getdata(file, extname='WAV')[::-1]
+#         trace = fits.getdata(file, extname='TRACE')[:, :-1]
+#         trace = replace_NaNs(trace)
+#
+#         # Put the trace of shape (60, 4335) in each of the DHS trace positions
+#         # First wavelength of trace lines up with the first column of the detector so no trimming necessary
+#         traces = []
+#         y1 = APERTURES[aperture]['subarr_y'][1]
+#         y2 = APERTURES[aperture]['subarr_y'][2]
+#         for stripe in DHS_STRIPES[aperture].values():
+#             y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
+#             dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
+#             dhs_trace = dhs_trace[y1:y2, :]
+#             traces.append(dhs_trace)
+#
+#         if stype == 'GALAXY':
+#             traces = NIRCam_DHS_trace_mask(aperture, plot=False)
+#
+#         traces = [trace[APERTURES[aperture]['subarr_y'][1]:APERTURES[aperture]['subarr_y'][2], :] for trace in traces]
+#
+#     else:
+#         traces = [fits.getdata(file)]
+#
+#     if plot:
+#         f = figure(width=900, height=450)
+#         final = np.sum(traces, axis=0)
+#         f.image([final], x=APERTURES[aperture]['subarr_x'][0], y=APERTURES[aperture]['subarr_y'][1], dw=final.shape[1], dh=final.shape[0])
+#         show(f)
+#
+#     return traces
 
 
 def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, wlims, badPAs=[], title=''):
