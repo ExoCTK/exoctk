@@ -367,13 +367,12 @@ class ModelGrid(object):
         self.n_bins = n_bins or self.n_bins
 
         # Filter grid by given parameters
-        grid_mask = ((grid['Teff'] >= Teff_rng[0]) &
-                     (grid['Teff'] <= Teff_rng[1]) &
-                     (grid['logg'] >= logg_rng[0]) &
-                     (grid['logg'] <= logg_rng[1]) &
-                     (grid['FeH'] >= FeH_rng[0]) &
-                     (grid['FeH'] <= FeH_rng[1]))
-        self.data = grid[grid_mask]
+        self.data = grid[[(grid['Teff'] >= Teff_rng[0]) &
+                          (grid['Teff'] <= Teff_rng[1]) &
+                          (grid['logg'] >= logg_rng[0]) &
+                          (grid['logg'] <= logg_rng[1]) &
+                          (grid['FeH'] >= FeH_rng[0]) &
+                          (grid['FeH'] <= FeH_rng[1])]]
 
         # Print a summary of the returned grid
         print('{}/{}'.format(len(self.data), len(grid)),
@@ -455,7 +454,7 @@ class ModelGrid(object):
         # Write the file
         hdu.writeto(filepath)
 
-    def get(self, Teff, logg, FeH, resolution=None, interp=True):
+    def get(self, Teff, logg, FeH, mu1=False, resolution=None, interp=True):
         """
         Retrieve the wavelength, flux, and effective radius
         for the spectrum of the given parameters
@@ -469,6 +468,8 @@ class ModelGrid(object):
         FeH: float
             The logarithm of the ratio of the metallicity
             and solar metallicity (dex)
+        mu1: bool
+            Only return the spectrum at mu==1
         resolution: int (optional)
             The desired wavelength resolution (lambda/d_lambda)
         interp: bool
@@ -489,32 +490,41 @@ class ModelGrid(object):
                        (FeH >= min(self.FeH_vals)) &
                        (FeH <= max(self.FeH_vals))])
 
-        if in_grid:
+        if in_grid or mu1:
 
             # See if the model with the desired parameters is a true grid point
             # Note that the current method is done rather than the previous method (which
             # relied on the `in` construct) because of an exception involving the truth
             # value of arrays being ambiguous. In this case, what we care about is whether
-            # there is *any* matching value, and looking at the length of the array 
+            # there is *any* matching value, and looking at the length of the array
             # produced when we restrict seems the best way of doing that.
-            on_grid = len(self.data[(self.data['Teff'] == Teff) &
-                                    (self.data['logg'] == logg) &
-                                    (self.data['FeH'] == FeH)]) > 0
+            tol = 1e-6
+            on_grid = len(self.data[
+                              (np.abs(self.data['Teff'] - Teff) < tol) &
+                              (np.abs(self.data['logg'] - logg) < tol) &
+                              (np.abs(self.data['FeH'] - FeH) < tol)
+                              ]) > 0
 
             # Grab the data if the point is on the grid
             if on_grid:
 
                 # Get the row index and filepath
-                row, = np.where((self.data['Teff'] == Teff) &
-                                (self.data['logg'] == logg) &
-                                (self.data['FeH'] == FeH))[0]
+                idx = np.where(
+                    (np.abs(self.data['Teff'] - Teff) < tol) &
+                    (np.abs(self.data['logg'] - logg) < tol) &
+                    (np.abs(self.data['FeH'] - FeH) < tol)
+                )[0]
+
+                if len(idx) == 0:
+                    raise ValueError("Expected on-grid point but none found.")
+
+                row = idx[0]
 
                 filepath = self.path + str(self.data[row]['filename'])
 
                 # Get the flux, mu, and abundance arrays
                 raw_flux = fits.getdata(filepath, 0)
                 mu = fits.getdata(filepath, 1)
-                # abund = fits.getdata(filepath, 2)
 
                 # Construct full wavelength scale and convert to microns
                 if self.CRVAL1 == '-':
@@ -555,7 +565,7 @@ class ModelGrid(object):
                 spec_dict['flux'] = flux
                 spec_dict['mu'] = mu
 
-            # If not on the grid, interpolate to it
+            # If not on the grid, find closest or interpolate to it
             else:
 
                 # Call grid_interp method
@@ -565,14 +575,23 @@ class ModelGrid(object):
                 # If no interpolation, just get the closest
                 else:
 
-                    # Find the closest of each parameter
-                    teff_val = min(self.Teff_vals, key=lambda x: abs(x - Teff))
-                    logg_val = min(self.logg_vals, key=lambda x: abs(x - logg))
-                    feh_val = min(self.FeH_vals, key=lambda x: abs(x - FeH))
+                    # Compute distance in parameter space
+                    dist = ((self.data['Teff'] - Teff) ** 2 +
+                            (self.data['logg'] - logg) ** 2 +
+                            (self.data['FeH'] - FeH) ** 2)
+                    row = np.argmin(dist)
+                    teff_val = self.data[row]['Teff']
+                    logg_val = self.data[row]['logg']
+                    feh_val = self.data[row]['FeH']
                     print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(Teff, logg, FeH, teff_val, logg_val, feh_val))
 
                     # Run `get` method again with on-grid points
-                    spec_dict = self.get(teff_val, logg_val, feh_val)
+                    spec_dict = self.get(teff_val, logg_val, feh_val, interp=False)
+
+            # Only return flux for mu==1 (disk center)
+            if mu1:
+                spec_dict['mu'] = 1
+                spec_dict['flux'] = spec_dict['flux'][-1]
 
             return spec_dict
 
