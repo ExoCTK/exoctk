@@ -44,6 +44,7 @@ class GaiaTAPEndpoint:
     cone_predicate: str
     phase_in_url: bool = False
     start_after_submit: bool = False
+    constant_columns: tuple = ()
 
     def build_query(self, ra, dec, radius):
         """Build an explicit native-column cone query."""
@@ -103,6 +104,9 @@ GAIA_TAP_ENDPOINTS = (
         cone_predicate=(
             "1=CONTAINS(POINT('ICRS', \"RA_ICRS\", \"DE_ICRS\"), "
             "CIRCLE('ICRS', {ra}, {dec}, {radius}))"),
+        # Gaia DR3 astrometry is at J2016.0; TAPVizieR omits the
+        # catalog-level reference epoch from its native table.
+        constant_columns=(('ref_epoch', 2016.0),),
     ),
 )
 
@@ -255,6 +259,11 @@ class GaiaFailoverTAP:
             actual = lower_names.get(native.lower())
             if actual is not None:
                 result.rename_column(actual, internal)
+
+        for name, value in endpoint.constant_columns:
+            if name not in result.colnames:
+                result.add_column(
+                    np.full(len(result), value, dtype=float), name=name)
 
         missing_required = sorted(REQUIRED_COLUMNS - set(result.colnames))
         if missing_required:

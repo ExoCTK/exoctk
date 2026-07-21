@@ -5,6 +5,7 @@ import pytest
 
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
+from astropy.time import Time
 import astropy.units as u
 
 from exoctk.contam_visibility.gaia_tap import (
@@ -14,6 +15,7 @@ from exoctk.contam_visibility.gaia_tap import (
     GaiaTAPError,
 )
 from exoctk.contam_visibility.field_simulator import (
+    _target_source_index,
     calculate_current_coordinates,
 )
 
@@ -106,17 +108,67 @@ def test_masked_values_remain_masked(endpoint):
 
     assert np.ma.is_masked(result['parallax'][row])
     if endpoint.name == 'TAPVizieR':
-        assert np.all(result['ref_epoch'].mask)
+        assert np.all(result['ref_epoch'] == 2016.)
+        assert not np.any(np.ma.getmaskarray(result['ref_epoch']))
 
 
-def test_unavailable_reference_epoch_skips_proper_motion_correction():
-    """A masked optional epoch cannot break downstream source handling."""
+def test_vizier_supplies_fixed_gaia_dr3_reference_epoch():
+    """Every TAPVizieR source receives the catalog-level J2016.0 epoch."""
+
+    endpoint = GAIA_TAP_ENDPOINTS[2]
+    result = GaiaFailoverTAP._normalize(
+        _native_table(endpoint, source_ids=(11, 22, 33)), endpoint, CENTER)
+
+    assert result['ref_epoch'].dtype.kind == 'f'
+    assert np.all(np.isfinite(result['ref_epoch']))
+    assert dict(zip(result['source_id'], result['ref_epoch'])) == {
+        11: 2016., 22: 2016., 33: 2016.}
+
+
+def test_vizier_proper_motion_propagates_from_j2016():
+    """Omitted native epoch metadata does not skip proper-motion handling."""
+
+    endpoint = GAIA_TAP_ENDPOINTS[2]
+    native = _native_table(endpoint, source_ids=(11,))
+    native['RA_ICRS'] = [10.]
+    native['DE_ICRS'] = [0.]
+    native['pmRA'] = [360000.]
+    native['pmDE'] = [180000.]
+    result = GaiaFailoverTAP._normalize(native, endpoint, CENTER)
 
     ra, dec = calculate_current_coordinates(
-        10., 20., 1., 1., np.ma.masked, target_date=2026)
+        result['ra'][0], result['dec'][0], result['pmra'][0],
+        result['pmdec'][0], result['ref_epoch'][0], target_date=2026)
 
-    assert np.ma.is_masked(ra)
-    assert np.ma.is_masked(dec)
+    elapsed_years = (
+        Time('2026-01-01') - Time('2016-01-01')).to_value(u.year)
+    assert ra == pytest.approx(10. + 0.1 * elapsed_years)
+    assert dec == pytest.approx(0.05 * elapsed_years)
+
+
+def test_all_endpoints_identify_same_moving_target():
+    """J2016.0 normalization preserves high-proper-motion target matching."""
+
+    target_id = 101
+    input_coordinate = SkyCoord(10. * u.deg, 20. * u.deg)
+    catalog_ra = 10. + 3600. / 3.6e6 * 16. / np.cos(np.deg2rad(20.))
+    normalized = []
+    for endpoint in GAIA_TAP_ENDPOINTS:
+        native = _native_table(endpoint, source_ids=(target_id, 202))
+        internal_to_native = {
+            internal: native_name.strip('"')
+            for native_name, internal in endpoint.columns}
+        native[internal_to_native['ra']] = [catalog_ra, 10.001]
+        native[internal_to_native['dec']] = [20., 20.]
+        native[internal_to_native['pmra']] = [3600., 0.]
+        native[internal_to_native['pmdec']] = [0., 0.]
+        normalized.append(GaiaFailoverTAP._normalize(
+            native, endpoint, input_coordinate))
+
+    identified = [
+        table['source_id'][_target_source_index(table, input_coordinate)]
+        for table in normalized]
+    assert identified == [target_id, target_id, target_id]
 
 
 def test_rows_sort_by_distance_then_source_id():
