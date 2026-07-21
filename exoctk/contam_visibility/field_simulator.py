@@ -106,8 +106,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
-             'NRCA5_41STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
-                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
+             'NRCA5_40STRIPE1_DHS_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
+                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2300, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
@@ -124,7 +124,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                                        [ 2.13733247e-06, -6.65892407e-03,  1.69728819e+03],
                                                        [ 2.22766890e-06, -8.81816227e-03,  1.56836400e+03]]},
              'NRCA5_40STRIPE1_DHS_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.031, 'rad': 2.5, 'lam': [0.8, 2.8],
-                                           'subarr_x': [0, 4257, 4257, 0], 'subarr_y':[1064, 1064, 3192, 3192], 'trim': [0, 1, 0, 1],
+                                           'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                            'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
@@ -265,7 +265,10 @@ def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1,
             plt.line([stripe['x0'], stripe['x1']], [(stripe['y0']+stripe['y1'])/2.]*2)
         show(plt)
 
-    return full[1064:3192, :] if combined else [trace[1064:3192] for trace in traces]
+    y1 = APERTURES[aperture]['subarr_y'][1]
+    y2 = APERTURES[aperture]['subarr_y'][2]
+
+    return full[y1:y2, :] if combined else [trace[y1:y2] for trace in traces]
 
 
 def NIRISS_SOSS_trace_mask(aperture, radius=20):
@@ -1548,9 +1551,12 @@ def _get_trace_cached(aperture, teff, stype):
         # Put the trace of shape (60, 4335) in each of the DHS trace positions
         # First wavelength of trace lines up with the first column of the detector so no trimming necessary
         traces = []
+        y1 = APERTURES[aperture]['subarr_y'][1]
+        y2 = APERTURES[aperture]['subarr_y'][2]
         for stripe in DHS_STRIPES[aperture].values():
             y, x = int((stripe['y1'] + stripe['y0']) / 2.), 0
             dhs_trace = add_array_at_position(np.zeros((4257, 4257)), trace, x, y-(trace.shape[0]//2))
+            dhs_trace = dhs_trace[y1:y2, :]
             traces.append(dhs_trace)
 
         if stype == 'GALAXY':
