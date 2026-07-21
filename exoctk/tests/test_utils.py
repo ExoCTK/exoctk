@@ -20,40 +20,137 @@ Use
 from astropy.table import Table
 import numpy as np
 import pytest
+import requests
 
-from exoctk.utils import color_gen, filter_table, get_canonical_name, get_target_data, medfilt
+from exoctk import utils
+from exoctk.utils import (ExoMASTError, ExoMASTServiceUnavailableError,
+                          color_gen, filter_table, get_canonical_name,
+                          get_target_data, medfilt)
 
-ARGS = ['planet_name', 'planet_data']
-
-# Include 3 actual planets with data and one fake planet to xfail.
-TEST_DATA = [('HD108236f', {'canonical_name': 'HD 108236 f', 'Fe/H': -0.28, 'Teff': 5660.0, 'stellar_gravity': 4.49, 'transit_duration': 0.13625, 'RA': 186.5740627, 'DEC': -51.3630519}),
-             ('NGTS-14Ab', {'canonical_name': 'NGTS-14 A b', 'Fe/H': 0.1, 'Teff': 5187.0, 'stellar_gravity': 4.2, 'transit_duration': 0.09333333333333334, 'RA': 328.5174799, 'DEC': -38.3774193}),
-             ('2MASSJ10193800-0948225b', {'canonical_name': 'WASP-43 b', 'Fe/H': -0.05, 'Teff': 4400.0, 'stellar_gravity': 4.49, 'transit_duration': 0.0513, 'RA': 154.9081869, 'DEC': -9.8064431}),
-             pytest.param('djgfjhsg', {'canonical_name': 'sfghsfkjg', 'Fe/H': -999, 'Teff': -999, 'stellar_gravity': -999, 'transit_duration': -999, 'RA': -999, 'DEC': -999}, marks=pytest.mark.xfail)]
+TEST_TARGET = {
+    'canonical_name': 'HD 108236 f',
+    'Fe/H': -0.28,
+    'Teff': 5660.0,
+    'stellar_gravity': 4.49,
+    'transit_duration': 0.13625,
+    'RA': 186.5740627,
+    'DEC': -51.3630519,
+}
 
 MEDFILT_DATA = [(np.array([1, 1, 8, 12, 2, 10, 5, 2, 5, 2]), 4),
                 (np.array([1, 1, 8, 12, 2, 10, 5, 2, 5, 2]), 4)]
 
 
-@pytest.mark.parametrize(ARGS, TEST_DATA)
-def test_get_canoical_name(planet_name, planet_data):
-    """Test that the canonical name of the planet is returned by exomast"""
+class MockResponse:
+    """Minimal requests response used to test ExoMAST handling."""
 
-    canonical_name = get_canonical_name(planet_name)
-    assert canonical_name == planet_data['canonical_name']
+    def __init__(self, payload, error=None, json_error=None):
+        self.payload = payload
+        self.error = error
+        self.json_error = json_error
+
+    def raise_for_status(self):
+        if self.error is not None:
+            raise self.error
+
+    def json(self):
+        if self.json_error is not None:
+            raise self.json_error
+        return self.payload
 
 
-@pytest.mark.parametrize(ARGS, TEST_DATA)
-def test_get_target_data(planet_name, planet_data):
-    """Test that the canonical name of the planet is returned by exomast"""
+def test_get_canonical_name_uses_valid_exomast_response(monkeypatch):
+    """Canonical-name lookup should parse a successful ExoMAST response."""
 
-    data, _ = get_target_data(planet_name)
+    calls = []
 
-    # these are some params that the webapp uses for it's tools
-    exomast_params = ['Fe/H', 'Teff', 'stellar_gravity', 'transit_duration', 'RA', 'DEC']
+    def mock_get(url, **kwargs):
+        calls.append((url, kwargs))
+        return MockResponse({'canonicalName': TEST_TARGET['canonical_name']})
 
-    for value in exomast_params:
-        assert data[value] == pytest.approx(planet_data[value], 0.1)
+    monkeypatch.setattr(utils.requests, 'get', mock_get)
+    assert get_canonical_name('HD108236f') == TEST_TARGET['canonical_name']
+    assert calls[0][1]['params'] == {'name': 'HD108236f'}
+    assert calls[0][1]['timeout'] == utils.EXOMAST_TIMEOUT_SECONDS
+
+
+def test_get_target_data_prefers_nexsci_catalog(monkeypatch):
+    """Target lookup should use the preferred catalog from valid responses."""
+
+    def mock_get(url, **kwargs):
+        if 'identifiers' in url:
+            return MockResponse(
+                {'canonicalName': TEST_TARGET['canonical_name']})
+        alternate = dict(TEST_TARGET, catalog_name='other', Teff=5000.)
+        preferred = dict(TEST_TARGET, catalog_name='nexsci')
+        return MockResponse([alternate, preferred])
+
+    monkeypatch.setattr(utils.requests, 'get', mock_get)
+    data, url = get_target_data('HD108236f')
+    assert data['catalog_name'] == 'nexsci'
+    assert data['Teff'] == pytest.approx(TEST_TARGET['Teff'])
+    assert TEST_TARGET['canonical_name'].replace(' ', '') in url
+
+
+@pytest.mark.parametrize('payload', [{}, None, []])
+def test_get_canonical_name_rejects_malformed_response(monkeypatch, payload):
+    monkeypatch.setattr(
+        utils.requests, 'get', lambda *args, **kwargs: MockResponse(payload))
+    with pytest.raises(ExoMASTError, match='no canonical name'):
+        get_canonical_name('not-a-target')
+
+
+def test_get_canonical_name_wraps_request_errors(monkeypatch):
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(
+            None, error=requests.HTTPError('404 Client Error')))
+    with pytest.raises(ExoMASTError, match='request failed'):
+        get_canonical_name('not-a-target')
+
+
+def test_get_canonical_name_identifies_service_outage(monkeypatch):
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(
+            None, error=requests.ConnectionError('connection refused')))
+    with pytest.raises(ExoMASTServiceUnavailableError, match='unavailable'):
+        get_canonical_name('not-a-target')
+
+
+def test_get_canonical_name_wraps_invalid_json(monkeypatch):
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(None, json_error=ValueError()))
+    with pytest.raises(ExoMASTError, match='invalid JSON'):
+        get_canonical_name('not-a-target')
+
+
+def test_get_target_data_rejects_empty_response(monkeypatch):
+    def mock_get(url, **kwargs):
+        if 'identifiers' in url:
+            return MockResponse(
+                {'canonicalName': TEST_TARGET['canonical_name']})
+        return MockResponse([])
+
+    monkeypatch.setattr(utils.requests, 'get', mock_get)
+    with pytest.raises(ExoMASTError, match='no usable target data'):
+        get_target_data('HD108236f')
+
+
+@pytest.mark.integration
+def test_live_exomast_target_lookup_smoke():
+    """Verify the ExoMAST API still supplies the fields ExoCTK requires."""
+
+    try:
+        data, url = get_target_data('WASP-43b')
+    except ExoMASTServiceUnavailableError as exc:
+        pytest.xfail(f'ExoMAST is temporarily unavailable: {exc}')
+
+    assert isinstance(data['RA'], (int, float))
+    assert isinstance(data['DEC'], (int, float))
+    assert isinstance(data['Teff'], (int, float))
+    assert 'WASP43b' in url
 
 
 @pytest.fixture
