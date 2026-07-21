@@ -29,6 +29,7 @@ def _native_table(endpoint, source_ids=(30, 10, 20), masked=False):
     count = len(source_ids)
     values = {
         'source_id': source_ids,
+        'designation': [f'Gaia DR3 {source_id}' for source_id in source_ids],
         'ra': [10.001, 10., 10.001][:count],
         'dec': np.full(count, 20.),
         'ref_epoch': np.full(count, 2016.),
@@ -58,10 +59,12 @@ def _native_table(endpoint, source_ids=(30, 10, 20), masked=False):
 
 
 @pytest.mark.parametrize(('index', 'fragments'), [
-    (0, ('FROM gaiadr3.gaia_source', 'CONTAINS', 'ra AS ra')),
-    (1, ('FROM gaia_dr3.gaia_source', 'q3c_radial_query', "'t'=")),
+    (0, ('FROM gaiadr3.gaia_source', 'CONTAINS',
+         'designation AS designation', 'ra AS ra')),
+    (1, ('FROM gaia_dr3.gaia_source', 'q3c_radial_query',
+         'designation AS designation', "'t'=")),
     (2, ('FROM "I/355/gaiadr3"', '"Source" AS source_id',
-         '"RA_ICRS"', '"DE_ICRS"')),
+         '"DR3Name" AS designation', '"RA_ICRS"', '"DE_ICRS"')),
 ])
 def test_endpoint_native_query_construction(index, fragments):
     """Each service receives its own table, columns, and cone syntax."""
@@ -96,6 +99,17 @@ def test_dsc_probabilities_remain_associated_with_source_ids(endpoint):
         result['source_id'], result['classprob_dsc_combmod_star']))
 
     assert probabilities == {10: 0.1, 20: 0.2, 30: 0.3}
+
+
+@pytest.mark.parametrize('endpoint', GAIA_TAP_ENDPOINTS)
+def test_designations_remain_associated_with_source_ids(endpoint):
+    """Plot labels survive endpoint normalization and deterministic sorting."""
+
+    result = GaiaFailoverTAP._normalize(
+        _native_table(endpoint), endpoint, CENTER)
+
+    assert dict(zip(result['source_id'], result['designation'])) == {
+        10: 'Gaia DR3 10', 20: 'Gaia DR3 20', 30: 'Gaia DR3 30'}
 
 
 @pytest.mark.parametrize('endpoint', GAIA_TAP_ENDPOINTS)
@@ -182,14 +196,15 @@ def test_rows_sort_by_distance_then_source_id():
     assert list(result['source_id']) == [10, 20, 30]
 
 
-def test_missing_required_core_column_is_rejected():
+@pytest.mark.parametrize('column', ('phot_g_mean_flux', 'designation'))
+def test_missing_required_core_column_is_rejected(column):
     """A malformed result cannot pass adapter schema validation."""
 
     endpoint = GAIA_TAP_ENDPOINTS[0]
     native = _native_table(endpoint)
-    native.remove_column('phot_g_mean_flux')
+    native.remove_column(column)
 
-    with pytest.raises(GaiaTAPError, match='phot_g_mean_flux'):
+    with pytest.raises(GaiaTAPError, match=column):
         GaiaFailoverTAP._normalize(native, endpoint, CENTER)
 
 

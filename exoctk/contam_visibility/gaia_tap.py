@@ -15,6 +15,7 @@ import requests
 
 NORMALIZED_COLUMNS = (
     'source_id',
+    'designation',
     'ra',
     'dec',
     'ref_epoch',
@@ -30,7 +31,8 @@ NORMALIZED_COLUMNS = (
     'classprob_dsc_combmod_galaxy',
     'classprob_dsc_combmod_quasar',
 )
-REQUIRED_COLUMNS = frozenset(('source_id', 'ra', 'dec', 'phot_g_mean_flux'))
+REQUIRED_COLUMNS = frozenset((
+    'source_id', 'designation', 'ra', 'dec', 'phot_g_mean_flux'))
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class GaiaTAPEndpoint:
 _GAIA_COLUMNS = tuple((name, name) for name in NORMALIZED_COLUMNS)
 _VIZIER_COLUMNS = (
     ('"Source"', 'source_id'),
+    ('"DR3Name"', 'designation'),
     ('"RA_ICRS"', 'ra'),
     ('"DE_ICRS"', 'dec'),
     ('"pmRA"', 'pmra'),
