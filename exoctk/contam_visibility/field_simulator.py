@@ -22,7 +22,6 @@ from urllib.parse import quote_plus
 
 import astropy.coordinates as crd
 from astropy.io import fits
-from astropy.table import join
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -139,6 +138,9 @@ WEB_CONTAMINATION_APERTURES = frozenset({
     'NRCA5_41STRIPE1_DHS_F322W2',
     'NRCA5_41STRIPE1_DHS_F444W',
 })
+
+# Require a majority probability before rendering a source as extended.
+GAIA_DSC_GALAXY_THRESHOLD = 0.5
 
 
 def contamination_supported(aperture):
@@ -536,6 +538,38 @@ def aperture_pa_from_v3pa(v3pa, aperture):
     """Convert a V3 position angle to an aperture position angle."""
 
     return (v3pa + aperture.V3IdlYAngle) % 360
+
+
+def _normalize_sdss_type(value):
+    """Map an explicit SDSS class to a contamination rendering class."""
+
+    if np.ma.is_masked(value):
+        return None
+
+    value = str(value).strip().upper()
+    if value in ('STAR', 'QSO'):
+        return 'STAR'
+    if value == 'GALAXY':
+        return 'GALAXY'
+    return None
+
+
+def _sdss_type_lookup(xmatch_result):
+    """Return unanimous usable SDSS classes keyed by Gaia source ID."""
+
+    classifications = {}
+    for source_id, value in zip(
+            xmatch_result['source_id'], xmatch_result['spCl']):
+        normalized = _normalize_sdss_type(value)
+        if normalized is not None:
+            classifications.setdefault(source_id, set()).add(normalized)
+
+    return {
+        source_id: next(iter(values))
+        for source_id, values in classifications.items() if len(values) == 1
+    }
+
+
 def _finite_positive_scalar(value):
     """Return a finite positive float, or ``None`` for unusable values."""
 
@@ -627,11 +661,11 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
         # Perform XMatch between Gaia and SDSS DR16
         xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
 
-        # Join Gaia results with XMatch results based on source_id
-        merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
-
-        # Extract SDSS DR16 source types from XMatch results
-        stars['type'] = ['STAR' if source_id not in xmatch_result['source_id'] else ('STAR' if sdss_type == '' else sdss_type) for source_id, sdss_type in zip(stars['source_id'], merged_results['spCl'])]
+        # XMatch can return multiple counterparts per Gaia source. Associate
+        # unanimous explicit classes by ID without reordering or expanding.
+        sdss_types = _sdss_type_lookup(xmatch_result)
+        stars['type'] = [
+            sdss_types.get(source_id, '') for source_id in stars['source_id']]
 
     except Exception as e:
         logging.info(f"Could not perform SDSS crossmatch: {e}")
@@ -817,44 +851,82 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
     return startable
 
 
+def _finite_float(row, column_name):
+    """Return a finite scalar table value, or NaN when it is unusable."""
+
+    if (column_name not in row.colnames
+            or np.ma.is_masked(row[column_name])):
+        return np.nan
+
+    try:
+        value = float(row[column_name])
+    except (TypeError, ValueError):
+        return np.nan
+
+    return value if np.isfinite(value) else np.nan
+
+
 def classify_source(row):
     """
-    Classify a Gaia EDR3 source as STAR or GALAXY based on proxy criteria.
+    Classify a Gaia DR3 source as STAR or GALAXY for contamination rendering.
+
+    This binary rendering choice is not a complete astrophysical taxonomy:
+    quasars are point-like here and therefore render as ``STAR``.
 
     Parameters
     ----------
     row : astropy.table.Row
-        A single row from an Astropy Table with Gaia EDR3 columns.
+        A single row from an Astropy Table with Gaia DR3 columns.
 
     Returns
     -------
     str
-        'STAR' if the source appears to be stellar, 'GALAXY' otherwise.
+        ``GALAXY`` for a confidently extended source; otherwise ``STAR``.
     """
-    # Default is STAR
-    stype = 'STAR'
+    # Endpoint-specific Gaia queries must retain and normalize these exact
+    # gaiadr3.gaia_source column names.
+    probabilities = [
+        _finite_float(row, 'classprob_dsc_combmod_star'),
+        _finite_float(row, 'classprob_dsc_combmod_galaxy'),
+        _finite_float(row, 'classprob_dsc_combmod_quasar'),
+    ]
+    if np.all(np.isfinite(probabilities)):
+        star_probability, galaxy_probability, quasar_probability = (
+            probabilities)
+        stype = 'GALAXY' if (
+            galaxy_probability >= GAIA_DSC_GALAXY_THRESHOLD
+            and galaxy_probability > star_probability
+            and galaxy_probability > quasar_probability
+        ) else 'STAR'
+        logging.info('Type=%s, Gaia DSC probabilities=%s', stype,
+                     probabilities)
+        return stype
 
-    # Check to see if GALAXY
-    if hasattr(row['parallax'], 'mask'):
+    upstream_type = row['type'] if 'type' in row.colnames else None
+    if (not np.ma.is_masked(upstream_type)
+            and upstream_type in ('STAR', 'GALAXY')):
+        return upstream_type
 
-        if hasattr(row['astrometric_excess_noise'], 'mask'):
-            if row['astrometric_excess_noise'] > 1.0:
-                stype = 'GALAXY'
+    parallax = _finite_float(row, 'parallax')
+    excess_noise = _finite_float(row, 'astrometric_excess_noise')
+    excess_factor = _finite_float(row, 'phot_bp_rp_excess_factor')
+    color = _finite_float(row, 'bp_rp')
 
-        if hasattr(row['phot_bp_rp_excess_factor'], 'mask') and hasattr(row['bp_rp'], 'mask'):
-            if row['phot_bp_rp_excess_factor'] > (1.0 + 0.015 * row['bp_rp']**2):
-                stype = 'GALAXY'
-
+    # Retain the existing excess-noise and BP/RP-excess thresholds only as
+    # legacy extension proxies. Parallax alone is not galaxy evidence.
+    if (np.isfinite(excess_noise) and excess_noise > 1.0) or (
+            np.isfinite(excess_factor) and np.isfinite(color)
+            and excess_factor > (1.0 + 0.015 * color**2)):
+        stype = 'GALAXY'
     else:
-        if row['parallax'] < 0.5:
-            stype = 'GALAXY'
+        stype = 'STAR'
 
-    msg = f"Type={stype}, parallax={row['parallax']}, excess noise="
-    msg += f"{row['astrometric_excess_noise']}, excess_factor="
-    msg += f"{row['phot_bp_rp_excess_factor']}"
+    msg = f"Type={stype}, parallax={parallax}, excess noise="
+    msg += f"{excess_noise}, excess_factor={excess_factor}"
     logging.info(msg)
 
     return stype
+
 
 def fraction_contaminated(aperture, targframes, starcube):
     """

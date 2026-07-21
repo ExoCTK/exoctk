@@ -43,6 +43,54 @@ from exoctk.contam_visibility.modes import CONTAM_VISIBILITY_MODES
 ON_GITHUB_ACTIONS = '/home/runner' in os.path.expanduser('~') or '/Users/runner' in os.path.expanduser('~')
 
 
+def classification_row(mask_dsc=False, mask_columns=(), **values):
+    """Build one synthetic Gaia row for source-classification tests."""
+
+    defaults = {
+        'classprob_dsc_combmod_star': np.nan,
+        'classprob_dsc_combmod_galaxy': np.nan,
+        'classprob_dsc_combmod_quasar': np.nan,
+        'parallax': 1.,
+        'astrometric_excess_noise': 0.,
+        'phot_bp_rp_excess_factor': 1.,
+        'bp_rp': 1.,
+    }
+    defaults.update(values)
+    table = Table({name: [value] for name, value in defaults.items()},
+                  masked=True)
+    if mask_dsc:
+        for name in (
+                'classprob_dsc_combmod_star',
+                'classprob_dsc_combmod_galaxy',
+                'classprob_dsc_combmod_quasar'):
+            table[name].mask[0] = True
+    for name in mask_columns:
+        table[name].mask[0] = True
+    return table[0]
+
+
+def gaia_source_table(source_ids, excess_noise=0.):
+    """Build a minimal Gaia result table for find_sources tests."""
+
+    count = len(source_ids)
+    return Table({
+        'source_id': source_ids,
+        'ra': 10. + np.arange(count) * 0.001,
+        'dec': np.full(count, 20.),
+        'pmra': np.zeros(count),
+        'pmdec': np.zeros(count),
+        'ref_epoch': np.full(count, 2016.),
+        'phot_g_mean_flux': np.full(count, 100.),
+        'bp_rp': np.ones(count),
+        'parallax': np.full(count, 0.1),
+        'astrometric_excess_noise': np.full(count, excess_noise),
+        'phot_bp_rp_excess_factor': np.ones(count),
+        'classprob_dsc_combmod_star': np.full(count, np.nan),
+        'classprob_dsc_combmod_galaxy': np.full(count, np.nan),
+        'classprob_dsc_combmod_quasar': np.full(count, np.nan),
+    })
+
+
 def test_new_vis_plot():
     """Tests the `new_vis_plot.py` module"""
     ra, dec = '24.3544618', '-45.6777937' # WASP-18
@@ -95,6 +143,191 @@ def test_resolve_target():
 
     assert ra == 24.3544618
     assert dec == -45.6777937
+
+
+@pytest.mark.parametrize(('probabilities', 'expected'), [
+    ((0.9, 0.05, 0.05), 'STAR'),
+    ((0.05, 0.9, 0.05), 'GALAXY'),
+    ((0.05, 0.05, 0.9), 'STAR'),
+    ((0.3, 0.5, 0.2), 'GALAXY'),
+    ((0.5, 0.5, 0.), 'STAR'),
+    ((0.4, 0.4, 0.2), 'STAR'),
+])
+def test_classify_source_uses_gaia_dsc(probabilities, expected):
+    """Gaia DSC drives the binary contamination-rendering classification."""
+
+    star, galaxy, quasar = probabilities
+    row = classification_row(
+        classprob_dsc_combmod_star=star,
+        classprob_dsc_combmod_galaxy=galaxy,
+        classprob_dsc_combmod_quasar=quasar,
+        parallax=0.)
+
+    assert field_simulator.classify_source(row) == expected
+
+
+def test_classify_source_masked_dsc_uses_fallback():
+    """Strong excess noise remains a legacy extension proxy."""
+
+    row = classification_row(
+        mask_dsc=True, parallax=0.1, astrometric_excess_noise=2.)
+
+    assert field_simulator.classify_source(row) == 'GALAXY'
+
+
+def test_classify_source_bp_rp_excess_uses_fallback_proxy():
+    """Strong BP/RP excess remains a legacy extension proxy."""
+
+    row = classification_row(
+        mask_dsc=True, parallax=np.nan, bp_rp=1.,
+        phot_bp_rp_excess_factor=2.)
+
+    assert field_simulator.classify_source(row) == 'GALAXY'
+
+
+def test_classify_source_one_masked_dsc_probability_defaults_to_star():
+    """One missing DSC probability makes the full DSC result unusable."""
+
+    row = classification_row(
+        mask_columns=('classprob_dsc_combmod_quasar',),
+        classprob_dsc_combmod_star=0.1,
+        classprob_dsc_combmod_galaxy=0.9,
+        classprob_dsc_combmod_quasar=0.,
+        parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+def test_classify_source_nan_and_masked_values_match():
+    """NaN and masked DSC and parallax values have the same safe default."""
+
+    nan_row = classification_row(parallax=np.nan)
+    masked_row = classification_row(
+        mask_dsc=True, mask_columns=('parallax',))
+
+    assert field_simulator.classify_source(nan_row) == 'STAR'
+    assert field_simulator.classify_source(masked_row) == 'STAR'
+
+
+def test_classify_source_missing_parallax_is_not_a_galaxy():
+    """Missing parallax alone must not suppress a dispersed contaminant."""
+
+    row = classification_row(mask_dsc=True, parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+def test_classify_source_low_parallax_is_not_a_galaxy():
+    """Low finite parallax alone must not imply an extended source."""
+
+    row = classification_row(mask_dsc=True, parallax=0.1)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+def test_classify_source_regression_gaia_3910744542517589888():
+    """The independently confirmed point source remains a STAR."""
+
+    row = classification_row(
+        classprob_dsc_combmod_star=0.997072,
+        classprob_dsc_combmod_galaxy=0.000248,
+        classprob_dsc_combmod_quasar=0.001099,
+        parallax=np.nan)
+
+    assert field_simulator.classify_source(row) == 'STAR'
+
+
+@pytest.mark.parametrize('source_type', ['STAR', 'GALAXY'])
+def test_classify_source_preserves_valid_upstream_type(source_type):
+    """A valid upstream type survives when Gaia DSC is unavailable."""
+
+    row = classification_row(type=source_type, parallax=10.)
+
+    assert field_simulator.classify_source(row) == source_type
+
+
+@pytest.mark.parametrize(('sdss_type', 'expected'), [
+    ('STAR', 'STAR'),
+    ('GALAXY', 'GALAXY'),
+    ('QSO', 'STAR'),
+    (' qso ', 'STAR'),
+    ('star', 'STAR'),
+    ('Galaxy', 'GALAXY'),
+    ('', 'STAR'),
+    ('<masked>', 'STAR'),
+    (None, 'STAR'),
+    ('UNKNOWN', 'STAR'),
+])
+def test_find_sources_normalizes_explicit_sdss_type(
+        monkeypatch, sdss_type, expected):
+    """Production flow normalizes usable SDSS classes by rendering type."""
+
+    stars = gaia_source_table([1])
+    if sdss_type is None:
+        xmatch = Table(names=('source_id', 'spCl'), dtype=('i8', 'U10'))
+    elif sdss_type == '<masked>':
+        xmatch = Table({'source_id': [1], 'spCl': ['STAR']}, masked=True)
+        xmatch['spCl'].mask[0] = True
+    else:
+        xmatch = Table({'source_id': [1], 'spCl': [sdss_type]})
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query',
+        lambda *args, **kwargs: xmatch)
+
+    result = field_simulator.find_sources(10., 20., pm_corr=False)
+
+    assert result['type'][0] == expected
+
+
+def test_find_sources_associates_sdss_types_by_source_id(monkeypatch):
+    """SDSS types remain attached when Gaia IDs are out of key order."""
+
+    stars = gaia_source_table([30, 10, 20])
+    xmatch = Table({
+        'source_id': [20, 10],
+        'spCl': ['GALAXY', 'STAR'],
+    })
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query',
+        lambda *args, **kwargs: xmatch)
+
+    result = field_simulator.find_sources(10., 20., pm_corr=False)
+
+    assert list(result['source_id']) == [30, 10, 20]
+    assert list(result['type']) == ['STAR', 'STAR', 'GALAXY']
+    assert len(result) == len(stars)
+
+
+@pytest.mark.parametrize(('sdss_types', 'expected'), [
+    (['STAR', ' qso '], 'STAR'),
+    (['STAR', 'GALAXY'], 'GALAXY'),
+])
+def test_find_sources_handles_duplicate_sdss_matches(
+        monkeypatch, sdss_types, expected):
+    """Duplicate matches are preserved only when usable classes agree."""
+
+    stars = gaia_source_table([1], excess_noise=2.)
+    xmatch = Table({
+        'source_id': [1] * len(sdss_types),
+        'spCl': sdss_types,
+    })
+    monkeypatch.setattr(
+        field_simulator.GAIA_TAP, 'query_region',
+        lambda *args, **kwargs: stars.copy())
+    monkeypatch.setattr(
+        field_simulator.XMatch, 'query',
+        lambda *args, **kwargs: xmatch)
+
+    result = field_simulator.find_sources(10., 20., pm_corr=False)
+
+    assert result['type'][0] == expected
+    assert len(result) == 1
 
 
 def test_find_sources_identifies_high_proper_motion_target(monkeypatch):
