@@ -16,8 +16,6 @@ import re
 import sys
 import time
 import logging
-import io
-import requests
 from urllib.parse import quote_plus
 
 import astropy.coordinates as crd
@@ -45,6 +43,7 @@ from ..pkgdata import resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from .precompute import save_exoplanet_data
 from . import contamination_figure as cf
+from .gaia_tap import GaiaFailoverTAP
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -172,169 +171,6 @@ DHS_STRIPES = {'NRCA5_41STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, '
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
-
-class GaiaFailoverTAP:
-    def __init__(
-        self,
-        timeout=30,
-        poll_interval=1.0,
-        max_polls=120,
-        max_retries=3,
-        retry_delay=5,
-    ):
-        self.endpoints = [
-            "https://gea.esac.esa.int/tap-server/tap",
-            "https://datalab.noirlab.edu/tap",
-            "https://tapvizier.cds.unistra.fr/TAPVizieR/tap"
-        ]
-
-        self.timeout = timeout
-        self.poll_interval = poll_interval
-        self.max_polls = max_polls
-
-        # NEW
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
-
-        self.last_endpoint = None
-
-    def query_region(self, coordinate, width, height=None):
-        """
-        Drop-in replacement for Gaia.query_object_async(...)
-
-        Returns
-        -------
-        astropy.table.Table
-        """
-        height = width if height is None else height
-
-        ra = float(coordinate.ra.deg)
-        dec = float(coordinate.dec.deg)
-
-        width_deg = float(width.to(u.deg).value)
-        height_deg = float(height.to(u.deg).value)
-
-        # Query enclosing circle
-        radius_deg = 0.5 * np.sqrt(width_deg**2 + height_deg**2)
-
-        if not np.isfinite(radius_deg) or radius_deg <= 0:
-            raise ValueError(f"Invalid radius: {radius_deg}")
-
-        adql = f"""
-        SELECT *,
-            DISTANCE(
-                POINT('ICRS', ra, dec),
-                POINT('ICRS', {ra}, {dec})
-            ) AS dist
-        FROM gaiadr3.gaia_source
-        WHERE 1=CONTAINS(
-            POINT('ICRS', ra, dec),
-            CIRCLE('ICRS', {ra}, {dec}, {radius_deg})
-        )
-        ORDER BY dist
-        """
-
-        all_errors = []
-
-        # GLOBAL RETRY LOOP
-        for retry in range(self.max_retries):
-
-            logging.info(
-                f"[Gaia TAP] Global retry "
-                f"{retry + 1}/{self.max_retries}"
-            )
-
-            # ENDPOINT FAILOVER LOOP
-            for endpoint in self.endpoints:
-
-                try:
-                    stars = self._run_query(endpoint, adql)
-                    self.last_endpoint = endpoint
-                    logging.info(
-                        f"[Gaia TAP] SUCCESS "
-                        f"endpoint={endpoint} "
-                        f"rows={len(stars)}"
-                    )
-
-                    return stars
-
-                except Exception as e:
-                    err_msg = (
-                        f"[Gaia failover] "
-                        f"retry={retry + 1} "
-                        f"endpoint={endpoint} "
-                        f"error={e}"
-                    )
-
-                    logging.warning(err_msg)
-                    all_errors.append(err_msg)
-
-            # Sleep before next global retry
-            if retry < self.max_retries - 1:
-                delay = self.retry_delay * (2**retry)
-                logging.info(f"[Gaia TAP] Sleeping {delay}s before retry")
-                time.sleep(delay)
-
-        # TOTAL FAILURE
-        raise RuntimeError(
-            "All Gaia TAP endpoints failed after "
-            f"{self.max_retries} retries.\n\n"
-            + "\n".join(all_errors)
-        )
-
-    def _run_query(self, endpoint, adql):
-        job_url = self._submit_async_job(endpoint, adql)
-        self._poll_job(job_url)
-        return self._fetch_result(job_url)
-
-    def _submit_async_job(self, endpoint, adql):
-        url = f"{endpoint}/async"
-        r = requests.post(url, data={"REQUEST": "doQuery", "LANG": "ADQL", "FORMAT": "csv", "QUERY": adql, "PHASE": "RUN"}, timeout=self.timeout, allow_redirects=False)
-
-        # Proper TAP async redirect
-        if r.status_code in (302, 303):
-
-            job_url = r.headers.get("Location")
-            if job_url:
-                return job_url
-
-        # Some TAP services return 200 + Location
-        job_url = r.headers.get("Location")
-
-        if job_url:
-            return job_url
-
-        raise RuntimeError(
-            f"No TAP job URL returned. "
-            f"Status={r.status_code}. "
-            f"Response:\n{r.text[:500]}"
-        )
-
-    def _poll_job(self, job_url):
-        phase_url = f"{job_url}/phase"
-
-        for _ in range(self.max_polls):
-            r = requests.get(phase_url, timeout=self.timeout)
-            r.raise_for_status()
-            phase = r.text.strip()
-
-            if phase == "COMPLETED":
-                return
-
-            if phase in ("ERROR", "ABORTED"):
-                raise RuntimeError(f"TAP job failed: {phase}")
-
-            time.sleep(self.poll_interval)
-
-        raise TimeoutError("Gaia TAP polling timeout")
-
-    def _fetch_result(self, job_url):
-
-        r = requests.get(f"{job_url}/results/result", timeout=self.timeout)
-        r.raise_for_status()
-
-        return Table.read(io.BytesIO(r.content), format="ascii.csv")
-
 
 GAIA_TAP = GaiaFailoverTAP()
 
@@ -773,6 +609,11 @@ def calculate_current_coordinates(ra, dec, pm_ra, pm_dec, epoch, target_date=Non
     new_ra, new_dec
         The corrected RA and Dec for the source
     """
+    motion = (pm_ra, pm_dec, epoch)
+    if any(np.ma.is_masked(value) or not np.isfinite(value)
+           for value in motion):
+        return np.ma.masked, np.ma.masked
+
     # Set target data
     if target_date is None:
         target_date = Time.now()

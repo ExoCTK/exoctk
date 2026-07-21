@@ -56,8 +56,12 @@ The dictionary has the following form:
         This is a list of dictionaries of steps to run after the form results have loaded.
         The dictionary format is described in the `run_action()` documentation.
 """
+from datetime import datetime, timezone
 from pathlib import Path
+import time
+
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
@@ -67,16 +71,27 @@ from selenium.webdriver.support.wait import WebDriverWait
 from tabulate import tabulate
 
 
+PROGRESS_INTERVAL = 30
+
+
+def log(message=""):
+    """Print an immediately visible, timestamped website-test message."""
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    print(f'[{timestamp}] [website-test] {message}', flush=True)
+
+
 def print_page_title(url, options, service):
     with webdriver.Firefox(options=options, service=service) as driver:
+        log(f'Loading website root: {url}')
         driver.get(url)
-        print(f"Title: {driver.title}")
+        log(f"Title: {driver.title}")
         h1_elements = driver.find_elements(By.TAG_NAME, "h1")
         if len(h1_elements) > 0:
-            print(f"Top Title: {h1_elements[0].text}")
+            log(f"Top Title: {h1_elements[0].text}")
 
 def print_table(table_array):
-    print(f"\n{tabulate(table_array, headers='firstrow', tablefmt='simple')}")
+    log(f"\n{tabulate(table_array, headers='firstrow', tablefmt='simple')}")
 
 def print_tables(driver, find_by, id):
     tables = driver.find_elements(find_by, id)
@@ -148,30 +163,30 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
 
     if action["type"] == "print_title":
         # Print the page title
-        print(driver.title)
+        log(driver.title)
     elif action["type"] == "print_head":
         # Print the text in the first <h1> element in the page
         h1_elements = driver.find_elements(By.TAG_NAME, "h1")
         if len(h1_elements) > 0:
-            print(h1_elements[0].text)
+            log(h1_elements[0].text)
     elif action['type'] == "print_table":
         print_tables(driver, action['find_by'], action['id'])
     elif action['type'] == "print_value":
         element = driver.find_element(action['find_by'], action['id'])
-        print(f"Element {action['id']} has value {element.get_attribute('value')}")
+        log(f"Element {action['id']} has value {element.get_attribute('value')}")
     elif action["type"] == "set_text":
         # Set a field whose value can be set with `send_keys()`
         element = driver.find_element(action["find_by"], action["find_value"])
-        print(f"Set {action['find_value']} from {element.get_attribute('value')} to {action['value']}")
+        log(f"Set {action['find_value']} from {element.get_attribute('value')} to {action['value']}")
         element.clear()
         element.send_keys(action["value"])
-        print(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+        log(f"Element {action['find_value']} value is {element.get_attribute('value')}")
     elif action["type"] == "resolve_target":
         # Set the target of observation to the provided value, trigger it.
         # Print out the provided check element before and after to make sure it took.
         check_element = driver.find_element(By.ID, action["target_check"])
         check_value = check_element.get_attribute('value')
-        print(f"Element {action['target_check']} before target resolution: {check_value}")
+        log(f"Element {action['target_check']} before target resolution: {check_value}")
         target = driver.find_element(By.ID, action["target_id"])
         target.send_keys(action['target'])
         resolve = wait.until(EC.element_to_be_clickable((By.ID, "resolve_submit")))
@@ -179,14 +194,14 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
         resolve.click()
         check_element = driver.find_element(By.ID, action["target_check"])
         check_value = check_element.get_attribute('value')
-        print(f"Element {action['target_check']} after target resolution: {check_value}")
+        log(f"Element {action['target_check']} after target resolution: {check_value}")
     elif action['type'] == "download":
         element = driver.find_element(action['find_by'], action['id'])
         element.click()
         driver.implicitly_wait(wait_time)
         file_location = Path(f"/root/Downloads/{action['file']}")
         if file_location.is_file():
-            print(f"Downloaded {action['file']}")
+            log(f"Downloaded {action['file']}")
             file_location.unlink()
         else:
             raise FileNotFoundError(f"Downloaded file {action['file']} not found")
@@ -195,20 +210,48 @@ def do_submit(driver, params, calculation_timeout=2700):
     """
     Finds the submit button, waits for it to be pushable, and pushes it.
     """
-    submit_element = WebDriverWait(driver, "10").until(
+    test_name = params['name']
+    log(f'[{test_name}] Waiting for submit button #{params["submit_id"]}')
+    submit_element = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.ID, params["submit_id"]))
     )
-    WebDriverWait(driver, "10").until(
+    WebDriverWait(driver, 10).until(
         EC.invisibility_of_element_located((By.ID, "MathJax_Message"))
     )
     submit_element.click()
+    started = time.monotonic()
+    log(f'[{test_name}] Submitted; current URL: {driver.current_url}')
     if params['submit_done_type'] == "simple_wait":
         driver.implicitly_wait(params['submit_done_value'])
+        log(f'[{test_name}] Configured Selenium implicit wait of '
+            f'{params["submit_done_value"]:.1f} seconds for result checks')
     else:
-        submit_done = WebDriverWait(driver, calculation_timeout).until(
-            EC.presence_of_element_located((params["submit_done_type"],
-            params['submit_done_id']))
-        )
+        locator = (params["submit_done_type"], params['submit_done_id'])
+        log(f'[{test_name}] Waiting up to {calculation_timeout} seconds for '
+            f'result element {locator!r}')
+        next_report = PROGRESS_INTERVAL
+        while True:
+            if driver.find_elements(*locator):
+                elapsed = time.monotonic() - started
+                log(f'[{test_name}] Found result element after '
+                    f'{elapsed:.1f} seconds')
+                return
+
+            elapsed = time.monotonic() - started
+            if elapsed >= calculation_timeout:
+                log(f'[{test_name}] Timed out after {elapsed:.1f} seconds; '
+                    f'URL={driver.current_url!r}, title={driver.title!r}')
+                raise TimeoutException(
+                    f'{test_name} did not produce {locator!r} within '
+                    f'{calculation_timeout} seconds; URL={driver.current_url!r}, '
+                    f'title={driver.title!r}')
+
+            if elapsed >= next_report:
+                log(f'[{test_name}] Still waiting for {locator!r}: '
+                    f'{elapsed:.0f}/{calculation_timeout} seconds elapsed; '
+                    f'URL={driver.current_url}')
+                next_report += PROGRESS_INTERVAL
+            time.sleep(1)
 
 def do_form(options, service, params):
     """
@@ -216,30 +259,47 @@ def do_form(options, service, params):
     Submits the form.
     Runs all the elements in the post_steps in order.
     """
-    run_str = f"Running Test {params['name']}"
-    print()
-    print(run_str)
-    print("-" * len(run_str))
+    test_name = params['name']
+    test_started = time.monotonic()
+    run_str = f"Running Test {test_name}"
+    log()
+    log(run_str)
+    log("-" * len(run_str))
     with webdriver.Firefox(options=options, service=service) as driver:
-        # Load groups-integrations page
-        driver.get(params['url'] + params['extension'])
+        test_url = params['url'] + params['extension']
+        log(f'[{test_name}] Loading {test_url}')
+        driver.get(test_url)
+        log(f'[{test_name}] Page loaded: title={driver.title!r}, '
+            f'URL={driver.current_url}')
 
-        for action in params['pre_steps']:
+        for index, action in enumerate(params['pre_steps'], start=1):
+            log(f'[{test_name}] Starting pre-step {index}/'
+                f'{len(params["pre_steps"])}: {action["type"]}')
             run_action(driver, action)
+            log(f'[{test_name}] Finished pre-step {index}/'
+                f'{len(params["pre_steps"])}: {action["type"]}')
 
         # Submit the form
-        print("Starting Calculation")
+        log(f'[{test_name}] Starting calculation')
         do_submit(driver, params)
-        print("Finished Calculation")
+        log(f'[{test_name}] Finished calculation')
 
         # Do all the post-calculation steps
-        for action in params["post_steps"]:
+        for index, action in enumerate(params["post_steps"], start=1):
+            log(f'[{test_name}] Starting post-step {index}/'
+                f'{len(params["post_steps"])}: {action["type"]}')
             run_action(driver, action)
-    print("-" * len(run_str))
-    print()
+            log(f'[{test_name}] Finished post-step {index}/'
+                f'{len(params["post_steps"])}: {action["type"]}')
+    elapsed = time.monotonic() - test_started
+    log(f'[{test_name}] PASSED in {elapsed:.1f} seconds')
+    log("-" * len(run_str))
+    log()
 
 
 if __name__ == "__main__":
+    suite_started = time.monotonic()
+    log('Starting ExoCTK website test suite')
     # Let's make functions
     options = Options()
     options.binary_location = r'/usr/bin/firefox-esr'
@@ -248,7 +308,7 @@ if __name__ == "__main__":
 
     url = "http://localhost:5000"
     print_page_title(url, options, service)
-    print()
+    log()
 
     group_integration_params = {
         'name': 'Groups/Integrations',
@@ -531,3 +591,5 @@ if __name__ == "__main__":
         ]
     }
     do_form(options, service, contam_overlap_full_params)
+    log(f'Completed ExoCTK website test suite in '
+        f'{time.monotonic() - suite_started:.1f} seconds')

@@ -45,10 +45,19 @@
 #   them for accuracy, but for the moment this is testing whether you can *do* things,
 #   with the rest of the test suite making sure the module results are accurate.
 
+log()
+{
+    printf '[%s] [website-test] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
+}
+
+log "Waiting for the ExoCTK server volume"
 until cd /exoctk/exoctk/
 do
-    echo "Waiting for server volume..."
+    log "Server volume is not ready; checking again in 5 seconds"
+    sleep 5
 done
+log "Server volume is ready; starting Selenium tests with unbuffered output"
 
 # Run the Selenium script
-python /exoctk/test_exoctk_page.py
+export PYTHONUNBUFFERED=1
+exec python -u /exoctk/test_exoctk_page.py
