@@ -22,7 +22,6 @@ from urllib.parse import quote_plus
 
 import astropy.coordinates as crd
 from astropy.io import fits
-from astropy.table import join
 import astropy.units as u
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -497,6 +496,36 @@ def _target_source_index(stars, target_coordinate, input_epoch=2000):
     return int(np.argmin(target_coordinate.separation(catalog_at_input_epoch)))
 
 
+def _normalize_sdss_type(value):
+    """Map an explicit SDSS class to a contamination rendering class."""
+
+    if np.ma.is_masked(value):
+        return None
+
+    value = str(value).strip().upper()
+    if value in ('STAR', 'QSO'):
+        return 'STAR'
+    if value == 'GALAXY':
+        return 'GALAXY'
+    return None
+
+
+def _sdss_type_lookup(xmatch_result):
+    """Return unanimous usable SDSS classes keyed by Gaia source ID."""
+
+    classifications = {}
+    for source_id, value in zip(
+            xmatch_result['source_id'], xmatch_result['spCl']):
+        normalized = _normalize_sdss_type(value)
+        if normalized is not None:
+            classifications.setdefault(source_id, set()).add(normalized)
+
+    return {
+        source_id: next(iter(values))
+        for source_id, values in classifications.items() if len(values) == 1
+    }
+
+
 def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date=None, verbose=False, pm_corr=True, plot=False):
     """
     Find all the stars in the vicinity and estimate temperatures
@@ -552,15 +581,11 @@ def find_sources(ra=None, dec=None, target=None, width=7.5*u.arcmin, target_date
         # Perform XMatch between Gaia and SDSS DR16
         xmatch_result = XMatch.query(cat1=stars, cat2='vizier:V/154/sdss16', max_distance=2 * u.arcsec, colRA1='ra', colDec1='dec', colRA2='RA_ICRS', colDec2='DE_ICRS')
 
-        # Join Gaia results with XMatch results based on source_id
-        merged_results = join(stars, xmatch_result, keys='source_id', join_type='left')
-
-        # Preserve only explicit SDSS rendering classes. Missing or blank spCl
-        # values must reach classify_source rather than masquerade as STAR.
+        # XMatch can return multiple counterparts per Gaia source. Associate
+        # unanimous explicit classes by ID without reordering or expanding.
+        sdss_types = _sdss_type_lookup(xmatch_result)
         stars['type'] = [
-            sdss_type if (not np.ma.is_masked(sdss_type)
-                          and sdss_type in ('STAR', 'GALAXY')) else ''
-            for sdss_type in merged_results['spCl']]
+            sdss_types.get(source_id, '') for source_id in stars['source_id']]
 
     except Exception as e:
         logging.info(f"Could not perform SDSS crossmatch: {e}")
@@ -807,9 +832,9 @@ def classify_source(row):
     excess_factor = _finite_float(row, 'phot_bp_rp_excess_factor')
     color = _finite_float(row, 'bp_rp')
 
-    if np.isfinite(parallax):
-        stype = 'GALAXY' if parallax < 0.5 else 'STAR'
-    elif (np.isfinite(excess_noise) and excess_noise > 1.0) or (
+    # Retain the existing excess-noise and BP/RP-excess thresholds only as
+    # legacy extension proxies. Parallax alone is not galaxy evidence.
+    if (np.isfinite(excess_noise) and excess_noise > 1.0) or (
             np.isfinite(excess_factor) and np.isfinite(color)
             and excess_factor > (1.0 + 0.015 * color**2)):
         stype = 'GALAXY'
