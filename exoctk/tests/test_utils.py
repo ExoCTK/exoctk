@@ -76,9 +76,13 @@ def test_filter_table(build_table, operator):
     assert all(TEST_DATA['wavelength'] == eval("build_table[np.where(build_table['wavelength'] {})]['wavelength']".format(operator)))
 
 
-@pytest.mark.parametrize("colormap", ['viridis', pytest.param('hjdsgfdhsf', marks=pytest.mark.xfail)])
-def test_color_gen(colormap):
-    color_gen(colormap)
+def test_color_gen():
+    assert next(color_gen('viridis'))
+
+
+def test_color_gen_rejects_invalid_palette():
+    with pytest.raises(TypeError):
+        next(color_gen('hjdsgfdhsf'))
 
 
 @pytest.mark.parametrize(['data', 'filter_window'], MEDFILT_DATA)
