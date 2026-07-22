@@ -671,6 +671,29 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
                    for warning in caught)
 
 
+@pytest.mark.parametrize('aperture, mask_function', [
+    ('NIS_SUBSTRIP96', 'NIRISS_SOSS_trace_mask'),
+    ('NRCA5_41STRIPE1_DHS_F444W', 'NIRCam_DHS_trace_mask'),
+])
+def test_fraction_contaminated_ignores_flux_outside_extraction(
+        monkeypatch, aperture, mask_function):
+    """Off-mask sources do not dilute SOSS or DHS contamination."""
+
+    mask = np.array([[1.], [1.], [0.]])
+    target = np.array([[1.], [1.], [0.]])
+    contaminants = np.array([
+        [[1.], [0.], [0.]],
+        [[1.], [0.], [100.]],
+    ])
+    monkeypatch.setattr(
+        field_simulator, mask_function, lambda aperture: [mask])
+
+    result = field_simulator.fraction_contaminated(
+        aperture, [target], contaminants)[0]
+
+    assert np.allclose(result, 0.25)
+
+
 @pytest.mark.parametrize('aperture', [
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',
