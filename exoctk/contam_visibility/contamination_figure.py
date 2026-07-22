@@ -1,10 +1,11 @@
 import os
 import sys
+from html import escape
 from itertools import groupby, count
 
 from astropy.io import fits
 from bokeh.layouts import gridplot, column, row
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer, Div
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.plotting import figure
 import numpy as np
@@ -47,7 +48,8 @@ def has_order2_contamination(instrument):
 
 
 def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
-                       instrument=None):
+                       instrument=None, wavelength=None, trace_names=None,
+                       contamination_labels=None):
     """
     Make the contamination plot with a slider
 
@@ -57,6 +59,12 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
         The list of fractional contamination arrays
     badPA_list: array-like
         The position angles that are not observable
+    wavelength: array-like, optional
+        Spectral coordinate for the upper plot
+    trace_names: list[str], optional
+        Labels for the spectra in the upper plot
+    contamination_labels: list[str], optional
+        Labels for threshold regions in the position-angle plot
     threshold: float
         The threshold for contamination reporting in the plot
     y_max: float
@@ -98,7 +106,11 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
 
     # Choose initial values and build visible and available dicts
     pa_init = int(np.argmax(np.nansum(np.asarray(pctlines), axis=(0, 2)))) # Maximum contamination
-    vis_dict = {'col': np.arange(n_channels)}
+    spectral_coordinate = (np.arange(n_channels) if wavelength is None
+                           else np.asarray(wavelength))
+    if spectral_coordinate.shape != (n_channels,):
+        raise ValueError('Wavelength coordinate must match contamination channels')
+    vis_dict = {'col': spectral_coordinate}
     for order in orders:
         vis_dict[f'contam{order}'] = contam_dict[
             f'contam{order}_{pa_init}']
@@ -110,16 +122,29 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     # Contamination fraction plot
     plt = figure(width=900, height=300, tools=['reset', 'save'])
     colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
-    for order in orders:
-        plt.line('col', f'contam{order}', source=source_visible, color=colors[order - 1], line_width=2, line_alpha=0.6, legend_label=f'Order {order}')
+    labels = trace_names or [f'Order {order}' for order in orders]
+    if contamination_labels is None and wavelength is not None and len(orders) == 1:
+        threshold_labels = ['Spectrum']
+    else:
+        threshold_labels = (contamination_labels or
+                            [f'Ord {order}' for order in orders])
+    if len(labels) != len(orders) or len(threshold_labels) != len(orders):
+        raise ValueError('Plot labels must match the number of traces')
+    for order, label in zip(orders, labels):
+        plt.line('col', f'contam{order}', source=source_visible, color=colors[order - 1], line_width=2, line_alpha=0.6, legend_label=label)
         glyph = VArea(x="col", y1=f"baseline{order}",
                       y2=f"contam{order}",
                       fill_color=colors[order - 1], fill_alpha=0.3)
         plt.add_glyph(source_visible, glyph)
 
     plt.y_range = Range1d(0, display_y_max)
-    plt.x_range = Range1d(0, n_channels)
-    plt.xaxis.axis_label = 'Column Index'
+    if wavelength is not None:
+        finite = spectral_coordinate[np.isfinite(spectral_coordinate)]
+        plt.x_range = Range1d(float(np.nanmin(finite)), float(np.nanmax(finite)))
+    else:
+        plt.x_range = Range1d(0, n_channels)
+    plt.xaxis.axis_label = ('Wavelength (micron)' if wavelength is not None
+                            else 'Column Index')
     plt.yaxis.axis_label = 'Contamination (%)'
     slider = Slider(title='V3 Position Angle',
                     value=pa_init,
@@ -185,8 +210,8 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     viz_plt.add_layout(span)
 
     items = [("Target not observable", [c0])]
-    for order, vis_ord in zip(orders, vis_ords):
-        items.append((f'Ord {order} > {threshold * 100}% Contaminated', [vis_ord]))
+    for label, vis_ord in zip(threshold_labels, vis_ords):
+        items.append((f'{label} > {threshold * 100}% Contaminated', [vis_ord]))
     legend = Legend(items=items, location=(50, 0), orientation='horizontal', border_line_alpha=0)
     viz_plt.add_layout(legend, 'below')
 
@@ -222,6 +247,64 @@ def soss_contamination_plot_layout(targframes, starcube, pctlines,
     slider_plot = contam_slider_plot(
         pctlines, badPA_list, instrument=instrument)
     return column(legacy_plot, slider_plot)
+
+
+def miri_single_pa_plot(result):
+    """Build a detector and wavelength diagnostic for one MIRI position angle.
+
+    Parameters
+    ----------
+    result : dict
+        MIRI result returned by :func:`miri_lrs.calc_v3pa`.
+
+    Returns
+    -------
+    bokeh.models.layouts.Column
+        Source summary followed by detector and contamination plots.
+    """
+
+    tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
+    scene = result['target'] + result['contaminants']
+    intersecting = result.get('intersecting_sources', [])
+    detector = figure(
+        title=(f"MIRI LRS detector scene, V3PA={result['pa']} "
+               f"({len(intersecting)} extraction-overlapping sources)"),
+        width=350, height=650, tools=tools, match_aspect=True,
+        x_axis_label='MIRI/IP SCI X pixel', y_axis_label='MIRI/IP SCI Y pixel')
+    high = max(float(np.nanmax(scene)), 1.0)
+    detector.image(
+        image=[scene], x=0, y=0, dw=scene.shape[1], dh=scene.shape[0],
+        color_mapper=LogColorMapper(palette='Viridis256', low=1, high=high))
+    detector.image(
+        image=[result['extraction_mask']], x=0, y=0,
+        dw=scene.shape[1], dh=scene.shape[0],
+        color_mapper=LinearColorMapper(
+            palette=['white', 'orange'], low=0, high=1),
+        alpha=0.12)
+
+    valid = result['valid_wavelength']
+    spectrum = figure(
+        title='Contamination in the Pandeia extraction aperture', width=550,
+        height=300, tools=tools, x_axis_label='Wavelength (micron)',
+        y_axis_label='Contaminant / total pixel fraction')
+    spectrum.line(
+        result['wavelength'][valid], result['contamination'][valid],
+        line_width=2)
+    spectrum.y_range = Range1d(0, 1)
+    if intersecting:
+        source_items = ''.join(
+            f'<li>{escape(source["name"])}: detector-array offset '
+            f'(column={source["x_shift"]}, row={source["y_shift"]}), '
+            f'relative G flux={source["fluxscale"]:.4g}</li>'
+            for source in intersecting)
+        source_text = (
+            '<b>Sources whose dispersed traces enter the extraction mask:</b>'
+            f'<ul>{source_items}</ul>')
+    else:
+        source_text = (
+            '<b>No catalog-source traces enter the extraction mask at this '
+            'V3PA.</b>')
+    return column(Div(text=source_text), gridplot([[detector, spectrum]]))
 
 
 def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
