@@ -25,6 +25,7 @@ import sys
 import warnings
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pytest
 
@@ -34,6 +35,7 @@ import astropy.units as u
 
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import contamination_figure
+from exoctk.contam_visibility import precompute
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
 from exoctk.contam_visibility import contamination_figure
@@ -134,6 +136,64 @@ def test_precomputed_field_simulation():
     targframe, starcube, results = field_simulator.field_simulation(targname=bad_targname, aperture=aperture, target_db=target_db)
 
     assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
+
+
+def test_field_simulation_updates_default_living_cache(tmp_path, monkeypatch):
+    """A newly calculated named target is saved to its aperture cache."""
+
+    aperture_name = 'NIS_SUBSTRIP96'
+    full_name = field_simulator.APERTURES[aperture_name]['full']
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            assert frame == 'det'
+            return np.array([0., 1.]), np.array([0., 1.])
+
+    class FakeScienceAperture:
+        XSciSize = 2
+        YSciSize = 2
+
+    class FakeSiaf:
+        apertures = {
+            full_name: FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    positions = DataFrame({
+        'V3PA_min_pa_angle': [0.],
+        'V3PA_nominal_angle': [0.],
+        'V3PA_max_pa_angle': [0.],
+    })
+    monkeypatch.setenv('EXOCTK_CONTAM_CACHE', str(tmp_path))
+    monkeypatch.setattr(precompute, '_get_shape', lambda aperture: (1, 2, 2))
+    monkeypatch.setattr(field_simulator, 'check_for_data', lambda *args: None)
+    monkeypatch.setattr(field_simulator, 'get_canonical_name', lambda name: name)
+    monkeypatch.setattr(
+        field_simulator, 'get_target_data',
+        lambda name: ({'RA': 10., 'DEC': 20.}, None))
+    monkeypatch.setattr(field_simulator.pysiaf, 'Siaf', lambda inst: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator, 'find_sources', lambda *args, **kwargs: Table())
+    monkeypatch.setattr(
+        field_simulator, 'get_exoplanet_positions',
+        lambda *args, **kwargs: positions)
+    monkeypatch.setattr(
+        field_simulator, 'calc_v3pa',
+        lambda pa, **kwargs: {
+            'pa': int(pa),
+            'target_traces': [np.ones((2, 2))],
+            'contaminants': np.full((2, 2), 0.25),
+        })
+
+    field_simulator.field_simulation(
+        targname='Synthetic target', aperture=aperture_name)
+
+    cache = tmp_path / f'{aperture_name}_db.h5'
+    assert cache.exists()
+    with h5py.File(cache, 'r') as handle:
+        assert handle['Synthetic target'].attrs['filled']
+        assert list(handle['Synthetic target']['plane_index'][:]) == [0]
 
 
 def test_resolve_target():
