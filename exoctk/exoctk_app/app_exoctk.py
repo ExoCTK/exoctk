@@ -383,7 +383,10 @@ def pa_contam():
 def run_gaia_query_task(self, params):
     task_uuid = f"{self.request.id}"
     params["task"] = self
-    stars = fs.find_sources(params["ra"], params["dec"], target_date=params["target_date"])
+    stars = fs.find_sources(
+        params["ra"], params["dec"],
+        width=fs.source_query_width(params["aperture"]),
+        target_date=params["target_date"])
 
     self.update_state(state="SAVING STARS")
     stars_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle')
@@ -515,7 +518,7 @@ def contam_visibility():
                 not fs.contamination_supported(form.inst.data)):
             form.calculate_contam_submit.disabled = True
             form.inst.errors.append(
-                'Contamination calculations are available only for SOSS and DHS modes.')
+                'Contamination calculations are available only for NIRISS/SOSS, NIRCam/DHS, and MIRI/LRS modes.')
             return render_template('contam_visibility.html', form=form)
 
         if form.inst.data == "NIRSpec":
@@ -684,14 +687,23 @@ def contam_visibility():
             print("Loaded results")
             os.remove(results_file)
 
-            # Get bad PA list from missing angles between 0 and 360
-            badPAs = [pa for pa in np.arange(0, 360) if pa not in results]
+            # MIRI calculates every orientation, so observability must come
+            # from its explicit year-specific metadata rather than missing
+            # contamination planes.
+            badPAs = fs.unobservable_v3pas(results)
             print("Made PA list")
 
             if fs.contamination_supported(form.inst.data):
                 pctlines = fs.fraction_contaminated(
                     form.inst.data, targframe, starcube)
-                if form.inst.data.startswith('NIS'):
+                if form.inst.data == fs.miri_lrs.APERTURE:
+                    asset = fs.miri_lrs.load_reference_trace()
+                    contam_plot = cf.contam_slider_plot(
+                        pctlines, badPAs, wavelength=asset.wavelength,
+                        trace_names=['MIRI LRS'],
+                        contamination_labels=['Spectrum'], y_max=0.1)
+                    print("Made MIRI LRS contamination plot")
+                elif form.inst.data.startswith('NIS'):
                     contam_plot = cf.soss_contamination_plot_layout(
                         targframe, starcube, pctlines, badPAs,
                         form.inst.data, form.targname.data)
@@ -699,7 +711,7 @@ def contam_visibility():
                 else:
                     contam_plot = cf.contam_slider_plot(
                         pctlines, badPAs, instrument=form.inst.data)
-                    print("Made contamination slider plot")
+                    print("Made DHS contamination plot")
             else:
                 # Retain the legacy image plot for any future mode that has not
                 # adopted the common contamination-slider representation.

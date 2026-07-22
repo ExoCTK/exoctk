@@ -34,7 +34,8 @@
                    mode === 'NIS_SUBSTRIP96' ||
                    mode === 'NIS_SUBSTRIP256' ||
                    mode === 'NRCA5_41STRIPE1_DHS_F322W2' ||
-                   mode === 'NRCA5_41STRIPE1_DHS_F444W';
+                   mode === 'NRCA5_41STRIPE1_DHS_F444W' ||
+                   mode === 'MIRIM_SLITLESSPRISM_IP';
         }
 
         function updateContaminationButton() {
@@ -244,7 +245,7 @@
                     {{ form.calculate_contam_submit(disabled=form.calculate_contam_submit.disabled, class="btn btn-success") }}
                     <span id="helpBlock" class="help-block">Calculate the visibility and the contamination. Please be patient, this calculation takes a while.</span>
                     <span id="contamination-unavailable" class="help-block" style="color: red;" hidden>
-                        Contamination calculations are available only for SOSS and DHS modes.
+                        Contamination calculations are available only for NIRISS/SOSS, NIRCam/DHS, and MIRI/LRS modes.
                     </span>
                 </p>
             </div>
