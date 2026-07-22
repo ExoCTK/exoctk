@@ -20,20 +20,27 @@ Use
         pytest -s test_contam_visibility.py
 """
 
+import json
 import os
+import pickle
 import sys
 import warnings
 from pathlib import Path
 
 import numpy as np
 import pytest
+import pysiaf
 
 from pandas import DataFrame
+from astropy.io import fits
 from astropy.table import MaskedColumn, Table
 import astropy.units as u
 
 from exoctk.contam_visibility import field_simulator
 from exoctk.contam_visibility import contamination_figure
+from exoctk.contam_visibility import miri_lrs
+from exoctk.contam_visibility import make_miri_lrs_traces
+from exoctk.contam_visibility import precompute
 from exoctk.contam_visibility import resolve
 from exoctk.contam_visibility import new_vis_plot
 from exoctk.contam_visibility import contamination_figure
@@ -134,6 +141,60 @@ def test_precomputed_field_simulation():
     targframe, starcube, results = field_simulator.field_simulation(targname=bad_targname, aperture=aperture, target_db=target_db)
 
     assert isinstance(targframe, (np.ndarray, list)) and isinstance(starcube, (np.ndarray, list))
+
+
+def test_miri_position_angle_failure_is_raised(monkeypatch):
+    """LRS propagates a PA calculation failure like every other mode."""
+
+    aperture_name = miri_lrs.APERTURE
+    full_name = field_simulator.APERTURES[aperture_name]['full']
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            assert frame == 'det'
+            return np.array([0., 1.]), np.array([0., 1.])
+
+    class FakeScienceAperture:
+        XSciSize = 2
+        YSciSize = 2
+
+    class FakeSiaf:
+        apertures = {
+            full_name: FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    positions = DataFrame({
+        'V3PA_min_pa_angle': [0.],
+        'V3PA_nominal_angle': [0.],
+        'V3PA_max_pa_angle': [0.],
+    })
+    monkeypatch.delenv('EXOCTK_CONTAM_CACHE', raising=False)
+    monkeypatch.setattr(field_simulator, 'check_for_data', lambda *args: None)
+    monkeypatch.setattr(field_simulator.pysiaf, 'Siaf', lambda inst: FakeSiaf())
+    monkeypatch.setattr(field_simulator, 'find_sources', lambda *args, **kwargs: Table())
+    monkeypatch.setattr(
+        field_simulator, 'get_exoplanet_positions',
+        lambda *args, **kwargs: positions)
+    monkeypatch.setattr(
+        field_simulator, 'calculation_v3pas',
+        lambda aperture, observable: np.array([0, 1]))
+
+    def calculate(pa, **kwargs):
+        if pa == 1:
+            raise RuntimeError('synthetic PA failure')
+        return {
+            'pa': int(pa),
+            'target_traces': [np.ones((2, 2))],
+            'contaminants': np.zeros((2, 2)),
+        }
+
+    monkeypatch.setattr(field_simulator, 'calc_v3pa', calculate)
+
+    with pytest.raises(RuntimeError, match='synthetic PA failure'):
+        field_simulator.field_simulation(
+            ra=10., dec=20., aperture=aperture_name)
 
 
 def test_resolve_target():
@@ -733,6 +794,7 @@ def test_fraction_contaminated_ignores_flux_outside_extraction(
     'NIS_SUBSTRIP256',
     'NRCA5_41STRIPE1_DHS_F322W2',
     'NRCA5_41STRIPE1_DHS_F444W',
+    'MIRIM_SLITLESSPRISM_IP',
 ])
 def test_contamination_supported(aperture):
     """The web interface enables contamination only for its supported modes."""
@@ -778,7 +840,6 @@ def test_substrip96_contamination_plot_omits_order2(monkeypatch):
     plot = contamination_figure.contam(Cube(), 'NIS_SUBSTRIP96')
 
     assert len(plot.children) == 2
-
 
 def test_substrip96_slider_omits_uncalculated_orders():
     """The web slider exposes only the calculated SUBSTRIP96 order."""
@@ -847,3 +908,585 @@ def test_dhs_modes_available_in_web_form():
     choices = dict(CONTAM_VISIBILITY_MODES)
     assert choices['NRCA5_41STRIPE1_DHS_F322W2'] == 'NIRCam - DHS - F322W2'
     assert choices['NRCA5_41STRIPE1_DHS_F444W'] == 'NIRCam - DHS - F444W'
+
+
+def _synthetic_miri_frames(contaminant_scale=0.):
+    mask = np.zeros(miri_lrs.SHAPE)
+    mask[:, 28:40] = 1
+    target = mask.copy()
+    contaminant = mask * contaminant_scale
+    return target, contaminant, mask
+
+
+def test_miri_isolated_and_overlapping_contamination():
+    """MIRI preserves ExoCTK's pixel-level fraction-then-mean statistic."""
+
+    target, isolated, mask = _synthetic_miri_frames(0.)
+    result = miri_lrs.contamination_fraction(target, isolated, mask)
+    assert np.allclose(result, 0.)
+
+    target, overlapping, mask = _synthetic_miri_frames(1.)
+    result = miri_lrs.contamination_fraction(target, overlapping, mask)
+    assert np.allclose(result, 0.5)
+
+
+def test_miri_contamination_empty_channels_do_not_warn():
+    """Expected empty LRS wavelength channels remain NaN without warnings."""
+
+    target = np.array([[1., 0.], [1., 0.]])
+    contaminants = np.zeros_like(target)
+    mask = np.ones_like(target)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        result = miri_lrs.contamination_fraction(
+            target, contaminants, mask, collapse_axis=0)
+
+    assert result[0] == pytest.approx(0.)
+    assert np.isnan(result[1])
+    assert not any('Mean of empty slice' in str(warning.message)
+                   for warning in caught)
+
+
+def test_miri_fluxscale_changes_result_predictably():
+    target, contaminant, mask = _synthetic_miri_frames(3.)
+    result = miri_lrs.contamination_fraction(target, contaminant, mask)
+    assert np.allclose(result, 0.75)
+
+
+def test_miri_contamination_ignores_flux_outside_extraction():
+    """An off-aperture trace must not dilute the in-aperture mean."""
+
+    target, contaminant, mask = _synthetic_miri_frames(1.)
+    expected = miri_lrs.contamination_fraction(target, contaminant, mask)
+    contaminant[:, :10] = 100.
+
+    result = miri_lrs.contamination_fraction(target, contaminant, mask)
+
+    assert np.array_equal(result, expected)
+
+
+def test_miri_all_pa_reducer_ignores_flux_outside_extraction():
+    """The slider reducer must preserve the same MIRI mask semantics."""
+
+    target, contaminant, mask = _synthetic_miri_frames(1.)
+    contaminant_cube = np.stack([contaminant, contaminant.copy()])
+    expected = field_simulator.fraction_contaminated(
+        miri_lrs.APERTURE, [target], contaminant_cube,
+        trace_masks=[mask], collapse_axis=miri_lrs.CROSS_DISPERSION_AXIS)[0]
+    contaminant_cube[1, :, :10] = 100.
+
+    result = field_simulator.fraction_contaminated(
+        miri_lrs.APERTURE, [target], contaminant_cube,
+        trace_masks=[mask], collapse_axis=miri_lrs.CROSS_DISPERSION_AXIS)[0]
+
+    assert np.array_equal(result[0], expected[0])
+    assert np.array_equal(result[1], expected[1])
+
+
+def test_miri_ignores_contaminant_with_masked_fluxscale(monkeypatch):
+    """A masked flux scale must never be interpreted as unity."""
+
+    trace = np.ones(miri_lrs.SHAPE)
+    asset = miri_lrs.MiriTraceAsset(
+        trace=trace,
+        wavelength=np.linspace(13.8, 5., miri_lrs.SHAPE[0]),
+        extraction_mask=trace.copy(),
+        valid_wavelength=np.ones(miri_lrs.SHAPE[0], dtype=bool),
+        reference_pixel=(290, 34),
+        metadata={},
+    )
+    monkeypatch.setattr(miri_lrs, 'load_trace', lambda teff: asset)
+    stars = Table({
+        'name': ['target', 'unknown-flux source'],
+        'ra': [10., 10.],
+        'dec': [20., 20.],
+        'Teff': [5000., 4000.],
+        'type': ['STAR', 'STAR'],
+        **{name: np.zeros(2) for name in
+           ('xdet', 'ydet', 'xtel', 'ytel', 'xsci', 'ysci')},
+    })
+    stars['fluxscale'] = MaskedColumn(
+        [1., 1.], mask=[False, True])
+    aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
+
+    result = miri_lrs.calc_v3pa(0., stars, aperture)
+
+    assert np.allclose(result['contaminants'], 0.)
+    assert np.allclose(result['contamination'], 0.)
+
+
+@pytest.mark.parametrize(
+    'shift, expected',
+    [((2, 3), (2, 3)), ((-2, -3), (0, 0))],
+)
+def test_miri_trace_shift_sign_and_clipping(shift, expected):
+    trace = np.zeros((4, 4))
+    trace[0, 0] = 1
+    shifted = miri_lrs.shift_trace(trace, *shift, shape=(4, 4))
+    if shift[0] < 0:
+        assert not shifted.any()
+    else:
+        assert shifted[expected] == 1
+
+
+def test_miri_expanded_source_rate_moves_onto_detector_after_shift():
+    trace = np.zeros(miri_lrs.SHAPE)
+    trace[-1, 34] = 10.
+    trace[0, 34] = 20.
+    wavelength = np.linspace(5.02, 13.863, miri_lrs.SHAPE[0])
+    red_extension = np.zeros((2, miri_lrs.SHAPE[1]))
+    red_extension[0, 34] = 5.
+    blue_extension = np.zeros((2, miri_lrs.SHAPE[1]))
+    blue_extension[-1, 34] = 4.
+    asset = miri_lrs.MiriTraceAsset(
+        trace=trace,
+        wavelength=wavelength,
+        extraction_mask=np.ones(miri_lrs.SHAPE),
+        valid_wavelength=np.isfinite(wavelength),
+        reference_pixel=(290, 34),
+        metadata={},
+        red_extension=red_extension,
+        red_extension_y0=miri_lrs.SHAPE[0],
+        blue_extension=blue_extension,
+        blue_extension_y0=-2,
+    )
+
+    assert not np.any(miri_lrs.render_trace(asset, 0, 0) - trace)
+    upstream = miri_lrs.render_trace(asset, -1, 0)
+    assert upstream[-2, 34] == trace[-1, 34]
+    assert upstream[-1, 34] == red_extension[0, 34]
+    downstream = miri_lrs.render_trace(asset, 1, 0)
+    assert downstream[0, 34] == blue_extension[-1, 34]
+    assert downstream[1, 34] == trace[0, 34]
+
+
+def test_miri_axes_mask_and_wavelength_contract():
+    target, _, mask = _synthetic_miri_frames()
+    wavelength = np.full(miri_lrs.SHAPE[0], np.nan)
+    wavelength[6:-6] = np.linspace(13.8, 5.0, miri_lrs.SHAPE[0] - 12)
+    valid = np.isfinite(wavelength)
+    assert target.shape == mask.shape == (384, 68)
+    assert miri_lrs.DISPERSION_AXIS == 0
+    assert miri_lrs.CROSS_DISPERSION_AXIS == 1
+    assert valid.sum() == 372
+    assert np.all(np.diff(wavelength[valid]) < 0)
+    assert np.all(target[mask.astype(bool)] > 0)
+
+    # Native MIRI dispersion is detector Y, so all-PA reduction must collapse
+    # detector X and retain 384 wavelength rows.
+    cube_result = field_simulator.fraction_contaminated(
+        miri_lrs.APERTURE, [target], np.zeros_like(target),
+        trace_masks=[mask], collapse_axis=miri_lrs.CROSS_DISPERSION_AXIS)
+    assert cube_result[0].shape == (1, miri_lrs.SHAPE[0])
+
+
+def test_miri_result_pickle_round_trip():
+    target, contaminants, mask = _synthetic_miri_frames(0.25)
+    result = {
+        'pa': 42., 'target': target, 'contaminants': contaminants,
+        'extraction_mask': mask, 'wavelength': np.linspace(13., 5., 384),
+    }
+    restored = pickle.loads(pickle.dumps(result))
+    assert restored['pa'] == 42.
+    for key in ('target', 'contaminants', 'extraction_mask', 'wavelength'):
+        assert np.array_equal(restored[key], result[key])
+    pa_status = miri_lrs.PositionAngleResults([10, 11], [0, 1])
+    restored_status = pickle.loads(pickle.dumps(pa_status))
+    assert restored_status == [10, 11]
+    assert restored_status.inaccessible == [0, 1]
+
+
+def test_miri_precompute_can_add_target_to_existing_database(
+        tmp_path, monkeypatch):
+    """Living caches retain the LRS wavelength products."""
+
+    trace = np.ones(miri_lrs.SHAPE)
+    wavelength = np.linspace(5., 14., miri_lrs.SHAPE[0])
+    mask = np.ones(miri_lrs.SHAPE)
+    asset = miri_lrs.MiriTraceAsset(
+        trace=trace, wavelength=wavelength, extraction_mask=mask,
+        valid_wavelength=np.ones(miri_lrs.SHAPE[0], dtype=bool),
+        reference_pixel=(0, 0), metadata={'source': 'synthetic'})
+    monkeypatch.setattr(precompute.miri_lrs, 'load_trace', lambda teff: asset)
+
+    filename = tmp_path / 'miri-cache.h5'
+    contamination = np.zeros((360, *miri_lrs.SHAPE))
+    contamination[240] = 0.5
+    pa_results = miri_lrs.PositionAngleResults(
+        successful=[240], inaccessible=[0, 1])
+    precompute.save_exoplanet_data(
+        filename, 'HD 189733 b', miri_lrs.APERTURE, 300.182, 22.711,
+        trace[None], contamination, goodPA_list=pa_results)
+
+    with precompute.h5py.File(filename, 'r') as handle:
+        group = handle['HD 189733 b']
+        assert group.attrs['filled']
+        assert list(group['plane_index'][:]) == [240]
+        assert list(group.attrs['inaccessiblePA_list']) == [0, 1]
+        np.testing.assert_array_equal(group['wavelength'][:], wavelength)
+        np.testing.assert_array_equal(group['extraction_mask'][:], mask)
+
+
+def test_miri_pa_rotation_uses_siaf_coordinates():
+    aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
+    xdet, ydet = aperture.reference_point('det')
+    xtel, ytel = aperture.det_to_tel(xdet, ydet)
+    ra, dec = 10., 20.
+    attitude0 = pysiaf.utils.rotations.attitude_matrix(
+        xtel, ytel, ra, dec, 0.)
+    source_ra, source_dec = pysiaf.utils.rotations.tel_to_sky(
+        attitude0, xtel + 1., ytel)
+    stars = Table({
+        'ra': [ra, source_ra.to_value(u.deg)],
+        'dec': [dec, source_dec.to_value(u.deg)],
+        **{name: np.zeros(2) for name in
+           ('xdet', 'ydet', 'xtel', 'ytel', 'xsci', 'ysci')},
+    })
+    offset0 = miri_lrs.source_offsets(stars.copy(), aperture, attitude0)[1]
+    attitude90 = pysiaf.utils.rotations.attitude_matrix(
+        xtel, ytel, ra, dec, 90.)
+    offset90 = miri_lrs.source_offsets(stars.copy(), aperture, attitude90)[1]
+    assert offset0 != offset90
+    assert np.hypot(*offset0) == pytest.approx(np.hypot(*offset90), abs=1)
+
+
+def test_hd189733b_moves_toward_lower_detector_rows_at_v3pa_238():
+    """The upstream companion's +Y_SCI offset maps to a lower array row."""
+
+    stars = Table({
+        'ra': [300.182137, 300.1789791392316],
+        'dec': [22.710853, 22.707659537029453],
+        **{name: np.zeros(2) for name in
+           ('xdet', 'ydet', 'xtel', 'ytel', 'xsci', 'ysci')},
+    })
+    aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
+    xdet, ydet = aperture.reference_point('det')
+    xtel, ytel = aperture.det_to_tel(xdet, ydet)
+    attitude = pysiaf.utils.rotations.attitude_matrix(
+        xtel, ytel, stars['ra'][0], stars['dec'][0], 238.)
+
+    offsets = miri_lrs.source_offsets(stars, aperture, attitude)
+
+    assert offsets == [(0, 0), (-132, 49)]
+
+
+def test_miri_v3pa_has_no_additional_aperture_angle(monkeypatch):
+    """MIRI source placement passes V3PA directly to the SIAF attitude."""
+
+    aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
+    xdet, ydet = aperture.reference_point('det')
+    xtel, ytel = aperture.det_to_tel(xdet, ydet)
+    ra, dec, v3pa = 10., 20., 123.4
+    attitude = pysiaf.utils.rotations.attitude_matrix(
+        xtel, ytel, ra, dec, v3pa)
+    source_ra, source_dec = pysiaf.utils.rotations.tel_to_sky(
+        attitude, xtel + 5., ytel - 2.)
+    stars = Table({
+        'name': ['target', 'offset source'],
+        'ra': [ra, source_ra.to_value(u.deg)],
+        'dec': [dec, source_dec.to_value(u.deg)],
+        'Teff': [5000., 4000.],
+        'fluxscale': [1., 0.1],
+        'type': ['STAR', 'STAR'],
+        **{name: np.zeros(2) for name in
+           ('xdet', 'ydet', 'xtel', 'ytel', 'xsci', 'ysci')},
+    })
+    expected = miri_lrs.source_offsets(
+        stars.copy(), aperture, attitude)[1]
+    trace = np.ones(miri_lrs.SHAPE)
+    asset = miri_lrs.MiriTraceAsset(
+        trace=trace,
+        wavelength=np.linspace(13.8, 5., miri_lrs.SHAPE[0]),
+        extraction_mask=trace.copy(),
+        valid_wavelength=np.ones(miri_lrs.SHAPE[0], dtype=bool),
+        reference_pixel=(290, 34),
+        metadata={},
+    )
+    monkeypatch.setattr(miri_lrs, 'load_trace', lambda teff: asset)
+
+    result = miri_lrs.calc_v3pa(v3pa, stars, aperture)
+    source = result['intersecting_sources'][0]
+
+    assert (source['y_shift'], source['x_shift']) == expected
+
+
+def test_miri_nearby_source_pruning_is_conservative():
+    stars = Table({
+        'ra': [10., 10.005, 10.1],
+        'dec': [20., 20., 20.],
+    })
+    indices = miri_lrs.nearby_source_indices(stars, 60.)
+    assert np.array_equal(indices, [0, 1])
+
+
+def test_miri_source_query_covers_pruning_radius():
+    width = field_simulator.source_query_width(miri_lrs.APERTURE)
+    enclosing_radius = np.hypot(width, width) / 2.
+    assert enclosing_radius.to_value(u.arcsec) == pytest.approx(60.)
+    assert field_simulator.source_query_width(
+        'NIS_SUBSTRIP256') == 7.5 * u.arcmin
+
+
+def test_miri_trace_assets_are_cached(tmp_path):
+    trace_dir = (tmp_path / 'exoctk_contam' / 'traces' /
+                 miri_lrs.APERTURE)
+    trace_dir.mkdir(parents=True)
+    reference_teff = 4000
+    path = trace_dir / f'{miri_lrs.APERTURE}_{reference_teff}.fits'
+    header = fits.Header({
+        'APERTURE': miri_lrs.APERTURE,
+        'REFYPIX': 290,
+        'REFXPIX': 34,
+        'METAJSON': json.dumps({
+            'blue_extension_y0': -2,
+            'red_extension_y0': miri_lrs.SHAPE[0],
+        }),
+    })
+    fits.HDUList([
+        fits.PrimaryHDU(header=header),
+        fits.ImageHDU(np.ones(miri_lrs.SHAPE), name='TRACE'),
+        fits.ImageHDU(np.arange(miri_lrs.SHAPE[0]), name='WAVELENGTH'),
+        fits.ImageHDU(np.ones(miri_lrs.SHAPE), name='EXTRACTION_MASK'),
+        fits.ImageHDU(np.ones(miri_lrs.SHAPE[0]), name='VALID_WAVELENGTH'),
+        fits.ImageHDU(np.ones((2, miri_lrs.SHAPE[1])),
+                      name='BLUE_EXTENSION'),
+        fits.ImageHDU(np.ones((6, miri_lrs.SHAPE[1])),
+                      name='RED_EXTENSION'),
+    ]).writeto(path)
+
+    miri_lrs.load_trace.cache_clear()
+    first = miri_lrs.load_trace(reference_teff, str(tmp_path))
+    path.unlink()
+    second = miri_lrs.load_trace(reference_teff, str(tmp_path))
+    assert second is first
+    assert miri_lrs.load_trace.cache_info().hits == 1
+    miri_lrs.load_trace.cache_clear()
+
+
+def test_miri_reference_trace_uses_named_calibration_asset(monkeypatch):
+    """Shared calibration lookups use the documented reference asset."""
+
+    loaded = []
+    sentinel = object()
+
+    def load_trace(teff, exoctk_data=None):
+        loaded.append((teff, exoctk_data))
+        return sentinel
+
+    monkeypatch.setattr(miri_lrs, 'load_trace', load_trace)
+
+    assert miri_lrs.load_reference_trace('/test/data') is sentinel
+    assert loaded == [(4000, '/test/data')]
+
+
+def test_miri_product_retains_detector_rows_outside_wavelength_grid():
+    detector = np.zeros((427, 55))
+    detector[0, :] = 7.
+    detector[21, :] = 6.
+    detector[22, :] = 1.
+    detector[27, :] = 2.
+    detector[28, :] = 3.
+    detector[405, :] = 4.
+    detector[406, :] = 5.
+    report = {
+        '1d': {'wave_pix': np.linspace(13.86, 5.02, 372)},
+        'scalar': {'extraction_area': 12.},
+    }
+
+    (trace, wavelength, valid, mask, blue_extension, red_extension,
+     registration) = make_miri_lrs_traces._miri_product(
+        report, detector, 1.32)
+
+    assert np.all(trace[0, 7:62] == 1.)
+    assert np.all(trace[5, 7:62] == 2.)
+    assert np.all(trace[6, 7:62] == 3.)
+    assert np.all(trace[-1, 7:62] == 4.)
+    assert np.all(blue_extension[0, 7:62] == 7.)
+    assert np.all(blue_extension[-1, 7:62] == 6.)
+    assert np.all(red_extension[0, 7:62] == 5.)
+    assert registration['pandeia_detector_row0'] == 22
+    assert registration['pandeia_detector_product'] == 'noiseless_source_rate'
+    assert registration['blue_extension_y0'] == -22
+    assert registration['red_extension_y0'] == miri_lrs.SHAPE[0]
+    assert wavelength[6] == pytest.approx(5.02)
+    assert wavelength[377] == pytest.approx(13.86)
+    assert np.all(np.diff(wavelength[valid]) > 0.)
+    assert np.count_nonzero(valid) == 372
+    assert np.count_nonzero(mask) == 372 * 12
+
+
+def test_miri_product_registers_extended_projection_to_native_grid():
+    detector = np.zeros((439, 55))
+    detector[22, :] = 1.
+    detector[405, :] = 2.
+    detector[406, :] = 3.
+    report = {
+        '1d': {'wave_pix': np.linspace(14.015, 5.02, 384)},
+        'scalar': {'extraction_area': 12.},
+    }
+    calibrated = np.linspace(13.86, 5.02, 372)
+
+    (trace, wavelength, valid, mask, blue_extension, red_extension,
+     registration) = make_miri_lrs_traces._miri_product(
+        report, detector, 1.32, calibrated_wave=calibrated)
+
+    assert np.all(trace[0, 7:62] == 1.)
+    assert np.all(trace[-1, 7:62] == 2.)
+    assert np.all(red_extension[0, 7:62] == 3.)
+    assert registration['pandeia_detector_row0'] == 22
+    assert registration['pandeia_projected_wavelength_rows'] == 384
+    assert registration['pandeia_calibrated_wavelength_rows'] == 372
+    assert wavelength[6] == pytest.approx(5.02)
+    assert wavelength[377] == pytest.approx(13.86)
+    assert np.count_nonzero(valid) == 372
+    assert np.count_nonzero(mask) == 372 * 12
+
+
+def test_miri_extended_wave_grid_reaches_reference_response_zero():
+    native = np.linspace(5., 13.86, 380)
+    extended = make_miri_lrs_traces._extended_miri_wave_pix(
+        native, 14.01584)
+
+    assert np.array_equal(extended[:len(native)], native)
+    assert extended[-1] == pytest.approx(14.01584)
+    assert np.all(np.diff(extended) > 0.)
+    assert np.max(np.diff(extended)[len(native) - 1:-1]) < 0.03
+    assert len(extended) > len(native)
+
+
+def test_miri_templates_use_gaia_g_normalization():
+    """Template normalization must match field_simulator's Gaia flux ratios."""
+
+    normalization = make_miri_lrs_traces._scene(4000, 10.)[
+        'spectrum']['normalization']
+
+    assert normalization == {
+        'type': 'photsys',
+        'bandpass': 'gaia,g',
+        'norm_flux': 10.,
+        'norm_fluxunit': 'vegamag',
+    }
+
+
+def test_miri_observable_pa_ranges_use_v3pa_not_instrument_angle():
+    """The all-PA renderer must not apply the SIAF angle a second time."""
+
+    v3pas = np.arange(87., 107.)
+    table = DataFrame({
+        'V3PA_min_pa_angle': v3pas,
+        'V3PA_nominal_angle': v3pas,
+        'V3PA_max_pa_angle': v3pas,
+        'MIRI_min_pa_angle': v3pas + 4.83544897,
+        'MIRI_nominal_angle': v3pas + 4.83544897,
+        'MIRI_max_pa_angle': v3pas + 4.83544897,
+    })
+    position_angles, bounds, sampled = (
+        field_simulator.observable_v3pa_ranges(table))
+    assert bounds == [(87, 106)]
+    assert np.array_equal(position_angles, np.arange(87, 107))
+    assert np.array_equal(sampled, np.arange(87, 107))
+
+
+def test_miri_calculates_every_pa_but_other_modes_do_not():
+    observable = np.arange(87, 107)
+
+    assert np.array_equal(
+        field_simulator.calculation_v3pas(miri_lrs.APERTURE, observable),
+        np.arange(360))
+    assert np.array_equal(
+        field_simulator.calculation_v3pas('NIS_SUBSTRIP256', observable),
+        observable)
+
+
+def test_miri_observability_is_independent_of_calculated_pas():
+    results = miri_lrs.PositionAngleResults(
+        successful=np.arange(360), inaccessible=[0, 1, 359])
+
+    assert field_simulator.unobservable_v3pas(results) == [0, 1, 359]
+
+
+def test_miri_apt_v3pa_has_extraction_overlapping_source(monkeypatch):
+    """APT V3PA=53.82 places a nearby WASP-12 Gaia trace in the mask."""
+
+    trace = np.zeros(miri_lrs.SHAPE)
+    trace[:, 28:40] = 1.
+    wavelength = np.linspace(13.8, 5., miri_lrs.SHAPE[0])
+    mask = trace.copy()
+    asset = miri_lrs.MiriTraceAsset(
+        trace=trace, wavelength=wavelength, extraction_mask=mask,
+        valid_wavelength=np.ones(miri_lrs.SHAPE[0], dtype=bool),
+        reference_pixel=(290, 34), metadata={})
+    loaded_temperatures = []
+
+    def load_trace(teff):
+        loaded_temperatures.append(float(teff))
+        return asset
+
+    monkeypatch.setattr(miri_lrs, 'load_trace', load_trace)
+
+    # WASP-12 and VizieR/Gaia DR3 source 3435282866759615488.
+    stars = Table({
+        'name': ['WASP-12', '3435282866759615488', 'far source'],
+        'ra': [97.63664477033, 97.63945094102, 98.],
+        'dec': [29.67226537027, 29.67372250549, 30.],
+        'Teff': [6000., 4000., 5000.],
+        'fluxscale': [1., 0.1, 0.1],
+        'type': ['STAR', 'STAR', 'STAR'],
+        **{name: np.zeros(3) for name in
+           ('xdet', 'ydet', 'xtel', 'ytel', 'xsci', 'ysci')},
+    })
+    aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
+    result = miri_lrs.calc_v3pa(53.82, stars, aperture)
+
+    assert result['intersecting_sources'][0]['name'] == (
+        '3435282866759615488')
+    assert result['intersecting_sources'][0]['x_shift'] == -1
+    assert np.nanmax(result['contamination']) > 0
+    assert loaded_temperatures == [6000., 4000.]
+
+
+def test_miri_mode_available_in_web_form():
+    choices = dict(CONTAM_VISIBILITY_MODES)
+    assert choices['MIRIM_SLITLESSPRISM_IP'] == (
+        'MIRI - LRS - SLITLESSPRISM_IP')
+    assert 'MIRIM_SLITLESSPRISM' not in choices
+
+
+def test_miri_all_pa_plot_accepts_native_shape_and_wavelength():
+    fractions = [np.zeros((360, miri_lrs.SHAPE[0]))]
+    fractions[0][175, 100] = 0.05
+    wavelength = np.linspace(13.8, 5.0, miri_lrs.SHAPE[0])
+    plot = contamination_figure.contam_slider_plot(
+        fractions, [], wavelength=wavelength, trace_names=['MIRI LRS'],
+        y_max=0.1)
+    assert plot is not None
+    assert plot.children[0].y_range.end == pytest.approx(10.)
+    assert plot.children[-1].y_range.end == pytest.approx(10.)
+    assert plot.children[0].yaxis.axis_label == 'Contamination (%)'
+    assert plot.children[-1].yaxis.axis_label == 'Mean Contamination (%)'
+    plotted = plot.children[0].renderers[0].data_source.data['contam1']
+    assert np.nanmax(plotted) == pytest.approx(5.)
+    threshold_legend = plot.children[-1].below[-1]
+    labels = [item.label.value for item in threshold_legend.items]
+    assert 'Target not observable' in labels
+    assert 'Spectrum > 5.0% Contaminated' in labels
+
+
+def test_miri_single_pa_plot_accepts_runtime_result():
+    """The plotting module accepts the MIRI runtime result contract."""
+
+    valid = np.ones(miri_lrs.SHAPE[0], dtype=bool)
+    result = {
+        'pa': 42.,
+        'target': np.ones(miri_lrs.SHAPE),
+        'contaminants': np.zeros(miri_lrs.SHAPE),
+        'extraction_mask': np.ones(miri_lrs.SHAPE),
+        'valid_wavelength': valid,
+        'wavelength': np.linspace(5., 13.8, miri_lrs.SHAPE[0]),
+        'contamination': np.zeros(miri_lrs.SHAPE[0]),
+        'intersecting_sources': [],
+    }
+
+    plot = contamination_figure.miri_single_pa_plot(result)
+
+    assert len(plot.children) == 2
