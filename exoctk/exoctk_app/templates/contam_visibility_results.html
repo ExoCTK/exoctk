@@ -14,34 +14,17 @@
         <br>
 
 
-        <p>This tool estimates contamination from neighboring sources for supported JWST slitless modes.
-        For slitless observations, a target spectrum can overlap partially with spectra from nearby sources. The amount
-        of overlap depends on the telescope orientation. The calculator evaluates contamination as a function of V3
-        position angle and computes the target's JWST visibility windows and corresponding aperture position angles.
-        </p>
-<!--        <p>-->
-<!--          <b>NIRCam and MIRI options</b>: Users can calculate contamination levels for NIRCam Grism Time Series (F322W2, F444W) and MIRI Low Resolution-->
-<!--          Spectroscopy mode by calling this tool locally on a terminal. Please keep in mind that the calculation for the-->
-<!--          NIRCam and MIRI modes can take anywhere from 1-3 hours due to the complexity of their algorithms. For instructions on how to-->
-<!--          generate the contamination plots for NIRCam and MIRI, please refer to our Contam Visibility <a href="https://jwst-docs.stsci.edu/jwst-other-tools/exoplanet-observations-proposal-tools/contamination-overlap-tool#ContaminationOverlapTool-Contam_nircam_miriContaminationCalculatorforNIRCamandMIRImodes(availablelocally)">JWST-Docs page</a>.-->
-<!--        	</p>-->
-        <p>Potential caveats:</p>
-        <ul>
-          <li>Field sources are retrieved from the Gaia DR3 point-source catalogue. Coordinates are propagated from each source's Gaia reference epoch to the requested observation epoch when proper-motion measurements are available. Sources absent from Gaia are not modelled.</li>
-          <li>Distortion has been observed to create a trace offset as large as ~4 to 5 pixels in both the X and Y direction in the science frame which may contribute to uncertainty in the contamination plots.</li>
-<!--          <li>Traces on the MIRI detector may fold over below 4.5 microns. Our model traces assume no spectral foldover. Depending on the observation, this may lead to inaccurate results.</li>-->
-        </ul>
-        <p>If there are any questions regarding these caveats please send us a ticket through the JWST help desk and we will get back to you shortly.</p>
+        {% include 'contam_visibility_intro.html' %}
 
             <hr>
     		<h3>Target Visibility</h3>
             <br>
     		<p>
                 <ul>
-                    <li>The solid line indicates the Nominal Aperture PA (of the instrument) as a function of the calendar date.</li>
-                    <li>The dotted lines indicate the range of PAs accessible after rolling the telescope.</li>
-                    <li>On dates where there is no curve, the target is inaccessible.</li>
-                    <li>The downloadable CSV file provides the same information (and more) in table format with columns:
+                    <li>The dashed line shows the nominal aperture position angle for the selected instrument as a function of date.</li>
+                    <li>The green band shows the full range of aperture position angles available through telescope roll.</li>
+                    <li>Gaps indicate dates when the target is not observable by JWST.</li>
+                    <li>The downloadable CSV provides the underlying visibility calculation, including:
                         <p>
                           Minimum V3 PA, Maximum V3 PA, Minimum Aperture PA, Maximum Aperture PA, Nominal Aperture PA, Gregorian Calendar Date, and Modified Julian Date.
                         </p>
