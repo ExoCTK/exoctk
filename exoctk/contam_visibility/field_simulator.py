@@ -102,7 +102,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                                 # 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.1, 1, 1, 1],
                                  'tracex_offset': 0, 'tracey_offset': 0,
                                  'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -526,8 +527,12 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin, target_date=T
     # Derived from K. Volk
     stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
 
-    # Calculate relative flux
-    stars['fluxscale'] = stars['phot_g_mean_flux'] / stars['phot_g_mean_flux'][0]
+    # Calculate relative flux in Jband
+    GtoJ_coeffs = [-1.22568340e-11, 2.41639448e-07, -1.70092031e-03, 3.15459542e+00] # Measured from synthetic colors
+    log10_gj = np.polyval(GtoJ_coeffs, stars['Teff'])
+    gj_factor_interp = 10 ** log10_gj
+    stars['estimated_j_flux'] = stars['phot_g_mean_flux'] * gj_factor_interp
+    stars['fluxscale'] = stars['estimated_j_flux'] / stars['estimated_j_flux'][0]
 
     # Star names
     stars['name'] = [str(i) for i in stars['source_id']]
@@ -989,10 +994,14 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
 
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
-
-        # Scale the traces for this source
         fluxscale = float(star['fluxscale'])
-        traces = [trace * fluxscale * aper['empirical_scale'][n + 1] for n, trace in enumerate(star['traces'])]
+        traces = []
+        for trace in star['traces']:
+            total = np.sum(trace)
+            if total > 0:
+                trace = trace / total
+
+            traces.append(trace * fluxscale)
 
         # Add each target trace to it's own frame
         if idx == 0:
@@ -1049,8 +1058,10 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         simframe = rotate(simframe, tilt)
 
         # Plot the image data or simulation
-        vmax = np.nanmax(simframe)
-        mapper = LogColorMapper(palette=color_map, low=1, high=vmax) if scale == 'log' else LinearColorMapper(palette=color_map, low=0, high=vmax)
+        positive = simframe[simframe > 0]
+        vmin = np.percentile(positive, 20)
+        vmax = np.percentile(positive, 99.9)
+        mapper = LogColorMapper(palette=color_map, low=vmin, high=vmax) if scale == 'log' else LinearColorMapper(palette=color_map, low=vmin, high=vmax)
         imgsource = ColumnDataSource(data={'sim': [simframe]})
         fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=imgsource, name="image", color_mapper=mapper)
 
@@ -1525,8 +1536,10 @@ def _get_trace_cached(aperture, teff, stype):
             model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
             model_w, model_f = model['wave'], model['flux']
             scaled_f = np.interp(wave, model_w, model_f)
+            scaled_f /= np.nansum(scaled_f)
             traces[idx] *= scaled_f[np.newaxis, :]
-            traces[idx][traces[idx] < 1] = 0
+            # traces[idx] /= np.sum(traces[idx])
+            # traces[idx][traces[idx] < 1] = 0
 
     for trace in traces:
         trace.setflags(write=False)
