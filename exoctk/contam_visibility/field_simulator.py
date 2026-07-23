@@ -92,7 +92,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
                                 'tracex_offset': 0, 'tracey_offset': 0,
                                 'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -102,8 +102,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                 # 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
-                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.1, 1, 1, 1],
+                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
                                  'tracex_offset': 0, 'tracey_offset': 0,
                                  'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -113,7 +112,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                            'xord0to1': -2448, 'yord0to1': -2116, 'empirical_scale': [0.1] * 11,
+                                            'xord0to1': -2448, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
                                             'tracex_offset': 0, 'tracey_offset': 0,
                                             'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                             'coeffs': [[2.81442298e-06, 1.48386268e-04, 2.65239356e+03],
@@ -130,7 +129,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                           'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1.] * 11,
+                                           'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
                                            'tracex_offset': 0, 'tracey_offset': 0,
                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                            'coeffs': [[ 3.52279496e-06, -1.22488543e-03,  2.66463106e+03],
@@ -995,13 +994,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
         fluxscale = float(star['fluxscale'])
-        traces = []
-        for trace in star['traces']:
-            total = np.sum(trace)
-            if total > 0:
-                trace = trace / total
-
-            traces.append(trace * fluxscale)
+        traces = [trace * fluxscale for trace in star['traces']]
 
         # Add each target trace to it's own frame
         if idx == 0:
@@ -1015,7 +1008,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         else:
 
             # Get correct order 0
-            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type']) * 1.5e3  # Scaling factor based on observations
+            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'])  # Scaling factor based on observations
 
             # Scale the order 0 image and add it to the starframe
             scale0 = copy(order0) * fluxscale * aper['empirical_scale'][0]
@@ -1055,7 +1048,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         simframe[simframe < 0] = 0
 
         # Rotate for PWCPOS
-        simframe = rotate(simframe, tilt)
+        # simframe = rotate(simframe, tilt)
 
         # Plot the image data or simulation
         positive = simframe[simframe > 0]
@@ -1535,11 +1528,10 @@ def _get_trace_cached(aperture, teff, stype):
         for idx, (wave, trace) in enumerate(zip(waves, traces)):
             model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
             model_w, model_f = model['wave'], model['flux']
+            model_f /= np.trapezoid(model_f, model_w)
             scaled_f = np.interp(wave, model_w, model_f)
             scaled_f /= np.nansum(scaled_f)
             traces[idx] *= scaled_f[np.newaxis, :]
-            # traces[idx] /= np.sum(traces[idx])
-            # traces[idx][traces[idx] < 1] = 0
 
     for trace in traces:
         trace.setflags(write=False)

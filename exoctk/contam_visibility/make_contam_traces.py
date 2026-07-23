@@ -56,7 +56,6 @@ def make_SOSS_trace_template():
                 print(i, wave, 'Using previous PSF')
                 psf = w_prev * tv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
-        frame /= np.sum(frame)
 
         substrip256_traces[order - 1, 1:, :] = frame
 
