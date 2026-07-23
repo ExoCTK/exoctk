@@ -454,7 +454,7 @@ class ModelGrid(object):
         # Write the file
         hdu.writeto(filepath)
 
-    def get(self, Teff, logg, FeH, mu1=False, resolution=None, interp=True):
+    def get(self, Teff, logg, FeH, mu1=False, resolution=None, interp=True, verbose=False):
         """
         Retrieve the wavelength, flux, and effective radius
         for the spectrum of the given parameters
@@ -583,7 +583,8 @@ class ModelGrid(object):
                     teff_val = self.data[row]['Teff']
                     logg_val = self.data[row]['logg']
                     feh_val = self.data[row]['FeH']
-                    print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(Teff, logg, FeH, teff_val, logg_val, feh_val))
+                    if verbose:
+                        print('Closest model to [{}, {}, {}] => [{}, {}, {}]'.format(Teff, logg, FeH, teff_val, logg_val, feh_val))
 
                     # Run `get` method again with on-grid points
                     spec_dict = self.get(teff_val, logg_val, feh_val, interp=False)
