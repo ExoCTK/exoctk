@@ -86,16 +86,24 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     percent_lines = [np.asarray(line) * 100 for line in pctlines]
     display_y_max = y_max * 100
 
-    # Store individual contamination fractions for each order+PA combination
+    # Store individual contamination fractions and matching fill baselines for
+    # each order+PA combination.  NaNs in the baseline prevent Bokeh from
+    # closing a filled area across columns where an order has no trace.
     contam_dict = {}
     for order in orders:
         for pa, percent in enumerate(percent_lines[order - 1]):
             contam_dict[f'contam{order}_{pa}'] = percent
+            contam_dict[f'baseline{order}_{pa}'] = np.where(
+                np.isfinite(percent), 0, np.nan)
 
     # Choose initial values and build visible and available dicts
     pa_init = int(np.argmax(np.nansum(np.asarray(pctlines), axis=(0, 2)))) # Maximum contamination
-    vis_dict = {f'contam{order}': contam_dict[f'contam{order}_{pa_init}'] for order in orders}
-    vis_dict.update({'col': np.arange(n_channels), 'zeros': np.zeros(n_channels)})
+    vis_dict = {'col': np.arange(n_channels)}
+    for order in orders:
+        vis_dict[f'contam{order}'] = contam_dict[
+            f'contam{order}_{pa_init}']
+        vis_dict[f'baseline{order}'] = contam_dict[
+            f'baseline{order}_{pa_init}']
     source_visible = ColumnDataSource(data=vis_dict)
     source_available = ColumnDataSource(data=contam_dict)
 
@@ -104,7 +112,9 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
     for order in orders:
         plt.line('col', f'contam{order}', source=source_visible, color=colors[order - 1], line_width=2, line_alpha=0.6, legend_label=f'Order {order}')
-        glyph = VArea(x="col", y1="zeros", y2=f"contam{order}", fill_color=colors[order - 1], fill_alpha=0.3)
+        glyph = VArea(x="col", y1=f"baseline{order}",
+                      y2=f"contam{order}",
+                      fill_color=colors[order - 1], fill_alpha=0.3)
         plt.add_glyph(source_visible, glyph)
 
     plt.y_range = Range1d(0, display_y_max)
@@ -121,7 +131,13 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     span = Span(line_width=2, location=slider.value, dimension='height')
 
     # Define CustomJS callback, which updates the plot based on selected function by updating the source_visible
-    js_orders = "\n".join([f"data_visible['contam{order}'] = data_available['contam{order}_' + selected_pa];" for order in orders])
+    js_orders = "\n".join([
+        f"data_visible['contam{order}'] = "
+        f"data_available['contam{order}_' + selected_pa];\n"
+        f"data_visible['baseline{order}'] = "
+        f"data_available['baseline{order}_' + selected_pa];"
+        for order in orders
+    ])
     callback = CustomJS(
         args=dict(source_visible=source_visible, source_available=source_available, span=span), code=f"""
             var selected_pa = (cb_obj.value).toString();
@@ -143,7 +159,16 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     for order in orders:
 
         # Plot the mean contamination across spectral channels.
-        viz_plt.step(pa_list, np.nanmean(percent_lines[order - 1], axis=1), line_width=2, color=colors[order - 1], mode="center")
+        percent_line = percent_lines[order - 1]
+        valid = np.isfinite(percent_line)
+        mean_line = np.divide(
+            np.nansum(percent_line, axis=1), np.sum(valid, axis=1),
+            out=np.full(len(pa_list), np.nan),
+            where=np.sum(valid, axis=1) > 0,
+        )
+        mean_line[np.asarray(badPA_list, dtype=int)] = np.nan
+        viz_plt.step(pa_list, mean_line, line_width=2,
+                     color=colors[order - 1], mode="center")
 
         # PLot columns that indicate >5% contamination
         viz_ord = np.array([

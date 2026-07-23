@@ -567,6 +567,40 @@ def test_contamination_slider_uses_percent_and_common_display_cap():
     assert threshold_renderer.data_source.data['top'][0] == 10
 
 
+def test_contamination_slider_fill_stops_at_trace_boundary():
+    """Filled order regions do not extend beyond their valid columns."""
+
+    fractions = np.full((360, 5), 0.01)
+    fractions[:, 3:] = np.nan
+    plot = contamination_figure.contam_slider_plot(
+        [fractions], badPA_list=[])
+    spectrum_plot = plot.children[0]
+    source = spectrum_plot.renderers[0].data_source
+    area = spectrum_plot.renderers[1].glyph
+
+    assert area.y1 == 'baseline1'
+    np.testing.assert_array_equal(
+        np.isfinite(source.data['baseline1']),
+        np.isfinite(source.data['contam1']))
+    assert np.all(source.data['baseline1'][:3] == 0)
+    assert np.isnan(source.data['baseline1'][3:]).all()
+
+
+def test_contamination_slider_breaks_mean_curve_at_bad_pas():
+    """Unobservable PAs are gaps rather than zeroes in the mean curve."""
+
+    fractions = np.full((360, 3), 0.01)
+    plot = contamination_figure.contam_slider_plot(
+        [fractions], badPA_list=[10, 11])
+    pa_plot = plot.children[2]
+    mean_renderer = pa_plot.renderers[1]
+    mean_data = mean_renderer.data_source.data[mean_renderer.glyph.y]
+
+    assert mean_data[9] == 1
+    assert np.isnan(mean_data[10:12]).all()
+    assert mean_data[12] == 1
+
+
 def test_observable_pa_ranges_use_v3pa_not_instrument_angle():
     """Visibility selection must not apply the SIAF offset a second time."""
 
@@ -669,6 +703,29 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
     assert np.isnan(result[:, 1]).all()
     assert not any('Mean of empty slice' in str(warning.message)
                    for warning in caught)
+
+
+@pytest.mark.parametrize('aperture, mask_function', [
+    ('NIS_SUBSTRIP96', 'NIRISS_SOSS_trace_mask'),
+    ('NRCA5_41STRIPE1_DHS_F444W', 'NIRCam_DHS_trace_mask'),
+])
+def test_fraction_contaminated_ignores_flux_outside_extraction(
+        monkeypatch, aperture, mask_function):
+    """Off-mask sources do not dilute SOSS or DHS contamination."""
+
+    mask = np.array([[1.], [1.], [0.]])
+    target = np.array([[1.], [1.], [0.]])
+    contaminants = np.array([
+        [[1.], [0.], [0.]],
+        [[1.], [0.], [100.]],
+    ])
+    monkeypatch.setattr(
+        field_simulator, mask_function, lambda aperture: [mask])
+
+    result = field_simulator.fraction_contaminated(
+        aperture, [target], contaminants)[0]
+
+    assert np.allclose(result, 0.25)
 
 
 @pytest.mark.parametrize('aperture', [

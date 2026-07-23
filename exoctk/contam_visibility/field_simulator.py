@@ -800,10 +800,11 @@ def fraction_contaminated(aperture, targframes, starcube):
     # Divide contam/(trace + contam) to get fraction of contamination
     pctframes = [np.divide(starcube, sframe, out=np.full_like(starcube, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
 
-    # Sum along columns inside trace masks
+    # Average only pixels inside each trace mask. Multiplying off-mask pixels
+    # by zero would leave them finite and incorrectly count them in the mean.
     pctlines = []
     for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
-        masked = pframe * mask
+        masked = np.where(mask > 0, pframe * mask, np.nan)
         # Keep empty spectral channels as NaN, but avoid NumPy's repeated
         # ``Mean of empty slice`` warnings for the expected empty channels.
         valid = ~np.isnan(masked)
