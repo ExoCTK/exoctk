@@ -91,9 +91,6 @@ jobs:
           curl -L https://stsci.box.com/shared/static/702r4nkccc484noiggq5xt13agbkkevp -o output.zip
           unzip -o output.zip
           rm output.zip
-          curl -L https://stsci.box.com/shared/static/zhrx2r6kgeovcnj78d4wicb7m2009qca -o output.zip
-          unzip -o output.zip
-          rm output.zip
           curl -L https://stsci.box.com/shared/static/p64c53rky00ojz1gvabe9hqirpat9azz -o output.zip
           unzip -o output.zip
           rm output.zip
