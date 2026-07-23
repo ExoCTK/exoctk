@@ -1,9 +1,69 @@
+from copy import copy
 import numpy as np
 import os
-from astropy.io import fits
+from exoctk.utils import add_array_at_position
 from bokeh.plotting import figure, show
-from bokeh.io import output_notebook
+from scipy.interpolate import interp1d
+import stpsf
 from hotsoss.plotting import plot_frame
+from jwst.extract_1d.soss_extract.pastasoss import get_soss_traces
+from astropy.io import fits
+
+
+def make_SOSS_trace_template():
+    """
+    Generate a .npy trace template file that can be scaled for each source
+    """
+
+    # Get params from APERTURES dict
+    xdim = 2048
+    ydim_256 = 256
+
+    # Initialize the STPSF instance
+    niriss = stpsf.NIRISS()
+    niriss.filter = 'CLEAR'
+    niriss.detector = 'NIS'
+    niriss.pupil_mask = 'GR700XD'
+
+    # Make a cube of PSFs to interpolate
+    nwave = 100
+    wavelengths_um = np.linspace(0.6, 2.9, nwave)
+    fov_pixels = 65
+    oversample = 1
+    cube = np.zeros((nwave, fov_pixels, fov_pixels))
+    for i, wave_um in enumerate(wavelengths_um):
+        hdul = niriss.calc_psf(monochromatic=wave_um * 1e-6, fov_pixels=fov_pixels, oversample=oversample)
+        psf = hdul[0].data
+        psf /= psf.sum()
+        psf = np.rot90(psf, k=-1)
+        cube[i] = psf
+
+    psf_interp = interp1d(wavelengths_um, cube, axis=0, kind='linear', bounds_error=False, fill_value='extrapolate')
+
+    # Make SUBSTRIP256 traces
+    substrip256_traces = np.zeros((3, ydim_256 + 1, xdim))
+    for order in [1, 2, 3]:
+        frame = np.zeros((ydim_256, xdim))
+        _, x, y, w = get_soss_traces(245.76, order)
+        thru256 = fits.getdata(spectrace256_file, ext=order)
+        thru = np.interp(w, thru256['WAVELENGTH'], thru256['THROUGHPUT'])
+
+        for i, (xv, yv, wv, tv) in enumerate(zip(x, y, w, thru)):
+            try:
+                psf = psf_interp(wv) * tv
+                w_prev = psf
+            except:
+                print(i, wave, 'Using previous PSF')
+                psf = w_prev * tv
+            frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
+        frame /= np.sum(frame)
+
+        substrip256_traces[order - 1, 1:, :] = frame
+
+        # Save wavelengths to first row. field_simulator.get_trace pulls it out later for scaling
+        substrip256_traces[order - 1, 0, 4:4 + len(w)] = w
+
+    np.save(os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/NIS_SUBSTRIP256.npy'), substrip256_traces)
 
 
 def generate_pandeia_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=10., outdir=None):
