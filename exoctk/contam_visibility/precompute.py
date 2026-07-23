@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 
 from . import field_simulator as fs
+from . import miri_lrs
 from ..utils import get_target_data, get_canonical_name
 from ..pkgdata import resource_filename
 
@@ -46,6 +47,8 @@ def _get_shape(aperture):
         n_traces, nrows, ncols = 3, 96, 2048
     elif aperture in ['NRCA5_41STRIPE1_DHS_F322W2', 'NRCA5_41STRIPE1_DHS_F444W']:
         n_traces, nrows, ncols = 10, 2128, 3192
+    elif aperture == miri_lrs.APERTURE:
+        n_traces, nrows, ncols = 1, *miri_lrs.SHAPE
     else:
         raise NameError(f"Did not recognize the aperture '{aperture}'")
     return n_traces, nrows, ncols
@@ -73,6 +76,8 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
     grp_name = exoplanet_name.strip().replace("/", "_")
 
     with h5py.File(filename, "a") as f:
+        if aperture == miri_lrs.APERTURE:
+            f.attrs['aperture'] = aperture
         if grp_name not in f:
             grp = f.create_group(grp_name)
             grp.attrs["name"] = exoplanet_name
@@ -112,6 +117,24 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
         if "plane_index" not in grp:
             # Plane index placeholder
             grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
+
+        if aperture == miri_lrs.APERTURE:
+            if 'wavelength' not in grp:
+                grp.create_dataset(
+                    'wavelength', shape=(nrows,), dtype='float64')
+            if 'valid_wavelength' not in grp:
+                grp.create_dataset(
+                    'valid_wavelength', shape=(nrows,), dtype='bool')
+            if 'extraction_mask' not in grp:
+                grp.create_dataset(
+                    'extraction_mask', shape=(nrows, ncols), dtype='float32')
+            if isinstance(goodPA_list, miri_lrs.PositionAngleResults):
+                grp.attrs['inaccessiblePA_list'] = goodPA_list.inaccessible
+
+            asset = miri_lrs.load_reference_trace()
+            grp['wavelength'][:] = asset.wavelength
+            grp['valid_wavelength'][:] = asset.valid_wavelength
+            grp['extraction_mask'][:, :] = asset.extraction_mask
 
         # --- Sparse contamination ---
         plane_index = np.where(contamination.any(axis=(1, 2)))[0]
@@ -200,6 +223,10 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
 
                     # Plane index placeholder
                     grp.create_dataset("plane_index", shape=(0,), maxshape=(None,), dtype="int16")
+                    if aperture == miri_lrs.APERTURE:
+                        grp.create_dataset('wavelength', shape=(nrows,), dtype='float64')
+                        grp.create_dataset('valid_wavelength', shape=(nrows,), dtype='bool')
+                        grp.create_dataset('extraction_mask', shape=(nrows, ncols), dtype='float32')
 
                     count += 1
 

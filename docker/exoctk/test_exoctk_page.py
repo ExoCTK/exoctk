@@ -231,6 +231,14 @@ def do_submit(driver, params, calculation_timeout=2700):
             f'result element {locator!r}')
         next_report = PROGRESS_INTERVAL
         while True:
+            if '500 Internal Server Error' in driver.title:
+                elapsed = time.monotonic() - started
+                log(f'[{test_name}] HTTP 500 detected after {elapsed:.1f} '
+                    f'seconds; URL={driver.current_url!r}')
+                raise RuntimeError(
+                    f'{test_name} returned an HTTP 500 page after '
+                    f'{elapsed:.1f} seconds; URL={driver.current_url!r}')
+
             if driver.find_elements(*locator):
                 elapsed = time.monotonic() - started
                 log(f'[{test_name}] Found result element after '

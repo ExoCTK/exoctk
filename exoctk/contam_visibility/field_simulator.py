@@ -41,9 +41,10 @@ import regions
 from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, get_target_data, get_canonical_name
 from ..pkgdata import resource_filename
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
-from .precompute import save_exoplanet_data
 from . import contamination_figure as cf
+from . import miri_lrs
 from .gaia_tap import GaiaFailoverTAP
+from .precompute import save_exoplanet_data
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -129,13 +130,27 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
              'NRCA5_GRISM256_F322W2': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [2.413, 4.083], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F356W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.100, 4.041], 'trim': [0, 1, 0, 1]},
              'NRCA5_GRISM256_F444W': {'inst': 'NIRCam', 'full': 'NRCA5_FULL', 'scale': 0.063, 'rad': 2.5, 'lam': [3.835, 5.084], 'trim': [0, 1, 1250, 1]},
-             'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]}}
+             'MIRIM_SLITLESSPRISM': {'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11, 'rad': 2.0, 'lam': [5, 12], 'trim': [6, 5, 0, 1]},
+             'MIRIM_SLITLESSPRISM_IP': {
+                 'inst': 'MIRI', 'full': 'MIRIM_FULL', 'scale': 0.11,
+                 'source_search_radius_arcsec':
+                     miri_lrs.SOURCE_SEARCH_RADIUS_ARCSEC,
+                 'shape': miri_lrs.SHAPE,
+                 'dispersion_axis': miri_lrs.DISPERSION_AXIS,
+                 'cross_dispersion_axis': miri_lrs.CROSS_DISPERSION_AXIS,
+                 'trace_path': 'exoctk_contam/traces/MIRIM_SLITLESSPRISM_IP',
+                 'trace_reference_pixel': (290, 34),
+                 'science_bounds': ((0, 384), (0, 68)),
+                 'wavelength_source': 'trace_asset:WAVELENGTH',
+                 'extraction_mask_source': 'trace_asset:EXTRACTION_MASK',
+             }}
 
 WEB_CONTAMINATION_APERTURES = frozenset({
     'NIS_SUBSTRIP96',
     'NIS_SUBSTRIP256',
     'NRCA5_41STRIPE1_DHS_F322W2',
     'NRCA5_41STRIPE1_DHS_F444W',
+    'MIRIM_SLITLESSPRISM_IP',
 })
 
 # Require a majority probability before rendering a source as extended.
@@ -146,6 +161,72 @@ def contamination_supported(aperture):
     """Return whether the contamination web interface supports an aperture."""
 
     return aperture in WEB_CONTAMINATION_APERTURES
+
+
+def source_query_width(aperture):
+    """Return the Gaia query width needed to cover an aperture's sources.
+
+    Parameters
+    ----------
+    aperture : str
+        Supported contamination aperture name.
+
+    Returns
+    -------
+    astropy.units.Quantity
+        Side length of the square Gaia query region.  Its circumscribed circle
+        covers the mode's source-search radius.
+    """
+
+    if aperture == miri_lrs.APERTURE:
+        radius = APERTURES[aperture]['source_search_radius_arcsec']
+        # GaiaFailoverTAP circumscribes the requested square, so a square with
+        # side sqrt(2)*radius produces exactly the desired circular radius.
+        return np.sqrt(2.) * radius * u.arcsec
+    return 7.5 * u.arcmin
+
+
+def calculation_v3pas(aperture, observable_pas):
+    """Choose the V3 position angles at which contamination is calculated.
+
+    Parameters
+    ----------
+    aperture : str
+        Supported contamination aperture name.
+    observable_pas : array-like
+        V3 position angles observable in the requested epoch.
+
+    Returns
+    -------
+    numpy.ndarray
+        All integer angles from 0 through 359 for MIRI LRS, or the supplied
+        observable angles for other modes.
+    """
+
+    if aperture == miri_lrs.APERTURE:
+        return np.arange(360)
+    return np.asarray(observable_pas)
+
+
+def unobservable_v3pas(pa_results):
+    """Derive year-specific inaccessible V3 position angles.
+
+    Parameters
+    ----------
+    pa_results : sequence of int or miri_lrs.PositionAngleResults
+        Successfully calculated angles, optionally with explicit inaccessible
+        angle metadata.
+
+    Returns
+    -------
+    list of int
+        V3 position angles to shade as not observable.
+    """
+
+    if isinstance(pa_results, miri_lrs.PositionAngleResults):
+        return list(pa_results.inaccessible)
+    return [pa for pa in np.arange(360) if pa not in pa_results]
+
 
 DHS_STRIPES = {'NRCA5_41STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
                                               'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
@@ -769,7 +850,8 @@ def classify_source(row):
     return stype
 
 
-def fraction_contaminated(aperture, targframes, starcube):
+def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
+                          collapse_axis=None):
     """
     Calculate the fraction of contamination per spectral trace
 
@@ -778,21 +860,37 @@ def fraction_contaminated(aperture, targframes, starcube):
     aperture: str
         The name of the aperture
     targframes: np.ndarray
-        The list of target traces
+        The target simulation frame(s)
     starcube: np.ndarray
-        The 2D or 3D contamination frame(s)
+        The simulation data cube
+    trace_masks : sequence of numpy.ndarray or numpy.ndarray, optional
+        Extraction mask for each target trace.  When omitted, masks are loaded
+        for ``aperture``.
+    collapse_axis : int, optional
+        Detector-image axis to average over.  The mode-specific default is the
+        cross-dispersion axis.
 
     Returns
     -------
     list
-        The 1D fractional contamination per trace
+        The list of fractional contamination arrays
     """
     # Check for 2D
     if starcube.ndim == 2:
         starcube = starcube[None, :, :]
 
-    # Get the trace masks
-    trace_masks = NIRCam_DHS_trace_mask(aperture) if 'NRCA5' in aperture else NIRISS_SOSS_trace_mask(aperture)
+    if trace_masks is None:
+        if aperture == miri_lrs.APERTURE:
+            trace_masks = miri_lrs.load_reference_trace().extraction_mask
+        elif 'NRCA5' in aperture:
+            trace_masks = NIRCam_DHS_trace_mask(aperture)
+        else:
+            trace_masks = NIRISS_SOSS_trace_mask(aperture)
+    if np.asarray(trace_masks).ndim == 2:
+        trace_masks = [trace_masks]
+    if collapse_axis is None:
+        collapse_axis = (miri_lrs.CROSS_DISPERSION_AXIS
+                         if aperture == miri_lrs.APERTURE else 0)
 
     # Adding frames together
     simframes = [tframe + starcube for tframe in targframes]
@@ -805,18 +903,20 @@ def fraction_contaminated(aperture, targframes, starcube):
     pctlines = []
     for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
         masked = np.where(mask > 0, pframe * mask, np.nan)
-        # Keep empty spectral channels as NaN, but avoid NumPy's repeated
-        # ``Mean of empty slice`` warnings for the expected empty channels.
+        # pframe always has a leading PA/cube axis, so detector axis N is
+        # cube axis N+1. Existing SOSS/DHS detector Y remains cube axis 1.
+        # Explicitly retain NaN for completely empty spectral channels without
+        # emitting NumPy's ``Mean of empty slice`` warning for every PA.
+        reduction_axis = collapse_axis + 1
         valid = ~np.isnan(masked)
-        numerator = np.nansum(masked, axis=1)
-        denominator = np.sum(valid, axis=1)
+        numerator = np.nansum(masked, axis=reduction_axis)
+        denominator = np.sum(valid, axis=reduction_axis)
         mean_line = np.divide(
             numerator, denominator,
             out=np.full(np.shape(numerator), np.nan, dtype=float),
             where=denominator > 0,
         )
         pctlines.append(mean_line)
-
     return pctlines
 
 
@@ -918,6 +1018,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         rows, cols = full.corners('det')
         aperture.minrow, aperture.maxrow = rows.min(), rows.max()
         aperture.mincol, aperture.maxcol = cols.min(), cols.max()
+
+    if aperture.AperName == miri_lrs.APERTURE and plot:
+        result = miri_lrs.calc_v3pa(V3PA, stars, aperture)
+        return result, cf.miri_single_pa_plot(result)
+    if aperture.AperName == miri_lrs.APERTURE:
+        return miri_lrs.calc_v3pa(V3PA, stars, aperture)
 
     # Convert the renderer's V3PA to the aperture PA required by SIAF.
     APA = aperture_pa_from_v3pa(V3PA, aperture)
@@ -1254,7 +1360,12 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     # Grab data from DB if precomputed
     if precomputed:
         targframes, starcube, attrs = fetch_contam_results(targname, target_db)
-        goodPA_list = attrs["goodPA_list"]
+        if aperture == miri_lrs.APERTURE:
+            goodPA_list = miri_lrs.PositionAngleResults(
+                successful=attrs['goodPA_list'],
+                inaccessible=attrs.get('inaccessiblePA_list', []))
+        else:
+            goodPA_list = attrs["goodPA_list"]
         logging.info(f'Using precomputed data for {targname} from {target_db}.')
 
     # Otherwise calculate it now
@@ -1283,7 +1394,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         update_task(task, "RUNNING SOURCE QUERY")
         if target_date is None:
             target_date = Time.now()
-        stars = find_sources(ra, dec, target_date=target_date)
+        stars = find_sources(
+            ra, dec, width=source_query_width(aperture),
+            target_date=target_date)
 
         # Add stars manually
         if isinstance(binComp, dict):
@@ -1293,15 +1406,24 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         ra_hms, dec_dms = re.sub('[a-z]', ':', targetcrd.to_string('hmsdms')).split(' ')
         goodPAs = get_exoplanet_positions(ra_hms, dec_dms, in_FOR=True)
 
-        # Calculate contamination at V3 PAs. The GTVT instrument columns are
-        # aperture PAs and would rotate a source field a second time here.
-        goodPA_list, good_group_bounds, goodPA_ints = observable_v3pa_ranges(
-            goodPAs)
+        # Contamination geometry is evaluated in V3PA. Instrument columns in
+        # GTVT are already rotated aperture PAs and must not be converted twice.
+        observable_pa_list, good_group_bounds, goodPA_ints = (
+            observable_v3pa_ranges(goodPAs))
 
-        log_checkpoint(f'Found {len(goodPA_ints)}/360 visible position angles to check')
+        # MIRI/LRS is inexpensive enough to evaluate every orientation. Keep
+        # the year-specific visibility list separately for plot shading.
+        calculation_pa_list = calculation_v3pas(
+            aperture, observable_pa_list)
+
+        log_checkpoint(
+            f'Found {len(goodPA_ints)}/360 visible position angles')
 
         # Time it
-        logging.info('Calculating target contamination from {} neighboring sources in position angle ranges {}...'.format(len(stars), good_group_bounds))
+        logging.info(
+            'Calculating target contamination from %d neighboring sources '
+            'at %d position angles; observable ranges are %s...',
+            len(stars), len(calculation_pa_list), good_group_bounds)
 
         # Calculate contamination of all stars at each PA
         # -----------------------------------------------
@@ -1311,11 +1433,23 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         # Or to take arms against a sea of troubles,
         # And by multiprocessing end them?
         results = []
-        for i, pa in enumerate(goodPA_list):
-            update_task(task, f"CALCULATING PA {i+1} OF {len(goodPA_list)}")
-            logging.info(f"Calculating PA {i+1} of {len(goodPA_list)}")
+        for i, pa in enumerate(calculation_pa_list):
+            update_task(
+                task, f"CALCULATING PA {i+1} OF {len(calculation_pa_list)}")
+            logging.info(
+                f"Calculating PA {i+1} of {len(calculation_pa_list)}")
             result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
             results.append(result)
+
+        if aperture == miri_lrs.APERTURE:
+            observable = set(map(int, observable_pa_list))
+            successful = [int(result['pa']) for result in results]
+            goodPA_list = miri_lrs.PositionAngleResults(
+                successful=successful,
+                inaccessible=(pa for pa in range(360)
+                              if pa not in observable))
+        else:
+            goodPA_list = observable_pa_list
 
         # We only need one target frame frames
         targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
@@ -1329,10 +1463,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
 
         if (targname is not None) and (target_db is not None):
             logging.info(f"Saving {targname} to cache {target_db}")
-            # Save entry in the cache
             save_exoplanet_data(
-                target_db, targname, aperture, ra, dec, targframes, starcube, goodPA_list
-            )
+                target_db, targname, aperture, ra, dec, targframes, starcube,
+                goodPA_list=goodPA_list)
 
         # We don't need this anymore
         del results
@@ -1344,11 +1477,20 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
 
         logging.info("Doing a plot here")
 
-        # Get bad PA list from missing angles between 0 and 360
-        badPAs = [j for j in np.arange(0, 360) if j not in goodPA_list]
+        # MIRI calculates inaccessible orientations too, so its visibility
+        # shading is explicit rather than inferred from missing cube planes.
+        badPAs = unobservable_v3pas(goodPA_list)
+
+        if aperture == miri_lrs.APERTURE:
+            pctlines = fraction_contaminated(aperture, targframes, starcube)
+            asset = miri_lrs.load_reference_trace()
+            contam_plot = cf.contam_slider_plot(
+                pctlines, badPAs, wavelength=asset.wavelength,
+                trace_names=['MIRI LRS'],
+                contamination_labels=['Spectrum'], y_max=0.1)
 
         # Make slider contam plot
-        if slider:
+        elif slider:
             pctlines = fraction_contaminated(aperture, targframes, starcube)
             contam_plot = cf.contam_slider_plot(
                 pctlines, badPAs, instrument=aperture)
@@ -1394,6 +1536,9 @@ def fetch_contam_results(exoplanet_name, db_filename):
             contamination[plane_index] = stored
 
         attrs = dict(grp.attrs)
+        for key in ('wavelength', 'valid_wavelength', 'extraction_mask'):
+            if key in grp:
+                attrs[key] = grp[key][:]
 
     return target_trace, contamination, attrs
 
