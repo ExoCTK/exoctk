@@ -7,24 +7,17 @@ import copy
 from contextlib import contextmanager
 import json
 import os
-import re
-import subprocess
 from unittest.mock import patch
 
 from astropy.io import fits
 import numpy as np
 
+from ..utils import pandeia_provenance
 from . import miri_lrs
 
 
-def pandeia_provenance(require_miri=True):
-    """Validate and report the active Pandeia data provenance.
-
-    Parameters
-    ----------
-    require_miri : bool, optional
-        Require the Pandeia engine and reference data versions used to build
-        the MIRI/IP trace assets.
+def _miri_pandeia_provenance():
+    """Validate Pandeia provenance for MIRI/IP trace-asset generation.
 
     Returns
     -------
@@ -33,61 +26,15 @@ def pandeia_provenance(require_miri=True):
 
     Raises
     ------
-    EnvironmentError
-        If Pandeia reference data or its PSF library is not configured.
     RuntimeError
-        If ``require_miri`` is true and the active engine or reference data
-        does not match the required MIRI/IP generation version.
+        If the active engine or reference data does not match the required
+        MIRI/IP generation version.
     """
 
-    import pandeia.engine
-    from pandeia.engine import config
-
-    module_path = os.path.realpath(pandeia.engine.__file__)
-    refdata = config.default_refdata()
-    psfs = config.default_psfs()
-    if not refdata or not psfs:
-        raise EnvironmentError('Set pandeia_refdata and PSF_DIR before generation')
-    with open(os.path.join(refdata, 'VERSION_DATA')) as handle:
-        data_version = handle.readline().strip()
-    with open(os.path.join(psfs, 'VERSION_PSF')) as handle:
-        psf_version = handle.readline().strip()
-
-    # Editable/source injection over an older environment can leave stale
-    # importlib metadata.  The setup.py beside the imported source is the
-    # authoritative RC declaration and both values are reported.
-    setup_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(module_path))), 'setup.py')
-    declared_version = None
-    source_revision = None
-    if os.path.isfile(setup_path):
-        with open(setup_path) as handle:
-            match = re.search(r'version=["\']([^"\']+)', handle.read())
-        declared_version = match.group(1) if match else None
-        try:
-            source_revision = subprocess.check_output(
-                ['git', '-C', os.path.dirname(setup_path), 'describe',
-                 '--tags', '--always', '--dirty'], text=True).strip()
-        except (OSError, subprocess.CalledProcessError):
-            pass
-
-    provenance = {
-        'engine_declared_version': declared_version or pandeia.engine.__version__,
-        'engine_metadata_version': pandeia.engine.__version__,
-        'engine_source_revision': source_revision,
-        'reference_data_version': data_version,
-        'psf_version': psf_version,
-    }
-    print(f'Pandeia module:  {module_path}')
-    print(f'Engine declared: {provenance["engine_declared_version"]}')
-    print(f'Engine metadata: {provenance["engine_metadata_version"]}')
-    print(f'Engine revision: {source_revision or "unavailable"}')
-    print(f'Reference data: {os.path.realpath(refdata)} ({data_version})')
-    print(f'PSF library:    {os.path.realpath(psfs)} ({psf_version})')
-
-    if require_miri and provenance['engine_declared_version'] != '2026.7':
+    provenance = pandeia_provenance()
+    if provenance['engine_declared_version'] != '2026.7':
         raise RuntimeError('MIRI/IP assets require Pandeia engine 2026.7')
-    if require_miri and data_version != '2026.7':
+    if provenance['reference_data_version'] != '2026.7':
         raise RuntimeError('MIRI/IP assets require Pandeia refdata 2026.7')
     return provenance
 
@@ -98,7 +45,7 @@ def validate_miri_ip_calculation():
     Returns
     -------
     provenance : dict
-        Version information returned by :func:`pandeia_provenance`.
+        Validated Pandeia version information.
     report : dict
         Pandeia calculation report for the validation scene.
 
@@ -112,7 +59,7 @@ def validate_miri_ip_calculation():
     from pandeia.engine.calc_utils import build_default_calc
     from pandeia.engine.perform_calculation import perform_calculation
 
-    provenance = pandeia_provenance()
+    provenance = _miri_pandeia_provenance()
     calculation = build_default_calc('jwst', 'miri', 'lrsslitless')
     calculation['configuration']['detector']['subarray'] = 'slitlessprism_ip'
     calculation['strategy']['background_subtraction'] = False
@@ -506,7 +453,7 @@ def generate_miri_ip_traces(min_teff=2800, max_teff=6000, increment=100,
     from pandeia.engine.calc_utils import build_default_calc
     from pandeia.engine.perform_calculation import perform_calculation
 
-    provenance = pandeia_provenance()
+    provenance = _miri_pandeia_provenance()
     output = outdir or miri_lrs.trace_directory()
     os.makedirs(output, exist_ok=True)
 

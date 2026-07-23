@@ -10,6 +10,7 @@ import os
 import re
 import requests
 import shutil
+import subprocess
 import urllib
 import sys
 
@@ -88,6 +89,73 @@ if not ON_GITHUB_ACTIONS_OR_RTD:
         GENERICGRID_DIR = os.path.join(EXOCTK_DATA, 'generic/')
         GROUPS_INTEGRATIONS_DIR = os.path.join(EXOCTK_DATA, 'groups_integrations/')
         MODELGRID_DIR = os.path.join(EXOCTK_DATA, 'modelgrid/')
+
+
+def pandeia_provenance():
+    """Report the active Pandeia engine and reference-data provenance.
+
+    Pandeia is imported only when this function is called so that collecting
+    provenance remains optional for normal ExoCTK use.
+
+    Returns
+    -------
+    dict
+        Engine, source-revision, reference-data, and PSF-library versions.
+
+    Raises
+    ------
+    EnvironmentError
+        If Pandeia reference data or its PSF library is not configured.
+    """
+
+    import pandeia.engine
+    from pandeia.engine import config
+
+    module_path = os.path.realpath(pandeia.engine.__file__)
+    refdata = config.default_refdata()
+    psfs = config.default_psfs()
+    if not refdata or not psfs:
+        raise EnvironmentError(
+            'Set pandeia_refdata and PSF_DIR before collecting provenance')
+    with open(os.path.join(refdata, 'VERSION_DATA')) as handle:
+        data_version = handle.readline().strip()
+    with open(os.path.join(psfs, 'VERSION_PSF')) as handle:
+        psf_version = handle.readline().strip()
+
+    # Editable/source injection over an older environment can leave stale
+    # importlib metadata. The setup.py beside the imported source is the
+    # authoritative source declaration, so report it alongside the metadata.
+    setup_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(module_path))),
+        'setup.py')
+    declared_version = None
+    source_revision = None
+    if os.path.isfile(setup_path):
+        with open(setup_path) as handle:
+            match = re.search(r'version=["\']([^"\']+)', handle.read())
+        declared_version = match.group(1) if match else None
+        try:
+            source_revision = subprocess.check_output(
+                ['git', '-C', os.path.dirname(setup_path), 'describe',
+                 '--tags', '--always', '--dirty'], text=True).strip()
+        except (OSError, subprocess.CalledProcessError):
+            pass
+
+    provenance = {
+        'engine_declared_version':
+            declared_version or pandeia.engine.__version__,
+        'engine_metadata_version': pandeia.engine.__version__,
+        'engine_source_revision': source_revision,
+        'reference_data_version': data_version,
+        'psf_version': psf_version,
+    }
+    print(f'Pandeia module:  {module_path}')
+    print(f'Engine declared: {provenance["engine_declared_version"]}')
+    print(f'Engine metadata: {provenance["engine_metadata_version"]}')
+    print(f'Engine revision: {source_revision or "unavailable"}')
+    print(f'Reference data: {os.path.realpath(refdata)} ({data_version})')
+    print(f'PSF library:    {os.path.realpath(psfs)} ({psf_version})')
+    return provenance
 
 
 def blockPrint():
