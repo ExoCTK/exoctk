@@ -1515,7 +1515,7 @@ def _get_trace_cached(aperture, teff, stype):
         traces = get_trace_mask(aperture)
 
     else:
-        # Get the template trace file
+        # Get the template trace file, which has the wavelength-dependent throughput encoded
         trace_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy')
 
         # Load the template traces (ntraces, ydim+1, xdim) and replace the NaN values

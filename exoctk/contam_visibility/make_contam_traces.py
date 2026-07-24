@@ -8,11 +8,14 @@ import stpsf
 from hotsoss.plotting import plot_frame
 from jwst.extract_1d.soss_extract.pastasoss import get_soss_traces
 from astropy.io import fits
+from svo_filters import Filter
+
+from exoctk.contam_visibility.field_simulator import APERTURES
 
 
 def make_SOSS_trace_template():
     """
-    Generate a .npy trace template file that can be scaled for each source
+    Generate a NIRISS SOSS trace template file that can be scaled for each source
     """
 
     # Get params from APERTURES dict
@@ -63,6 +66,79 @@ def make_SOSS_trace_template():
         substrip256_traces[order - 1, 0, 4:4 + len(w)] = w
 
     np.save(os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/traces/NIS_SUBSTRIP256.npy'), substrip256_traces)
+
+
+def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
+    """
+    Generate a NIRCam DHS mode SOSS trace template file that can be scaled for each source
+
+    Parameters
+    ----------
+    aperture: str
+        The DHS short wavelength channel aperture name, ['NRCA5_41STRIPE1_DHS_F322W2', 'NRCA5_41STRIPE1_DHS_F444W']
+    """
+
+    # Get aperture params
+    wavecal_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/wavecal/{aperture}_wavecal.npy')
+    all_traces = np.load(wavecal_file)
+    xdim, ydim = 4257, 4257
+
+    # Get F150W2 throughput
+    f150w2 = Filter('JWST/NIRCam.F150W2')
+    thru_w, thru_a = f150w2.rsr[0]
+
+    # Make PSF cube
+    nircam = stpsf.NIRCam()
+    nircam.filter = 'F150W2'
+    nircam.detector = 'NRCA3'
+    pupils = [f'DHS_{str(n).zfill(2)}' for n in [5, 4, 3, 2, 1, 6, 7, 8, 9, 10]]
+
+    # Make a cube of PSFs to interpolate
+    nwave = 100
+    wavelengths_um = np.linspace(0.9, 2.3, nwave)
+    fov_pixels = 65
+    oversample = 1
+    cube = np.zeros((nwave, fov_pixels, fov_pixels))
+    for i, wave_um in enumerate(wavelengths_um):
+        hdul = nircam.calc_psf(monochromatic=wave_um * 1e-6, fov_pixels=fov_pixels, oversample=oversample)
+        psf = hdul[0].data
+        psf /= psf.sum()
+        psf = np.rot90(psf, k=-1)
+        cube[i] = psf
+
+    psf_interp = interp1d(wavelengths_um, cube, axis=0, kind='linear', bounds_error=False, fill_value='extrapolate')
+
+    # Add PSFs to frame
+    dhs_traces = []
+    y0, y1 = 1512, 2744
+    for i, trace in enumerate(all_traces):
+        nircam.pupil_mask = pupils[i]
+        x, y, w = trace
+        thru = np.interp(w, thru_w, thru_a)
+        frame = np.zeros((xdim, ydim))
+
+        for i, (xv, yv, wv, tv) in enumerate(zip(x, y, w, thru)):
+            try:
+                psf = psf_interp(wv) * tv
+                w_prev = psf
+            except:
+                print(i, wave, 'Using previous PSF')
+                psf = w_prev * tv
+            frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
+
+        # Trim to only pixels with signal
+        frame = frame[y0:y1, :]
+
+        # Add the wavelength values for the trace to the top row for easy access
+        frame = np.insert(frame, 0, w[11:-11], axis=0)
+
+        dhs_traces.append(frame)
+
+    # Make it one 3D array
+    dhs_traces = np.asarray(dhs_traces)
+
+    # Save the traces to file
+    np.save(os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy'), dhs_traces)
 
 
 def generate_pandeia_traces(min_teff=2800, max_teff=6000, increment=100, norm_mag=10., outdir=None):
