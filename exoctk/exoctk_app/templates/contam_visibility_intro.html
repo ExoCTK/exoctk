@@ -1,0 +1,25 @@
+<p>
+  This tool estimates spectral contamination and scheduling visibility for
+  supported JWST slitless time-series modes. It places Gaia field sources on
+  the detector at each position angle, simulates overlap with the target
+  spectrum, and reports the expected contamination as a function of position
+  angle. The visibility calculation provides the dates and telescope
+  orientations available for the selected target, instrument, and epoch.
+</p>
+
+<h4>Important limitations</h4>
+<ul>
+  <li>Field sources come from Gaia DR3. Coordinates are propagated from the
+      Gaia reference epoch to the selected epoch when proper-motion
+      measurements are available. Sources absent from Gaia or lacking a valid
+      Gaia G-band flux are not included.</li>
+  <li>Relative source brightness is currently normalized using Gaia G-band
+      flux. This approximation can be inaccurate when the target and
+      contaminant have substantially different optical-to-infrared colors.</li>
+  <li>Trace-placement and distortion uncertainties can shift predicted
+      spectral overlap by several detector pixels.</li>
+</ul>
+<p>
+  Questions or unexpected results can be reported through the
+  <a href="https://jwsthelp.stsci.edu/">JWST Help Desk</a>.
+</p>

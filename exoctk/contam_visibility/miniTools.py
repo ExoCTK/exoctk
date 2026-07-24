@@ -164,7 +164,7 @@ def contamVerify(RA, DEC, INSTRUMENT, APAlist, binComp=[], PDF='', web=False):
     apertures['NIRISS'] = ['NIS_SOSSFULL', 'NIS_SOSSFULL']
     apertures['NIRCam F444W'] = ['NRCA5_GRISM256_F444W', 'NRCA5_FULL']
     apertures['NIRCam F322W2'] = ['NRCA5_GRISM256_F322W2', 'NRCA5_FULL']
-    apertures['MIRI'] = ['MIRIM_SLITLESSPRISM', 'MIRIM_FULL']
+    apertures['MIRI'] = ['MIRIM_SLITLESSPRISM_IP', 'MIRIM_FULL']
 
     # Instantiate SIAF object
     siaf = pysiaf.Siaf(INSTRUMENT.split(' ')[0])

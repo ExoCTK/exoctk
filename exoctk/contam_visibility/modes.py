@@ -10,6 +10,6 @@ CONTAM_VISIBILITY_MODES = (
      'NIRCam - Grism Time Series - F322W2 (Visibility Only)'),
     ('NRCA5_GRISM256_F444W',
      'NIRCam - Grism Time Series - F444W (Visibility Only)'),
-    ('MIRIM_SLITLESSPRISM', 'MIRI - LRS (Visibility Only)'),
+    ('MIRIM_SLITLESSPRISM_IP', 'MIRI - LRS - SLITLESSPRISM_IP'),
     ('NIRSpec', 'NIRSpec (Visibility Only)'),
 )
