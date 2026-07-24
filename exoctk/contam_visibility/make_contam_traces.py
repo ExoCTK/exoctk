@@ -80,7 +80,7 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
 
     # Get aperture params
     wavecal_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/wavecal/{aperture}_wavecal.npy')
-    all_traces = np.load(wavecal_file)
+    all_traces = np.load(wavecal_file)[:, :, 11:-11]
     xdim, ydim = 4257, 4257
 
     # Get F150W2 throughput
@@ -109,10 +109,10 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
     psf_interp = interp1d(wavelengths_um, cube, axis=0, kind='linear', bounds_error=False, fill_value='extrapolate')
 
     # Add PSFs to frame
-    dhs_traces = []
+    dhs_traces = np.zeros((10, ydim, xdim))
     y0, y1 = 1512, 2744
-    for i, trace in enumerate(all_traces):
-        nircam.pupil_mask = pupils[i]
+    for order, trace in enumerate(all_traces):
+        nircam.pupil_mask = pupils[order]
         x, y, w = trace
         thru = np.interp(w, thru_w, thru_a)
         frame = np.zeros((xdim, ydim))
@@ -126,16 +126,14 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
                 psf = w_prev * tv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
 
-        # Trim to only pixels with signal
-        frame = frame[y0:y1, :]
+        # Add frame to cube
+        dhs_traces[order, :, :] = frame
 
-        # Add the wavelength values for the trace to the top row for easy access
-        frame = np.insert(frame, 0, w[11:-11], axis=0)
+        # Add the wavelength values for the trace to the bottom row for easy access
+        dhs_traces[order, y0-1, :len(w)] = w
 
-        dhs_traces.append(frame)
-
-    # Make it one 3D array
-    dhs_traces = np.asarray(dhs_traces)
+    # Trim detector with no signal
+    dhs_traces = dhs_traces[:, y0-1:y1, :]
 
     # Save the traces to file
     np.save(os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy'), dhs_traces)
