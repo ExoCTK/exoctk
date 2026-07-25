@@ -245,28 +245,6 @@ def unobservable_v3pas(pa_results):
     return [pa for pa in np.arange(360) if pa not in pa_results]
 
 
-DHS_STRIPES = {'NRCA5_41STRIPE1_DHS_F322W2': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
-                                              'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
-                                              'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},
-                                              'DHS2': {'x0': 2196, 'x1': 3324, 'y0': 2301, 'y1': 2307},
-                                              'DHS1': {'x0': 2196, 'x1': 3324, 'y0': 2170, 'y1': 2176},
-                                              'DHS6': {'x0': 2196, 'x1': 3324, 'y0': 2047, 'y1': 2053},
-                                              'DHS7': {'x0': 2196, 'x1': 3324, 'y0': 1933, 'y1': 1937},
-                                              'DHS8': {'x0': 2196, 'x1': 3324, 'y0': 1819, 'y1': 1823},
-                                              'DHS9': {'x0': 2196, 'x1': 3324, 'y0': 1691, 'y1': 1696},
-                                              'DHS10': {'x0': 2196, 'x1': 3324, 'y0': 1557, 'y1': 1563}},
-               'NRCA5_41STRIPE1_DHS_F444W': {'DHS5': {'x0': 2196, 'x1': 3324, 'y0': 2665, 'y1': 2671},
-                                              'DHS4': {'x0': 2196, 'x1': 3324, 'y0': 2552, 'y1': 2558},
-                                              'DHS3': {'x0': 2196, 'x1': 3324, 'y0': 2432, 'y1': 2438},
-                                              'DHS2': {'x0': 2196, 'x1': 3324, 'y0': 2301, 'y1': 2307},
-                                              'DHS1': {'x0': 2196, 'x1': 3324, 'y0': 2170, 'y1': 2176},
-                                              'DHS6': {'x0': 2196, 'x1': 3324, 'y0': 2047, 'y1': 2053},
-                                              'DHS7': {'x0': 2196, 'x1': 3324, 'y0': 1933, 'y1': 1937},
-                                              'DHS8': {'x0': 2196, 'x1': 3324, 'y0': 1819, 'y1': 1823},
-                                              'DHS9': {'x0': 2196, 'x1': 3324, 'y0': 1691, 'y1': 1696},
-                                              'DHS10': {'x0': 2196, 'x1': 3324, 'y0': 1557, 'y1': 1563}},
-               }
-
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
 
@@ -277,90 +255,15 @@ GAIA_TAP = GaiaFailoverTAP()
 ACES_GRID = ACES()
 
 
-def NIRCam_DHS_trace_mask(aperture, gap_value=0, ref_value=0, substripe_value=1, det_value=0, combined=False, plot=False):
+def NIRCam_detector_gap():
     """
-    Construct a trace mask for NIRCam DHS mode
-
-    Parameters
-    ----------
-    aperture: str
-        The sperture to use, [
-    gap_value: float
-        The value in the detector gap
-    ref_value: float
-        The value of the reference pixels
-    substripe_value: float
-        The value in the mask area
-    combined: bool
-        Return a single flattened image
-    plot: bool
-        Plot the final array
-
-    Returns
-    -------
-    list, array
-        The final array or list of arrays for each trace
+    Binary mask for NIRCam detector gap
     """
-    # The DHS uses four detectors
-    starting = 0  # pixel
-    ref_pixels = 8  # pixel
-    det_size_full = 2048  # pixel
-    det_size = det_size_full - ref_pixels  # pixel
+    det = np.zeros((4257, 4257))
+    det[2048:2209, :] = 1
+    det[:, 2048:2209] = 1
 
-    # DHS has 2 field points configuration and each field points can be paired to 6 filter position
-    # Depending on the field point/filter combination, the spectra will not fall on the same part of the 4 detectors nor have the same length
-    stripes = DHS_STRIPES[aperture]
-    pixel_scale = 0.031  # arcsec/pixel (on sky)
-    gap_fov = 5  # arcsec
-    gap = int(gap_fov / pixel_scale)  # pixel
-
-    # full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap))
-    full = np.ones((det_size_full + det_size_full + gap, det_size_full + det_size_full + gap)) * det_value
-
-    # now let's populate the full array with the corresponding gap, reference or substripe locations
-    full[det_size_full:det_size_full + gap, :] = gap_value
-    full[:, det_size_full:det_size_full + gap] = gap_value
-
-    # Add reference pixels
-    full[starting:det_size_full, starting:ref_pixels] = ref_value
-    full[det_size_full + gap:, starting:ref_pixels] = ref_value
-    full[starting:det_size_full, det_size:det_size_full] = ref_value
-    full[det_size_full + gap:, det_size:det_size_full] = ref_value
-    full[starting:det_size_full, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
-    full[det_size_full + gap:, det_size_full + gap:det_size_full + gap + ref_pixels] = ref_value
-    full[starting:det_size_full, det_size_full + gap + det_size:] = ref_value
-    full[det_size_full + gap:, det_size_full + gap + det_size:] = ref_value
-
-    full[starting:ref_pixels, starting:det_size_full] = ref_value
-    full[starting:ref_pixels, det_size_full + gap:] = ref_value
-    full[det_size:det_size_full, starting:det_size_full] = ref_value
-    full[det_size:det_size_full, det_size_full + gap:] = ref_value
-    full[det_size_full + gap:det_size_full + gap + ref_pixels, starting:det_size_full] = ref_value
-    full[det_size_full + gap:det_size_full + gap + ref_pixels, det_size_full + gap:] = ref_value
-    full[det_size_full + gap + det_size:, starting:det_size_full] = ref_value
-    full[det_size_full + gap + det_size:, det_size_full + gap:] = ref_value
-
-    # For the specific field point and filter specified above:
-    traces = []
-    for stripe in stripes.values():
-        if combined:
-            full[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] += substripe_value
-        else:
-            trace = copy(full)
-            trace[stripe['y0']:stripe['y1'], stripe['x0']:stripe['x1']] = substripe_value
-            traces.append(trace)
-
-    if plot:
-        plt = figure(width=1000, height=1000)
-        plt.image([full], x=0, y=0, dw=full.shape[0], dh=full.shape[1])
-        for stripe in stripes.values():
-            plt.line([stripe['x0'], stripe['x1']], [(stripe['y0']+stripe['y1'])/2.]*2)
-        show(plt)
-
-    y1 = APERTURES[aperture]['subarr_y'][1]
-    y2 = APERTURES[aperture]['subarr_y'][2]
-
-    return full[y1:y2, :] if combined else [trace[y1:y2] for trace in traces]
+    return det[1512:2744, :]
 
 
 def get_trace_mask(aperture, radius=20, plot=False):
@@ -1169,7 +1072,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
         fig.image(image='sim', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=imgsource, name="image", color_mapper=mapper)
 
         # Plot the detector gaps and reference pixels for visual inspection
-        refframe = NIRCam_DHS_trace_mask(aperture.AperName, substripe_value=0, ref_value=1, gap_value=1, combined=True) if 'NRCA5' in aperture.AperName else np.zeros((subY, subX))
+        refframe = NIRCam_detector_gap() if 'NRCA5' in aperture.AperName else np.zeros((subY, subX))
         refsource = ColumnDataSource(data={'ref': [refframe]})
         fig.image(image='ref', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=refsource, name="ref", color_mapper=LinearColorMapper(palette=["white", "black"], low=0, high=1), alpha=0.1)
 
