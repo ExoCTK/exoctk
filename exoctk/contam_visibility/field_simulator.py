@@ -1164,6 +1164,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
     logging.info('Compiled final results.')
 
     if plot:
+        # The interactive single-PA plot includes one contamination line per
+        # spectral order. Full simulations reduce these later, but this path
+        # must calculate them before constructing the Bokeh data source.
+        pctlines = [
+            line[0] for line in fraction_contaminated(
+                aperture.AperName, targframes, starframe)]
 
         # Make the plot
         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']

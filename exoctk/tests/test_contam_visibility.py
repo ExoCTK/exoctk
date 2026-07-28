@@ -648,6 +648,105 @@ def test_bounded_scaled_add_matches_full_detector_temporary(
     np.testing.assert_array_equal(actual, expected)
 
 
+def test_single_pa_plot_calculates_contamination_lines(monkeypatch):
+    """The website's single-PA plot must calculate its spectral ratio lines."""
+
+    aperture_name = 'SYNTHETIC_SINGLE_PA'
+    aperture_info = {
+        'inst': 'SYNTHETIC',
+        'full': 'SYNTHETIC_FULL',
+        'subarr_y': (0, 0, 4),
+        'subarr_x': (0, 5),
+        'c0x0': 0,
+        'c0y0': 0,
+        'xord0to1': 0,
+        'yord0to1': 0,
+        'lft': -10,
+        'rgt': 10,
+        'bot': -10,
+        'top': 10,
+        'blue_ext': 0,
+        'red_ext': 0,
+        'cutoffs': [4],
+        'coeffs': [np.array([0.])],
+        'trace_names': ['Order 1'],
+        'empirical_scale': [1.],
+    }
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            assert frame == 'det'
+            return np.array([0., 5.]), np.array([0., 4.])
+
+    class FakeScienceAperture:
+        AperName = aperture_name
+        V3IdlYAngle = 0.
+
+        @staticmethod
+        def reference_point(frame):
+            assert frame == 'det'
+            return 1., 1.
+
+        @staticmethod
+        def det_to_tel(x, y):
+            return x, y
+
+        @staticmethod
+        def det_to_sci(x, y):
+            return x, y
+
+    class FakeSiaf:
+        apertures = {
+            'SYNTHETIC_FULL': FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    stars = Table({
+        'ra': [10.],
+        'dec': [20.],
+        'xdet': [0.],
+        'ydet': [0.],
+        'xtel': [0.],
+        'ytel': [0.],
+        'xsci': [0.],
+        'ysci': [0.],
+        'xord0': [0.],
+        'yord0': [0.],
+        'xord1': [0.],
+        'yord1': [0.],
+        'Teff': [5000.],
+        'type': ['STAR'],
+        'fluxscale': [1.],
+        'distance': [0.],
+        'name': ['Target'],
+        'designation': ['Target'],
+        'url': [''],
+    })
+    monkeypatch.setitem(
+        field_simulator.APERTURES, aperture_name, aperture_info)
+    monkeypatch.setattr(
+        field_simulator.pysiaf, 'Siaf', lambda instrument: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'attitude_matrix',
+        lambda *args: object())
+    monkeypatch.setattr(
+        field_simulator, '_project_sources_to_detector',
+        lambda *args: None)
+    monkeypatch.setattr(
+        field_simulator, 'get_trace',
+        lambda *args, **kwargs: [np.ones((4, 5))])
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [np.ones((4, 5), dtype=bool)])
+
+    result, plot = field_simulator.calc_v3pa(
+        330., stars, aperture_name, plot=True)
+
+    assert result['pa'] == 330.
+    assert plot is not None
+
+
 def test_fraction_contaminated_processes_orders_sequentially():
     """Sequential order reduction is numerically identical to the old lists."""
 
