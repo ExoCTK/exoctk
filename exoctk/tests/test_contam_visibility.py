@@ -556,18 +556,26 @@ def test_batched_source_projection_matches_scalar_pysiaf():
 def test_trace_templates_are_cached_across_position_angles(monkeypatch):
     """Repeated source templates avoid repeated trace-file reads."""
 
-    calls = []
+    load_calls = []
+    model_calls = []
     monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
-    monkeypatch.setattr(
-        field_simulator.glob, 'glob',
-        lambda path: ['/synthetic-data/exoctk_contam/traces/'
-                      'NIS_SUBSTRIP256/trace_5000.fits'])
+    template = np.ones((3, 3, 4), dtype=float)
+    template[:, 0, :] = np.linspace(1., 2., 4)
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1., 2., 9),
+    }
 
-    def synthetic_trace(filename, ext=0):
-        calls.append((filename, ext))
-        return np.full((2, 2), ext + 1., dtype=float)
+    def synthetic_load(filename):
+        load_calls.append(filename)
+        return template.copy()
 
-    monkeypatch.setattr(field_simulator.fits, 'getdata', synthetic_trace)
+    def synthetic_model(*args, **kwargs):
+        model_calls.append((args, kwargs))
+        return {name: values.copy() for name, values in model.items()}
+
+    monkeypatch.setattr(field_simulator.np, 'load', synthetic_load)
+    monkeypatch.setattr(field_simulator.ACES_GRID, 'get', synthetic_model)
     field_simulator._get_trace_cached.cache_clear()
     try:
         first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
@@ -575,7 +583,9 @@ def test_trace_templates_are_cached_across_position_angles(monkeypatch):
     finally:
         field_simulator._get_trace_cached.cache_clear()
 
-    assert len(calls) == 3
+    assert load_calls == [
+        '/synthetic-data/exoctk_contam/traces/NIS_SUBSTRIP256.npy']
+    assert len(model_calls) == len(template)
     assert all(np.array_equal(before, after)
                for before, after in zip(first, second))
     assert all(not trace.flags.writeable for trace in first)
@@ -606,6 +616,162 @@ def test_order_zero_templates_are_cached_across_position_angles(monkeypatch):
         '/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy']
     assert np.array_equal(first, second)
     assert not first.flags.writeable
+
+
+@pytest.mark.parametrize('centered,x,y', [
+    (False, 1, 2),
+    (False, -2, 1),
+    (True, 3, 2),
+])
+def test_bounded_scaled_add_matches_full_detector_temporary(
+        centered, x, y):
+    """Chunked DHS accumulation preserves the established pixel arithmetic."""
+
+    destination = np.arange(42., dtype=float).reshape(6, 7)
+    source = np.arange(20., dtype=float).reshape(4, 5)
+    spectral_scale = np.linspace(0.5, 1.5, source.shape[1])
+    fluxscale = 0.37
+    expected = field_simulator.add_array_at_position(
+        destination, source * spectral_scale[None, :] * fluxscale,
+        x, y, centered=centered)
+    actual = destination.copy()
+
+    returned = field_simulator._add_scaled_array_inplace(
+        actual, source, x, y, centered=centered, fluxscale=fluxscale,
+        spectral_scale=spectral_scale, row_chunk=2)
+
+    assert returned is actual
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_fraction_contaminated_processes_orders_sequentially():
+    """Sequential order reduction is numerically identical to the old lists."""
+
+    rng = np.random.default_rng(42)
+    targets = [rng.random((3, 4)), rng.random((3, 4))]
+    contaminants = rng.random((2, 3, 4))
+    masks = [rng.integers(0, 2, (3, 4)).astype(bool) for _ in targets]
+
+    expected = []
+    for target, mask in zip(targets, masks):
+        total = target + contaminants
+        fraction = np.divide(
+            contaminants, total,
+            out=np.full_like(contaminants, np.nan),
+            where=(total != 0) & ~np.isnan(total))
+        masked = np.where(mask > 0, fraction * mask, np.nan)
+        expected.append(np.nanmean(masked, axis=1))
+
+    actual = field_simulator.fraction_contaminated(
+        'synthetic', targets, contaminants, trace_masks=masks)
+
+    for before, after in zip(expected, actual):
+        np.testing.assert_array_equal(after, before)
+
+
+def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
+    """A temperature cache entry must not retain full detector-sized traces."""
+
+    waves = np.tile(np.linspace(1., 2., 5), (2, 1))
+    traces = np.ones((2, 3, 5))
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1., 2., 9),
+    }
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, traces))
+    monkeypatch.setattr(
+        field_simulator.ACES_GRID, 'get',
+        lambda *args, **kwargs: model)
+    field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+    try:
+        scales = field_simulator._get_dhs_spectral_scales_cached(
+            'SYNTHETIC_DHS', 5000.)
+    finally:
+        field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+
+    assert len(scales) == traces.shape[0]
+    assert all(scale.shape == (traces.shape[-1],) for scale in scales)
+    assert sum(scale.nbytes for scale in scales) < traces.nbytes
+
+
+@pytest.mark.parametrize('aperture', [
+    'NRCA5_41STRIPE1_DHS_F322W2',
+    'NRCA5_41STRIPE1_DHS_F444W',
+])
+def test_compact_dhs_multi_pa_matches_dense_reduction(monkeypatch, aperture):
+    """Streaming ten DHS orders exactly matches a safe synthetic dense cube."""
+
+    rng = np.random.default_rng(677)
+    target_traces = [rng.random((33, 7)) for _ in range(10)]
+    trace_masks = []
+    for order in range(10):
+        mask = np.ones((33, 7), dtype=bool)
+        mask[:order % 3, 0] = False
+        mask[:, -1] = False
+        trace_masks.append(mask)
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: trace_masks)
+
+    pa_values = (0, 1, 33)
+    contaminants = {}
+    for pa in pa_values:
+        frame = np.zeros((33, 7))
+        source = rng.random((33, 7))
+        field_simulator._add_scaled_array_inplace(
+            frame, source, 0, 0, fluxscale=pa + 1, row_chunk=32)
+        contaminants[pa] = frame
+
+    def pa_results():
+        for index, pa in enumerate(pa_values):
+            yield {
+                'pa': pa,
+                'target_traces': target_traces if index == 0 else None,
+                'contaminants': contaminants[pa],
+            }
+
+    returned_targets, compact = field_simulator._compact_dhs_results(
+        aperture, pa_results())
+    dense_cube = np.zeros((360, 33, 7))
+    for pa, frame in contaminants.items():
+        dense_cube[pa] = frame
+    expected = field_simulator.fraction_contaminated(
+        aperture, target_traces, dense_cube, trace_masks=trace_masks)
+
+    assert isinstance(compact, field_simulator.DHSContaminationResult)
+    assert len(compact) == 10
+    np.testing.assert_array_equal(compact.position_angles, np.arange(360))
+    for before, after in zip(target_traces, returned_targets):
+        assert after is before
+    for dense_order, compact_order in zip(expected, compact.order_fractions):
+        np.testing.assert_array_equal(compact_order, dense_order)
+        assert compact_order.dtype == np.float64
+        assert not compact_order.flags.writeable
+        assert np.all(compact_order[2, :-1] == 0)
+        assert np.isnan(compact_order[2, -1])
+
+
+@pytest.mark.parametrize('source_count', [1, 35])
+def test_bounded_accumulation_scales_across_source_chunks(source_count):
+    """Low and higher source counts preserve exact accumulation arithmetic."""
+
+    rng = np.random.default_rng(123)
+    sources = [rng.random((33, 7)) for _ in range(source_count)]
+    scales = np.linspace(0.5, 1.5, source_count)
+    expected = np.zeros((33, 7))
+    actual = np.zeros_like(expected)
+
+    for source, scale in zip(sources, scales):
+        expected = field_simulator.add_array_at_position(
+            expected, source * scale, 0, 0)
+        field_simulator._add_scaled_array_inplace(
+            actual, source, 0, 0, fluxscale=scale, row_chunk=32)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_contamination_slider_uses_percent_and_common_display_cap():
     """All supported modes share a 0--10% percent-based display."""
 
@@ -752,8 +918,8 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
     target = np.array([[1., 0.], [1., 0.]])
     contaminants = np.zeros((1, 2, 2))
     monkeypatch.setattr(
-        field_simulator, 'NIRISS_SOSS_trace_mask',
-        lambda aperture: [np.ones_like(target)])
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [np.ones_like(target)])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         result = field_simulator.fraction_contaminated(
@@ -766,12 +932,12 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
                    for warning in caught)
 
 
-@pytest.mark.parametrize('aperture, mask_function', [
-    ('NIS_SUBSTRIP96', 'NIRISS_SOSS_trace_mask'),
-    ('NRCA5_41STRIPE1_DHS_F444W', 'NIRCam_DHS_trace_mask'),
+@pytest.mark.parametrize('aperture', [
+    'NIS_SUBSTRIP96',
+    'NRCA5_41STRIPE1_DHS_F444W',
 ])
 def test_fraction_contaminated_ignores_flux_outside_extraction(
-        monkeypatch, aperture, mask_function):
+        monkeypatch, aperture):
     """Off-mask sources do not dilute SOSS or DHS contamination."""
 
     mask = np.array([[1.], [1.], [0.]])
@@ -781,7 +947,8 @@ def test_fraction_contaminated_ignores_flux_outside_extraction(
         [[1.], [0.], [100.]],
     ])
     monkeypatch.setattr(
-        field_simulator, mask_function, lambda aperture: [mask])
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [mask])
 
     result = field_simulator.fraction_contaminated(
         aperture, [target], contaminants)[0]
