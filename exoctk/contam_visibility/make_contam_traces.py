@@ -45,15 +45,22 @@ def make_SOSS_trace_template():
 
     # Make SUBSTRIP256 traces
     substrip256_traces = np.zeros((3, ydim_256 + 1, xdim))
+    spectrace256_file = os.path.join(os.environ['CRDS_PATH'], 'references/jwst/niriss/jwst_niriss_spectrace_0023.fits')
     for order in [1, 2, 3]:
         frame = np.zeros((ydim_256, xdim))
         _, x, y, w = get_soss_traces(245.76, order)
         thru256 = fits.getdata(spectrace256_file, ext=order)
         thru = np.interp(w, thru256['WAVELENGTH'], thru256['THROUGHPUT'])
 
-        for i, (xv, yv, wv, tv) in enumerate(zip(x, y, w, thru)):
+        # Orders are not the same dispersion so normalize PSF by bin
+        dw = np.abs(np.gradient(w))
+
+        # Trace is constructed left to right, in reverse dispersion direction
+        # so start with PSF for the longest possible wavelength in the cube
+        w_prev = cube[-1]
+        for i, (xv, yv, wv, dv, tv) in enumerate(zip(x, y, w, dw, thru)):
             try:
-                psf = psf_interp(wv) * tv
+                psf = psf_interp(wv) * tv * dv
                 w_prev = psf
             except:
                 print(i, wave, 'Using previous PSF')
@@ -82,6 +89,10 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
     wavecal_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/wavecal/{aperture}_wavecal.npy')
     all_traces = np.load(wavecal_file)[:, :, 11:-11]
     xdim, ydim = 4257, 4257
+    y0, y1 = 1512, 2744
+
+    # Container for traces
+    dhs_traces = np.zeros((10, ydim, xdim))
 
     # Get F150W2 throughput
     f150w2 = Filter('JWST/NIRCam.F150W2')
@@ -98,22 +109,20 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
     wavelengths_um = np.linspace(0.9, 2.3, nwave)
     fov_pixels = 65
     oversample = 1
-    cube = np.zeros((nwave, fov_pixels, fov_pixels))
-    for i, wave_um in enumerate(wavelengths_um):
-        hdul = nircam.calc_psf(monochromatic=wave_um * 1e-6, fov_pixels=fov_pixels, oversample=oversample)
-        psf = hdul[0].data
-        psf /= psf.sum()
-        psf = np.rot90(psf, k=-1)
-        cube[i] = psf
+    for order, pupil in enumerate(pupils):
+        cube = np.zeros((nwave, fov_pixels, fov_pixels))
+        for i, wave_um in enumerate(wavelengths_um):
+            hdul = nircam.calc_psf(monochromatic=wave_um * 1e-6, fov_pixels=fov_pixels, oversample=oversample)
+            psf = hdul[0].data
+            psf /= psf.sum()
+            psf = np.rot90(psf, k=-1)
+            cube[i] = psf
 
-    psf_interp = interp1d(wavelengths_um, cube, axis=0, kind='linear', bounds_error=False, fill_value='extrapolate')
+        psf_interp = interp1d(wavelengths_um, cube, axis=0, kind='linear', bounds_error=False, fill_value='extrapolate')
 
-    # Add PSFs to frame
-    dhs_traces = np.zeros((10, ydim, xdim))
-    y0, y1 = 1512, 2744
-    for order, trace in enumerate(all_traces):
+        # Add PSFs to frame
+        x, y, w = all_traces[order]
         nircam.pupil_mask = pupils[order]
-        x, y, w = trace
         thru = np.interp(w, thru_w, thru_a)
         frame = np.zeros((xdim, ydim))
 

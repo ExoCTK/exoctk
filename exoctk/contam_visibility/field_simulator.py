@@ -257,7 +257,7 @@ ACES_GRID = ACES()
 
 def NIRCam_detector_gap():
     """
-    Binary mask for NIRCam detector gap
+    Binary mask for 161px wide NIRCam detector gap
     """
     det = np.zeros((4257, 4257))
     det[2048:2209, :] = 1
@@ -1576,14 +1576,27 @@ def _get_trace_cached(aperture, teff, stype):
         traces = data[:, 1:, :] # Traces in the rest: shape=(ntraces, ydim, xdim)
         traces = replace_NaNs(traces)
 
+        # Get the normalized stellar model for this source
+        model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
+        model_w, model_f = model['wave'], model['flux']
+        model_f /= np.trapezoid(model_f, model_w)
+
         # Multiply each template trace by the interpolated stellar model (assumes isowavelength columns)
         for idx, (wave, trace) in enumerate(zip(waves, traces)):
-            model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
-            model_w, model_f = model['wave'], model['flux']
-            model_f /= np.trapezoid(model_f, model_w)
-            scaled_f = np.interp(wave, model_w, model_f)
-            scaled_f /= np.nansum(scaled_f)
+            valid = wave > 0
+            scaled_f = np.zeros_like(wave)
+            scaled_f[valid] = np.interp(wave[valid], model_w, model_f)
             traces[idx] *= scaled_f[np.newaxis, :]
+        for n, trace in enumerate(traces):
+            illum = trace > 0
+
+            print(
+                n + 1,
+                np.sum(trace),
+                np.max(trace),
+                np.count_nonzero(illum),
+                np.sum(trace) / np.count_nonzero(illum)
+            )
 
     for trace in traces:
         trace.setflags(write=False)
