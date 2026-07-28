@@ -398,6 +398,36 @@ def run_gaia_query_task(self, params):
     return task_uuid
 
 
+def _atomic_pickle_dump(value, filename):
+    """Write a worker artifact without exposing a partial pickle to the web."""
+
+    directory = os.path.dirname(filename)
+    temporary_filename = None
+    try:
+        with tempfile.NamedTemporaryFile(
+                mode="wb", dir=directory, prefix=".contam-",
+                delete=False) as f:
+            temporary_filename = f.name
+            pickle.dump(value, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary_filename, filename)
+    except Exception:
+        if temporary_filename is not None:
+            if os.path.exists(temporary_filename):
+                os.remove(temporary_filename)
+        raise
+
+
+def _load_and_remove_pickle(filename):
+    """Load a complete worker artifact, then remove it after a safe read."""
+
+    with open(filename, "rb") as f:
+        value = pickle.load(f)
+    os.remove(filename)
+    return value
+
+
 # Long-running Celery task
 @celery.task(bind=True)
 def run_contam_visibility_task(self, params):
@@ -405,26 +435,39 @@ def run_contam_visibility_task(self, params):
     task_uuid = f"{self.request.id}"
     params["task"] = self
     params["plot"] = False
-    targframe, starcube, pa_results = fs.field_simulation(**params)
+    targframe, contamination, pa_results = fs.field_simulation(**params)
 
-    self.update_state(state="SAVING TARGET FRAME")
-    targframe_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
-    print("Serializing targframe")
-    with open(targframe_file, "wb") as f:
-        pickle.dump(targframe, f)
-    print(f"Wrote targframe to {targframe_file}")
+    if isinstance(contamination, fs.DHSContaminationResult):
+        # The DHS result page consumes the compact order fractions, not the
+        # 400 MiB target detector images. Do not persist or reload an unused
+        # target artifact in the web process.
+        del targframe
+        self.update_state(state="SAVING DHS CONTAMINATION")
+        contamination_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'],
+            f'{task_uuid}_contamination.pickle')
+        print("Serializing compact DHS contamination")
+        _atomic_pickle_dump(contamination, contamination_file)
+        print(f"Wrote DHS contamination to {contamination_file}")
+    else:
+        self.update_state(state="SAVING TARGET FRAME")
+        targframe_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle')
+        print("Serializing targframe")
+        _atomic_pickle_dump(targframe, targframe_file)
+        print(f"Wrote targframe to {targframe_file}")
 
-    self.update_state(state="SAVING STAR CUBE")
-    starcube_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
-    print("Serializing starcube")
-    with open(starcube_file, "wb") as f:
-        pickle.dump(starcube, f)
-    print(f"Wrote starcube to {starcube_file}")
+        self.update_state(state="SAVING STAR CUBE")
+        starcube_file = os.path.join(
+            os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle')
+        print("Serializing starcube")
+        _atomic_pickle_dump(contamination, starcube_file)
+        print(f"Wrote starcube to {starcube_file}")
 
     print("Serializing PA list")
-    results_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
-    with open(results_file, "wb") as f:
-        pickle.dump(pa_results, f)
+    results_file = os.path.join(
+        os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
+    _atomic_pickle_dump(pa_results, results_file)
     print(f"Wrote PA list to {results_file}")
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
@@ -660,32 +703,34 @@ def contam_visibility():
             task_uuid = task_result.get()
             print(f"Got task ID {task_uuid}")
 
-            targframe_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_targframe.pickle'
-            )
-            print(f"Loading {targframe_file}")
-            with open(targframe_file, "rb") as f:
-                targframe = pickle.load(f)
-            print("Loaded targframe")
-            os.remove(targframe_file)
+            if 'DHS' in form.inst.data:
+                contamination_file = os.path.join(
+                    os.environ['SHARED_DATA_DIR'],
+                    f'{task_uuid}_contamination.pickle')
+            else:
+                contamination_file = os.path.join(
+                    os.environ['SHARED_DATA_DIR'],
+                    f'{task_uuid}_starcube.pickle')
+            print(f"Loading {contamination_file}")
+            contamination = _load_and_remove_pickle(contamination_file)
+            print("Loaded contamination")
 
-            starcube_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'], f'{task_uuid}_starcube.pickle'
-            )
-            print(f"Loading {starcube_file}")
-            with open(starcube_file, "rb") as f:
-                starcube = pickle.load(f)
-            print("Loaded starcube")
-            os.remove(starcube_file)
+            if isinstance(contamination, fs.DHSContaminationResult):
+                targframe = None
+            else:
+                targframe_file = os.path.join(
+                    os.environ['SHARED_DATA_DIR'],
+                    f'{task_uuid}_targframe.pickle')
+                print(f"Loading {targframe_file}")
+                targframe = _load_and_remove_pickle(targframe_file)
+                print("Loaded targframe")
 
             results_file = os.path.join(
                 os.environ['SHARED_DATA_DIR'], f"{task_uuid}_results.pickle"
             )
             print(f"Loading {results_file}")
-            with open(results_file, "rb") as f:
-                results = pickle.load(f)
+            results = _load_and_remove_pickle(results_file)
             print("Loaded results")
-            os.remove(results_file)
 
             # MIRI calculates every orientation, so observability must come
             # from its explicit year-specific metadata rather than missing
@@ -694,8 +739,11 @@ def contam_visibility():
             print("Made PA list")
 
             if fs.contamination_supported(form.inst.data):
-                pctlines = fs.fraction_contaminated(
-                    form.inst.data, targframe, starcube)
+                if isinstance(contamination, fs.DHSContaminationResult):
+                    pctlines = contamination.order_fractions
+                else:
+                    pctlines = fs.fraction_contaminated(
+                        form.inst.data, targframe, contamination)
                 if form.inst.data == fs.miri_lrs.APERTURE:
                     asset = fs.miri_lrs.load_reference_trace()
                     contam_plot = cf.contam_slider_plot(
@@ -705,7 +753,7 @@ def contam_visibility():
                     print("Made MIRI LRS contamination plot")
                 elif form.inst.data.startswith('NIS'):
                     contam_plot = cf.soss_contamination_plot_layout(
-                        targframe, starcube, pctlines, badPAs,
+                        targframe, contamination, pctlines, badPAs,
                         form.inst.data, form.targname.data)
                     print("Made legacy and slider SOSS contamination plots")
                 else:
@@ -723,7 +771,7 @@ def contam_visibility():
                 print("Starcube Step 2")
                 starcube_targ[1, :, :] = (targframe[1]).T[::-1, ::-1]
                 print("Starcube Step 3")
-                starcube_targ[2:, :, :] = starcube.swapaxes(
+                starcube_targ[2:, :, :] = contamination.swapaxes(
                     1, 2)[:, ::-1, ::-1]
                 print("Made target starcube")
                 contam_plot = cf.contam(

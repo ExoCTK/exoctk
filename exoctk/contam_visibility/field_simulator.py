@@ -5,6 +5,8 @@ A module to calculate the contamination and visibility of a target on a JWST det
 """
 
 from copy import copy
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 import glob
@@ -39,7 +41,9 @@ import numpy as np
 import pysiaf
 import regions
 
-from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, get_target_data, get_canonical_name
+from ..utils import (
+    add_array_at_position, add_scaled_array_inplace, check_for_data,
+    get_canonical_name, get_env_variables, get_target_data, replace_NaNs)
 from ..pkgdata import resource_filename
 from ..modelgrid import ACES
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -58,6 +62,51 @@ logging.basicConfig(
 )
 
 _last_time = datetime.now()
+
+
+@dataclass(frozen=True)
+class DHSContaminationResult(Sequence):
+    """Compact fractional-contamination result for NIRCam DHS.
+
+    ``order_fractions`` contains one float64 array per DHS order. Each array
+    has axes ``(V3 position angle, detector wavelength column)`` and shape
+    ``(360, n_columns)``. ``position_angles`` maps the first axis to integer
+    V3 position angles. At unobservable angles, wavelength columns covered by
+    the extraction mask contain zero contamination and uncovered columns
+    remain NaN, matching reduction of an all-zero detector plane.
+
+    The sequence interface preserves callers that iterate over the former
+    list of order arrays while providing an explicit, inspectable schema.
+    Target-order detector images remain the first value returned by
+    :func:`field_simulation`; this object represents contamination only.
+    """
+
+    order_fractions: tuple
+    position_angles: np.ndarray
+
+    def __post_init__(self):
+        order_fractions = tuple(
+            np.asarray(order, dtype=float) for order in self.order_fractions)
+        position_angles = np.asarray(self.position_angles, dtype=int)
+        if position_angles.ndim != 1:
+            raise ValueError("position_angles must be one-dimensional")
+        for order in order_fractions:
+            if order.ndim != 2 or order.shape[0] != len(position_angles):
+                raise ValueError(
+                    "Each DHS order must have axes "
+                    "(position angle, wavelength column)")
+            order.setflags(write=False)
+        position_angles.setflags(write=False)
+        object.__setattr__(self, "order_fractions", order_fractions)
+        object.__setattr__(self, "position_angles", position_angles)
+
+    def __getitem__(self, index):
+        return self.order_fractions[index]
+
+    def __len__(self):
+        return len(self.order_fractions)
+
+
 def log_checkpoint(message):
     global _last_time
     now = datetime.now()
@@ -251,8 +300,12 @@ GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_v
 # Gaia TAP instance
 GAIA_TAP = GaiaFailoverTAP()
 
-# Model grid for trace scaling
-ACES_GRID = ACES()
+
+@lru_cache(maxsize=1)
+def _get_aces_grid():
+    """Load the ACES grid only when a trace actually needs scaling."""
+
+    return ACES()
 
 
 def NIRCam_detector_gap():
@@ -817,16 +870,18 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
         collapse_axis = (miri_lrs.CROSS_DISPERSION_AXIS
                          if aperture == miri_lrs.APERTURE else 0)
 
-    # Adding frames together
-    simframes = [tframe + starcube for tframe in targframes]
-
-    # Divide contam/(trace + contam) to get fraction of contamination
-    pctframes = [np.divide(starcube, sframe, out=np.full_like(starcube, np.nan), where=(sframe != 0) & ~np.isnan(sframe)) for sframe in simframes]
-
     # Average only pixels inside each trace mask. Multiplying off-mask pixels
     # by zero would leave them finite and incorrectly count them in the mean.
     pctlines = []
-    for i, (pframe, mask) in enumerate(zip(pctframes, trace_masks)):
+    for tframe, mask in zip(targframes, trace_masks):
+        # Process one spectral trace at a time.  DHS has ten detector-sized
+        # target traces, and retaining all sums and fractions simultaneously
+        # multiplies the peak by the number of traces.
+        simframe = tframe + starcube
+        pframe = np.divide(
+            starcube, simframe,
+            out=np.full_like(starcube, np.nan),
+            where=(simframe != 0) & ~np.isnan(simframe))
         masked = np.where(mask > 0, pframe * mask, np.nan)
         # pframe always has a leading PA/cube axis, so detector axis N is
         # cube axis N+1. Existing SOSS/DHS detector Y remains cube axis 1.
@@ -842,6 +897,7 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
             where=denominator > 0,
         )
         pctlines.append(mean_line)
+        del simframe, pframe, masked, valid, numerator, denominator
     return pctlines
 
 
@@ -889,9 +945,9 @@ def _project_sources_to_detector(attitude, stars, aperture, aper):
         ysci + aper['c0y0'] + aper['c1y0'] * (target_ysci - ysci),
         dtype=int)
     x_shift = np.asarray(aper['c1x1'] * (target_xord0 - xord0), dtype=int)
-    y_shift = (
-        np.asarray(aper['c1y1'] * (target_yord0 - yord0), dtype=int)
-        + np.asarray(aper['c2y1'] * (target_xord0 - xord0), dtype=int))
+    y_shift = np.add(
+        np.asarray(aper['c1y1'] * (target_yord0 - yord0), dtype=int),
+        np.asarray(aper['c2y1'] * (target_xord0 - xord0), dtype=int))
 
     stars['xord0'][source_slice] = xord0
     stars['yord0'][source_slice] = yord0
@@ -899,7 +955,8 @@ def _project_sources_to_detector(attitude, stars, aperture, aper):
     stars['yord1'][source_slice] = yord0 + aper['yord0to1'] + y_shift
 
 
-def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
+def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
+              include_target=True):
     """
     Calculate the V3 position angle for each target at the given PA
 
@@ -989,10 +1046,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     # boundary before multiplying detector traces by ``fluxscale``.
     FOVstars = _filter_valid_flux_sources(FOVstars, 'fluxscale', 'flux scale')
 
-    # Get the traces for sources in the FOV and add the column to the source table
-    star_traces = [get_trace(aperture.AperName, temp, typ) for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])]
-    FOVstars['traces'] = star_traces
-
     # Remove Teff value for GALAXY type
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
     FOVstars['Teff_str'] = ['---' if t == 'GALAXY' else str(int(i)) for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
@@ -1000,22 +1053,39 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
     logging.info("Calculating contamination from {} other sources in the FOV".format(len(FOVstars) - 1))
 
     # Make frame for the target and a frame for all the other stars
-    n_traces = len(star_traces[0])
-    targframes = [np.zeros((subY, subX))] * n_traces
+    dhs_mode = 'DHS' in aperture.AperName
+    if dhs_mode:
+        n_traces = len(_get_trace_template_cached(aperture.AperName)[0])
+    else:
+        # Existing modes use small precomputed detector images. Keep their
+        # established rendering path while DHS uses bounded working buffers.
+        star_traces = [
+            get_trace(aperture.AperName, temp, typ)
+            for temp, typ in zip(FOVstars['Teff'], FOVstars['type'])
+        ]
+        FOVstars['traces'] = star_traces
+        n_traces = len(star_traces[0])
+    targframes = ([np.zeros((subY, subX)) for _ in range(n_traces)]
+                  if include_target else None)
     starframe = np.zeros((subY, subX))
 
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
         fluxscale = float(star['fluxscale'])
-        traces = [trace * fluxscale for trace in star['traces']]
+        if dhs_mode:
+            traces = _iter_scaled_dhs_traces(
+                aperture.AperName, star['Teff'], star['type'])
+        else:
+            traces = ((trace, None) for trace in star['traces'])
 
         # Add each target trace to it's own frame
         if idx == 0:
-
-            for n, trace in enumerate(traces):
-
-                # Assumes the lower lft corner of the trace is in the lower left corner of the 'targframe' array
-                targframes[n] = add_array_at_position(targframes[n], trace, 0, 0)
+            if include_target:
+                for n, (trace, spectral_scale) in enumerate(traces):
+                    add_scaled_array_inplace(
+                        targframes[n], trace, 0, 0,
+                        fluxscale=fluxscale,
+                        spectral_scale=spectral_scale)
 
         # Add all orders to the same frame (if it is a STAR)
         else:
@@ -1029,19 +1099,33 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False):
 
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
-                for trace in traces:
-                    starframe = add_array_at_position(starframe, trace, int(star['xord1'] - stars['xord1'][0]), int(star['yord1'] - stars['yord1'][0]))
+                for trace, spectral_scale in traces:
+                    add_scaled_array_inplace(
+                        starframe, trace,
+                        int(star['xord1'] - stars['xord1'][0]),
+                        int(star['yord1'] - stars['yord1'][0]),
+                        fluxscale=fluxscale,
+                        spectral_scale=spectral_scale)
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
-    # Get percentage of contamination per trace
-    pctlines = [i[0] for i in fraction_contaminated(aperture.AperName, targframes, starframe)]
-
     # Make results dict
-    result = {'pa': V3PA, 'target': np.sum(targframes, axis=0), 'target_traces': targframes, 'contaminants': starframe}
+    result = {
+        'pa': V3PA,
+        'target': (np.sum(targframes, axis=0)
+                   if include_target else None),
+        'target_traces': targframes,
+        'contaminants': starframe,
+    }
     logging.info('Compiled final results.')
 
     if plot:
+        # The interactive single-PA plot includes one contamination line per
+        # spectral order. Full simulations reduce these later, but this path
+        # must calculate them before constructing the Bokeh data source.
+        pctlines = [
+            line[0] for line in fraction_contaminated(
+                aperture.AperName, targframes, starframe)]
 
         # Make the plot
         tools = ['pan', 'reset', 'box_zoom', 'wheel_zoom', 'save']
@@ -1184,8 +1268,54 @@ def update_task(task, new_state):
         task.update_state(state=new_state)
 
 
-def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=None, target_date=None, plot=False,
-                     task=None, title='My Target', target_db=None, slider=False):
+def _compact_dhs_results(aperture, pa_results):
+    """Stream DHS detector results into order-by-PA contamination fractions.
+
+    Parameters
+    ----------
+    aperture : str
+        NIRCam DHS aperture name.
+    pa_results : iterable of dict
+        Results from :func:`calc_v3pa`. The iterable may be a generator, so at
+        most one PA's detector images need to exist at a time. Its first item
+        must include target traces; later items may omit them.
+
+    Returns
+    -------
+    tuple
+        Target-order detector images and a :class:`DHSContaminationResult`.
+    """
+
+    targframes = None
+    compact_pctlines = None
+    for result in pa_results:
+        if targframes is None:
+            if result['target_traces'] is None:
+                raise ValueError(
+                    "The first DHS PA result must include target traces")
+            targframes = [
+                np.asarray(trace) for trace in result['target_traces']]
+            empty_lines = fraction_contaminated(
+                aperture, targframes, np.zeros_like(targframes[0]))
+            compact_pctlines = [
+                np.repeat(line, 360, axis=0) for line in empty_lines]
+
+        pa_lines = fraction_contaminated(
+            aperture, targframes, result['contaminants'])
+        for order_lines, line in zip(compact_pctlines, pa_lines):
+            order_lines[int(result['pa'])] = line[0]
+
+    if targframes is None:
+        raise ValueError("At least one DHS PA result is required")
+
+    return targframes, DHSContaminationResult(
+        order_fractions=tuple(compact_pctlines),
+        position_angles=np.arange(360, dtype=int))
+
+
+def field_simulation(ra=None, dec=None, aperture=None, targname=None,
+                     binComp=None, target_date=None, plot=False, task=None,
+                     title='My Target', target_db=None, slider=False):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1210,15 +1340,16 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         The path to the precomputed .h5 database of results
     slider: bool
         Make the PA slider plot instead of the legacy wavelength vs. PA plots
-
     Returns
     -------
-    simuCube : np.ndarray
-        The simulated data cube. Index 0 and 1 (axis=0) show the trace of
-        the target for orders 1 and 2 (respectively). Index 2-362 show the trace
-        of the target at every position angle (PA) of the instrument.
-    plt: NoneType, bokeh.plotting.figure
-        The plot of the contaminationas a function of PA
+    targframes : list of numpy.ndarray
+        One target detector image per spectral order.
+    contamination : numpy.ndarray or DHSContaminationResult
+        Existing modes return the established dense detector cube. NIRCam DHS
+        returns compact fractional contamination by order, with axes described
+        by :class:`DHSContaminationResult`.
+    position_angles : object
+        Observable position-angle metadata, or a plot when ``plot=True``.
 
     Example
     -------
@@ -1260,7 +1391,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
     # Require target_db and targname
     # Require None for binComp and target_date, since these change the results
     precomputed = False
-    if target_db is not None:
+    bounded_dhs = 'DHS' in aperture
+    if target_db is not None and not bounded_dhs:
         logging.info(f"Found target DB {target_db}")
         if targname is not None:
             logging.info(f"Target name is {targname}")
@@ -1357,14 +1489,23 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         # The slings and arrows of outrageous list comprehensions,
         # Or to take arms against a sea of troubles,
         # And by multiprocessing end them?
+        def calculate_pa_results():
+            for i, pa in enumerate(calculation_pa_list):
+                update_task(
+                    task,
+                    f"CALCULATING PA {i + 1} OF {len(calculation_pa_list)}")
+                logging.info(
+                    f"Calculating PA {i + 1} of {len(calculation_pa_list)}")
+                yield calc_v3pa(
+                    pa, stars=stars, aperture=aper, plot=False,
+                    include_target=(not bounded_dhs or i == 0))
+
         results = []
-        for i, pa in enumerate(calculation_pa_list):
-            update_task(
-                task, f"CALCULATING PA {i+1} OF {len(calculation_pa_list)}")
-            logging.info(
-                f"Calculating PA {i+1} of {len(calculation_pa_list)}")
-            result = calc_v3pa(pa, stars=stars, aperture=aper, plot=False)
-            results.append(result)
+        if bounded_dhs:
+            targframes, starcube = _compact_dhs_results(
+                aperture, calculate_pa_results())
+        else:
+            results = list(calculate_pa_results())
 
         if aperture == miri_lrs.APERTURE:
             observable = set(map(int, observable_pa_list))
@@ -1376,17 +1517,23 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         else:
             goodPA_list = observable_pa_list
 
-        # We only need one target frame frames
-        targframes = [np.asarray(trace) for trace in results[0]['target_traces']]
+        if not bounded_dhs:
+            # We only need one target frame frames
+            targframes = [
+                np.asarray(trace)
+                for trace in results[0]['target_traces']]
 
-        # Make sure starcube is of shape (PA, rows, cols)
-        starcube = np.zeros((360, targframes[0].shape[0], targframes[0].shape[1]))
+            # Make sure starcube is of shape (PA, rows, cols)
+            starcube = np.zeros(
+                (360, targframes[0].shape[0], targframes[0].shape[1]))
 
-        # Copy good PA results into completed starcube
-        for result in results:
-            starcube[result['pa'], :, :] = result['contaminants']
+            # Copy good PA results into completed starcube
+            for result in results:
+                starcube[result['pa'], :, :] = result['contaminants']
 
-        if (targname is not None) and (target_db is not None):
+        should_cache = all((
+            targname is not None, target_db is not None, not bounded_dhs))
+        if should_cache:
             logging.info(f"Saving {targname} to cache {target_db}")
             save_exoplanet_data(
                 target_db, targname, aperture, ra, dec, targframes, starcube,
@@ -1407,7 +1554,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
         badPAs = unobservable_v3pas(goodPA_list)
 
         if aperture == miri_lrs.APERTURE:
-            pctlines = fraction_contaminated(aperture, targframes, starcube)
+            pctlines = fraction_contaminated(
+                aperture, targframes, starcube)
             asset = miri_lrs.load_reference_trace()
             contam_plot = cf.contam_slider_plot(
                 pctlines, badPAs, wavelength=asset.wavelength,
@@ -1415,8 +1563,10 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None, binComp=No
                 contamination_labels=['Spectrum'], y_max=0.1)
 
         # Make slider contam plot
-        elif slider:
-            pctlines = fraction_contaminated(aperture, targframes, starcube)
+        elif slider or bounded_dhs:
+            pctlines = (starcube if bounded_dhs else
+                        fraction_contaminated(
+                            aperture, targframes, starcube))
             contam_plot = cf.contam_slider_plot(
                 pctlines, badPAs, instrument=aperture)
 
@@ -1527,10 +1677,25 @@ def _trace_cache_temperature(teff, stype):
 
 
 def get_trace(aperture, teff, stype, plot=False):
-    """Get prepared traces for a source, reusing cached detector templates."""
+    """Get prepared traces for a source.
 
-    traces = list(_get_trace_cached(
-        aperture, _trace_cache_temperature(teff, stype), stype))
+    DHS detector templates are materialized here for API compatibility.
+    Production rendering uses :func:`_iter_scaled_dhs_traces` so the cache
+    retains only one base template and compact wavelength scaling vectors.
+    """
+
+    if 'DHS' in aperture:
+        traces = []
+        for trace, spectral_scale in _iter_scaled_dhs_traces(
+                aperture, teff, stype):
+            prepared = np.array(trace, copy=True)
+            if spectral_scale is not None:
+                prepared *= spectral_scale[np.newaxis, :]
+            prepared.setflags(write=False)
+            traces.append(prepared)
+    else:
+        traces = list(_get_trace_cached(
+            aperture, _trace_cache_temperature(teff, stype), stype))
 
     if plot:
         f = figure(width=900, height=450)
@@ -1541,6 +1706,57 @@ def get_trace(aperture, teff, stype, plot=False):
         show(f)
 
     return traces
+
+
+@lru_cache(maxsize=4)
+def _get_trace_template_cached(aperture):
+    """Load and prepare one immutable trace template per aperture."""
+    trace_file = os.path.join(
+        os.environ['EXOCTK_DATA'],
+        f'exoctk_contam/traces/{aperture}.npy')
+    data = np.load(trace_file, mmap_mode='r')
+    waves = data[:, 0, :]
+    traces = data[:, 1:, :]
+    # Current DHS templates contain no NaNs. Preserve the mmap views in that
+    # normal case; retain the established neighbor-fill behavior for older or
+    # user-generated templates that do contain them.
+    if np.isnan(traces).any():
+        traces = replace_NaNs(traces)
+    waves.setflags(write=False)
+    traces.setflags(write=False)
+    return waves, traces
+
+
+@lru_cache(maxsize=128)
+def _get_dhs_spectral_scales_cached(aperture, teff):
+    """Return compact per-column stellar scaling for every DHS trace."""
+    waves, _ = _get_trace_template_cached(aperture)
+    model = _get_aces_grid().get(
+        teff, 5.5, 0, mu1=True, interp=False)
+    model_w = np.asarray(model['wave'])
+    model_f = np.array(model['flux'], copy=True)
+    model_f /= np.trapezoid(model_f, model_w)
+    scales = []
+    for wave in waves:
+        scaled_f = np.interp(wave, model_w, model_f)
+        scaled_f /= np.nansum(scaled_f)
+        scaled_f.setflags(write=False)
+        scales.append(scaled_f)
+    return tuple(scales)
+
+
+def _iter_scaled_dhs_traces(aperture, teff, stype):
+    """Yield base DHS traces and compact column scales for one source."""
+    if stype == 'GALAXY':
+        for trace in get_trace_mask(aperture):
+            yield trace, None
+        return
+
+    _, traces = _get_trace_template_cached(aperture)
+    scales = _get_dhs_spectral_scales_cached(
+        aperture, _trace_cache_temperature(teff, stype))
+    yield from zip(traces, scales)
+
 
 @lru_cache(maxsize=128)
 def _get_trace_cached(aperture, teff, stype):
@@ -1578,17 +1794,19 @@ def _get_trace_cached(aperture, teff, stype):
 
         # Multiply each template trace by the interpolated stellar model (assumes isowavelength columns)
         for idx, (wave, trace) in enumerate(zip(waves, traces)):
-            model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
+            model = _get_aces_grid().get(
+                teff, 5.5, 0, mu1=True, interp=False)
             model_w, model_f = model['wave'], model['flux']
             model_f /= np.trapezoid(model_f, model_w)
             scaled_f = np.interp(wave, model_w, model_f)
             scaled_f /= np.nansum(scaled_f)
             traces[idx] *= scaled_f[np.newaxis, :]
 
-    for trace in traces:
+    immutable_traces = tuple(traces)
+    for trace in immutable_traces:
         trace.setflags(write=False)
 
-    return tuple(traces)
+    return immutable_traces
 
 
 def old_plot_contamination(targframe_o1, targframe_o2, targframe_o3, starcube, wlims, badPAs=[], title=''):
