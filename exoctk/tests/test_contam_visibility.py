@@ -640,7 +640,7 @@ def test_bounded_scaled_add_matches_full_detector_temporary(
         x, y, centered=centered)
     actual = destination.copy()
 
-    returned = field_simulator._add_scaled_array_inplace(
+    returned = field_simulator.add_scaled_array_inplace(
         actual, source, x, y, centered=centered, fluxscale=fluxscale,
         spectral_scale=spectral_scale, row_chunk=2)
 
@@ -816,8 +816,9 @@ def test_package_import_does_not_require_exoctk_data():
     'NRCA5_41STRIPE1_DHS_F322W2',
     'NRCA5_41STRIPE1_DHS_F444W',
 ])
-def test_compact_dhs_multi_pa_matches_dense_reduction(monkeypatch, aperture):
-    """Streaming ten DHS orders exactly matches a safe synthetic dense cube."""
+def test_streamed_dhs_reconstituted_starcube_matches_legacy(
+        monkeypatch, aperture):
+    """Reconstituted streamed frames exactly match the legacy DHS starcube."""
 
     rng = np.random.default_rng(677)
     target_traces = [rng.random((33, 7)) for _ in range(10)]
@@ -832,29 +833,49 @@ def test_compact_dhs_multi_pa_matches_dense_reduction(monkeypatch, aperture):
         lambda *args, **kwargs: trace_masks)
 
     pa_values = (0, 1, 33)
-    contaminants = {}
+    source_traces = rng.random((2, 10, 33, 7))
+    spectral_scales = rng.random((2, 10, 7))
+    flux_scales = (0.37, 1.41)
+    positions = {
+        0: ((0, 0), (1, -1)),
+        1: ((-1, 1), (0, 0)),
+        33: ((1, 0), (-1, -1)),
+    }
+    legacy_cube = np.zeros((360, 33, 7))
     for pa in pa_values:
         frame = np.zeros((33, 7))
-        source = rng.random((33, 7))
-        field_simulator._add_scaled_array_inplace(
-            frame, source, 0, 0, fluxscale=pa + 1, row_chunk=32)
-        contaminants[pa] = frame
+        for traces, scales, fluxscale, (x, y) in zip(
+                source_traces, spectral_scales, flux_scales, positions[pa]):
+            for trace, spectral_scale in zip(traces, scales):
+                scaled_trace = (
+                    trace * spectral_scale[np.newaxis, :] * fluxscale)
+                frame = field_simulator.add_array_at_position(
+                    frame, scaled_trace, x, y)
+        legacy_cube[pa] = frame
 
+    reconstituted_cube = np.zeros_like(legacy_cube)
     def pa_results():
         for index, pa in enumerate(pa_values):
+            frame = np.zeros((33, 7))
+            for traces, scales, fluxscale, (x, y) in zip(
+                    source_traces, spectral_scales, flux_scales,
+                    positions[pa]):
+                for trace, spectral_scale in zip(traces, scales):
+                    field_simulator.add_scaled_array_inplace(
+                        frame, trace, x, y, fluxscale=fluxscale,
+                        spectral_scale=spectral_scale, row_chunk=8)
+            reconstituted_cube[pa] = frame
             yield {
                 'pa': pa,
                 'target_traces': target_traces if index == 0 else None,
-                'contaminants': contaminants[pa],
+                'contaminants': frame,
             }
 
     returned_targets, compact = field_simulator._compact_dhs_results(
         aperture, pa_results())
-    dense_cube = np.zeros((360, 33, 7))
-    for pa, frame in contaminants.items():
-        dense_cube[pa] = frame
+    np.testing.assert_array_equal(reconstituted_cube, legacy_cube)
     expected = field_simulator.fraction_contaminated(
-        aperture, target_traces, dense_cube, trace_masks=trace_masks)
+        aperture, target_traces, legacy_cube, trace_masks=trace_masks)
 
     assert isinstance(compact, field_simulator.DHSContaminationResult)
     assert len(compact) == 10
@@ -882,7 +903,7 @@ def test_bounded_accumulation_scales_across_source_chunks(source_count):
     for source, scale in zip(sources, scales):
         expected = field_simulator.add_array_at_position(
             expected, source * scale, 0, 0)
-        field_simulator._add_scaled_array_inplace(
+        field_simulator.add_scaled_array_inplace(
             actual, source, 0, 0, fluxscale=scale, row_chunk=32)
 
     np.testing.assert_array_equal(actual, expected)

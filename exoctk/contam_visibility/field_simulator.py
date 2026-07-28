@@ -41,7 +41,9 @@ import numpy as np
 import pysiaf
 import regions
 
-from ..utils import get_env_variables, check_for_data, add_array_at_position, replace_NaNs, get_target_data, get_canonical_name
+from ..utils import (
+    add_array_at_position, add_scaled_array_inplace, check_for_data,
+    get_canonical_name, get_env_variables, get_target_data, replace_NaNs)
 from ..pkgdata import resource_filename
 from ..modelgrid import ACES
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -899,52 +901,6 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     return pctlines
 
 
-def _add_scaled_array_inplace(destination, source, x, y, *,
-                              fluxscale=1., spectral_scale=None,
-                              centered=False, row_chunk=32):
-    """Add a scaled 2-D source without copying a full detector image.
-
-    ``utils.add_array_at_position`` deliberately copies its destination, which
-    is convenient for small images but produces a detector-sized temporary for
-    every DHS trace.  This bounded variant mutates a private accumulation
-    buffer and limits multiplication temporaries to ``row_chunk`` rows.
-    """
-    h_dest, w_dest = destination.shape
-    h_source, w_source = source.shape
-    if centered:
-        x -= w_source // 2
-        y -= h_source // 2
-
-    x0 = max(x, 0)
-    y0 = max(y, 0)
-    x1 = min(x + w_source, w_dest)
-    y1 = min(y + h_source, h_dest)
-    if x0 >= x1 or y0 >= y1:
-        return destination
-
-    source_x0 = x0 - x
-    source_y0 = y0 - y
-    source_x1 = source_x0 + x1 - x0
-    scale = float(fluxscale)
-    column_scale = None
-    if spectral_scale is not None:
-        column_scale = np.asarray(
-            spectral_scale[source_x0:source_x1], dtype=float)
-
-    for dest_y0 in range(y0, y1, row_chunk):
-        dest_y1 = min(dest_y0 + row_chunk, y1)
-        source_chunk_y0 = source_y0 + dest_y0 - y0
-        source_chunk_y1 = source_chunk_y0 + dest_y1 - dest_y0
-        chunk = source[
-            source_chunk_y0:source_chunk_y1, source_x0:source_x1]
-        if column_scale is None:
-            destination[dest_y0:dest_y1, x0:x1] += chunk * scale
-        else:
-            destination[dest_y0:dest_y1, x0:x1] += (
-                chunk * column_scale[np.newaxis, :] * scale)
-    return destination
-
-
 def _project_sources_to_detector(attitude, stars, aperture, aper):
     """Project all non-target sources for one PA using pySIAF array inputs.
 
@@ -1126,7 +1082,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         if idx == 0:
             if include_target:
                 for n, (trace, spectral_scale) in enumerate(traces):
-                    _add_scaled_array_inplace(
+                    add_scaled_array_inplace(
                         targframes[n], trace, 0, 0,
                         fluxscale=fluxscale,
                         spectral_scale=spectral_scale)
@@ -1144,7 +1100,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
                 for trace, spectral_scale in traces:
-                    _add_scaled_array_inplace(
+                    add_scaled_array_inplace(
                         starframe, trace,
                         int(star['xord1'] - stars['xord1'][0]),
                         int(star['yord1'] - stars['yord1'][0]),

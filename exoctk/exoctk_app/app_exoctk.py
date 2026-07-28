@@ -703,20 +703,16 @@ def contam_visibility():
             task_uuid = task_result.get()
             print(f"Got task ID {task_uuid}")
 
-            contamination_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'],
-                f'{task_uuid}_contamination.pickle')
-            starcube_file = os.path.join(
-                os.environ['SHARED_DATA_DIR'],
-                f'{task_uuid}_starcube.pickle')
-            if os.path.exists(contamination_file):
-                print(f"Loading {contamination_file}")
-                contamination = _load_and_remove_pickle(contamination_file)
+            if 'DHS' in form.inst.data:
+                contamination_file = os.path.join(
+                    os.environ['SHARED_DATA_DIR'],
+                    f'{task_uuid}_contamination.pickle')
             else:
-                # Allow an in-flight task from the previous deployment to
-                # finish using the legacy artifact name.
-                print(f"Loading {starcube_file}")
-                contamination = _load_and_remove_pickle(starcube_file)
+                contamination_file = os.path.join(
+                    os.environ['SHARED_DATA_DIR'],
+                    f'{task_uuid}_starcube.pickle')
+            print(f"Loading {contamination_file}")
+            contamination = _load_and_remove_pickle(contamination_file)
             print("Loaded contamination")
 
             if isinstance(contamination, fs.DHSContaminationResult):
