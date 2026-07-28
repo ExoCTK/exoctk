@@ -298,8 +298,12 @@ GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_v
 # Gaia TAP instance
 GAIA_TAP = GaiaFailoverTAP()
 
-# Model grid for trace scaling
-ACES_GRID = ACES()
+
+@lru_cache(maxsize=1)
+def _get_aces_grid():
+    """Load the ACES grid only when a trace actually needs scaling."""
+
+    return ACES()
 
 
 def NIRCam_detector_gap():
@@ -1765,7 +1769,8 @@ def _get_trace_template_cached(aperture):
 def _get_dhs_spectral_scales_cached(aperture, teff):
     """Return compact per-column stellar scaling for every DHS trace."""
     waves, _ = _get_trace_template_cached(aperture)
-    model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
+    model = _get_aces_grid().get(
+        teff, 5.5, 0, mu1=True, interp=False)
     model_w = np.asarray(model['wave'])
     model_f = np.array(model['flux'], copy=True)
     model_f /= np.trapezoid(model_f, model_w)
@@ -1827,7 +1832,8 @@ def _get_trace_cached(aperture, teff, stype):
 
         # Multiply each template trace by the interpolated stellar model (assumes isowavelength columns)
         for idx, (wave, trace) in enumerate(zip(waves, traces)):
-            model = ACES_GRID.get(teff, 5.5, 0, mu1=True, interp=False)
+            model = _get_aces_grid().get(
+                teff, 5.5, 0, mu1=True, interp=False)
             model_w, model_f = model['wave'], model['flux']
             model_f /= np.trapezoid(model_f, model_w)
             scaled_f = np.interp(wave, model_w, model_f)

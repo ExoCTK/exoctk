@@ -23,9 +23,11 @@ Use
 import json
 import os
 import pickle
+import subprocess
 import sys
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -575,7 +577,9 @@ def test_trace_templates_are_cached_across_position_angles(monkeypatch):
         return {name: values.copy() for name, values in model.items()}
 
     monkeypatch.setattr(field_simulator.np, 'load', synthetic_load)
-    monkeypatch.setattr(field_simulator.ACES_GRID, 'get', synthetic_model)
+    monkeypatch.setattr(
+        field_simulator, '_get_aces_grid',
+        lambda: SimpleNamespace(get=synthetic_model))
     field_simulator._get_trace_cached.cache_clear()
     try:
         first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
@@ -682,8 +686,9 @@ def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
         field_simulator, '_get_trace_template_cached',
         lambda aperture: (waves, traces))
     monkeypatch.setattr(
-        field_simulator.ACES_GRID, 'get',
-        lambda *args, **kwargs: model)
+        field_simulator, '_get_aces_grid',
+        lambda: SimpleNamespace(
+            get=lambda *args, **kwargs: model))
     field_simulator._get_dhs_spectral_scales_cached.cache_clear()
     try:
         scales = field_simulator._get_dhs_spectral_scales_cached(
@@ -694,6 +699,18 @@ def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
     assert len(scales) == traces.shape[0]
     assert all(scale.shape == (traces.shape[-1],) for scale in scales)
     assert sum(scale.nbytes for scale in scales) < traces.nbytes
+
+
+def test_package_import_does_not_require_exoctk_data():
+    """Documentation imports must not initialize data-backed model grids."""
+
+    env = os.environ.copy()
+    env.pop('EXOCTK_DATA', None)
+    imported = subprocess.run(
+        [sys.executable, '-c', 'import exoctk'],
+        env=env, capture_output=True, text=True, check=False)
+
+    assert imported.returncode == 0, imported.stderr
 
 
 @pytest.mark.parametrize('aperture', [
