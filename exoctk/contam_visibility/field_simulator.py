@@ -1096,6 +1096,11 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         if idx == 0:
             if include_target:
                 for n, (trace, spectral_scale) in enumerate(traces):
+
+                    # Only add target order 1 if SUBSTRIP96
+                    if aperture.AperName == "NIS_SUBSTRIP96" and n > 0:
+                        continue
+
                     add_scaled_array_inplace(
                         targframes[n], trace, 0, 0,
                         fluxscale=fluxscale,
@@ -1122,6 +1127,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
                         spectral_scale=spectral_scale)
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
+
+    if aperture.AperName == 'NIS_SUBSTRIP96':
+        targframes = targframes[:1]
 
     # Make results dict
     result = {
@@ -1257,7 +1265,7 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         rfig = figure(title='Target Contamination', width=900, height=200, match_aspect=True, tools=tools, x_range=fig.x_range)
         colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
         trace_names = inst['trace_names']
-        for n in np.arange(n_traces):
+        for n in np.arange(len(pctlines)):
             rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=copy(rsource))
             glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
             rfig.add_glyph(copy(rsource), glyph)
@@ -1808,6 +1816,11 @@ def _get_trace_cached(aperture, teff, stype):
         traces = get_trace_mask(aperture)
 
     else:
+
+        # Use SUBSTRIP256 traces for SUBSTRIP96 calculations as well
+        if aperture == 'NIS_SUBSTRIP96':
+            aperture = 'NIS_SUBSTRIP256'
+
         # Get the template trace file, which has the wavelength-dependent throughput encoded
         trace_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy')
 
