@@ -45,7 +45,7 @@ def make_SOSS_trace_template():
 
     # Make SUBSTRIP256 traces
     substrip256_traces = np.zeros((3, ydim_256 + 1, xdim))
-    spectrace256_file = os.path.join(os.environ['CRDS_PATH'], 'references/jwst/niriss/jwst_niriss_spectrace_0023.fits')
+    spectrace256_file = os.path.join(os.environ['EXOCTK_DATA'], 'exoctk_contam/wavecal/jwst_niriss_spectrace_0023.fits')
     for order in [1, 2, 3]:
         frame = np.zeros((ydim_256, xdim))
         _, x, y, w = get_soss_traces(245.76, order)
