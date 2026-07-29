@@ -36,6 +36,7 @@ from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, Colo
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from scipy.ndimage import rotate
+from svo_filters import Filter
 import h5py
 import numpy as np
 import pysiaf
@@ -1753,6 +1754,38 @@ def _get_trace_template_cached(aperture):
     return waves, traces
 
 
+def normalize_to_gaia_g(model_w, model_f):
+    """
+    Normalize a stellar spectrum by its synthetic Gaia G-band flux
+
+    Parameters
+    ----------
+    model_w : ndarray
+        Model wavelength array (same units as gaia_w).
+    model_f : ndarray
+        Model flux density array.
+
+    Returns
+    -------
+    ndarray
+        Model flux normalized to unit synthetic Gaia G flux.
+    """
+    # Get Gaia G throughput
+    Gband = Filter('Gaia.G')
+    thru_w, thru_a = Gband.rsr[0]
+
+    # Interpolate Gaia throughput onto model wavelength grid
+    Tg = np.interp(model_w, thru_w, thru_a, left=0.0, right=0.0)
+
+    # Photon-counting synthetic photometry
+    Fg = np.trapezoid(model_f * Tg * model_w, model_w)
+
+    if Fg <= 0:
+        raise ValueError("Synthetic Gaia G flux is zero or negative.")
+
+    return model_f / Fg
+
+
 @lru_cache(maxsize=128)
 def _get_dhs_spectral_scales_cached(aperture, teff):
     """Return compact per-column stellar scaling for every DHS trace."""
@@ -1761,13 +1794,19 @@ def _get_dhs_spectral_scales_cached(aperture, teff):
         teff, 5.5, 0, mu1=True, interp=False)
     model_w = np.asarray(model['wave'])
     model_f = np.array(model['flux'], copy=True)
-    model_f /= np.trapezoid(model_f, model_w)
+
+    # Normalize once using synthetic Gaia G
+    model_f = normalize_to_gaia_g(model_w, model_f)
+
+    # Add valid wavelengths to scaled traces
     scales = []
     for wave in waves:
-        scaled_f = np.interp(wave, model_w, model_f)
-        scaled_f /= np.nansum(scaled_f)
+        valid = wave > 0
+        scaled_f = np.zeros_like(wave)
+        scaled_f[valid] = np.interp(wave[valid], model_w, model_f)
         scaled_f.setflags(write=False)
         scales.append(scaled_f)
+
     return tuple(scales)
 
 
@@ -1825,8 +1864,11 @@ def _get_trace_cached(aperture, teff, stype):
 
         # Get the normalized stellar model for this source
         model = _get_aces_grid().get(teff, 5.5, 0, mu1=True, interp=False)
-        model_w, model_f = model['wave'], model['flux']
-        model_f /= np.trapezoid(model_f, model_w)
+        model_w = np.asarray(model['wave'])
+        model_f = np.array(model['flux'], copy=True)
+
+        # Normalize once using synthetic Gaia G
+        model_f = normalize_to_gaia_g(model_w, model_f)
 
         # Multiply each template trace by the interpolated stellar model (assumes isowavelength columns)
         for idx, (wave, trace) in enumerate(zip(waves, traces)):
