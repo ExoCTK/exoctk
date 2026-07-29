@@ -1,16 +1,11 @@
-from copy import copy
 import numpy as np
 import os
 from exoctk.utils import add_array_at_position
-from bokeh.plotting import figure, show
 from scipy.interpolate import interp1d
 import stpsf
-from hotsoss.plotting import plot_frame
 from jwst.extract_1d.soss_extract.pastasoss import get_soss_traces
 from astropy.io import fits
 from svo_filters import Filter
-
-from exoctk.contam_visibility.field_simulator import APERTURES
 
 
 def make_SOSS_trace_template():
@@ -56,15 +51,8 @@ def make_SOSS_trace_template():
         dw = np.abs(np.gradient(w))
 
         # Trace is constructed left to right, in reverse dispersion direction
-        # so start with PSF for the longest possible wavelength in the cube
-        w_prev = cube[-1]
         for i, (xv, yv, wv, dv, tv) in enumerate(zip(x, y, w, dw, thru)):
-            try:
-                psf = psf_interp(wv) * tv * dv
-                w_prev = psf
-            except:
-                print(i, wave, 'Using previous PSF')
-                psf = w_prev * tv
+            psf = psf_interp(wv) * tv * dv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
 
         substrip256_traces[order - 1, 1:, :] = frame
@@ -110,6 +98,7 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
     fov_pixels = 65
     oversample = 1
     for order, pupil in enumerate(pupils):
+        nircam.pupil_mask = pupil
         cube = np.zeros((nwave, fov_pixels, fov_pixels))
         for i, wave_um in enumerate(wavelengths_um):
             hdul = nircam.calc_psf(monochromatic=wave_um * 1e-6, fov_pixels=fov_pixels, oversample=oversample)
@@ -122,17 +111,11 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
 
         # Add PSFs to frame
         x, y, w = all_traces[order]
-        nircam.pupil_mask = pupils[order]
         thru = np.interp(w, thru_w, thru_a)
         frame = np.zeros((xdim, ydim))
 
         for i, (xv, yv, wv, tv) in enumerate(zip(x, y, w, thru)):
-            try:
-                psf = psf_interp(wv) * tv
-                w_prev = psf
-            except:
-                print(i, wave, 'Using previous PSF')
-                psf = w_prev * tv
+            psf = psf_interp(wv) * tv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
 
         # Add frame to cube

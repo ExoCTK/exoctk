@@ -579,13 +579,6 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin, target_date=T
     # Derived from K. Volk
     stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
 
-    # # Calculate relative flux in Jband (Hold off on this)
-    # GtoJ_coeffs = [-1.22568340e-11, 2.41639448e-07, -1.70092031e-03, 3.15459542e+00] # Measured from synthetic colors
-    # log10_gj = np.polyval(GtoJ_coeffs, stars['Teff'])
-    # gj_factor_interp = 10 ** log10_gj
-    # stars['estimated_j_flux'] = stars['phot_g_mean_flux'] * gj_factor_interp
-    # stars['fluxscale'] = stars['estimated_j_flux'] / stars['estimated_j_flux'][0]
-
     # Calculate relative flux in Gband
     stars['fluxscale'] = stars['phot_g_mean_flux'] / stars['phot_g_mean_flux'][0]
 
