@@ -1431,6 +1431,105 @@ def test_miri_precompute_can_add_target_to_existing_database(
         np.testing.assert_array_equal(group['extraction_mask'][:], mask)
 
 
+@pytest.mark.parametrize("aperture", [
+    "NRCA5_41STRIPE1_DHS_F322W2",
+    "NRCA5_41STRIPE1_DHS_F444W",
+])
+def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
+    """Compact DHS caches preserve the reconstituted order products exactly."""
+
+    filename = tmp_path / "dhs-cache.h5"
+    target = [
+        np.full((3, 7), order + 0.25, dtype=np.float32)
+        for order in range(2)]
+    fractions = [
+        np.arange(28, dtype=float).reshape(4, 7),
+        np.arange(28, 56, dtype=float).reshape(4, 7)]
+    fractions[0][1, 3] = np.nan
+    compact = field_simulator.DHSContaminationResult(
+        tuple(fractions), np.array([0, 12, 180, 359]))
+
+    # Simulate a legacy group: saving a compact result must replace, rather
+    # than reuse, its dense contamination placeholders.
+    with precompute.h5py.File(filename, "w") as handle:
+        group = handle.create_group("Synthetic b")
+        group.create_dataset(
+            "contamination", shape=(0, 3, 7), dtype="float32")
+        group.create_dataset("plane_index", shape=(0,), dtype="int16")
+
+    precompute.save_exoplanet_data(
+        filename, "Synthetic b", aperture, 10., 20., target, compact,
+        goodPA_list=np.array([0, 12, 180, 359]))
+    monkeypatch.setattr(
+        field_simulator, "get_canonical_name", lambda name: name)
+    restored_target, restored, _ = (
+        field_simulator.fetch_contam_results("Synthetic b", filename))
+
+    np.testing.assert_array_equal(restored_target, np.asarray(target))
+    assert isinstance(restored, field_simulator.DHSContaminationResult)
+    np.testing.assert_array_equal(
+        restored.position_angles, compact.position_angles)
+    for actual, expected in zip(restored, compact):
+        np.testing.assert_array_equal(actual, expected)
+        assert not actual.flags.writeable
+    assert not restored.position_angles.flags.writeable
+    with precompute.h5py.File(filename, "r") as handle:
+        group = handle["Synthetic b"]
+        assert "contamination" not in group
+        assert "plane_index" not in group
+        assert group["dhs_order_fractions"].shape == (2, 4, 7)
+
+
+def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
+    """A complete compact DHS cache bypasses detector rendering."""
+
+    aperture = "NRCA5_41STRIPE1_DHS_F322W2"
+    filename = tmp_path / "dhs-cache.h5"
+    target = [np.ones((2, 5), dtype=np.float32)]
+    compact = field_simulator.DHSContaminationResult(
+        (np.arange(15, dtype=float).reshape(3, 5),),
+        np.array([0, 45, 359]))
+    precompute.save_exoplanet_data(
+        filename, "Synthetic b", aperture, 10., 20., target, compact,
+        goodPA_list=np.array([0, 45, 359]))
+
+    monkeypatch.setattr(field_simulator, "check_for_data", lambda *_: None)
+    monkeypatch.setattr(
+        field_simulator, "get_canonical_name", lambda name: name)
+    monkeypatch.setattr(
+        field_simulator, "get_target_data",
+        lambda name: ({"RA": 10., "DEC": 20.}, None))
+    monkeypatch.setattr(
+        field_simulator.pysiaf, "Siaf",
+        lambda *_: pytest.fail("cache hit unexpectedly rendered DHS"))
+
+    restored_target, restored, good_pas = field_simulator.field_simulation(
+        targname="Synthetic b", aperture=aperture, target_db=filename)
+
+    np.testing.assert_array_equal(restored_target, np.asarray(target))
+    np.testing.assert_array_equal(restored[0], compact[0])
+    np.testing.assert_array_equal(good_pas, [0, 45, 359])
+
+
+def test_legacy_dhs_cache_is_not_accepted(tmp_path):
+    """Dense DHS cache groups are recomputed instead of loaded as compact."""
+
+    filename = tmp_path / "legacy-dhs-cache.h5"
+    with precompute.h5py.File(filename, "w") as handle:
+        group = handle.create_group("Synthetic b")
+        group.attrs["filled"] = True
+        group.attrs["goodPA_list"] = [0]
+        group.create_dataset(
+            "target_trace", shape=(1, 2, 3), dtype="float32")
+        group.create_dataset(
+            "contamination", shape=(1, 2, 3), dtype="float32")
+        group.create_dataset("plane_index", data=[0])
+        assert not field_simulator._cached_contam_result_available(
+            group, compact_dhs=True)
+        assert field_simulator._cached_contam_result_available(
+            group, compact_dhs=False)
+
+
 def test_miri_pa_rotation_uses_siaf_coordinates():
     aperture = pysiaf.Siaf('MIRI')[miri_lrs.APERTURE]
     xdet, ydet = aperture.reference_point('det')
