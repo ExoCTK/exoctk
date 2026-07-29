@@ -230,6 +230,52 @@ def add_array_at_position(Arr, B, x, y, centered=False, plot=False):
     return A
 
 
+def add_scaled_array_inplace(destination, source, x, y, *, fluxscale=1.,
+                             spectral_scale=None, centered=False,
+                             row_chunk=32):
+    """Add a scaled 2-D source using bounded multiplication temporaries.
+
+    Unlike :func:`add_array_at_position`, this function mutates ``destination``
+    so large detector accumulations do not copy the full destination for every
+    source. Multiplication temporaries are limited to ``row_chunk`` rows.
+    """
+
+    h_dest, w_dest = destination.shape
+    h_source, w_source = source.shape
+    if centered:
+        x -= w_source // 2
+        y -= h_source // 2
+
+    x0 = max(x, 0)
+    y0 = max(y, 0)
+    x1 = min(x + w_source, w_dest)
+    y1 = min(y + h_source, h_dest)
+    if x0 >= x1 or y0 >= y1:
+        return destination
+
+    source_x0 = x0 - x
+    source_y0 = y0 - y
+    source_x1 = source_x0 + x1 - x0
+    scale = float(fluxscale)
+    column_scale = None
+    if spectral_scale is not None:
+        column_scale = np.asarray(
+            spectral_scale[source_x0:source_x1], dtype=float)
+
+    for dest_y0 in range(y0, y1, row_chunk):
+        dest_y1 = min(dest_y0 + row_chunk, y1)
+        source_chunk_y0 = source_y0 + dest_y0 - y0
+        source_chunk_y1 = source_chunk_y0 + dest_y1 - dest_y0
+        chunk = source[
+            source_chunk_y0:source_chunk_y1, source_x0:source_x1]
+        if column_scale is None:
+            destination[dest_y0:dest_y1, x0:x1] += chunk * scale
+        else:
+            destination[dest_y0:dest_y1, x0:x1] += (
+                chunk * column_scale[np.newaxis, :] * scale)
+    return destination
+
+
 def build_target_url(target_name):
     """Build restful api url based on target name.
 

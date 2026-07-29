@@ -23,9 +23,11 @@ Use
 import json
 import os
 import pickle
+import subprocess
 import sys
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -556,18 +558,28 @@ def test_batched_source_projection_matches_scalar_pysiaf():
 def test_trace_templates_are_cached_across_position_angles(monkeypatch):
     """Repeated source templates avoid repeated trace-file reads."""
 
-    calls = []
+    load_calls = []
+    model_calls = []
     monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+    template = np.ones((3, 3, 4), dtype=float)
+    template[:, 0, :] = np.linspace(1., 2., 4)
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1., 2., 9),
+    }
+
+    def synthetic_load(filename):
+        load_calls.append(filename)
+        return template.copy()
+
+    def synthetic_model(*args, **kwargs):
+        model_calls.append((args, kwargs))
+        return {name: values.copy() for name, values in model.items()}
+
+    monkeypatch.setattr(field_simulator.np, 'load', synthetic_load)
     monkeypatch.setattr(
-        field_simulator.glob, 'glob',
-        lambda path: ['/synthetic-data/exoctk_contam/traces/'
-                      'NIS_SUBSTRIP256/trace_5000.fits'])
-
-    def synthetic_trace(filename, ext=0):
-        calls.append((filename, ext))
-        return np.full((2, 2), ext + 1., dtype=float)
-
-    monkeypatch.setattr(field_simulator.fits, 'getdata', synthetic_trace)
+        field_simulator, '_get_aces_grid',
+        lambda: SimpleNamespace(get=synthetic_model))
     field_simulator._get_trace_cached.cache_clear()
     try:
         first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
@@ -575,7 +587,9 @@ def test_trace_templates_are_cached_across_position_angles(monkeypatch):
     finally:
         field_simulator._get_trace_cached.cache_clear()
 
-    assert len(calls) == 3
+    assert load_calls == [
+        '/synthetic-data/exoctk_contam/traces/NIS_SUBSTRIP256.npy']
+    assert len(model_calls) == len(template)
     assert all(np.array_equal(before, after)
                for before, after in zip(first, second))
     assert all(not trace.flags.writeable for trace in first)
@@ -606,6 +620,295 @@ def test_order_zero_templates_are_cached_across_position_angles(monkeypatch):
         '/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy']
     assert np.array_equal(first, second)
     assert not first.flags.writeable
+
+
+@pytest.mark.parametrize('centered,x,y', [
+    (False, 1, 2),
+    (False, -2, 1),
+    (True, 3, 2),
+])
+def test_bounded_scaled_add_matches_full_detector_temporary(
+        centered, x, y):
+    """Chunked DHS accumulation preserves the established pixel arithmetic."""
+
+    destination = np.arange(42., dtype=float).reshape(6, 7)
+    source = np.arange(20., dtype=float).reshape(4, 5)
+    spectral_scale = np.linspace(0.5, 1.5, source.shape[1])
+    fluxscale = 0.37
+    expected = field_simulator.add_array_at_position(
+        destination, source * spectral_scale[None, :] * fluxscale,
+        x, y, centered=centered)
+    actual = destination.copy()
+
+    returned = field_simulator.add_scaled_array_inplace(
+        actual, source, x, y, centered=centered, fluxscale=fluxscale,
+        spectral_scale=spectral_scale, row_chunk=2)
+
+    assert returned is actual
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_single_pa_plot_calculates_contamination_lines(monkeypatch):
+    """The website's single-PA plot must calculate its spectral ratio lines."""
+
+    aperture_name = 'SYNTHETIC_SINGLE_PA'
+    aperture_info = {
+        'inst': 'SYNTHETIC',
+        'full': 'SYNTHETIC_FULL',
+        'subarr_y': (0, 0, 4),
+        'subarr_x': (0, 5),
+        'c0x0': 0,
+        'c0y0': 0,
+        'xord0to1': 0,
+        'yord0to1': 0,
+        'lft': -10,
+        'rgt': 10,
+        'bot': -10,
+        'top': 10,
+        'blue_ext': 0,
+        'red_ext': 0,
+        'cutoffs': [4],
+        'coeffs': [np.array([0.])],
+        'trace_names': ['Order 1'],
+        'empirical_scale': [1.],
+    }
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            assert frame == 'det'
+            return np.array([0., 5.]), np.array([0., 4.])
+
+    class FakeScienceAperture:
+        AperName = aperture_name
+        V3IdlYAngle = 0.
+
+        @staticmethod
+        def reference_point(frame):
+            assert frame == 'det'
+            return 1., 1.
+
+        @staticmethod
+        def det_to_tel(x, y):
+            return x, y
+
+        @staticmethod
+        def det_to_sci(x, y):
+            return x, y
+
+    class FakeSiaf:
+        apertures = {
+            'SYNTHETIC_FULL': FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    stars = Table({
+        'ra': [10.],
+        'dec': [20.],
+        'xdet': [0.],
+        'ydet': [0.],
+        'xtel': [0.],
+        'ytel': [0.],
+        'xsci': [0.],
+        'ysci': [0.],
+        'xord0': [0.],
+        'yord0': [0.],
+        'xord1': [0.],
+        'yord1': [0.],
+        'Teff': [5000.],
+        'type': ['STAR'],
+        'fluxscale': [1.],
+        'distance': [0.],
+        'name': ['Target'],
+        'designation': ['Target'],
+        'url': [''],
+    })
+    monkeypatch.setitem(
+        field_simulator.APERTURES, aperture_name, aperture_info)
+    monkeypatch.setattr(
+        field_simulator.pysiaf, 'Siaf', lambda instrument: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'attitude_matrix',
+        lambda *args: object())
+    monkeypatch.setattr(
+        field_simulator, '_project_sources_to_detector',
+        lambda *args: None)
+    monkeypatch.setattr(
+        field_simulator, 'get_trace',
+        lambda *args, **kwargs: [np.ones((4, 5))])
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [np.ones((4, 5), dtype=bool)])
+
+    result, plot = field_simulator.calc_v3pa(
+        330., stars, aperture_name, plot=True)
+
+    assert result['pa'] == 330.
+    assert plot is not None
+
+
+def test_fraction_contaminated_processes_orders_sequentially():
+    """Sequential order reduction is numerically identical to the old lists."""
+
+    rng = np.random.default_rng(42)
+    targets = [rng.random((3, 4)), rng.random((3, 4))]
+    contaminants = rng.random((2, 3, 4))
+    masks = [rng.integers(0, 2, (3, 4)).astype(bool) for _ in targets]
+
+    expected = []
+    for target, mask in zip(targets, masks):
+        total = target + contaminants
+        fraction = np.divide(
+            contaminants, total,
+            out=np.full_like(contaminants, np.nan),
+            where=(total != 0) & ~np.isnan(total))
+        masked = np.where(mask > 0, fraction * mask, np.nan)
+        expected.append(np.nanmean(masked, axis=1))
+
+    actual = field_simulator.fraction_contaminated(
+        'synthetic', targets, contaminants, trace_masks=masks)
+
+    for before, after in zip(expected, actual):
+        np.testing.assert_array_equal(after, before)
+
+
+def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
+    """A temperature cache entry must not retain full detector-sized traces."""
+
+    waves = np.tile(np.linspace(1., 2., 5), (2, 1))
+    traces = np.ones((2, 3, 5))
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1., 2., 9),
+    }
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, traces))
+    monkeypatch.setattr(
+        field_simulator, '_get_aces_grid',
+        lambda: SimpleNamespace(
+            get=lambda *args, **kwargs: model))
+    field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+    try:
+        scales = field_simulator._get_dhs_spectral_scales_cached(
+            'SYNTHETIC_DHS', 5000.)
+    finally:
+        field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+
+    assert len(scales) == traces.shape[0]
+    assert all(scale.shape == (traces.shape[-1],) for scale in scales)
+    assert sum(scale.nbytes for scale in scales) < traces.nbytes
+
+
+def test_package_import_does_not_require_exoctk_data():
+    """Documentation imports must not initialize data-backed model grids."""
+
+    env = os.environ.copy()
+    env.pop('EXOCTK_DATA', None)
+    imported = subprocess.run(
+        [sys.executable, '-c', 'import exoctk'],
+        env=env, capture_output=True, text=True, check=False)
+
+    assert imported.returncode == 0, imported.stderr
+
+
+@pytest.mark.parametrize('aperture', [
+    'NRCA5_41STRIPE1_DHS_F322W2',
+    'NRCA5_41STRIPE1_DHS_F444W',
+])
+def test_streamed_dhs_reconstituted_starcube_matches_legacy(
+        monkeypatch, aperture):
+    """Reconstituted streamed frames exactly match the legacy DHS starcube."""
+
+    rng = np.random.default_rng(677)
+    target_traces = [rng.random((33, 7)) for _ in range(10)]
+    trace_masks = []
+    for order in range(10):
+        mask = np.ones((33, 7), dtype=bool)
+        mask[:order % 3, 0] = False
+        mask[:, -1] = False
+        trace_masks.append(mask)
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: trace_masks)
+
+    pa_values = (0, 1, 33)
+    source_traces = rng.random((2, 10, 33, 7))
+    spectral_scales = rng.random((2, 10, 7))
+    flux_scales = (0.37, 1.41)
+    positions = {
+        0: ((0, 0), (1, -1)),
+        1: ((-1, 1), (0, 0)),
+        33: ((1, 0), (-1, -1)),
+    }
+    legacy_cube = np.zeros((360, 33, 7))
+    for pa in pa_values:
+        frame = np.zeros((33, 7))
+        for traces, scales, fluxscale, (x, y) in zip(
+                source_traces, spectral_scales, flux_scales, positions[pa]):
+            for trace, spectral_scale in zip(traces, scales):
+                scaled_trace = (
+                    trace * spectral_scale[np.newaxis, :] * fluxscale)
+                frame = field_simulator.add_array_at_position(
+                    frame, scaled_trace, x, y)
+        legacy_cube[pa] = frame
+
+    reconstituted_cube = np.zeros_like(legacy_cube)
+    def pa_results():
+        for index, pa in enumerate(pa_values):
+            frame = np.zeros((33, 7))
+            for traces, scales, fluxscale, (x, y) in zip(
+                    source_traces, spectral_scales, flux_scales,
+                    positions[pa]):
+                for trace, spectral_scale in zip(traces, scales):
+                    field_simulator.add_scaled_array_inplace(
+                        frame, trace, x, y, fluxscale=fluxscale,
+                        spectral_scale=spectral_scale, row_chunk=8)
+            reconstituted_cube[pa] = frame
+            yield {
+                'pa': pa,
+                'target_traces': target_traces if index == 0 else None,
+                'contaminants': frame,
+            }
+
+    returned_targets, compact = field_simulator._compact_dhs_results(
+        aperture, pa_results())
+    np.testing.assert_array_equal(reconstituted_cube, legacy_cube)
+    expected = field_simulator.fraction_contaminated(
+        aperture, target_traces, legacy_cube, trace_masks=trace_masks)
+
+    assert isinstance(compact, field_simulator.DHSContaminationResult)
+    assert len(compact) == 10
+    np.testing.assert_array_equal(compact.position_angles, np.arange(360))
+    for before, after in zip(target_traces, returned_targets):
+        assert after is before
+    for dense_order, compact_order in zip(expected, compact.order_fractions):
+        np.testing.assert_array_equal(compact_order, dense_order)
+        assert compact_order.dtype == np.float64
+        assert not compact_order.flags.writeable
+        assert np.all(compact_order[2, :-1] == 0)
+        assert np.isnan(compact_order[2, -1])
+
+
+@pytest.mark.parametrize('source_count', [1, 35])
+def test_bounded_accumulation_scales_across_source_chunks(source_count):
+    """Low and higher source counts preserve exact accumulation arithmetic."""
+
+    rng = np.random.default_rng(123)
+    sources = [rng.random((33, 7)) for _ in range(source_count)]
+    scales = np.linspace(0.5, 1.5, source_count)
+    expected = np.zeros((33, 7))
+    actual = np.zeros_like(expected)
+
+    for source, scale in zip(sources, scales):
+        expected = field_simulator.add_array_at_position(
+            expected, source * scale, 0, 0)
+        field_simulator.add_scaled_array_inplace(
+            actual, source, 0, 0, fluxscale=scale, row_chunk=32)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_contamination_slider_uses_percent_and_common_display_cap():
     """All supported modes share a 0--10% percent-based display."""
 
@@ -752,8 +1055,8 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
     target = np.array([[1., 0.], [1., 0.]])
     contaminants = np.zeros((1, 2, 2))
     monkeypatch.setattr(
-        field_simulator, 'NIRISS_SOSS_trace_mask',
-        lambda aperture: [np.ones_like(target)])
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [np.ones_like(target)])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         result = field_simulator.fraction_contaminated(
@@ -766,12 +1069,12 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
                    for warning in caught)
 
 
-@pytest.mark.parametrize('aperture, mask_function', [
-    ('NIS_SUBSTRIP96', 'NIRISS_SOSS_trace_mask'),
-    ('NRCA5_41STRIPE1_DHS_F444W', 'NIRCam_DHS_trace_mask'),
+@pytest.mark.parametrize('aperture', [
+    'NIS_SUBSTRIP96',
+    'NRCA5_41STRIPE1_DHS_F444W',
 ])
 def test_fraction_contaminated_ignores_flux_outside_extraction(
-        monkeypatch, aperture, mask_function):
+        monkeypatch, aperture):
     """Off-mask sources do not dilute SOSS or DHS contamination."""
 
     mask = np.array([[1.], [1.], [0.]])
@@ -781,7 +1084,8 @@ def test_fraction_contaminated_ignores_flux_outside_extraction(
         [[1.], [0.], [100.]],
     ])
     monkeypatch.setattr(
-        field_simulator, mask_function, lambda aperture: [mask])
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [mask])
 
     result = field_simulator.fraction_contaminated(
         aperture, [target], contaminants)[0]
