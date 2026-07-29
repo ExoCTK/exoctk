@@ -556,16 +556,19 @@ def test_batched_source_projection_matches_scalar_pysiaf():
 
 
 def test_trace_templates_are_cached_across_position_angles(monkeypatch):
-    """Repeated source templates avoid repeated trace-file reads."""
+    """Repeated source templates avoid repeated trace-file and model reads."""
 
     load_calls = []
     model_calls = []
+
     monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+
     template = np.ones((3, 3, 4), dtype=float)
-    template[:, 0, :] = np.linspace(1., 2., 4)
+    template[:, 0, :] = np.linspace(1.0, 2.0, 4)
+
     model = {
         'wave': np.linspace(0.5, 2.5, 9),
-        'flux': np.linspace(1., 2., 9),
+        'flux': np.linspace(1.0, 2.0, 9),
     }
 
     def synthetic_load(filename):
@@ -574,24 +577,43 @@ def test_trace_templates_are_cached_across_position_angles(monkeypatch):
 
     def synthetic_model(*args, **kwargs):
         model_calls.append((args, kwargs))
-        return {name: values.copy() for name, values in model.items()}
+        return {
+            name: values.copy()
+            for name, values in model.items()
+        }
 
     monkeypatch.setattr(field_simulator.np, 'load', synthetic_load)
     monkeypatch.setattr(
-        field_simulator, '_get_aces_grid',
-        lambda: SimpleNamespace(get=synthetic_model))
+        field_simulator,
+        '_get_aces_grid',
+        lambda: SimpleNamespace(get=synthetic_model),
+    )
+
     field_simulator._get_trace_cached.cache_clear()
+
     try:
-        first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
-        second = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+        first = field_simulator.get_trace(
+            'NIS_SUBSTRIP256', 5000.0, 'STAR'
+        )
+        second = field_simulator.get_trace(
+            'NIS_SUBSTRIP256', 5000.0, 'STAR'
+        )
     finally:
         field_simulator._get_trace_cached.cache_clear()
 
     assert load_calls == [
-        '/synthetic-data/exoctk_contam/traces/NIS_SUBSTRIP256.npy']
-    assert len(model_calls) == len(template)
-    assert all(np.array_equal(before, after)
-               for before, after in zip(first, second))
+        '/synthetic-data/exoctk_contam/traces/NIS_SUBSTRIP256.npy'
+    ]
+
+    assert model_calls == [
+        ((5000.0, 5.5, 0), {'mu1': True, 'interp': False})
+    ]
+
+    assert all(
+        np.array_equal(before, after)
+        for before, after in zip(first, second)
+    )
+
     assert all(not trace.flags.writeable for trace in first)
 
 
