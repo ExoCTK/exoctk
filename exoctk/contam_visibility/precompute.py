@@ -67,10 +67,92 @@ def precomputed_target_list():
     return target_list
 
 
+def _save_compact_dhs(filename, exoplanet_name, ra, dec, target_trace,
+                      contamination, goodPA_list):
+    """Save a compact DHS result without assembling large intermediate arrays."""
+    if len(target_trace) == 0:
+        raise ValueError("target_trace must contain at least one spectral order")
+    first_trace = np.asarray(target_trace[0])
+    if first_trace.ndim != 2:
+        raise ValueError("Each target trace must have axes (row, column)")
+    n_traces = len(target_trace)
+    nrows, ncols = first_trace.shape
+    target_shape = (n_traces, nrows, ncols)
+    for trace in target_trace:
+        if np.asarray(trace).shape != (nrows, ncols):
+            raise ValueError("All target traces must have the same shape")
+
+    grp_name = exoplanet_name.strip().replace("/", "_")
+    with h5py.File(filename, "a") as f:
+        if grp_name not in f:
+            grp = f.create_group(grp_name)
+            grp.attrs["name"] = exoplanet_name
+            grp.attrs["ra"] = ra
+            grp.attrs["dec"] = dec
+            grp.attrs["filled"] = False
+
+        grp = f[grp_name]
+        if ("target_trace" in grp
+                and grp["target_trace"].shape != target_shape):
+            del grp["target_trace"]
+        if "target_trace" not in grp:
+            grp.create_dataset(
+                "target_trace",
+                shape=target_shape,
+                dtype="float32",
+                compression="gzip",
+                compression_opts=4,
+                chunks=(1, min(32, nrows), ncols))
+        for order, trace in enumerate(target_trace):
+            grp["target_trace"][order] = trace
+
+        grp.attrs["goodPA_list"] = goodPA_list
+
+        expected_shape = (
+            n_traces, len(contamination.position_angles), ncols)
+        if len(contamination.order_fractions) != n_traces:
+            raise ValueError("DHS result must contain one array per order")
+        for fractions in contamination.order_fractions:
+            if np.asarray(fractions).shape != expected_shape[1:]:
+                raise ValueError(
+                    "DHS order fractions must have shape "
+                    f"{expected_shape}; received incompatible order data")
+
+        for dataset_name in (
+                "contamination", "plane_index",
+                "dhs_order_fractions", "dhs_position_angles"):
+            if dataset_name in grp:
+                del grp[dataset_name]
+        grp.create_dataset(
+            "dhs_order_fractions",
+            shape=expected_shape,
+            dtype="float64",
+            compression="gzip",
+            compression_opts=4,
+            chunks=(1, min(32, expected_shape[1]), ncols))
+        for order, fractions in enumerate(contamination.order_fractions):
+            grp["dhs_order_fractions"][order] = fractions
+        grp.create_dataset(
+            "dhs_position_angles",
+            data=contamination.position_angles,
+            dtype="int16")
+        grp.attrs["filled"] = True
+
+    logging.info(
+        f"{exoplanet_name} saved "
+        f"({len(contamination.position_angles)} contamination planes)")
+
+
 def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
+    if isinstance(contamination, fs.DHSContaminationResult):
+        _save_compact_dhs(
+            filename, exoplanet_name, ra, dec, target_trace, contamination,
+            goodPA_list)
+        return
+
     n_traces, nrows, ncols = _get_shape(aperture)
 
     grp_name = exoplanet_name.strip().replace("/", "_")

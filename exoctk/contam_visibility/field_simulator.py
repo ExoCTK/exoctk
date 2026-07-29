@@ -107,6 +107,17 @@ class DHSContaminationResult(Sequence):
         return len(self.order_fractions)
 
 
+def _cached_contam_result_available(group, compact_dhs=False):
+    """Return whether an HDF5 target group has a complete compatible result."""
+    if compact_dhs:
+        return (
+            "goodPA_list" in group.attrs
+            and "target_trace" in group
+            and "dhs_order_fractions" in group
+            and "dhs_position_angles" in group)
+    return "goodPA_list" in group.attrs
+
+
 def log_checkpoint(message):
     global _last_time
     now = datetime.now()
@@ -1392,7 +1403,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     # Require None for binComp and target_date, since these change the results
     precomputed = False
     bounded_dhs = 'DHS' in aperture
-    if target_db is not None and not bounded_dhs:
+    if target_db is not None:
         logging.info(f"Found target DB {target_db}")
         if targname is not None:
             logging.info(f"Target name is {targname}")
@@ -1403,8 +1414,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
                     grp_name = get_canonical_name(targname).strip().replace("/", "_")
                     with h5py.File(target_db, "a") as f:
                         if grp_name in f:
-                            targframes, starcube, attrs = fetch_contam_results(targname, target_db)
-                            precomputed = "goodPA_list" in attrs
+                            precomputed = _cached_contam_result_available(
+                                f[grp_name], compact_dhs=bounded_dhs)
                 else:
                     logging.info("Can't precompute with non-current epoch")
             else:
@@ -1531,8 +1542,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             for result in results:
                 starcube[result['pa'], :, :] = result['contaminants']
 
-        should_cache = all((
-            targname is not None, target_db is not None, not bounded_dhs))
+        should_cache = all((targname is not None, target_db is not None))
         if should_cache:
             logging.info(f"Saving {targname} to cache {target_db}")
             save_exoplanet_data(
@@ -1590,7 +1600,9 @@ def fetch_contam_results(exoplanet_name, db_filename):
     Returns
     -------
     target_trace : ndarray (n_traces, nrows, ncols)
-    contamination : ndarray (n_planes, nrows, ncols)
+    contamination : ndarray or DHSContaminationResult
+        A dense detector cube for legacy modes, or compact order fractions
+        for NIRCam DHS.
     attrs : dict (metadata)
     """
     name = get_canonical_name(exoplanet_name)
@@ -1602,13 +1614,23 @@ def fetch_contam_results(exoplanet_name, db_filename):
 
         grp = f[grp_name]
         target_trace = grp["target_trace"][:]
-        stored = grp["contamination"][:]
-        plane_index = grp["plane_index"][:]
+        if ("dhs_order_fractions" in grp
+                and "dhs_position_angles" in grp):
+            fractions = grp["dhs_order_fractions"]
+            contamination = DHSContaminationResult(
+                order_fractions=tuple(
+                    fractions[order] for order in range(fractions.shape[0])),
+                position_angles=grp["dhs_position_angles"][:])
+        else:
+            stored = grp["contamination"][:]
+            plane_index = grp["plane_index"][:]
 
-        # Reconstruct contamination cube
-        contamination = np.zeros((360, target_trace.shape[1], target_trace.shape[2]), dtype=stored.dtype)
-        if len(plane_index) > 0:
-            contamination[plane_index] = stored
+            # Reconstruct contamination cube
+            contamination = np.zeros(
+                (360, target_trace.shape[1], target_trace.shape[2]),
+                dtype=stored.dtype)
+            if len(plane_index) > 0:
+                contamination[plane_index] = stored
 
         attrs = dict(grp.attrs)
         for key in ('wavelength', 'valid_wavelength', 'extraction_mask'):
