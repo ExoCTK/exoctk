@@ -145,7 +145,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                               'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
-                              'tracex_offset': 0, 'tracey_offset': 0,
+                              'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                          [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -155,8 +155,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
-                                'tracex_offset': 0, 'tracey_offset': 0,
-                                'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
+                                'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 0, 4, 0],
+                                'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                            [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                            [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
@@ -165,8 +165,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                  'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
-                                 'tracex_offset': 0, 'tracey_offset': 0,
-                                 'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
+                                 'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 0],
+                                 'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                             [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
@@ -175,7 +175,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2448, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
-                                            'tracex_offset': 0, 'tracey_offset': 0,
+                                            'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
                                             'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                             'coeffs': [[ 2.81442298e-06,  1.48386268e-04,  1.14039356e+03],
                                                        [ 2.74877495e-06, -5.87120866e-04,  1.02983316e+03],
@@ -192,7 +192,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                            'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
-                                           'tracex_offset': 0, 'tracey_offset': 0,
+                                           'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                            'coeffs': [[3.52279496e-06, -1.22488543e-03,  1.15263106e+03],
                                                      [ 2.93109211e-06, -1.22659432e-03,  1.04145870e+03],
@@ -345,9 +345,14 @@ def get_trace_mask(aperture, radius=20, plot=False):
     np.ndarray
         The trace masks
     """
-    ydim = APERTURES[aperture]['subarr_y'][2] - APERTURES[aperture]['subarr_y'][1]
-    xdim = APERTURES[aperture]['subarr_x'][1] - APERTURES[aperture]['subarr_x'][0]
-    coeffs = APERTURES[aperture]['coeffs']
+
+    # Get relevant aperture info
+    aper = APERTURES[aperture]
+    ydim = aper['subarr_y'][2] - aper['subarr_y'][1]
+    xdim = aper['subarr_x'][1] - aper['subarr_x'][0]
+    coeffs = aper['coeffs']
+    cutoffs = aper['cutoffs']
+    refpix = aper['refpix']
 
     x = np.arange(xdim)
     traces = np.array([np.polyval(coeff, x) for coeff in coeffs]).astype(int)
@@ -356,6 +361,16 @@ def get_trace_mask(aperture, radius=20, plot=False):
     trace_grid = traces[:, None, :]
 
     masks = np.abs(y_grid - trace_grid) < radius
+
+    # Remove trace cutoff regions from mask
+    for n, cutoff in enumerate(cutoffs):
+        masks[n, :, cutoff:] = 0
+
+    # Remove left, top, bottom, and right reference pixels from all masks
+    masks[:, :, :refpix[0]] = 0
+    masks[:, ydim-refpix[1]:ydim, :] = 0
+    masks[:, :, xdim-refpix[2]:xdim] = 0
+    masks[:, :refpix[3], :] = 0
 
     if plot:
 
@@ -1579,11 +1594,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
 
         # Make slider contam plot
         elif slider or bounded_dhs:
-            pctlines = (starcube if bounded_dhs else
-                        fraction_contaminated(
-                            aperture, targframes, starcube))
-            contam_plot = cf.contam_slider_plot(
-                pctlines, badPAs, instrument=aperture)
+            pctlines = (starcube if bounded_dhs else fraction_contaminated(aperture, targframes, starcube))
+            contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture)
 
         # Make old contam plot
         else:
@@ -1843,15 +1855,14 @@ def _get_trace_cached(aperture, teff, stype):
     np.ndarray
         The 2D trace
     """
+    # Use SUBSTRIP256 traces for SUBSTRIP96 calculations as well
+    if aperture == 'NIS_SUBSTRIP96':
+        aperture = 'NIS_SUBSTRIP256'
 
     if stype == 'GALAXY':
         traces = get_trace_mask(aperture)
 
     else:
-
-        # Use SUBSTRIP256 traces for SUBSTRIP96 calculations as well
-        if aperture == 'NIS_SUBSTRIP96':
-            aperture = 'NIS_SUBSTRIP256'
 
         # Get the template trace file, which has the wavelength-dependent throughput encoded
         trace_file = os.path.join(os.environ['EXOCTK_DATA'], f'exoctk_contam/traces/{aperture}.npy')
