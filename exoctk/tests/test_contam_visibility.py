@@ -20,6 +20,7 @@ Use
         pytest -s test_contam_visibility.py
 """
 
+import datetime
 import json
 import os
 import pickle
@@ -127,12 +128,12 @@ def test_bounded_ephemeris_requests_have_timeouts(monkeypatch, tmp_path):
 
     ephemeris = new_vis_plot.BoundedEphemeris.__new__(
         new_vis_plot.BoundedEphemeris)
+    ephemeris._requested_end_date = '2028-07-30'
     local_file = tmp_path / 'ephemeris_2021-12-26_2025-06-12.txt'
     local_file.write_text('local ephemeris')
     ephemeris.ephemeris_filename = str(local_file)
 
-    assert (ephemeris.ephemeris_maximum_date() ==
-            new_vis_plot.HORIZONS_KNOWN_MAX_DATE)
+    assert ephemeris.ephemeris_maximum_date() == '2028-07-30'
     with pytest.raises(
             new_vis_plot.EphemerisUnavailableError,
             match='not the requested 2024-07-30 through 2028-07-30'):
@@ -141,6 +142,39 @@ def test_bounded_ephemeris_requests_have_timeouts(monkeypatch, tmp_path):
     assert len(requests_seen) == 2
     assert all(timeout == new_vis_plot.HORIZONS_TIMEOUT
                for _, timeout in requests_seen)
+
+
+def test_visibility_date_range_rolls_forward_two_years():
+    """Visibility calculations use a rolling two-year planning window."""
+
+    start_date, end_date = new_vis_plot.visibility_date_range(
+        datetime.date(2026, 7, 30))
+
+    assert start_date.strftime('%Y-%m-%d') == '2026-07-30'
+    assert end_date.strftime('%Y-%m-%d') == '2028-07-30'
+
+
+def test_bounded_ephemeris_rejects_invalid_horizons_response(
+        monkeypatch, tmp_path):
+    """An HTTP success without vector data is not treated as an ephemeris."""
+
+    response = SimpleNamespace(
+        text='Horizons returned an explanatory error',
+        raise_for_status=lambda: None)
+    monkeypatch.setattr(
+        new_vis_plot.requests, 'get',
+        lambda *args, **kwargs: response)
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    local_file = tmp_path / 'ephemeris_2021-12-26_2025-06-12.txt'
+    local_file.write_text('local ephemeris')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    with pytest.raises(
+            new_vis_plot.EphemerisUnavailableError,
+            match='not the requested 2026-07-30 through 2028-07-30'):
+        ephemeris.get_ephemeris_data('2026-07-30', '2028-07-30')
 
 
 def test_bounded_ephemeris_uses_complete_local_data(monkeypatch, tmp_path):
