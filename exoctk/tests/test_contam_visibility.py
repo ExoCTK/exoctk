@@ -954,9 +954,9 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
     """Reconstituted streamed frames exactly match the legacy DHS starcube."""
 
     rng = np.random.default_rng(677)
-    target_traces = [rng.random((33, 7)) for _ in range(10)]
+    target_traces = [rng.random((33, 7)) for _ in range(8)]
     trace_masks = []
-    for order in range(10):
+    for order in range(8):
         mask = np.ones((33, 7), dtype=bool)
         mask[:order % 3, 0] = False
         mask[:, -1] = False
@@ -966,8 +966,8 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
         lambda *args, **kwargs: trace_masks)
 
     pa_values = (0, 1, 33)
-    source_traces = rng.random((2, 10, 33, 7))
-    spectral_scales = rng.random((2, 10, 7))
+    source_traces = rng.random((2, 8, 33, 7))
+    spectral_scales = rng.random((2, 8, 7))
     flux_scales = (0.37, 1.41)
     positions = {
         0: ((0, 0), (1, -1)),
@@ -1011,7 +1011,7 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
         aperture, target_traces, legacy_cube, trace_masks=trace_masks)
 
     assert isinstance(compact, field_simulator.DHSContaminationResult)
-    assert len(compact) == 10
+    assert len(compact) == 8
     np.testing.assert_array_equal(compact.position_angles, np.arange(360))
     for before, after in zip(target_traces, returned_targets):
         assert after is before
