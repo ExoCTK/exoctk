@@ -804,6 +804,7 @@ def test_single_pa_plot_calculates_contamination_lines(monkeypatch):
         'coeffs': [np.array([0.])],
         'trace_names': ['Order 1'],
         'empirical_scale': [1.],
+        'target_traces': [0]
     }
 
     class FakeFullAperture:
