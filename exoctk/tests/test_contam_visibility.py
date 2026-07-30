@@ -32,6 +32,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import pysiaf
+import requests
 
 from pandas import DataFrame
 from astropy.io import fits
@@ -107,9 +108,85 @@ def test_new_vis_plot():
 
     assert isinstance(table, DataFrame)
 
-    plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
+    plt = new_vis_plot.build_visibility_plot(
+        'WASP-18b', 'NIRISS', ra, dec, exoplanet_df=table)
 
     assert str(type(plt)) == "<class 'bokeh.plotting._figure.figure'>"
+
+
+def test_bounded_ephemeris_requests_have_timeouts(monkeypatch, tmp_path):
+    """Horizons requests are bounded and incomplete local data is rejected."""
+
+    requests_seen = []
+
+    def timeout(url, timeout):
+        requests_seen.append((url, timeout))
+        raise requests.Timeout('Horizons did not respond')
+
+    monkeypatch.setattr(new_vis_plot.requests, 'get', timeout)
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    local_file = tmp_path / 'ephemeris_2021-12-26_2025-06-12.txt'
+    local_file.write_text('local ephemeris')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    assert (ephemeris.ephemeris_maximum_date() ==
+            new_vis_plot.HORIZONS_KNOWN_MAX_DATE)
+    with pytest.raises(
+            new_vis_plot.EphemerisUnavailableError,
+            match='not the requested 2024-07-30 through 2028-07-30'):
+        ephemeris.get_ephemeris_data('2024-07-30', '2028-07-30')
+
+    assert len(requests_seen) == 2
+    assert all(timeout == new_vis_plot.HORIZONS_TIMEOUT
+               for _, timeout in requests_seen)
+
+
+def test_bounded_ephemeris_uses_complete_local_data(monkeypatch, tmp_path):
+    """A packaged ephemeris is used when it covers the full request."""
+
+    monkeypatch.setattr(
+        new_vis_plot.requests, 'get',
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            requests.Timeout('Horizons did not respond')))
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    local_file = tmp_path / 'ephemeris_2024-01-01_2029-01-01.txt'
+    local_file.write_text('first line\nsecond line\n')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    with pytest.warns(RuntimeWarning, match='using packaged ephemeris'):
+        result = ephemeris.get_ephemeris_data(
+            '2024-07-30', '2028-07-30')
+
+    assert result.tolist() == ['first line', 'second line']
+
+
+def test_build_visibility_plot_reuses_positions(monkeypatch):
+    """Precomputed positions avoid another Horizons query."""
+
+    positions = DataFrame({
+        'in_FOR': [True, True],
+        'MJD': [60000., 60001.],
+        'NIRISS_nominal_angle': [10., 11.],
+        'NIRISS_min_pa_angle': [5., 6.],
+        'NIRISS_max_pa_angle': [15., 16.],
+    })
+    monkeypatch.setattr(
+        new_vis_plot, 'get_exoplanet_positions',
+        lambda *args, **kwargs: pytest.fail(
+            'positions should not be recalculated'))
+    monkeypatch.setattr(
+        new_vis_plot, 'get_visibility_windows',
+        lambda indices: [(indices[0], indices[-1])])
+
+    plot = new_vis_plot.build_visibility_plot(
+        'Target', 'NIRISS', '1', '2', exoplanet_df=positions)
+
+    assert str(type(plot)) == "<class 'bokeh.plotting._figure.figure'>"
+    assert 'times' not in positions
 
 
 @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Need access to trace data FITS files.  Please try running locally')
