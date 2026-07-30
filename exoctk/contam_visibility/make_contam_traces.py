@@ -114,8 +114,11 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
         thru = np.interp(w, thru_w, thru_a)
         frame = np.zeros((xdim, ydim))
 
-        for i, (xv, yv, wv, tv) in enumerate(zip(x, y, w, thru)):
-            psf = psf_interp(wv) * tv
+        # Orders are not the same dispersion so normalize PSF by bin
+        dw = np.abs(np.gradient(w))
+
+        for i, (xv, yv, wv, dv, tv) in enumerate(zip(x, y, w, dw, thru)):
+            psf = psf_interp(wv) * tv * dv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
 
         # Add frame to cube
