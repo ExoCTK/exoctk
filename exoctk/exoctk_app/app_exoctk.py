@@ -574,8 +574,10 @@ def contam_visibility():
 
         # Make plot
         title = form.targname.data or ', '.join([str(form.ra.data), str(form.dec.data)])
-        vis_plot = build_visibility_plot(str(title), instrument, str(form.ra.data), str(form.dec.data))
         table = get_exoplanet_positions(str(form.ra.data), str(form.dec.data))
+        vis_plot = build_visibility_plot(
+            str(title), instrument, str(form.ra.data), str(form.dec.data),
+            exoplanet_df=table)
 
         # Make output table
         vis_table_file = os.path.join(os.environ["SHARED_DATA_DIR"], f"{uuid.uuid4()}.csv")

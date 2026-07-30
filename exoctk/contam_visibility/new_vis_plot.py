@@ -1,10 +1,129 @@
+import datetime
+import os
+import re
+import warnings
+
 from astropy.time import Time
 
 from bokeh.models import Band, ColumnDataSource, HoverTool
 from bokeh.plotting import figure, show
 
-from jwst_gtvt.jwst_tvt import Ephemeris
+import numpy as np
+import requests
+
+from jwst_gtvt.constants import URL
+from jwst_gtvt.jwst_tvt import Ephemeris, LAUNCH_DATE
 from jwst_gtvt.plotting import get_visibility_windows
+
+
+HORIZONS_TIMEOUT = (5, 30)
+VISIBILITY_RANGE_YEARS = 2
+LOCAL_EPHEMERIS_PATTERN = re.compile(
+    r'ephemeris_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})\.txt$')
+
+
+class EphemerisUnavailableError(RuntimeError):
+    """Raised when neither Horizons nor a complete local ephemeris is available."""
+
+
+class InvalidHorizonsResponseError(RuntimeError):
+    """Raised when Horizons responds without ephemeris vector data."""
+
+
+def visibility_date_range(reference_date=None):
+    """Return a rolling visibility range starting on the current UTC date."""
+
+    if reference_date is None:
+        reference_date = datetime.datetime.now(datetime.timezone.utc).date()
+
+    try:
+        end_date = reference_date.replace(
+            year=reference_date.year + VISIBILITY_RANGE_YEARS)
+    except ValueError:
+        # Map February 29 to February 28 when the end year is not a leap year.
+        end_date = reference_date.replace(
+            year=reference_date.year + VISIBILITY_RANGE_YEARS,
+            month=2, day=28)
+
+    return Time(reference_date.isoformat()), Time(end_date.isoformat())
+
+
+class BoundedEphemeris(Ephemeris):
+    """Retrieve Horizons data with bounded requests and a safe local fallback."""
+
+    request_timeout = HORIZONS_TIMEOUT
+
+    def __init__(self, start_date=None, end_date=None):
+        if start_date is None or end_date is None:
+            default_start, default_end = visibility_date_range()
+            start_date = default_start if start_date is None else start_date
+            end_date = default_end if end_date is None else end_date
+
+        start_date = Time(start_date)
+        end_date = Time(end_date)
+        self._requested_end_date = end_date.strftime('%Y-%m-%d')
+        super().__init__(start_date=start_date, end_date=end_date)
+
+    def ephemeris_maximum_date(self):
+        """Retrieve the last available date without waiting indefinitely."""
+
+        request_url = URL.format(LAUNCH_DATE, '9999-01-01')
+        try:
+            response = requests.get(request_url, timeout=self.request_timeout)
+            response.raise_for_status()
+            match = re.search(
+                r'after A\.D\. (\d{4}-[a-zA-Z]+-\d{1,2})',
+                response.text)
+            if match is None:
+                raise ValueError('Unable to parse the Horizons maximum date')
+            return datetime.datetime.strptime(
+                match.group(1), '%Y-%b-%d').strftime('%Y-%m-%d')
+        except (requests.RequestException, ValueError):
+            # Let the bounded data request determine whether this date is
+            # available instead of relying on a maximum date that goes stale.
+            return self._requested_end_date
+
+    def get_ephemeris_data(self, start_date=None, end_date=None):
+        """Retrieve ephemeris data or use a local file with full coverage."""
+
+        self.url = URL.format(start_date, end_date)
+        try:
+            self.eph_request = requests.get(
+                self.url, timeout=self.request_timeout)
+            self.eph_request.raise_for_status()
+            ephemeris = np.asarray(self.eph_request.text.splitlines())
+            if '$$SOE' not in ephemeris or '$$EOE' not in ephemeris:
+                raise InvalidHorizonsResponseError(
+                    'Horizons response did not contain ephemeris vector data')
+            return ephemeris
+        except (requests.RequestException,
+                InvalidHorizonsResponseError) as exc:
+            return self._read_local_ephemeris(start_date, end_date, exc)
+
+    def _read_local_ephemeris(self, start_date, end_date, request_error):
+        """Read the packaged ephemeris only when it covers the request."""
+
+        filename = os.path.basename(self.ephemeris_filename)
+        match = LOCAL_EPHEMERIS_PATTERN.fullmatch(filename)
+        if match is None:
+            raise EphemerisUnavailableError(
+                'Horizons is unavailable and the packaged ephemeris '
+                f'filename does not declare its coverage: {filename}'
+            ) from request_error
+
+        local_start, local_end = match.groups()
+        if start_date < local_start or end_date > local_end:
+            raise EphemerisUnavailableError(
+                'Horizons is unavailable and the packaged ephemeris covers '
+                f'{local_start} through {local_end}, not the requested '
+                f'{start_date} through {end_date}.'
+            ) from request_error
+
+        warnings.warn(
+            f'Horizons is unavailable; using packaged ephemeris {filename}.',
+            RuntimeWarning)
+        with open(self.ephemeris_filename) as handle:
+            return np.asarray(handle.read().splitlines())
 
 
 def get_exoplanet_positions(ra, dec, in_FOR=None):
@@ -26,8 +145,7 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
     while dec[-1] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.']:
         dec = dec[:-1]
 
-    # Set ephemeris to go from Cycle 3 to Cycle 6:
-    eph = Ephemeris(start_date=Time('2024-07-30'), end_date=Time('2028-07-30'))
+    eph = BoundedEphemeris()
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
 
     if in_FOR is None:
@@ -36,7 +154,8 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
         return exoplanet_data.loc[exoplanet_data['in_FOR']==in_FOR]
 
 
-def build_visibility_plot(target_name, instrument, ra, dec):
+def build_visibility_plot(target_name, instrument, ra, dec,
+                          exoplanet_df=None):
     """Build bokeh figure for visibility windows
     """
 
@@ -49,8 +168,10 @@ def build_visibility_plot(target_name, instrument, ra, dec):
     min_pa_column_name = instrument + '_min_pa_angle'
     max_pa_column_name = instrument + '_max_pa_angle'
 
-    # obtain exoplanet data and filter visibility windows
-    exoplanet_df = get_exoplanet_positions(ra, dec, in_FOR=True)
+    # Obtain exoplanet data when it was not already calculated for the table.
+    if exoplanet_df is None:
+        exoplanet_df = get_exoplanet_positions(ra, dec)
+    exoplanet_df = exoplanet_df.loc[exoplanet_df['in_FOR']].copy()
     window_indices = get_visibility_windows(exoplanet_df.index.tolist())
 
     exoplanet_df['times'] = Time(exoplanet_df['MJD'], format='mjd').datetime

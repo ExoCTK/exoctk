@@ -72,6 +72,7 @@ from tabulate import tabulate
 
 
 PROGRESS_INTERVAL = 30
+PAGE_LOAD_TIMEOUT = 150
 
 
 def log(message=""):
@@ -231,7 +232,7 @@ def do_submit(driver, params, calculation_timeout=2700):
             f'result element {locator!r}')
         next_report = PROGRESS_INTERVAL
         while True:
-            if '500 Internal Server Error' in driver.title:
+            if 'internal server error' in driver.title.lower():
                 elapsed = time.monotonic() - started
                 log(f'[{test_name}] HTTP 500 detected after {elapsed:.1f} '
                     f'seconds; URL={driver.current_url!r}')
@@ -274,6 +275,7 @@ def do_form(options, service, params):
     log(run_str)
     log("-" * len(run_str))
     with webdriver.Firefox(options=options, service=service) as driver:
+        driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
         test_url = params['url'] + params['extension']
         log(f'[{test_name}] Loading {test_url}')
         driver.get(test_url)
