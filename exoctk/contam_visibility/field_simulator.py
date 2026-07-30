@@ -32,7 +32,7 @@ from astroquery.xmatch import XMatch
 from bokeh.plotting import figure, show
 from bokeh.embed import json_item
 from bokeh.layouts import gridplot, column
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, CrosshairTool, TapTool, OpenURL, Span, Legend, LegendItem, VArea
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.transform import linear_cmap
 from scipy.ndimage import rotate
@@ -145,7 +145,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                               'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
-                              'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
+                              'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4], 'target_traces': [0, 1, 2],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                          [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -155,7 +155,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
-                                'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 0, 4, 0],
+                                'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 0, 4, 0], 'target_traces': [0],
                                 'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                            [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -165,7 +165,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
                                  'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
-                                 'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 0],
+                                 'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 0], 'target_traces': [0, 1, 2],
                                  'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                             [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
@@ -175,8 +175,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             'c0x0': 1800, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                             'xord0to1': -2448, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
-                                            'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
-                                            'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
+                                            'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [11, 11, 11, 11], 'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
+                                            'cutoffs': [4257]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                             'coeffs': [[ 2.81442298e-06,  1.48386268e-04,  1.14039356e+03],
                                                        [ 2.74877495e-06, -5.87120866e-04,  1.02983316e+03],
                                                        [ 2.91085676e-06, -3.23811050e-03,  0.91454889e+03],
@@ -192,8 +192,8 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
                                            'xord0to1': -2000, 'yord0to1': -2116, 'empirical_scale': [1] * 11,
-                                           'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4],
-                                           'cutoffs': [3324]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
+                                           'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [11, 11, 11, 11], 'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
+                                           'cutoffs': [3078]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                            'coeffs': [[3.52279496e-06, -1.22488543e-03,  1.15263106e+03],
                                                      [ 2.93109211e-06, -1.22659432e-03,  1.04145870e+03],
                                                      [ 2.93877311e-06, -2.71105945e-03,  0.92296188e+03],
@@ -219,6 +219,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                  'trace_path': 'exoctk_contam/traces/MIRIM_SLITLESSPRISM_IP',
                  'trace_reference_pixel': (290, 34),
                  'science_bounds': ((0, 384), (0, 68)),
+                 'target_traces': [0],
                  'wavelength_source': 'trace_asset:WAVELENGTH',
                  'extraction_mask_source': 'trace_asset:EXTRACTION_MASK',
              }}
@@ -877,6 +878,9 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     list
         The list of fractional contamination arrays
     """
+    # Get target traces of interest only
+    trace_idx = APERTURES[aperture]['target_traces']
+
     # Check for 2D
     if starcube.ndim == 2:
         starcube = starcube[None, :, :]
@@ -896,6 +900,7 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     # Average only pixels inside each trace mask. Multiplying off-mask pixels
     # by zero would leave them finite and incorrectly count them in the mean.
     pctlines = []
+    trace_masks = [trace_masks[idx] for idx in trace_idx]
     for tframe, mask in zip(targframes, trace_masks):
         # Process one spectral trace at a time.  DHS has ten detector-sized
         # target traces, and retaining all sums and fractions simultaneously
@@ -1092,6 +1097,9 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
                   if include_target else None)
     starframe = np.zeros((subY, subX))
 
+    # Only show results for target traces of interest
+    target_idx = aper['target_traces']
+
     # Iterate over all stars in the FOV and add their scaled traces to the correct frame
     for idx, star in enumerate(FOVstars):
         fluxscale = float(star['fluxscale'])
@@ -1106,16 +1114,14 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
             if include_target:
                 for n, (trace, spectral_scale) in enumerate(traces):
 
-                    # Only add target order 1 if SUBSTRIP96
-                    if aperture.AperName == "NIS_SUBSTRIP96" and n > 0:
-                        continue
+                    # Only add target traces of interest
+                    if n in target_idx:
+                        add_scaled_array_inplace(
+                            targframes[n], trace, 0, 0,
+                            fluxscale=fluxscale,
+                            spectral_scale=spectral_scale)
 
-                    add_scaled_array_inplace(
-                        targframes[n], trace, 0, 0,
-                        fluxscale=fluxscale,
-                        spectral_scale=spectral_scale)
-
-        # Add all orders to the same frame (if it is a STAR)
+        # Add all orders of all contaminants to the same frame (if it is a STAR)
         else:
 
             # Get correct order 0
@@ -1137,8 +1143,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
-    if aperture.AperName == 'NIS_SUBSTRIP96':
-        targframes = targframes[:1]
+    # Only save target frames of interest
+    targframes = [targframes[idx] for idx in target_idx]
 
     # Make results dict
     result = {
@@ -1191,30 +1197,33 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         refsource = ColumnDataSource(data={'ref': [refframe]})
         fig.image(image='ref', x=aper['subarr_x'][0], dw=subX, y=aper['subarr_y'][1], dh=subY, source=refsource, name="ref", color_mapper=LinearColorMapper(palette=["white", "black"], low=0, high=1), alpha=0.1)
 
-        # Plot order 0 locations of stars
-        FOVstars_only = FOVstars[FOVstars['type'] == 'STAR']
-        source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
-                                         'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
-                                         'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
-                                         'trace': ['Order 0'] * len(FOVstars_only)})
-        order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
-
         # Plot the POM footprint
         if POM:
             fig.varea(x=[lft, rgt], y1=[bot, bot], y2=[top, top], fill_color='blue', fill_alpha=0.1)
 
-        # Plot order 0 locations of galaxies
-        FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
-        order0_gal = None
-        if len(FOVstars_gal) > 0:
-            source0_gal = ColumnDataSource(
-                data={'Teff_str': FOVstars_gal['Teff_str'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
-                      'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
-                      'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
-                      'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
-                      'trace': ['Order 0'] * len(FOVstars_gal)})
-            order0_gal = fig.scatter('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
-                                      source=source0_gal)
+        # Plot contaminant order 0 traces if SOSS mode
+        FOVstars_only = FOVstars[FOVstars['type'] == 'STAR']
+        if 'NIS' in aperture.AperName:
+            source0_stars = ColumnDataSource(data={'Teff_str': FOVstars_only['Teff_str'], 'distance': FOVstars_only['distance'], 'xord0': FOVstars_only['xord0'],
+                                             'yord0': FOVstars_only['yord0'], 'ra': FOVstars_only['ra'], 'dec': FOVstars_only['dec'], 'name': FOVstars_only['name'],
+                                             'type': FOVstars_only['type'], 'url': FOVstars_only['url'], 'fluxscale': FOVstars_only['fluxscale'],
+                                             'trace': ['Order 0'] * len(FOVstars_only)})
+            order0_stars = fig.scatter('xord0', 'yord0', color='red', size=20, line_width=3, fill_color=None, name='order0', source=source0_stars)
+
+            # Plot order 0 locations of galaxies
+            FOVstars_gal = FOVstars[FOVstars['type'] == 'GALAXY']
+            if len(FOVstars_gal) > 0:
+                source0_gal = ColumnDataSource(
+                    data={'Teff_str': FOVstars_gal['Teff_str'], 'distance': FOVstars_gal['distance'], 'xord0': FOVstars_gal['xord0'],
+                          'yord0': FOVstars_gal['yord0'], 'ra': FOVstars_gal['ra'], 'dec': FOVstars_gal['dec'],
+                          'name': FOVstars_gal['name'], 'type': FOVstars_gal['type'],
+                          'url': FOVstars_gal['url'], 'fluxscale': FOVstars_gal['fluxscale'],
+                          'trace': ['Order 0'] * len(FOVstars_gal)})
+                order0_gal = fig.scatter('xord0', 'yord0', color='pink', size=20, line_width=3, fill_color=None, name='order0',
+                                          source=source0_gal)
+
+                # Add order 0 hover and taptool
+                fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
 
         # Plot the target order 0
         fig.scatter([stars[0]['xord0']], [stars[0]['yord0']], size=8, line_width=3, fill_color=None, line_color='black')
@@ -1250,10 +1259,6 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
                 line = fig.line('x{}'.format(trx), 'y{}'.format(trx), source=copy(source), color='pink' if star['type'] == 'GALAXY' else 'red', name='traces', line_dash='solid' if idx == 0 else 'dashed', width=3 if idx == 0 else 1)
                 lines.append(line)
 
-        # Add order 0 hover and taptool
-        if order0_gal is not None:
-            fig.add_tools(HoverTool(renderers=[order0_stars, order0_gal], tooltips=tips, name='order0', mode='mouse'))
-
         fig.add_tools(TapTool(behavior='select', name='order0', callback=OpenURL(url="@url")))
 
         # Add traces hover and taptool
@@ -1270,21 +1275,23 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         data.update({'x': np.arange(subX), 'zeros': np.zeros(subX)})
         rsource = ColumnDataSource(data=data)
 
-        # Make plot
-        rfig = figure(title='Target Contamination', width=900, height=200, match_aspect=True, tools=tools, x_range=fig.x_range)
-        colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
-        trace_names = inst['trace_names']
-        for n in np.arange(len(pctlines)):
-            rfig.line('x', f'pct_{n}', color=colors[n], legend_label=trace_names[n], source=copy(rsource))
-            glyph = VArea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3)
-            rfig.add_glyph(copy(rsource), glyph)
-        rfig.y_range = Range1d(0, 1) #min(1, max(pctline_o1.max(), pctline_o2.max(), pctline_o3.max())))
+        # Make the plot
+        rfig = figure(title='Target Contamination', width=900, height=300, match_aspect=True, tools=tools, x_range=fig.x_range)
+        colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'magenta']
+        legend_items = []
+        for n in range(len(pctlines)):
+            label = [inst['trace_names'][i] for i in target_idx][n]
+            src = copy(rsource)
+            area_renderer = rfig.varea(x='x', y1='zeros', y2=f'pct_{n}', fill_color=colors[n], fill_alpha=0.3, source=src)
+            line_renderer = rfig.line('x', f'pct_{n}', color=colors[n], source=src)
+            legend_items.append(LegendItem(label=label, renderers=[line_renderer, area_renderer]))
+
+        legend = Legend(items=legend_items)
+        rfig.add_layout(legend, 'right')
+        rfig.legend.click_policy = "hide"
+        rfig.y_range = Range1d(0, 1)
         rfig.yaxis.axis_label = 'Contam / Total Counts'
         rfig.xaxis.axis_label = 'Detector Column'
-
-        # Color bar
-        # color_bar = ColorBar(color_mapper=mapper['transform'], width=10, location=(0, 0), title="Teff")
-        # fig.add_layout(color_bar, 'right')
 
         # Plot grid
         gp = gridplot([[fig], [rfig]])
