@@ -878,9 +878,6 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     list
         The list of fractional contamination arrays
     """
-    # Get target traces of interest only
-    trace_idx = APERTURES[aperture]['target_traces']
-
     # Check for 2D
     if starcube.ndim == 2:
         starcube = starcube[None, :, :]
@@ -900,7 +897,6 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     # Average only pixels inside each trace mask. Multiplying off-mask pixels
     # by zero would leave them finite and incorrectly count them in the mean.
     pctlines = []
-    trace_masks = [trace_masks[idx] for idx in trace_idx]
     for tframe, mask in zip(targframes, trace_masks):
         # Process one spectral trace at a time.  DHS has ten detector-sized
         # target traces, and retaining all sums and fractions simultaneously
