@@ -967,8 +967,8 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
         lambda *args, **kwargs: trace_masks)
 
     pa_values = (0, 1, 33)
-    source_traces = rng.random((2, 8, 33, 7))
-    spectral_scales = rng.random((2, 8, 7))
+    source_traces = rng.random((2, 10, 33, 7))
+    spectral_scales = rng.random((2, 10, 7))
     flux_scales = (0.37, 1.41)
     positions = {
         0: ((0, 0), (1, -1)),
