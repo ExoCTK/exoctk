@@ -888,8 +888,17 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
             trace_masks = miri_lrs.load_reference_trace().extraction_mask
         else:
             trace_masks = get_trace_mask(aperture, radius=20, plot=False)
-    if np.asarray(trace_masks).ndim == 2:
+        if np.asarray(trace_masks).ndim == 2:
+            trace_masks = [trace_masks]
+        trace_idx = APERTURES[aperture]['target_traces']
+        trace_masks = [trace_masks[idx] for idx in trace_idx]
+    elif np.asarray(trace_masks).ndim == 2:
         trace_masks = [trace_masks]
+
+    if len(trace_masks) != len(targframes):
+        raise ValueError(
+            'The number of trace masks must match the target frames')
+
     if collapse_axis is None:
         collapse_axis = (miri_lrs.CROSS_DISPERSION_AXIS
                          if aperture == miri_lrs.APERTURE else 0)
