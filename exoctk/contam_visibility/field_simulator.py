@@ -878,9 +878,6 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     list
         The list of fractional contamination arrays
     """
-    # Get target traces of interest only
-    trace_idx = APERTURES[aperture]['target_traces']
-
     # Check for 2D
     if starcube.ndim == 2:
         starcube = starcube[None, :, :]
@@ -891,8 +888,17 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
             trace_masks = miri_lrs.load_reference_trace().extraction_mask
         else:
             trace_masks = get_trace_mask(aperture, radius=20, plot=False)
-    if np.asarray(trace_masks).ndim == 2:
+        if np.asarray(trace_masks).ndim == 2:
+            trace_masks = [trace_masks]
+        trace_idx = APERTURES[aperture]['target_traces']
+        trace_masks = [trace_masks[idx] for idx in trace_idx]
+    elif np.asarray(trace_masks).ndim == 2:
         trace_masks = [trace_masks]
+
+    if len(trace_masks) != len(targframes):
+        raise ValueError(
+            'The number of trace masks must match the target frames')
+
     if collapse_axis is None:
         collapse_axis = (miri_lrs.CROSS_DISPERSION_AXIS
                          if aperture == miri_lrs.APERTURE else 0)
@@ -900,7 +906,6 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
     # Average only pixels inside each trace mask. Multiplying off-mask pixels
     # by zero would leave them finite and incorrectly count them in the mean.
     pctlines = []
-    trace_masks = [trace_masks[idx] for idx in trace_idx]
     for tframe, mask in zip(targframes, trace_masks):
         # Process one spectral trace at a time.  DHS has ten detector-sized
         # target traces, and retaining all sums and fractions simultaneously
