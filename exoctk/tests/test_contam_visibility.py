@@ -1367,6 +1367,28 @@ def test_substrip96_contamination_plot_omits_order2(monkeypatch):
 
     assert len(plot.children) == 2
 
+
+def test_niriss_contamination_clips_edge_extraction(tmp_path):
+    """SOSS extraction windows must not wrap at a subarray edge."""
+
+    n_pa, n_rows, n_columns = 3, 2, 96
+    cube = np.ones((n_pa + 2, n_rows, n_columns))
+    cube[:2] = 0
+    cube[0, :, 19] = 1
+
+    wavelength_file = tmp_path / 'wavelengths.txt'
+    np.savetxt(wavelength_file, np.array([
+        [0, 2.5, 0.],
+        [1, 2.6, 0.],
+    ]))
+
+    order1, order2 = contamination_figure.nirissContam(
+        cube, lam_file=wavelength_file)
+
+    np.testing.assert_array_equal(order1, np.ones((n_rows, n_pa)))
+    np.testing.assert_array_equal(order2, np.zeros((n_rows, n_pa)))
+
+
 def test_substrip96_slider_omits_uncalculated_orders():
     """The web slider exposes only the calculated SUBSTRIP96 order."""
 

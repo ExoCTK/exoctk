@@ -346,20 +346,25 @@ def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
     for row in np.arange(rows):
         # Contamination for order 1 of target trace
         i = np.argmax(trace1[row, :])
-        tr = trace1[row, i - low_lim_col:i + high_lim_col]
+        left = max(0, i - low_lim_col)
+        right = min(cols, i + high_lim_col)
+        tr = trace1[row, left:right]
         w = tr / np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO1[row, :] = np.sum(
-            cube[:, row, i - low_lim_col:i + high_lim_col] * ww, axis=1)
+            cube[:, row, left:right] * ww, axis=1)
 
         # Contamination for order 2 of target trace
         if lamO2[row] < 0.6:
             continue
         i = np.argmax(trace2[row, :])
-        tr = trace2[row, i - 20:i + 41]
+        left = max(0, i - low_lim_col)
+        right = min(cols, i + high_lim_col)
+        tr = trace2[row, left:right]
         w = tr / np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
-        contamO2[row, :] = np.sum(cube[:, row, i - 20:i + 41] * ww, axis=1)
+        contamO2[row, :] = np.sum(
+            cube[:, row, left:right] * ww, axis=1)
 
     return contamO1, contamO2
 
