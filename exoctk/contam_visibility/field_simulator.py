@@ -1005,6 +1005,8 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
         The data to use instead of making a simulation (to check accuracy or ID sources)
     plot: bool
         Plot the full frame and subarray bounds with all traces
+    include_target : bool
+        Whether to calculate and return the target trace frames.
 
     Returns
     -------
@@ -1148,15 +1150,17 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
 
     logging.info(f'Added {len(FOVstars)} sources to the simulated frames.')
 
-    # Only save target frames of interest
-    targframes = [targframes[idx] for idx in target_idx]
+    # Only save target frames of interest. Streamed DHS calls after the first
+    # PA omit the unchanged target frames.
+    if include_target:
+        targframes = [targframes[idx] for idx in target_idx]
 
     # Make results dict
     result = {
         'pa': V3PA,
         'target': (np.sum(targframes, axis=0)
                    if include_target else None),
-        'target_traces': targframes,
+        'target_traces': targframes if include_target else None,
         'contaminants': starframe,
     }
     logging.info('Compiled final results.')
@@ -1613,7 +1617,11 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         else:
             starcube_targ = np.zeros((362, targframes[0].shape[1], targframes[0].shape[0]))
             starcube_targ[0, :, :] = (targframes[0]).T[::-1, ::-1]
-            starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            if len(targframes) > 1:
+                starcube_targ[1, :, :] = (targframes[1]).T[::-1, ::-1]
+            elif aperture != 'NIS_SUBSTRIP96':
+                raise ValueError(
+                    f'Legacy contamination plot for {aperture} requires target Orders 1 and 2')
             starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
             contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 

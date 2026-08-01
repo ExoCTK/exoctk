@@ -881,6 +881,97 @@ def test_single_pa_plot_calculates_contamination_lines(monkeypatch):
     assert plot is not None
 
 
+def test_calc_v3pa_dhs_include_target_false_omits_target_frames(monkeypatch):
+    """Streamed DHS calls omit target frames when ``include_target=False``."""
+
+    aperture_name = 'SYNTHETIC_DHS_INCLUDE'
+    n_traces = 10
+    aperture_info = {
+        'inst': 'SYNTHETIC',
+        'full': 'SYNTHETIC_FULL',
+        'subarr_y': (0, 0, 4),
+        'subarr_x': (0, 5),
+        'c0x0': 0, 'c0y0': 0, 'xord0to1': 0, 'yord0to1': 0,
+        'lft': -10, 'rgt': 10, 'bot': -10, 'top': 10,
+        'blue_ext': 0, 'red_ext': 0,
+        'cutoffs': [5] * n_traces,
+        'coeffs': [np.array([0.]) for _ in range(n_traces)],
+        'trace_names': [f'DHS{i}' for i in range(n_traces)],
+        'empirical_scale': [1.] * (n_traces + 1),
+        'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
+    }
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            return np.array([0., 5.]), np.array([0., 4.])
+
+    class FakeScienceAperture:
+        AperName = aperture_name
+        V3IdlYAngle = 0.
+
+        @staticmethod
+        def reference_point(frame):
+            return 1., 1.
+
+        @staticmethod
+        def det_to_tel(x, y):
+            return x, y
+
+        @staticmethod
+        def det_to_sci(x, y):
+            return x, y
+
+    class FakeSiaf:
+        apertures = {
+            'SYNTHETIC_FULL': FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    stars = Table({
+        'ra': [10.], 'dec': [20.],
+        'xdet': [0.], 'ydet': [0.],
+        'xtel': [0.], 'ytel': [0.],
+        'xsci': [0.], 'ysci': [0.],
+        'xord0': [0.], 'yord0': [0.],
+        'xord1': [0.], 'yord1': [0.],
+        'Teff': [5000.], 'type': ['STAR'],
+        'fluxscale': [1.], 'distance': [0.],
+        'name': ['T'], 'designation': ['T'], 'url': [''],
+    })
+
+    template = tuple(np.ones((4, 5)) for _ in range(n_traces))
+    waves = tuple(np.linspace(1.0, 2.0, 5) for _ in range(n_traces))
+    monkeypatch.setitem(
+        field_simulator.APERTURES, aperture_name, aperture_info)
+    monkeypatch.setattr(
+        field_simulator.pysiaf, 'Siaf', lambda instrument: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'attitude_matrix',
+        lambda *args: object())
+    monkeypatch.setattr(
+        field_simulator, '_project_sources_to_detector',
+        lambda *args: None)
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, template))
+    monkeypatch.setattr(
+        field_simulator, '_iter_scaled_dhs_traces',
+        lambda aperture, teff, stype: iter([
+            (np.ones((4, 5)), np.ones(5)) for _ in range(n_traces)]))
+    monkeypatch.setattr(
+        field_simulator, 'get_order0',
+        lambda aperture, teff, stype='STAR': np.zeros((3, 3)))
+
+    result = field_simulator.calc_v3pa(
+        330., stars, aperture_name, include_target=False)
+
+    assert result['pa'] == 330.
+    assert result['target'] is None
+    assert result['target_traces'] is None
+    assert result['contaminants'].shape == (4, 5)
+
+
 def test_fraction_contaminated_processes_orders_sequentially():
     """Sequential order reduction is numerically identical to the old lists."""
 
@@ -956,15 +1047,17 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
 
     rng = np.random.default_rng(677)
     target_traces = [rng.random((33, 7)) for _ in range(8)]
-    trace_masks = []
-    for order in range(8):
+    physical_masks = []
+    for order in range(10):
         mask = np.ones((33, 7), dtype=bool)
         mask[:order % 3, 0] = False
         mask[:, -1] = False
-        trace_masks.append(mask)
+        physical_masks.append(mask)
+    target_indices = field_simulator.APERTURES[aperture]['target_traces']
+    trace_masks = [physical_masks[idx] for idx in target_indices]
     monkeypatch.setattr(
         field_simulator, 'get_trace_mask',
-        lambda *args, **kwargs: trace_masks)
+        lambda *args, **kwargs: physical_masks)
 
     pa_values = (0, 1, 33)
     source_traces = rng.random((2, 10, 33, 7))
@@ -1188,13 +1281,11 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
 
     target = np.array([[1., 0.], [1., 0.]])
     contaminants = np.zeros((1, 2, 2))
-    monkeypatch.setattr(
-        field_simulator, 'get_trace_mask',
-        lambda *args, **kwargs: [np.ones_like(target)])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         result = field_simulator.fraction_contaminated(
-            'NIS_SUBSTRIP256', [target], contaminants)[0]
+            'NIS_SUBSTRIP256', [target], contaminants,
+            trace_masks=[np.ones_like(target)])[0]
 
     assert result.shape == (1, 2)
     assert np.allclose(result[:, 0], 0.)
@@ -1217,12 +1308,9 @@ def test_fraction_contaminated_ignores_flux_outside_extraction(
         [[1.], [0.], [0.]],
         [[1.], [0.], [100.]],
     ])
-    monkeypatch.setattr(
-        field_simulator, 'get_trace_mask',
-        lambda *args, **kwargs: [mask])
 
     result = field_simulator.fraction_contaminated(
-        aperture, [target], contaminants)[0]
+        aperture, [target], contaminants, trace_masks=[mask])[0]
 
     assert np.allclose(result, 0.25)
 
@@ -1319,9 +1407,9 @@ def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
 
     monkeypatch.setattr(contamination_figure, 'contam', fake_legacy)
     monkeypatch.setattr(contamination_figure, 'contam_slider_plot', fake_slider)
-    targframes = [np.arange(6).reshape(2, 3), np.arange(6, 12).reshape(2, 3)]
+    targframes = [np.arange(6).reshape(2, 3)]
     starcube = np.arange(24).reshape(4, 2, 3)
-    pctlines = [np.zeros((4, 3)), np.ones((4, 3))]
+    pctlines = [np.zeros((4, 3))]
 
     layout = contamination_figure.soss_contamination_plot_layout(
         targframes, starcube, pctlines, [7], 'NIS_SUBSTRIP96', 'Target')
@@ -1332,12 +1420,23 @@ def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
     assert captured['target_name'] == 'Target'
     assert captured['bad_pas'] == [7]
     assert captured['slider_bad_pas'] == [7]
+    assert captured['pctlines'] is pctlines
     np.testing.assert_array_equal(
         captured['cube'][0], targframes[0].T[::-1, ::-1])
     np.testing.assert_array_equal(
-        captured['cube'][1], targframes[1].T[::-1, ::-1])
+        captured['cube'][1], np.zeros_like(targframes[0].T))
     np.testing.assert_array_equal(
         captured['cube'][2:], starcube.swapaxes(1, 2)[:, ::-1, ::-1])
+
+
+def test_substrip256_layout_rejects_single_target_frame():
+    """SUBSTRIP256 must not silently accept an incomplete target result."""
+
+    with pytest.raises(ValueError,
+                       match='SOSS legacy plots require target Orders 1 and 2'):
+        contamination_figure.soss_contamination_plot_layout(
+            [np.zeros((2, 3))], np.zeros((4, 2, 3)),
+            [np.zeros((4, 3))], [], 'NIS_SUBSTRIP256', 'Target')
 
 
 def test_dhs_modes_available_in_web_form():

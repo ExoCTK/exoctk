@@ -233,13 +233,17 @@ def soss_contamination_plot_layout(targframes, starcube, pctlines,
     """
     if not instrument.startswith('NIS'):
         raise ValueError('Legacy contamination plots are available only for SOSS')
-    if len(targframes) < 2:
+    if len(targframes) < 1:
+        raise ValueError('SOSS legacy plots require the Order 1 target frame')
+    if instrument != 'NIS_SUBSTRIP96' and len(targframes) < 2:
         raise ValueError('SOSS legacy plots require target Orders 1 and 2')
 
     n_pa, n_rows, n_columns = starcube.shape
     legacy_cube = np.zeros((n_pa + 2, n_columns, n_rows))
     legacy_cube[0] = targframes[0].T[::-1, ::-1]
-    legacy_cube[1] = targframes[1].T[::-1, ::-1]
+    # SUBSTRIP96 reports Order 1 only; the Order 2 plane is left blank.
+    if len(targframes) > 1:
+        legacy_cube[1] = targframes[1].T[::-1, ::-1]
     legacy_cube[2:] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
 
     legacy_plot = contam(
