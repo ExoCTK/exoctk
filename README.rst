@@ -4,7 +4,7 @@
 
 .. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
     :target: https://github.com/ExoCTK/exoctk/releases/latest/
-.. image:: https://img.shields.io/pypi/l/Django.svg
+.. image:: https://img.shields.io/github/license/ExoCTK/exoctk.svg
     :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
 .. image:: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml/badge.svg?branch=main
     :target: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml
