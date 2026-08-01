@@ -6,8 +6,12 @@
     :target: https://github.com/ExoCTK/exoctk/releases/latest/
 .. image:: https://img.shields.io/pypi/l/Django.svg
     :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
-.. image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
-    :target: https://travis-ci.org/ExoCTK/exoctk
+.. image:: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml/badge.svg?branch=main
+    :target: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml
+    :alt: Build status
+.. image:: https://github.com/ExoCTK/exoctk/actions/workflows/test.yml/badge.svg?branch=main
+    :target: https://github.com/ExoCTK/exoctk/actions/workflows/test.yml
+    :alt: Test status
 .. image:: https://readthedocs.org/projects/exoctk/badge/?version=latest
     :target: https://exoctk.readthedocs.io/en/latest/?badge=latest
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg
