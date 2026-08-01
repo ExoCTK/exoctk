@@ -95,10 +95,7 @@ To install the latest development version of ``exoctk`` use ``pip`` to install d
 Obtain the ``exoctk`` Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``exoctk`` data package will be available through the MAST portal soon!
-Until then...
-
-The suggested way to obtain the data is to execute the ``exoctk.utils.download_exoctk_data()`` function.  This function will download a series of compressed files from Box, extract the files, and organize them into a ``exoctk_data/`` directory.  Note that this can only be done once the ``exoctk`` package has been fully installed (see instructions above).
+To obtain the necessary data to run ExoCTK, you just need to execute the ``exoctk.utils.download_exoctk_data()`` function.  This function will download a series of compressed files, extract the files, and organize them into an ``exoctk_data/`` directory.  Note that this can only be done once the ``exoctk`` package has been fully installed (see instructions above).
 
 Lastly, export an environment variable for ``EXOCTK_DATA``.
 
@@ -112,7 +109,6 @@ to your `.bashrc` or `.bash_profile`.
 
 - For Windows, add an environment variable using System Utility.
 
-Users may also download individual components of the ``exoctk`` data package directly through the `Box website <https://stsci.box.com/s/7ph64s6cfyusfcxjvih8ll5rn0ydzw86>`_.  Please note that materials must ultimately be placed within a ``exoctk_data/`` directory, and the ``EXOCTK_DATA`` environment variable be set in order for the ``exoctk`` package to work properly.
 
 
 Missing Dependencies?
