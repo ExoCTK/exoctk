@@ -1407,6 +1407,24 @@ def test_substrip96_slider_omits_uncalculated_orders():
                    for key in spectrum_plot.renderers[0].data_source.data)
 
 
+def test_many_trace_slider_uses_compact_legend():
+    """Multi-trace modes wrap concise threshold labels below the plot."""
+
+    fractions = [np.zeros((360, 3)) for _ in range(8)]
+    plot = contamination_figure.contam_slider_plot(
+        fractions, badPA_list=[], instrument='DHS_TEST')
+    pa_plot = plot.children[2]
+    legend = next(
+        item for item in pa_plot.below
+        if isinstance(item, contamination_figure.Legend))
+    labels = [item.label['value'] for item in legend.items]
+
+    assert legend.ncols == 3
+    assert legend.location == 'center'
+    assert labels[0] == 'Target not observable'
+    assert labels[1:] == [f'Ord {order} > 5%' for order in range(1, 9)]
+
+
 def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
     """SOSS results retain the legacy view above the slider summary."""
 

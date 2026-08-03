@@ -209,10 +209,18 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     viz_plt.yaxis.axis_label = 'Mean Contamination (%)'
     viz_plt.add_layout(span)
 
+    compact_legend = len(vis_ords) > 3
     items = [("Target not observable", [c0])]
     for label, vis_ord in zip(threshold_labels, vis_ords):
-        items.append((f'{label} > {threshold * 100}% Contaminated', [vis_ord]))
-    legend = Legend(items=items, location=(50, 0), orientation='horizontal', border_line_alpha=0)
+        if compact_legend:
+            legend_label = f'{label} > {threshold * 100:g}%'
+        else:
+            legend_label = (
+                f'{label} > {threshold * 100}% Contaminated')
+        items.append((legend_label, [vis_ord]))
+    legend = Legend(
+        items=items, location='center', orientation='horizontal',
+        border_line_alpha=0, ncols=3 if compact_legend else len(items))
     viz_plt.add_layout(legend, 'below')
 
     # Put plot together
