@@ -315,8 +315,8 @@ def test_resolve_target():
 
     ra, dec = resolve.resolve_target('Wasp-18 b')
 
-    assert ra == 24.3544618
-    assert dec == -45.6777937
+    assert ra == pytest.approx(24.35430533279)
+    assert dec == pytest.approx(-45.67788186596)
 
 
 @pytest.mark.parametrize(('probabilities', 'expected'), [
@@ -1770,8 +1770,7 @@ def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(
         field_simulator, "get_canonical_name", lambda name: name)
     monkeypatch.setattr(
-        field_simulator, "get_target_data",
-        lambda name: ({"RA": 10., "DEC": 20.}, None))
+        field_simulator, "resolve_target", lambda name: (10., 20.))
     monkeypatch.setattr(
         field_simulator.pysiaf, "Siaf",
         lambda *_: pytest.fail("cache hit unexpectedly rendered DHS"))

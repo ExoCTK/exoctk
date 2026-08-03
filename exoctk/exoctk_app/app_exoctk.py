@@ -27,6 +27,7 @@ from exoctk.contam_visibility.new_vis_plot import build_visibility_plot, get_exo
 from exoctk.contam_visibility import field_simulator as fs
 from exoctk.contam_visibility import contamination_figure as cf
 from exoctk.contam_visibility.miniTools import contamVerify
+from exoctk.contam_visibility.resolve import resolve_target
 from exoctk.exoctk_app import form_validation as fv
 from exoctk.forward_models.forward_models import fortney_grid, generic_grid
 from exoctk.groups_integrations.groups_integrations import perform_calculation
@@ -386,7 +387,8 @@ def run_gaia_query_task(self, params):
     stars = fs.find_sources(
         params["ra"], params["dec"],
         width=fs.source_query_width(params["aperture"]),
-        target_date=params["target_date"])
+        target_date=params["target_date"],
+        coordinate_epoch=params.get("coordinate_epoch", 2000))
 
     self.update_state(state="SAVING STARS")
     stars_file = os.path.join(os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle')
@@ -519,28 +521,30 @@ def contam_visibility():
 
         return render_template('contam_visibility.html', form=form)
 
-    # Reload page with stellar data from ExoMAST
+    # Resolve coordinates through SIMBAD while retaining the ExoMAST link and
+    # canonical exoplanet name used elsewhere in the application.
     if form.resolve_submit.data:
 
         if form.targname.data.strip() != '':
 
-            # Resolve the target in exoMAST
             try:
                 form.targname.data = get_canonical_name(form.targname.data)
-                data, url = get_target_data(form.targname.data)
+                _, url = get_target_data(form.targname.data)
 
                 # Update the coordinates
-                ra_deg = data.get('RA')
-                dec_deg = data.get('DEC')
+                ra_deg, dec_deg = resolve_target(form.targname.data)
 
                 # Set the form values
                 form.ra.data = ra_deg
                 form.dec.data = dec_deg
+                form.coordinate_epoch.data = 2000
                 form.target_url.data = url
 
             except Exception:
                 form.target_url.data = ''
-                form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
+                form.targname.errors = [
+                    "Sorry, could not resolve '{}'.".format(
+                        form.targname.data)]
 
         # Send it back to the main page
         return render_template('contam_visibility.html', form=form)
@@ -628,6 +632,7 @@ def contam_visibility():
                     'aperture': form.inst.data,
                     'targname': form.targname.data,
                     'target_date': form.epoch.data,
+                    'coordinate_epoch': float(form.coordinate_epoch.data),
                 }
                 if companion is not None:
                     params['binComp'] = companion
@@ -645,6 +650,7 @@ def contam_visibility():
                     'aperture': form.inst.data,
                     'targname': form.targname.data,
                     'target_date': form.epoch.data,
+                    'coordinate_epoch': float(form.coordinate_epoch.data),
                 }
 
                 # Get stars

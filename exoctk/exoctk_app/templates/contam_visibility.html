@@ -100,10 +100,21 @@
                 </div>
                 <span id="helpBlock" class="help-block">The declination of the target</span>
                 <br>
+
+                <div class="input-group">
+                  <div class="input-group-addon" style='width:60px'>Coordinate Epoch</div>
+                      {{ form.coordinate_epoch(value=form.coordinate_epoch.data, size=10, rows=1, class='form-control') }}
+                  <div class="input-group-addon" style='width:60px'>Year</div>
+                </div>
+                <span id="helpBlock" class="help-block">The epoch of the target coordinates; SIMBAD positions use 2000.0</span>
+                <br>
                 {% for error in form.ra.errors %}
                     <p style="color: red;">{{ error }}</p>
                 {% endfor %}
                 {% for error in form.dec.errors %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endfor %}
+                {% for error in form.coordinate_epoch.errors %}
                     <p style="color: red;">{{ error }}</p>
                 {% endfor %}
             </div>

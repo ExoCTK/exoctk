@@ -185,6 +185,25 @@ def test_all_endpoints_identify_same_moving_target():
     assert identified == [target_id, target_id, target_id]
 
 
+def test_target_matching_accepts_gaia_epoch_coordinates():
+    """A modern coordinate must not be back-propagated before matching."""
+
+    target_coordinate = SkyCoord(330.844543 * u.deg, 67.4986773 * u.deg)
+    sources = Table({
+        'source_id': [2220012421429387008, 2220012421430629632],
+        'ra': [330.84183971529575, 330.8447357837603],
+        'dec': [67.49661367184648, 67.4986360849342],
+        'pmra': [0., 531.3100127010185],
+        'pmdec': [0., -296.3568208015839],
+        'ref_epoch': [2016., 2016.],
+    })
+
+    target_index = _target_source_index(
+        sources, target_coordinate, input_epoch=2016)
+
+    assert sources['source_id'][target_index] == 2220012421430629632
+
+
 def test_rows_sort_by_distance_then_source_id():
     """Equal angular separations use source ID as a stable tie breaker."""
 
