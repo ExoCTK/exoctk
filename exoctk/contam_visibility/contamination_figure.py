@@ -5,7 +5,7 @@ from itertools import groupby, count
 
 from astropy.io import fits
 from bokeh.layouts import gridplot, column, row
-from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer, Div
+from bokeh.models import Range1d, LinearColorMapper, LogColorMapper, Label, ColorBar, ColumnDataSource, HoverTool, Slider, CustomJS, VArea, CrosshairTool, TapTool, OpenURL, Span, Legend, Spacer, Div, FixedTicker
 from bokeh.palettes import PuBu, Spectral6
 from bokeh.plotting import figure
 import numpy as np
@@ -140,7 +140,12 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     plt.y_range = Range1d(0, display_y_max)
     if wavelength is not None:
         finite = spectral_coordinate[np.isfinite(spectral_coordinate)]
-        plt.x_range = Range1d(float(np.nanmin(finite)), float(np.nanmax(finite)))
+        x_start = float(np.nanmin(finite))
+        x_end = float(np.nanmax(finite))
+        if instrument == 'MIRIM_SLITLESSPRISM_IP':
+            x_start = min(5., x_start)
+            plt.xaxis.ticker = FixedTicker(ticks=list(range(5, 14)))
+        plt.x_range = Range1d(x_start, x_end)
     else:
         plt.x_range = Range1d(0, n_channels)
     plt.xaxis.axis_label = ('Wavelength (micron)' if wavelength is not None
@@ -191,7 +196,8 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
             out=np.full(len(pa_list), np.nan),
             where=np.sum(valid, axis=1) > 0,
         )
-        mean_line[np.asarray(badPA_list, dtype=int)] = np.nan
+        if instrument != 'MIRIM_SLITLESSPRISM_IP':
+            mean_line[np.asarray(badPA_list, dtype=int)] = np.nan
         viz_plt.step(pa_list, mean_line, line_width=2,
                      color=colors[order - 1], mode="center")
 

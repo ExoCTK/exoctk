@@ -41,6 +41,11 @@ class ContamVisForm(BaseForm):
     # Form inputs
     ra = DecimalField('ra', validators=[NumberRange(min=0, max=360, message='RA must be between 0 and 360 degrees')])
     dec = DecimalField('dec', validators=[NumberRange(min=-90, max=90, message='Declinaton must be between -90 and 90 degrees')])
+    coordinate_epoch = DecimalField(
+        'coordinate_epoch', default=2000,
+        validators=[NumberRange(
+            min=1900, max=2100,
+            message='Coordinate epoch must be between 1900 and 2100')])
     v3pa = DecimalField('v3pa', default=-1, validators=[NumberRange(min=-1, max=360, message='PA must be between 0 and 360 degrees')])
     epoch = IntegerField('epoch', default=Time.now().value.year, validators=[NumberRange(min=2000, max=2050, message='Epoch must be between 2000 and 2050')])
     inst = SelectField('inst', choices=CONTAM_VISIBILITY_MODES)

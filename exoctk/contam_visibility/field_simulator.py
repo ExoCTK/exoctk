@@ -44,7 +44,7 @@ import regions
 
 from ..utils import (
     add_array_at_position, add_scaled_array_inplace, check_for_data,
-    get_canonical_name, get_env_variables, get_target_data, replace_NaNs)
+    get_canonical_name, get_env_variables, replace_NaNs)
 from ..pkgdata import resource_filename
 from ..modelgrid import ACES
 from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
@@ -52,6 +52,7 @@ from . import contamination_figure as cf
 from . import miri_lrs
 from .gaia_tap import GaiaFailoverTAP
 from .precompute import save_exoplanet_data
+from .resolve import resolve_target
 
 log_file = 'contam_tool.log'
 logging.basicConfig(
@@ -391,9 +392,24 @@ def _target_source_index(stars, target_coordinate, input_epoch=2000):
     """Identify the Gaia source matching an input-epoch target coordinate.
 
     Gaia DR3 coordinates are reported at each source's ``ref_epoch`` (normally
-    2016), while target coordinates supplied to ExoCTK are conventionally
-    J2000.  Matching the unpropagated catalog positions can select a nearby
-    field source instead of a high-proper-motion target.
+    2016). Propagate each catalog source to ``input_epoch`` before matching so
+    that proper motion does not cause a nearby field source to be selected.
+
+    Parameters
+    ----------
+    stars : astropy.table.Table
+        Gaia sources containing coordinates, proper motions, and reference
+        epochs.
+    target_coordinate : astropy.coordinates.SkyCoord
+        Target position whose coordinate epoch may be Gaia-like or J2000.
+    input_epoch : int or float, optional
+        Epoch of ``target_coordinate`` and the epoch to which Gaia coordinates
+        are propagated for matching.
+
+    Returns
+    -------
+    int
+        Row index of the closest propagated Gaia source.
     """
 
     if not len(stars):
@@ -412,7 +428,8 @@ def _target_source_index(stars, target_coordinate, input_epoch=2000):
 
     catalog_at_input_epoch = crd.SkyCoord(
         ra=match_ra * u.deg, dec=match_dec * u.deg)
-    return int(np.argmin(target_coordinate.separation(catalog_at_input_epoch)))
+    return int(np.argmin(target_coordinate.separation(
+        catalog_at_input_epoch)))
 
 
 def observable_v3pa_ranges(position_table, max_gap=7):
@@ -522,7 +539,9 @@ def _filter_valid_flux_sources(stars, column, label):
     return stars[valid_flux]
 
 
-def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin, target_date=Time.now(), pm_corr=True, plot=False):
+def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
+                 target_date=Time.now(), pm_corr=True, plot=False,
+                 coordinate_epoch=2000):
     """
     Find all the stars in the vicinity and estimate temperatures
 
@@ -533,26 +552,34 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin, target_date=T
     dec : float
         The Dec of the target in decimal degrees
     target: str
-        The name of the target to resolve in ExoMAST
+        Target name canonicalized by ExoMAST and resolved in SIMBAD.
     width: astropy.units.quantity
         The width of the square search box
     target_date: Time, int, str
         The target epoch year of the observation, e.g. '2025'
     pm_corr: bool
         Correct source coordinates based on their proper motion
+    plot : bool
+        Plot the retrieved field sources.
+    coordinate_epoch : int or float, optional
+        Epoch of the supplied target coordinates. SIMBAD-resolved coordinates
+        use J2000.
 
     Returns
     -------
     astropy.table.Table
         The table of stars
     """
-    # Resolve target in ExoMAST if possible
+    # Use ExoMAST for canonical exoplanet naming and SIMBAD for coordinates.
+    # SIMBAD's basic identifier coordinates have an explicit J2000 contract,
+    # unlike the coordinate values returned by ExoMAST.
     if target is not None:
         targname = get_canonical_name(target)
-        data, _ = get_target_data(targname)
-        ra = data.get('RA')
-        dec = data.get('DEC')
-        logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) from '{target}' in ExoMAST.")
+        ra, dec = resolve_target(targname)
+        coordinate_epoch = 2000
+        logging.info(
+            "Resolved '%s' (RA=%s, Dec=%s) from '%s' in SIMBAD.",
+            targname, ra, dec, target)
 
     # Converting to degrees and query for neighbors with 2MASS IRSA's fp_psc (point-source catalog)
     targetcrd = crd.SkyCoord(ra=ra, dec=dec, unit=u.deg if isinstance(ra, float) and isinstance(dec, float) else (u.hour, u.deg))
@@ -566,7 +593,8 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin, target_date=T
     # Preserve the intended target as row zero throughout flux normalization,
     # proper-motion correction, and detector rendering. Gaia query order alone
     # is unsafe for targets that have moved since the input-coordinate epoch.
-    target_index = _target_source_index(stars, targetcrd)
+    target_index = _target_source_index(
+        stars, targetcrd, input_epoch=coordinate_epoch)
     order = np.concatenate(([target_index], np.delete(
         np.arange(len(stars)), target_index)))
     stars = stars[order]
@@ -1362,7 +1390,8 @@ def _compact_dhs_results(aperture, pa_results):
 
 def field_simulation(ra=None, dec=None, aperture=None, targname=None,
                      binComp=None, target_date=None, plot=False, task=None,
-                     title='My Target', target_db=None, slider=False):
+                     title='My Target', target_db=None, slider=False,
+                     coordinate_epoch=2000):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1374,7 +1403,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     aperture: str
         The aperture to use, ['NIS_SUBSTRIP96', 'NIS_SUBSTRIP256', 'NRCA5_GRISM256_F444W', 'NRCA5_GRISM256_F322W2']
     targname: str
-        The name of the target to look up in ExoMAST
+        Target name canonicalized by ExoMAST and resolved in SIMBAD.
     binComp : dict
         A dictionary of parameters for a binary companion with keys {'name', 'ra', 'dec', 'fluxscale', 'teff'}
     target_date: Time, int, str
@@ -1387,6 +1416,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         The path to the precomputed .h5 database of results
     slider: bool
         Make the PA slider plot instead of the legacy wavelength vs. PA plots
+    coordinate_epoch : int or float, optional
+        Epoch of the supplied target coordinates. SIMBAD-resolved coordinates
+        use J2000.
     Returns
     -------
     targframes : list of numpy.ndarray
@@ -1415,13 +1447,15 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     logging.info("Setting up simulation")
     start = time.time()
 
-    # Resolve target in ExoMAST if possible
+    # Preserve ExoMAST's canonical exoplanet name for cache compatibility,
+    # while using SIMBAD's explicitly J2000 coordinates for Gaia matching.
     if targname is not None:
         targname = get_canonical_name(targname)
-        data, _ = get_target_data(targname)
-        ra = data.get('RA')
-        dec = data.get('DEC')
-        logging.info(f"Resolved '{targname}' (RA={ra}, Dec={dec}) in ExoMAST.")
+        ra, dec = resolve_target(targname)
+        coordinate_epoch = 2000
+        logging.info(
+            "Resolved '%s' (RA=%s, Dec=%s) in SIMBAD.",
+            targname, ra, dec)
 
     # Check to see if there is a precomputed DB for this aperture in the user's
     # environment variables if they don't explicitly supply one as 'target_db'
@@ -1500,7 +1534,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             target_date = Time.now()
         stars = find_sources(
             ra, dec, width=source_query_width(aperture),
-            target_date=target_date)
+            target_date=target_date, coordinate_epoch=coordinate_epoch)
 
         # Add stars manually
         if isinstance(binComp, dict):
@@ -1606,7 +1640,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             contam_plot = cf.contam_slider_plot(
                 pctlines, badPAs, wavelength=asset.wavelength,
                 trace_names=['MIRI LRS'],
-                contamination_labels=['Spectrum'], y_max=0.1)
+                contamination_labels=['Spectrum'], y_max=0.1,
+                instrument=aperture)
 
         # Make slider contam plot
         elif slider or bounded_dhs:
