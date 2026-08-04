@@ -240,12 +240,13 @@ def test_visibility_ephemeris_suppresses_only_expected_erfa_warning(monkeypatch)
 
     monkeypatch.setattr(new_vis_plot, 'BoundedEphemeris', WarningEphemeris)
     with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter('always')
+        warnings.simplefilter('ignore')
+        warnings.simplefilter('always', ErfaWarning)
         result = new_vis_plot.get_exoplanet_positions('24.3544618',
                                                        '-45.6777937')
 
     assert isinstance(result, DataFrame)
-    assert [str(warning.message) for warning in caught] == [
+    assert [str(w.message) for w in caught] == [
         'unrelated ERFA warning']
 
 

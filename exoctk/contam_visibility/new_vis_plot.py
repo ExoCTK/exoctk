@@ -147,8 +147,8 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
         dec = dec[:-1]
 
     # jwst_gtvt validates its future maximum date during construction, which
-    # can emit an ERFA warning about uncertain leap seconds. Keep this
-    # suppression local so other ERFA warnings remain visible to callers.
+    # can emit ERFA's expected "dubious year" warning. Keep this suppression
+    # local so other ERFA warnings remain visible to callers.
     with warnings.catch_warnings():
         warnings.filterwarnings(
             'ignore',
