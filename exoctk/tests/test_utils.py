@@ -121,6 +121,35 @@ def test_get_canonical_name_identifies_service_outage(monkeypatch):
         get_canonical_name('not-a-target')
 
 
+@pytest.mark.parametrize('status_code', [429, 500, 503])
+def test_get_canonical_name_identifies_http_outage(
+        monkeypatch, status_code):
+    """Rate limits and server errors should be treated as temporary outages."""
+
+    response = requests.Response()
+    response.status_code = status_code
+    error = requests.HTTPError(
+        f'{status_code} response', response=response)
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(None, error=error))
+
+    with pytest.raises(ExoMASTServiceUnavailableError, match='unavailable'):
+        get_canonical_name('not-a-target')
+
+
+def test_get_canonical_name_rejects_non_outage_request_error(monkeypatch):
+    """Client and integration errors must not masquerade as service outages."""
+
+    monkeypatch.setattr(
+        utils.requests, 'get',
+        lambda *args, **kwargs: MockResponse(
+            None, error=requests.TooManyRedirects('redirect loop')))
+
+    with pytest.raises(ExoMASTError, match='request failed'):
+        get_canonical_name('not-a-target')
+
+
 def test_get_canonical_name_wraps_invalid_json(monkeypatch):
     monkeypatch.setattr(
         utils.requests, 'get',

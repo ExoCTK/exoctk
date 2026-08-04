@@ -811,8 +811,7 @@ def _get_exomast_json(url, params=None):
                 f'ExoMAST is unavailable: {exc}') from exc
         raise ExoMASTError(f'ExoMAST request failed: {exc}') from exc
     except requests.RequestException as exc:
-        raise ExoMASTServiceUnavailableError(
-            f'ExoMAST is unavailable: {exc}') from exc
+        raise ExoMASTError(f'ExoMAST request failed: {exc}') from exc
 
     try:
         return response.json()
