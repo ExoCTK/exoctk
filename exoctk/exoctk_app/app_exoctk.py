@@ -802,10 +802,8 @@ def contam_visibility():
                 os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle'
             )
             print(f"Loading {stars_file}")
-            with open(stars_file, "rb") as f:
-                stars = pickle.load(f)
+            stars = _load_and_remove_pickle(stars_file)
             print("Loaded stars")
-            os.remove(stars_file)
 
             # Add companion
             try:

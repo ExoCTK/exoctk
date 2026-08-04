@@ -93,3 +93,15 @@ def test_atomic_pickle_removes_temporary_file_on_failure(
 
     assert not output.exists()
     assert not list(tmp_path.glob(".contam-*"))
+
+
+def test_load_and_remove_pickle(tmp_path):
+    """A successfully loaded worker artifact is removed from disk."""
+
+    artifact = tmp_path / "result.pickle"
+    expected = {"result": [1, 2, 3]}
+    with artifact.open("wb") as f:
+        pickle.dump(expected, f)
+
+    assert app_exoctk._load_and_remove_pickle(str(artifact)) == expected
+    assert not artifact.exists()
