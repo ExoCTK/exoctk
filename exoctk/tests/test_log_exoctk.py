@@ -18,9 +18,10 @@ Use
 """
 
 import os
+import sqlite3
 
 import astropy
-import sqlite3
+import pytest
 
 from exoctk import log_exoctk
 
@@ -113,3 +114,38 @@ def test_view_log(tmp_path):
 
     # Remove the database
     os.remove(db_path)
+
+
+@pytest.mark.parametrize('table', [
+    'groups-integrations',
+    '1groups_integrations',
+    'groups_integrations; DROP TABLE groups_integrations',
+])
+def test_logging_rejects_invalid_table_names(tmp_path, table):
+    """Dynamic SQL table names must be simple identifiers."""
+
+    db_path = str(tmp_path / 'test.db')
+    log_exoctk.create_db(db_path)
+    connection = sqlite3.connect(db_path)
+
+    with pytest.raises(ValueError, match='Invalid SQL identifier'):
+        log_exoctk.log_form_input({}, table, connection)
+    with pytest.raises(ValueError, match='Invalid SQL identifier'):
+        log_exoctk.view_log(connection.cursor(), table)
+
+    connection.close()
+
+
+@pytest.mark.parametrize('limit', [-1, '-1', '1; DROP TABLE generic'])
+def test_view_log_rejects_invalid_limits(tmp_path, limit):
+    """Log row limits must convert to nonnegative integers."""
+
+    db_path = str(tmp_path / 'test.db')
+    log_exoctk.create_db(db_path)
+    connection = sqlite3.connect(db_path)
+
+    with pytest.raises(ValueError, match='nonnegative integer'):
+        log_exoctk.view_log(
+            connection.cursor(), 'groups_integrations', limit=limit)
+
+    connection.close()
