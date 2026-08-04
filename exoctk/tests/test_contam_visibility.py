@@ -1155,6 +1155,7 @@ def test_contamination_slider_uses_percent_and_common_display_cap():
     assert slider.title == 'V3 Position Angle'
     assert np.all(line_renderer.data_source.data['contam1'] == 12.5)
     assert shading_renderer.data_source.data['top'][0] == 10
+    assert np.isnan(pa_plot.renderers[1].data_source.data['y'][0])
     assert threshold_renderer.data_source.data['top'][0] == 10
 
 
@@ -2132,15 +2133,19 @@ def test_miri_all_pa_plot_accepts_native_shape_and_wavelength():
     fractions[0][175, 100] = 0.05
     wavelength = np.linspace(13.8, 5.0, miri_lrs.SHAPE[0])
     plot = contamination_figure.contam_slider_plot(
-        fractions, [], wavelength=wavelength, trace_names=['MIRI LRS'],
-        y_max=0.1)
+        fractions, [175], wavelength=wavelength, trace_names=['MIRI LRS'],
+        y_max=0.1, instrument=miri_lrs.APERTURE)
     assert plot is not None
     assert plot.children[0].y_range.end == pytest.approx(10.)
     assert plot.children[-1].y_range.end == pytest.approx(10.)
     assert plot.children[0].yaxis.axis_label == 'Contamination (%)'
     assert plot.children[-1].yaxis.axis_label == 'Mean Contamination (%)'
+    assert plot.children[0].x_range.start == pytest.approx(5.)
+    assert plot.children[0].xaxis.ticker.ticks == list(range(5, 14))
     plotted = plot.children[0].renderers[0].data_source.data['contam1']
     assert np.nanmax(plotted) == pytest.approx(5.)
+    pa_line = plot.children[-1].renderers[1].data_source.data['y']
+    assert pa_line[175] == pytest.approx(5. / miri_lrs.SHAPE[0])
     threshold_legend = plot.children[-1].below[-1]
     labels = [item.label.value for item in threshold_legend.items]
     assert 'Target not observable' in labels

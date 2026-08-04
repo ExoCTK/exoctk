@@ -757,7 +757,8 @@ def contam_visibility():
                     contam_plot = cf.contam_slider_plot(
                         pctlines, badPAs, wavelength=asset.wavelength,
                         trace_names=['MIRI LRS'],
-                        contamination_labels=['Spectrum'], y_max=0.1)
+                        contamination_labels=['Spectrum'], y_max=0.1,
+                        instrument=form.inst.data)
                     print("Made MIRI LRS contamination plot")
                 elif form.inst.data.startswith('NIS'):
                     contam_plot = cf.soss_contamination_plot_layout(

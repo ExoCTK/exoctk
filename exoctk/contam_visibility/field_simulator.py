@@ -1640,7 +1640,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             contam_plot = cf.contam_slider_plot(
                 pctlines, badPAs, wavelength=asset.wavelength,
                 trace_names=['MIRI LRS'],
-                contamination_labels=['Spectrum'], y_max=0.1)
+                contamination_labels=['Spectrum'], y_max=0.1,
+                instrument=aperture)
 
         # Make slider contam plot
         elif slider or bounded_dhs:
