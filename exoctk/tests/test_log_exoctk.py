@@ -116,6 +116,26 @@ def test_view_log(tmp_path):
     os.remove(db_path)
 
 
+def test_view_log_accepts_connection(tmp_path):
+    """A SQLite connection can be used directly to inspect a log."""
+
+    db_path = str(tmp_path / 'test.db')
+    log_exoctk.create_db(db_path)
+    connection = sqlite3.connect(db_path)
+
+    table = log_exoctk.view_log(connection, 'groups_integrations')
+
+    assert len(table) == 0
+    connection.close()
+
+
+def test_view_log_rejects_unsupported_database():
+    """Unsupported database objects raise a clear error."""
+
+    with pytest.raises(TypeError, match='database must be'):
+        log_exoctk.view_log(object(), 'groups_integrations')
+
+
 @pytest.mark.parametrize('table', [
     'groups-integrations',
     '1groups_integrations',

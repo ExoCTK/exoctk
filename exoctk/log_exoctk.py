@@ -150,8 +150,8 @@ def log_form_input(form_dict, table, database):
         The dictionary of form inputs
     table : str
         The table name to INSERT on
-    database : ``sqlite.connection.cursor`` obj
-        The database cursor object
+    database : ``sqlite3.Connection`` or ``sqlite3.Cursor``
+        The database connection or cursor used to insert the record.
     """
     table = _validate_sql_identifier(table)
 
@@ -193,8 +193,8 @@ def view_log(database, table, limit=50):
 
     Parameters
     ----------
-    database : str or ``sqlite3.connection.cursor`` obj
-        The database cursor object
+    database : str, ``sqlite3.Connection``, or ``sqlite3.Cursor``
+        The database path, connection, or cursor used to read the records.
     table : str
         The table name
     limit : int
@@ -217,10 +217,13 @@ def view_log(database, table, limit=50):
 
     if isinstance(database, str):
         DB = load_db(database)
+    elif isinstance(database, sqlite3.Connection):
+        DB = database.cursor()
     elif isinstance(database, sqlite3.Cursor):
         DB = database
     else:
-        print("Please enter the path to a .db file or a sqlite.Cursor object.")
+        raise TypeError(
+            'database must be a path, sqlite3.Connection, or sqlite3.Cursor')
 
     # Query the database
     query = f'PRAGMA table_info("{table}")'
