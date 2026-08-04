@@ -18,6 +18,7 @@ from exoctk.contam_visibility.field_simulator import (
     _target_source_index,
     calculate_current_coordinates,
 )
+from exoctk.contam_visibility import source_catalog
 
 
 CENTER = SkyCoord(10. * u.deg, 20. * u.deg)
@@ -73,6 +74,46 @@ def test_endpoint_native_query_construction(index, fragments):
 
     assert 'SELECT *' not in query
     assert all(fragment in query for fragment in fragments)
+
+
+def test_legacy_catalog_queries_coerce_numeric_inputs(monkeypatch):
+    """Legacy ADQL interpolation accepts only numeric coordinates and width."""
+
+    queries = []
+
+    class Job:
+        @staticmethod
+        def get_results():
+            return Table()
+
+    def launch_job(query, dump_to_file=False):
+        queries.append(query)
+        return Job()
+
+    monkeypatch.setattr(source_catalog.Gaia, 'launch_job', launch_job)
+
+    source_catalog.query_GAIA_ptsrc_catalog('10.5', '-20.25', '60')
+
+    assert len(queries) == 5
+    assert all('10.5, -20.25' in query for query in queries)
+    assert all('0.016666666666666666' in query for query in queries)
+
+
+@pytest.mark.parametrize(('ra', 'dec', 'box_width'), [
+    ('0); DROP TABLE gaiadr2.gaia_source', 20., 60.),
+    (10., '20 OR 1=1', 60.),
+    (10., 20., '60); SELECT * FROM tap_schema.tables'),
+])
+def test_legacy_catalog_queries_reject_nonnumeric_inputs(
+        monkeypatch, ra, dec, box_width):
+    """Nonnumeric values cannot become part of legacy ADQL queries."""
+
+    monkeypatch.setattr(
+        source_catalog.Gaia, 'launch_job',
+        lambda *args, **kwargs: pytest.fail('query should not be submitted'))
+
+    with pytest.raises(ValueError, match='must be numeric'):
+        source_catalog.query_GAIA_ptsrc_catalog(ra, dec, box_width)
 
 
 @pytest.mark.parametrize('endpoint', GAIA_TAP_ENDPOINTS)

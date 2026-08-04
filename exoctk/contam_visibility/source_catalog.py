@@ -1589,6 +1589,16 @@ def query_GAIA_ptsrc_catalog(ra, dec, box_width):
     """
     logger = logging.getLogger('mirage.catalogs.create_catalog.query_GAIA_ptsrc_catalog')
 
+    try:
+        ra = float(ra)
+        dec = float(dec)
+        box_width = float(box_width)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            'ra, dec, and box_width must be numeric') from exc
+    if not np.all(np.isfinite((ra, dec, box_width))):
+        raise ValueError('ra, dec, and box_width must be finite')
+
     data = OrderedDict()
     data['gaia'] = OrderedDict()
     data['tmass'] = OrderedDict()
@@ -1599,11 +1609,11 @@ def query_GAIA_ptsrc_catalog(ra, dec, box_width):
     boxwidth = box_width/3600.
     data['gaia']['query'] = """SELECT * FROM gaiadr2.gaia_source AS gaia
                         WHERE 1=CONTAINS(POINT('ICRS',gaia.ra,gaia.dec), BOX('ICRS',{}, {}, {}, {}))
-                        """.format(ra, dec, boxwidth, boxwidth)
+                        """
 
     data['tmass']['query'] = """SELECT ra,dec,ph_qual,j_m,h_m,ks_m,designation FROM gaiadr1.tmass_original_valid AS tmass
                         WHERE 1=CONTAINS(POINT('ICRS',tmass.ra,tmass.dec), BOX('ICRS',{}, {}, {}, {}))
-                        """.format(ra, dec, boxwidth, boxwidth)
+                        """
 
     data['tmass_crossmatch']['query'] = """SELECT field.ra,field.dec,field.designation,tmass.designation from
             (SELECT gaia.*
@@ -1614,11 +1624,11 @@ def query_GAIA_ptsrc_catalog(ra, dec, box_width):
                 ON field.source_id = xmatch.source_id
             INNER JOIN gaiadr1.tmass_original_valid AS tmass
                 ON tmass.tmass_oid = xmatch.tmass_oid
-        """.format(ra, dec, boxwidth, boxwidth)
+        """
 
     data['wise']['query'] = """SELECT ra,dec,ph_qual,w1mpro,w2mpro,w3mpro,w4mpro,designation FROM gaiadr1.allwise_original_valid AS wise
                         WHERE 1=CONTAINS(POINT('ICRS',wise.ra,wise.dec), BOX('ICRS',{}, {}, {}, {}))
-                        """.format(ra, dec, boxwidth, boxwidth)
+                        """
 
     data['wise_crossmatch']['query'] = """SELECT field.ra,field.dec,field.designation,allwise.designation from
             (SELECT gaia.*
@@ -1629,7 +1639,11 @@ def query_GAIA_ptsrc_catalog(ra, dec, box_width):
                 ON field.source_id = xmatch.source_id
             INNER JOIN gaiadr1.allwise_original_valid AS allwise
                 ON allwise.designation = xmatch.original_ext_source_id
-        """.format(ra, dec, boxwidth, boxwidth)
+        """
+
+    for catalog in data.values():
+        catalog['query'] = catalog['query'].format(
+            ra, dec, boxwidth, boxwidth)
 
     outvalues = {}
     logger.info('Searching the GAIA DR2 catalog')
