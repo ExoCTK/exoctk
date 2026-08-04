@@ -317,6 +317,8 @@ def test_resolve_target():
 
     assert ra == pytest.approx(24.35430533279)
     assert dec == pytest.approx(-45.67788186596)
+    assert isinstance(ra, float)
+    assert isinstance(dec, float)
 
 
 @pytest.mark.parametrize(('probabilities', 'expected'), [
