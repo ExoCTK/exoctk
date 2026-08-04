@@ -78,7 +78,7 @@ Repository = "https://github.com/ExoCTK/exoctk"
 
 [build-system]
 requires = [
-  "setuptools>=68.0.0,<83",
+  "setuptools>=68.0.0,<84",
   "numpy>=2.0.0,<3",
   "wheel>=0.40,<1",
   "setuptools_scm>=7,<11",
