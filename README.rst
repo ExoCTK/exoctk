@@ -4,10 +4,14 @@
 
 .. image:: https://img.shields.io/github/release/ExoCTK/exoctk.svg
     :target: https://github.com/ExoCTK/exoctk/releases/latest/
-.. image:: https://img.shields.io/pypi/l/Django.svg
+.. image:: https://img.shields.io/github/license/ExoCTK/exoctk.svg
     :target: https://github.com/ExoCTK/exoctk/blob/master/LICENSE.rst
-.. image:: https://travis-ci.org/ExoCTK/exoctk.svg?branch=master
-    :target: https://travis-ci.org/ExoCTK/exoctk
+.. image:: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml/badge.svg?branch=main
+    :target: https://github.com/ExoCTK/exoctk/actions/workflows/build.yml
+    :alt: Build status
+.. image:: https://github.com/ExoCTK/exoctk/actions/workflows/test.yml/badge.svg?branch=main
+    :target: https://github.com/ExoCTK/exoctk/actions/workflows/test.yml
+    :alt: Test status
 .. image:: https://readthedocs.org/projects/exoctk/badge/?version=latest
     :target: https://exoctk.readthedocs.io/en/latest/?badge=latest
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4556063.svg
@@ -95,10 +99,7 @@ To install the latest development version of ``exoctk`` use ``pip`` to install d
 Obtain the ``exoctk`` Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``exoctk`` data package will be available through the MAST portal soon!
-Until then...
-
-The suggested way to obtain the data is to execute the ``exoctk.utils.download_exoctk_data()`` function.  This function will download a series of compressed files from Box, extract the files, and organize them into a ``exoctk_data/`` directory.  Note that this can only be done once the ``exoctk`` package has been fully installed (see instructions above).
+To obtain the necessary data to run ExoCTK, you just need to execute the ``exoctk.utils.download_exoctk_data()`` function.  This function will download a series of compressed files, extract the files, and organize them into an ``exoctk_data/`` directory.  Note that this can only be done once the ``exoctk`` package has been fully installed (see instructions above).
 
 Lastly, export an environment variable for ``EXOCTK_DATA``.
 
@@ -112,7 +113,6 @@ to your `.bashrc` or `.bash_profile`.
 
 - For Windows, add an environment variable using System Utility.
 
-Users may also download individual components of the ``exoctk`` data package directly through the `Box website <https://stsci.box.com/s/7ph64s6cfyusfcxjvih8ll5rn0ydzw86>`_.  Please note that materials must ultimately be placed within a ``exoctk_data/`` directory, and the ``EXOCTK_DATA`` environment variable be set in order for the ``exoctk`` package to work properly.
 
 
 Missing Dependencies?

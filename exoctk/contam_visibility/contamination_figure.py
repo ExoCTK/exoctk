@@ -209,10 +209,18 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     viz_plt.yaxis.axis_label = 'Mean Contamination (%)'
     viz_plt.add_layout(span)
 
+    compact_legend = len(vis_ords) > 3
     items = [("Target not observable", [c0])]
     for label, vis_ord in zip(threshold_labels, vis_ords):
-        items.append((f'{label} > {threshold * 100}% Contaminated', [vis_ord]))
-    legend = Legend(items=items, location=(50, 0), orientation='horizontal', border_line_alpha=0)
+        if compact_legend:
+            legend_label = f'{label} > {threshold * 100:g}%'
+        else:
+            legend_label = (
+                f'{label} > {threshold * 100}% Contaminated')
+        items.append((legend_label, [vis_ord]))
+    legend = Legend(
+        items=items, location='center', orientation='horizontal',
+        border_line_alpha=0, ncols=3 if compact_legend else len(items))
     viz_plt.add_layout(legend, 'below')
 
     # Put plot together
@@ -233,13 +241,17 @@ def soss_contamination_plot_layout(targframes, starcube, pctlines,
     """
     if not instrument.startswith('NIS'):
         raise ValueError('Legacy contamination plots are available only for SOSS')
-    if len(targframes) < 2:
+    if len(targframes) < 1:
+        raise ValueError('SOSS legacy plots require the Order 1 target frame')
+    if instrument != 'NIS_SUBSTRIP96' and len(targframes) < 2:
         raise ValueError('SOSS legacy plots require target Orders 1 and 2')
 
     n_pa, n_rows, n_columns = starcube.shape
     legacy_cube = np.zeros((n_pa + 2, n_columns, n_rows))
     legacy_cube[0] = targframes[0].T[::-1, ::-1]
-    legacy_cube[1] = targframes[1].T[::-1, ::-1]
+    # SUBSTRIP96 reports Order 1 only; the Order 2 plane is left blank.
+    if len(targframes) > 1:
+        legacy_cube[1] = targframes[1].T[::-1, ::-1]
     legacy_cube[2:] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
 
     legacy_plot = contam(
@@ -342,20 +354,25 @@ def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
     for row in np.arange(rows):
         # Contamination for order 1 of target trace
         i = np.argmax(trace1[row, :])
-        tr = trace1[row, i - low_lim_col:i + high_lim_col]
+        left = max(0, i - low_lim_col)
+        right = min(cols, i + high_lim_col)
+        tr = trace1[row, left:right]
         w = tr / np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
         contamO1[row, :] = np.sum(
-            cube[:, row, i - low_lim_col:i + high_lim_col] * ww, axis=1)
+            cube[:, row, left:right] * ww, axis=1)
 
         # Contamination for order 2 of target trace
         if lamO2[row] < 0.6:
             continue
         i = np.argmax(trace2[row, :])
-        tr = trace2[row, i - 20:i + 41]
+        left = max(0, i - low_lim_col)
+        right = min(cols, i + high_lim_col)
+        tr = trace2[row, left:right]
         w = tr / np.sum(tr**2)
         ww = np.tile(w, nPA).reshape([nPA, tr.size])
-        contamO2[row, :] = np.sum(cube[:, row, i - 20:i + 41] * ww, axis=1)
+        contamO2[row, :] = np.sum(
+            cube[:, row, left:right] * ww, axis=1)
 
     return contamO1, contamO2
 

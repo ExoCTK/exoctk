@@ -20,16 +20,20 @@ Use
         pytest -s test_contam_visibility.py
 """
 
+import datetime
 import json
 import os
 import pickle
+import subprocess
 import sys
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import pysiaf
+import requests
 
 from pandas import DataFrame
 from astropy.io import fits
@@ -105,9 +109,118 @@ def test_new_vis_plot():
 
     assert isinstance(table, DataFrame)
 
-    plt = new_vis_plot.build_visibility_plot('WASP-18b', 'NIRISS', ra, dec)
+    plt = new_vis_plot.build_visibility_plot(
+        'WASP-18b', 'NIRISS', ra, dec, exoplanet_df=table)
 
     assert str(type(plt)) == "<class 'bokeh.plotting._figure.figure'>"
+
+
+def test_bounded_ephemeris_requests_have_timeouts(monkeypatch, tmp_path):
+    """Horizons requests are bounded and incomplete local data is rejected."""
+
+    requests_seen = []
+
+    def timeout(url, timeout):
+        requests_seen.append((url, timeout))
+        raise requests.Timeout('Horizons did not respond')
+
+    monkeypatch.setattr(new_vis_plot.requests, 'get', timeout)
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    ephemeris._requested_end_date = '2028-07-30'
+    local_file = tmp_path / 'ephemeris_2021-12-26_2025-06-12.txt'
+    local_file.write_text('local ephemeris')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    assert ephemeris.ephemeris_maximum_date() == '2028-07-30'
+    with pytest.raises(
+            new_vis_plot.EphemerisUnavailableError,
+            match='not the requested 2024-07-30 through 2028-07-30'):
+        ephemeris.get_ephemeris_data('2024-07-30', '2028-07-30')
+
+    assert len(requests_seen) == 2
+    assert all(timeout == new_vis_plot.HORIZONS_TIMEOUT
+               for _, timeout in requests_seen)
+
+
+def test_visibility_date_range_rolls_forward_two_years():
+    """Visibility calculations use a rolling two-year planning window."""
+
+    start_date, end_date = new_vis_plot.visibility_date_range(
+        datetime.date(2026, 7, 30))
+
+    assert start_date.strftime('%Y-%m-%d') == '2026-07-30'
+    assert end_date.strftime('%Y-%m-%d') == '2028-07-30'
+
+
+def test_bounded_ephemeris_rejects_invalid_horizons_response(
+        monkeypatch, tmp_path):
+    """An HTTP success without vector data is not treated as an ephemeris."""
+
+    response = SimpleNamespace(
+        text='Horizons returned an explanatory error',
+        raise_for_status=lambda: None)
+    monkeypatch.setattr(
+        new_vis_plot.requests, 'get',
+        lambda *args, **kwargs: response)
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    local_file = tmp_path / 'ephemeris_2021-12-26_2025-06-12.txt'
+    local_file.write_text('local ephemeris')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    with pytest.raises(
+            new_vis_plot.EphemerisUnavailableError,
+            match='not the requested 2026-07-30 through 2028-07-30'):
+        ephemeris.get_ephemeris_data('2026-07-30', '2028-07-30')
+
+
+def test_bounded_ephemeris_uses_complete_local_data(monkeypatch, tmp_path):
+    """A packaged ephemeris is used when it covers the full request."""
+
+    monkeypatch.setattr(
+        new_vis_plot.requests, 'get',
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            requests.Timeout('Horizons did not respond')))
+
+    ephemeris = new_vis_plot.BoundedEphemeris.__new__(
+        new_vis_plot.BoundedEphemeris)
+    local_file = tmp_path / 'ephemeris_2024-01-01_2029-01-01.txt'
+    local_file.write_text('first line\nsecond line\n')
+    ephemeris.ephemeris_filename = str(local_file)
+
+    with pytest.warns(RuntimeWarning, match='using packaged ephemeris'):
+        result = ephemeris.get_ephemeris_data(
+            '2024-07-30', '2028-07-30')
+
+    assert result.tolist() == ['first line', 'second line']
+
+
+def test_build_visibility_plot_reuses_positions(monkeypatch):
+    """Precomputed positions avoid another Horizons query."""
+
+    positions = DataFrame({
+        'in_FOR': [True, True],
+        'MJD': [60000., 60001.],
+        'NIRISS_nominal_angle': [10., 11.],
+        'NIRISS_min_pa_angle': [5., 6.],
+        'NIRISS_max_pa_angle': [15., 16.],
+    })
+    monkeypatch.setattr(
+        new_vis_plot, 'get_exoplanet_positions',
+        lambda *args, **kwargs: pytest.fail(
+            'positions should not be recalculated'))
+    monkeypatch.setattr(
+        new_vis_plot, 'get_visibility_windows',
+        lambda indices: [(indices[0], indices[-1])])
+
+    plot = new_vis_plot.build_visibility_plot(
+        'Target', 'NIRISS', '1', '2', exoplanet_df=positions)
+
+    assert str(type(plot)) == "<class 'bokeh.plotting._figure.figure'>"
+    assert 'times' not in positions
 
 
 @pytest.mark.skipif(ON_GITHUB_ACTIONS, reason='Need access to trace data FITS files.  Please try running locally')
@@ -554,30 +667,64 @@ def test_batched_source_projection_matches_scalar_pysiaf():
 
 
 def test_trace_templates_are_cached_across_position_angles(monkeypatch):
-    """Repeated source templates avoid repeated trace-file reads."""
+    """Repeated source templates avoid repeated trace-file and model reads."""
 
-    calls = []
+    load_calls = []
+    model_calls = []
+
     monkeypatch.setenv('EXOCTK_DATA', '/synthetic-data')
+
+    template = np.ones((3, 3, 4), dtype=float)
+    template[:, 0, :] = np.linspace(1.0, 2.0, 4)
+
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1.0, 2.0, 9),
+    }
+
+    def synthetic_load(filename):
+        load_calls.append(filename)
+        return template.copy()
+
+    def synthetic_model(*args, **kwargs):
+        model_calls.append((args, kwargs))
+        return {
+            name: values.copy()
+            for name, values in model.items()
+        }
+
+    monkeypatch.setattr(field_simulator.np, 'load', synthetic_load)
     monkeypatch.setattr(
-        field_simulator.glob, 'glob',
-        lambda path: ['/synthetic-data/exoctk_contam/traces/'
-                      'NIS_SUBSTRIP256/trace_5000.fits'])
+        field_simulator,
+        '_get_aces_grid',
+        lambda: SimpleNamespace(get=synthetic_model),
+    )
 
-    def synthetic_trace(filename, ext=0):
-        calls.append((filename, ext))
-        return np.full((2, 2), ext + 1., dtype=float)
-
-    monkeypatch.setattr(field_simulator.fits, 'getdata', synthetic_trace)
     field_simulator._get_trace_cached.cache_clear()
+
     try:
-        first = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
-        second = field_simulator.get_trace('NIS_SUBSTRIP256', 5000., 'STAR')
+        first = field_simulator.get_trace(
+            'NIS_SUBSTRIP256', 5000.0, 'STAR'
+        )
+        second = field_simulator.get_trace(
+            'NIS_SUBSTRIP256', 5000.0, 'STAR'
+        )
     finally:
         field_simulator._get_trace_cached.cache_clear()
 
-    assert len(calls) == 3
-    assert all(np.array_equal(before, after)
-               for before, after in zip(first, second))
+    assert load_calls == [
+        '/synthetic-data/exoctk_contam/traces/NIS_SUBSTRIP256.npy'
+    ]
+
+    assert model_calls == [
+        ((5000.0, 5.5, 0), {'mu1': True, 'interp': False})
+    ]
+
+    assert all(
+        np.array_equal(before, after)
+        for before, after in zip(first, second)
+    )
+
     assert all(not trace.flags.writeable for trace in first)
 
 
@@ -606,6 +753,389 @@ def test_order_zero_templates_are_cached_across_position_angles(monkeypatch):
         '/synthetic-data/exoctk_contam/order0/NIS_order0_5000.npy']
     assert np.array_equal(first, second)
     assert not first.flags.writeable
+
+
+@pytest.mark.parametrize('centered,x,y', [
+    (False, 1, 2),
+    (False, -2, 1),
+    (True, 3, 2),
+])
+def test_bounded_scaled_add_matches_full_detector_temporary(
+        centered, x, y):
+    """Chunked DHS accumulation preserves the established pixel arithmetic."""
+
+    destination = np.arange(42., dtype=float).reshape(6, 7)
+    source = np.arange(20., dtype=float).reshape(4, 5)
+    spectral_scale = np.linspace(0.5, 1.5, source.shape[1])
+    fluxscale = 0.37
+    expected = field_simulator.add_array_at_position(
+        destination, source * spectral_scale[None, :] * fluxscale,
+        x, y, centered=centered)
+    actual = destination.copy()
+
+    returned = field_simulator.add_scaled_array_inplace(
+        actual, source, x, y, centered=centered, fluxscale=fluxscale,
+        spectral_scale=spectral_scale, row_chunk=2)
+
+    assert returned is actual
+    np.testing.assert_array_equal(actual, expected)
+
+
+def test_single_pa_plot_calculates_contamination_lines(monkeypatch):
+    """The website's single-PA plot must calculate its spectral ratio lines."""
+
+    aperture_name = 'SYNTHETIC_SINGLE_PA'
+    aperture_info = {
+        'inst': 'SYNTHETIC',
+        'full': 'SYNTHETIC_FULL',
+        'subarr_y': (0, 0, 4),
+        'subarr_x': (0, 5),
+        'c0x0': 0,
+        'c0y0': 0,
+        'xord0to1': 0,
+        'yord0to1': 0,
+        'lft': -10,
+        'rgt': 10,
+        'bot': -10,
+        'top': 10,
+        'blue_ext': 0,
+        'red_ext': 0,
+        'cutoffs': [4],
+        'coeffs': [np.array([0.])],
+        'trace_names': ['Order 1'],
+        'empirical_scale': [1.],
+        'target_traces': [0]
+    }
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            assert frame == 'det'
+            return np.array([0., 5.]), np.array([0., 4.])
+
+    class FakeScienceAperture:
+        AperName = aperture_name
+        V3IdlYAngle = 0.
+
+        @staticmethod
+        def reference_point(frame):
+            assert frame == 'det'
+            return 1., 1.
+
+        @staticmethod
+        def det_to_tel(x, y):
+            return x, y
+
+        @staticmethod
+        def det_to_sci(x, y):
+            return x, y
+
+    class FakeSiaf:
+        apertures = {
+            'SYNTHETIC_FULL': FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    stars = Table({
+        'ra': [10.],
+        'dec': [20.],
+        'xdet': [0.],
+        'ydet': [0.],
+        'xtel': [0.],
+        'ytel': [0.],
+        'xsci': [0.],
+        'ysci': [0.],
+        'xord0': [0.],
+        'yord0': [0.],
+        'xord1': [0.],
+        'yord1': [0.],
+        'Teff': [5000.],
+        'type': ['STAR'],
+        'fluxscale': [1.],
+        'distance': [0.],
+        'name': ['Target'],
+        'designation': ['Target'],
+        'url': [''],
+    })
+    monkeypatch.setitem(
+        field_simulator.APERTURES, aperture_name, aperture_info)
+    monkeypatch.setattr(
+        field_simulator.pysiaf, 'Siaf', lambda instrument: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'attitude_matrix',
+        lambda *args: object())
+    monkeypatch.setattr(
+        field_simulator, '_project_sources_to_detector',
+        lambda *args: None)
+    monkeypatch.setattr(
+        field_simulator, 'get_trace',
+        lambda *args, **kwargs: [np.ones((4, 5))])
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: [np.ones((4, 5), dtype=bool)])
+
+    result, plot = field_simulator.calc_v3pa(
+        330., stars, aperture_name, plot=True)
+
+    assert result['pa'] == 330.
+    assert plot is not None
+
+
+def test_calc_v3pa_dhs_include_target_false_omits_target_frames(monkeypatch):
+    """Streamed DHS calls omit target frames when ``include_target=False``."""
+
+    aperture_name = 'SYNTHETIC_DHS_INCLUDE'
+    n_traces = 10
+    aperture_info = {
+        'inst': 'SYNTHETIC',
+        'full': 'SYNTHETIC_FULL',
+        'subarr_y': (0, 0, 4),
+        'subarr_x': (0, 5),
+        'c0x0': 0, 'c0y0': 0, 'xord0to1': 0, 'yord0to1': 0,
+        'lft': -10, 'rgt': 10, 'bot': -10, 'top': 10,
+        'blue_ext': 0, 'red_ext': 0,
+        'cutoffs': [5] * n_traces,
+        'coeffs': [np.array([0.]) for _ in range(n_traces)],
+        'trace_names': [f'DHS{i}' for i in range(n_traces)],
+        'empirical_scale': [1.] * (n_traces + 1),
+        'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
+    }
+
+    class FakeFullAperture:
+        @staticmethod
+        def corners(frame):
+            return np.array([0., 5.]), np.array([0., 4.])
+
+    class FakeScienceAperture:
+        AperName = aperture_name
+        V3IdlYAngle = 0.
+
+        @staticmethod
+        def reference_point(frame):
+            return 1., 1.
+
+        @staticmethod
+        def det_to_tel(x, y):
+            return x, y
+
+        @staticmethod
+        def det_to_sci(x, y):
+            return x, y
+
+    class FakeSiaf:
+        apertures = {
+            'SYNTHETIC_FULL': FakeFullAperture(),
+            aperture_name: FakeScienceAperture(),
+        }
+
+    stars = Table({
+        'ra': [10.], 'dec': [20.],
+        'xdet': [0.], 'ydet': [0.],
+        'xtel': [0.], 'ytel': [0.],
+        'xsci': [0.], 'ysci': [0.],
+        'xord0': [0.], 'yord0': [0.],
+        'xord1': [0.], 'yord1': [0.],
+        'Teff': [5000.], 'type': ['STAR'],
+        'fluxscale': [1.], 'distance': [0.],
+        'name': ['T'], 'designation': ['T'], 'url': [''],
+    })
+
+    template = tuple(np.ones((4, 5)) for _ in range(n_traces))
+    waves = tuple(np.linspace(1.0, 2.0, 5) for _ in range(n_traces))
+    monkeypatch.setitem(
+        field_simulator.APERTURES, aperture_name, aperture_info)
+    monkeypatch.setattr(
+        field_simulator.pysiaf, 'Siaf', lambda instrument: FakeSiaf())
+    monkeypatch.setattr(
+        field_simulator.pysiaf.utils.rotations, 'attitude_matrix',
+        lambda *args: object())
+    monkeypatch.setattr(
+        field_simulator, '_project_sources_to_detector',
+        lambda *args: None)
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, template))
+    monkeypatch.setattr(
+        field_simulator, '_iter_scaled_dhs_traces',
+        lambda aperture, teff, stype: iter([
+            (np.ones((4, 5)), np.ones(5)) for _ in range(n_traces)]))
+    monkeypatch.setattr(
+        field_simulator, 'get_order0',
+        lambda aperture, teff, stype='STAR': np.zeros((3, 3)))
+
+    result = field_simulator.calc_v3pa(
+        330., stars, aperture_name, include_target=False)
+
+    assert result['pa'] == 330.
+    assert result['target'] is None
+    assert result['target_traces'] is None
+    assert result['contaminants'].shape == (4, 5)
+
+
+def test_fraction_contaminated_processes_orders_sequentially():
+    """Sequential order reduction is numerically identical to the old lists."""
+
+    rng = np.random.default_rng(42)
+    targets = [rng.random((3, 4)), rng.random((3, 4))]
+    contaminants = rng.random((2, 3, 4))
+    masks = [rng.integers(0, 2, (3, 4)).astype(bool) for _ in targets]
+
+    expected = []
+    for target, mask in zip(targets, masks):
+        total = target + contaminants
+        fraction = np.divide(
+            contaminants, total,
+            out=np.full_like(contaminants, np.nan),
+            where=(total != 0) & ~np.isnan(total))
+        masked = np.where(mask > 0, fraction * mask, np.nan)
+        expected.append(np.nanmean(masked, axis=1))
+
+    actual = field_simulator.fraction_contaminated(
+        'synthetic', targets, contaminants, trace_masks=masks)
+
+    for before, after in zip(expected, actual):
+        np.testing.assert_array_equal(after, before)
+
+
+def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
+    """A temperature cache entry must not retain full detector-sized traces."""
+
+    waves = np.tile(np.linspace(1., 2., 5), (2, 1))
+    traces = np.ones((2, 3, 5))
+    model = {
+        'wave': np.linspace(0.5, 2.5, 9),
+        'flux': np.linspace(1., 2., 9),
+    }
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, traces))
+    monkeypatch.setattr(
+        field_simulator, '_get_aces_grid',
+        lambda: SimpleNamespace(
+            get=lambda *args, **kwargs: model))
+    field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+    try:
+        scales = field_simulator._get_dhs_spectral_scales_cached(
+            'SYNTHETIC_DHS', 5000.)
+    finally:
+        field_simulator._get_dhs_spectral_scales_cached.cache_clear()
+
+    assert len(scales) == traces.shape[0]
+    assert all(scale.shape == (traces.shape[-1],) for scale in scales)
+    assert sum(scale.nbytes for scale in scales) < traces.nbytes
+
+
+def test_package_import_does_not_require_exoctk_data():
+    """Documentation imports must not initialize data-backed model grids."""
+
+    env = os.environ.copy()
+    env.pop('EXOCTK_DATA', None)
+    imported = subprocess.run(
+        [sys.executable, '-c', 'import exoctk'],
+        env=env, capture_output=True, text=True, check=False)
+
+    assert imported.returncode == 0, imported.stderr
+
+
+@pytest.mark.parametrize('aperture', [
+    'NRCA5_41STRIPE1_DHS_F322W2',
+    'NRCA5_41STRIPE1_DHS_F444W',
+])
+def test_streamed_dhs_reconstituted_starcube_matches_legacy(
+        monkeypatch, aperture):
+    """Reconstituted streamed frames exactly match the legacy DHS starcube."""
+
+    rng = np.random.default_rng(677)
+    target_traces = [rng.random((33, 7)) for _ in range(8)]
+    physical_masks = []
+    for order in range(10):
+        mask = np.ones((33, 7), dtype=bool)
+        mask[:order % 3, 0] = False
+        mask[:, -1] = False
+        physical_masks.append(mask)
+    target_indices = field_simulator.APERTURES[aperture]['target_traces']
+    trace_masks = [physical_masks[idx] for idx in target_indices]
+    monkeypatch.setattr(
+        field_simulator, 'get_trace_mask',
+        lambda *args, **kwargs: physical_masks)
+
+    pa_values = (0, 1, 33)
+    source_traces = rng.random((2, 10, 33, 7))
+    spectral_scales = rng.random((2, 10, 7))
+    flux_scales = (0.37, 1.41)
+    positions = {
+        0: ((0, 0), (1, -1)),
+        1: ((-1, 1), (0, 0)),
+        33: ((1, 0), (-1, -1)),
+    }
+    legacy_cube = np.zeros((360, 33, 7))
+    for pa in pa_values:
+        frame = np.zeros((33, 7))
+        for traces, scales, fluxscale, (x, y) in zip(
+                source_traces, spectral_scales, flux_scales, positions[pa]):
+            for trace, spectral_scale in zip(traces, scales):
+                scaled_trace = (
+                    trace * spectral_scale[np.newaxis, :] * fluxscale)
+                frame = field_simulator.add_array_at_position(
+                    frame, scaled_trace, x, y)
+        legacy_cube[pa] = frame
+
+    reconstituted_cube = np.zeros_like(legacy_cube)
+    def pa_results():
+        for index, pa in enumerate(pa_values):
+            frame = np.zeros((33, 7))
+            for traces, scales, fluxscale, (x, y) in zip(
+                    source_traces, spectral_scales, flux_scales,
+                    positions[pa]):
+                for trace, spectral_scale in zip(traces, scales):
+                    field_simulator.add_scaled_array_inplace(
+                        frame, trace, x, y, fluxscale=fluxscale,
+                        spectral_scale=spectral_scale, row_chunk=8)
+            reconstituted_cube[pa] = frame
+            yield {
+                'pa': pa,
+                'target_traces': target_traces if index == 0 else None,
+                'contaminants': frame,
+            }
+
+    returned_targets, compact = field_simulator._compact_dhs_results(
+        aperture, pa_results())
+    np.testing.assert_array_equal(reconstituted_cube, legacy_cube)
+    expected = field_simulator.fraction_contaminated(
+        aperture, target_traces, legacy_cube, trace_masks=trace_masks)
+
+    assert isinstance(compact, field_simulator.DHSContaminationResult)
+    assert len(compact) == 8
+    np.testing.assert_array_equal(compact.position_angles, np.arange(360))
+    for before, after in zip(target_traces, returned_targets):
+        assert after is before
+    for dense_order, compact_order in zip(expected, compact.order_fractions):
+        np.testing.assert_array_equal(compact_order, dense_order)
+        assert compact_order.dtype == np.float64
+        assert not compact_order.flags.writeable
+        assert np.all(compact_order[2, :-1] == 0)
+        assert np.isnan(compact_order[2, -1])
+
+
+@pytest.mark.parametrize('source_count', [1, 35])
+def test_bounded_accumulation_scales_across_source_chunks(source_count):
+    """Low and higher source counts preserve exact accumulation arithmetic."""
+
+    rng = np.random.default_rng(123)
+    sources = [rng.random((33, 7)) for _ in range(source_count)]
+    scales = np.linspace(0.5, 1.5, source_count)
+    expected = np.zeros((33, 7))
+    actual = np.zeros_like(expected)
+
+    for source, scale in zip(sources, scales):
+        expected = field_simulator.add_array_at_position(
+            expected, source * scale, 0, 0)
+        field_simulator.add_scaled_array_inplace(
+            actual, source, 0, 0, fluxscale=scale, row_chunk=32)
+
+    np.testing.assert_array_equal(actual, expected)
+
+
 def test_contamination_slider_uses_percent_and_common_display_cap():
     """All supported modes share a 0--10% percent-based display."""
 
@@ -751,13 +1281,11 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
 
     target = np.array([[1., 0.], [1., 0.]])
     contaminants = np.zeros((1, 2, 2))
-    monkeypatch.setattr(
-        field_simulator, 'NIRISS_SOSS_trace_mask',
-        lambda aperture: [np.ones_like(target)])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         result = field_simulator.fraction_contaminated(
-            'NIS_SUBSTRIP256', [target], contaminants)[0]
+            'NIS_SUBSTRIP256', [target], contaminants,
+            trace_masks=[np.ones_like(target)])[0]
 
     assert result.shape == (1, 2)
     assert np.allclose(result[:, 0], 0.)
@@ -766,12 +1294,12 @@ def test_fraction_contaminated_returns_nan_for_empty_channel_without_warning(
                    for warning in caught)
 
 
-@pytest.mark.parametrize('aperture, mask_function', [
-    ('NIS_SUBSTRIP96', 'NIRISS_SOSS_trace_mask'),
-    ('NRCA5_41STRIPE1_DHS_F444W', 'NIRCam_DHS_trace_mask'),
+@pytest.mark.parametrize('aperture', [
+    'NIS_SUBSTRIP96',
+    'NRCA5_41STRIPE1_DHS_F444W',
 ])
 def test_fraction_contaminated_ignores_flux_outside_extraction(
-        monkeypatch, aperture, mask_function):
+        monkeypatch, aperture):
     """Off-mask sources do not dilute SOSS or DHS contamination."""
 
     mask = np.array([[1.], [1.], [0.]])
@@ -780,11 +1308,9 @@ def test_fraction_contaminated_ignores_flux_outside_extraction(
         [[1.], [0.], [0.]],
         [[1.], [0.], [100.]],
     ])
-    monkeypatch.setattr(
-        field_simulator, mask_function, lambda aperture: [mask])
 
     result = field_simulator.fraction_contaminated(
-        aperture, [target], contaminants)[0]
+        aperture, [target], contaminants, trace_masks=[mask])[0]
 
     assert np.allclose(result, 0.25)
 
@@ -841,6 +1367,28 @@ def test_substrip96_contamination_plot_omits_order2(monkeypatch):
 
     assert len(plot.children) == 2
 
+
+def test_niriss_contamination_clips_edge_extraction(tmp_path):
+    """SOSS extraction windows must not wrap at a subarray edge."""
+
+    n_pa, n_rows, n_columns = 3, 2, 96
+    cube = np.ones((n_pa + 2, n_rows, n_columns))
+    cube[:2] = 0
+    cube[0, :, 19] = 1
+
+    wavelength_file = tmp_path / 'wavelengths.txt'
+    np.savetxt(wavelength_file, np.array([
+        [0, 2.5, 0.],
+        [1, 2.6, 0.],
+    ]))
+
+    order1, order2 = contamination_figure.nirissContam(
+        cube, lam_file=wavelength_file)
+
+    np.testing.assert_array_equal(order1, np.ones((n_rows, n_pa)))
+    np.testing.assert_array_equal(order2, np.zeros((n_rows, n_pa)))
+
+
 def test_substrip96_slider_omits_uncalculated_orders():
     """The web slider exposes only the calculated SUBSTRIP96 order."""
 
@@ -857,6 +1405,24 @@ def test_substrip96_slider_omits_uncalculated_orders():
     assert 'contam2' not in spectrum_plot.renderers[0].data_source.data
     assert not any(key.startswith('contam2_')
                    for key in spectrum_plot.renderers[0].data_source.data)
+
+
+def test_many_trace_slider_uses_compact_legend():
+    """Multi-trace modes wrap concise threshold labels below the plot."""
+
+    fractions = [np.zeros((360, 3)) for _ in range(8)]
+    plot = contamination_figure.contam_slider_plot(
+        fractions, badPA_list=[], instrument='DHS_TEST')
+    pa_plot = plot.children[2]
+    legend = next(
+        item for item in pa_plot.below
+        if isinstance(item, contamination_figure.Legend))
+    labels = [item.label['value'] for item in legend.items]
+
+    assert legend.ncols == 3
+    assert legend.location == 'center'
+    assert labels[0] == 'Target not observable'
+    assert labels[1:] == [f'Ord {order} > 5%' for order in range(1, 9)]
 
 
 def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
@@ -881,9 +1447,9 @@ def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
 
     monkeypatch.setattr(contamination_figure, 'contam', fake_legacy)
     monkeypatch.setattr(contamination_figure, 'contam_slider_plot', fake_slider)
-    targframes = [np.arange(6).reshape(2, 3), np.arange(6, 12).reshape(2, 3)]
+    targframes = [np.arange(6).reshape(2, 3)]
     starcube = np.arange(24).reshape(4, 2, 3)
-    pctlines = [np.zeros((4, 3)), np.ones((4, 3))]
+    pctlines = [np.zeros((4, 3))]
 
     layout = contamination_figure.soss_contamination_plot_layout(
         targframes, starcube, pctlines, [7], 'NIS_SUBSTRIP96', 'Target')
@@ -894,12 +1460,23 @@ def test_soss_layout_places_legacy_plot_above_slider(monkeypatch):
     assert captured['target_name'] == 'Target'
     assert captured['bad_pas'] == [7]
     assert captured['slider_bad_pas'] == [7]
+    assert captured['pctlines'] is pctlines
     np.testing.assert_array_equal(
         captured['cube'][0], targframes[0].T[::-1, ::-1])
     np.testing.assert_array_equal(
-        captured['cube'][1], targframes[1].T[::-1, ::-1])
+        captured['cube'][1], np.zeros_like(targframes[0].T))
     np.testing.assert_array_equal(
         captured['cube'][2:], starcube.swapaxes(1, 2)[:, ::-1, ::-1])
+
+
+def test_substrip256_layout_rejects_single_target_frame():
+    """SUBSTRIP256 must not silently accept an incomplete target result."""
+
+    with pytest.raises(ValueError,
+                       match='SOSS legacy plots require target Orders 1 and 2'):
+        contamination_figure.soss_contamination_plot_layout(
+            [np.zeros((2, 3))], np.zeros((4, 2, 3)),
+            [np.zeros((4, 3))], [], 'NIS_SUBSTRIP256', 'Target')
 
 
 def test_dhs_modes_available_in_web_form():
@@ -1125,6 +1702,105 @@ def test_miri_precompute_can_add_target_to_existing_database(
         assert list(group.attrs['inaccessiblePA_list']) == [0, 1]
         np.testing.assert_array_equal(group['wavelength'][:], wavelength)
         np.testing.assert_array_equal(group['extraction_mask'][:], mask)
+
+
+@pytest.mark.parametrize("aperture", [
+    "NRCA5_41STRIPE1_DHS_F322W2",
+    "NRCA5_41STRIPE1_DHS_F444W",
+])
+def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
+    """Compact DHS caches preserve the reconstituted order products exactly."""
+
+    filename = tmp_path / "dhs-cache.h5"
+    target = [
+        np.full((3, 7), order + 0.25, dtype=np.float32)
+        for order in range(2)]
+    fractions = [
+        np.arange(28, dtype=float).reshape(4, 7),
+        np.arange(28, 56, dtype=float).reshape(4, 7)]
+    fractions[0][1, 3] = np.nan
+    compact = field_simulator.DHSContaminationResult(
+        tuple(fractions), np.array([0, 12, 180, 359]))
+
+    # Simulate a legacy group: saving a compact result must replace, rather
+    # than reuse, its dense contamination placeholders.
+    with precompute.h5py.File(filename, "w") as handle:
+        group = handle.create_group("Synthetic b")
+        group.create_dataset(
+            "contamination", shape=(0, 3, 7), dtype="float32")
+        group.create_dataset("plane_index", shape=(0,), dtype="int16")
+
+    precompute.save_exoplanet_data(
+        filename, "Synthetic b", aperture, 10., 20., target, compact,
+        goodPA_list=np.array([0, 12, 180, 359]))
+    monkeypatch.setattr(
+        field_simulator, "get_canonical_name", lambda name: name)
+    restored_target, restored, _ = (
+        field_simulator.fetch_contam_results("Synthetic b", filename))
+
+    np.testing.assert_array_equal(restored_target, np.asarray(target))
+    assert isinstance(restored, field_simulator.DHSContaminationResult)
+    np.testing.assert_array_equal(
+        restored.position_angles, compact.position_angles)
+    for actual, expected in zip(restored, compact):
+        np.testing.assert_array_equal(actual, expected)
+        assert not actual.flags.writeable
+    assert not restored.position_angles.flags.writeable
+    with precompute.h5py.File(filename, "r") as handle:
+        group = handle["Synthetic b"]
+        assert "contamination" not in group
+        assert "plane_index" not in group
+        assert group["dhs_order_fractions"].shape == (2, 4, 7)
+
+
+def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
+    """A complete compact DHS cache bypasses detector rendering."""
+
+    aperture = "NRCA5_41STRIPE1_DHS_F322W2"
+    filename = tmp_path / "dhs-cache.h5"
+    target = [np.ones((2, 5), dtype=np.float32)]
+    compact = field_simulator.DHSContaminationResult(
+        (np.arange(15, dtype=float).reshape(3, 5),),
+        np.array([0, 45, 359]))
+    precompute.save_exoplanet_data(
+        filename, "Synthetic b", aperture, 10., 20., target, compact,
+        goodPA_list=np.array([0, 45, 359]))
+
+    monkeypatch.setattr(field_simulator, "check_for_data", lambda *_: None)
+    monkeypatch.setattr(
+        field_simulator, "get_canonical_name", lambda name: name)
+    monkeypatch.setattr(
+        field_simulator, "get_target_data",
+        lambda name: ({"RA": 10., "DEC": 20.}, None))
+    monkeypatch.setattr(
+        field_simulator.pysiaf, "Siaf",
+        lambda *_: pytest.fail("cache hit unexpectedly rendered DHS"))
+
+    restored_target, restored, good_pas = field_simulator.field_simulation(
+        targname="Synthetic b", aperture=aperture, target_db=filename)
+
+    np.testing.assert_array_equal(restored_target, np.asarray(target))
+    np.testing.assert_array_equal(restored[0], compact[0])
+    np.testing.assert_array_equal(good_pas, [0, 45, 359])
+
+
+def test_legacy_dhs_cache_is_not_accepted(tmp_path):
+    """Dense DHS cache groups are recomputed instead of loaded as compact."""
+
+    filename = tmp_path / "legacy-dhs-cache.h5"
+    with precompute.h5py.File(filename, "w") as handle:
+        group = handle.create_group("Synthetic b")
+        group.attrs["filled"] = True
+        group.attrs["goodPA_list"] = [0]
+        group.create_dataset(
+            "target_trace", shape=(1, 2, 3), dtype="float32")
+        group.create_dataset(
+            "contamination", shape=(1, 2, 3), dtype="float32")
+        group.create_dataset("plane_index", data=[0])
+        assert not field_simulator._cached_contam_result_available(
+            group, compact_dhs=True)
+        assert field_simulator._cached_contam_result_available(
+            group, compact_dhs=False)
 
 
 def test_miri_pa_rotation_uses_siaf_coordinates():
