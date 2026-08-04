@@ -425,7 +425,9 @@ def _load_and_remove_pickle(filename):
     """Load a complete worker artifact, then remove it after a safe read."""
 
     with open(filename, "rb") as f:
-        value = pickle.load(f)
+        # The paired Celery task creates this server-named artifact in the
+        # private worker volume; website users cannot supply its path or data.
+        value = pickle.load(f)  # nosec B301
     os.remove(filename)
     return value
 

@@ -200,7 +200,11 @@ class ModelGrid(object):
             file = model_directory.replace('*', 'model_grid.p')
 
             if os.path.isfile(file):
-                model_grid = pickle.load(open(file, 'rb'))
+                # This cache is installed with or generated from the model
+                # files in the trusted ExoCTK data directory. The web app
+                # cannot populate it from a request or uploaded file.
+                with open(file, 'rb') as cache:
+                    model_grid = pickle.load(cache)  # nosec B301
 
                 # Make sure the model_grid.path matches the given model_directory
                 if os.path.dirname(file) != os.path.realpath(model_grid['path']):
