@@ -1350,4 +1350,6 @@ if __name__ == '__main__':
     app_exoctk.logger.handlers = gunicorn_logger.handlers
     app_exoctk.logger.setLevel(gunicorn_logger.level)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port)
+    # The container must listen on every container interface so Docker can
+    # publish this service through its explicitly configured host port.
+    app_exoctk.run(host='0.0.0.0', port=port)  # nosec B104
