@@ -54,6 +54,11 @@ from .gaia_tap import GaiaFailoverTAP
 from .precompute import save_exoplanet_data
 from .resolve import resolve_target
 
+cache_log_file = os.path.join(os.environ.get('EXOCTK_CONTAM_CACHE'), "precompute_cache.log")
+cache_logger = logging.getLogger("cache_log")
+cache_handler = logging.FileHandler(cache_log_file, mode='a')
+cache_logger.addHandler(cache_handler)
+
 log_file = 'contam_tool.log'
 logging.basicConfig(
     filename=log_file,
@@ -1471,6 +1476,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     # Check to see if the planet is in the DB
     # Require target_db and targname
     # Require None for binComp and target_date, since these change the results
+    cache_logger.info(f"Searching for target {targname} with aperture {aperture}")
     precomputed = False
     bounded_dhs = 'DHS' in aperture
     if target_db is not None:
@@ -1484,6 +1490,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
                     grp_name = get_canonical_name(targname).strip().replace("/", "_")
                     with h5py.File(target_db, "a") as f:
                         if grp_name in f:
+                            cache_logger.info(f"Cache hit for {targname} with {aperture}")
                             precomputed = _cached_contam_result_available(
                                 f[grp_name], compact_dhs=bounded_dhs)
                 else:
