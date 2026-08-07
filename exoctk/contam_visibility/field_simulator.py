@@ -54,7 +54,10 @@ from .gaia_tap import GaiaFailoverTAP
 from .precompute import save_exoplanet_data
 from .resolve import resolve_target
 
-cache_log_file = os.path.join(os.environ.get('EXOCTK_CONTAM_CACHE'), "precompute_cache.log")
+cache_log_file = os.path.join(
+    os.environ.get('EXOCTK_CONTAM_CACHE', os.getcwd()),
+    "precompute_cache.log"
+)
 cache_logger = logging.getLogger("cache_log")
 cache_handler = logging.FileHandler(cache_log_file, mode='a')
 cache_logger.addHandler(cache_handler)
