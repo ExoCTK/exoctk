@@ -187,9 +187,13 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
         # Set the value of a dropdown select list
         element = driver.find_element(action["find_by"], action["find_value"])
         select_element = Select(element)
-        log(f"Set {action['find_value']} from {select_element.all_selected_options} to {action['value']}")
+        selected_options = [e.text for e in select_element.all_selected_options]
+        log(f"Set {action['find_value']} from {selected_options} to {action['value']}")
         select_element.select_by_value(action['value'])
-        log(f"Element {action['find_value']} value is {select_element.all_selected_options}")
+        element = driver.find_element(action["find_by"], action["find_value"])
+        select_element = Select(element)
+        selected_options = [e.text for e in select_element.all_selected_options]
+        log(f"Element {action['find_value']} value is {selected_options}")
     elif action["type"] == "resolve_target":
         # Set the target of observation to the provided value, trigger it.
         # Print out the provided check element before and after to make sure it took.
