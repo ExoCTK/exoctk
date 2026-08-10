@@ -153,7 +153,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1.5, 1.5, 1.5],
+                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1.5, 1.5, 1.5],  # Empirical order-0 contaminant scaling from on-sky measurement
                               'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4], 'target_traces': [0, 1, 2],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
