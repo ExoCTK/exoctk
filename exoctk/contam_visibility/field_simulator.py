@@ -148,11 +148,13 @@ def parse_log():
     for ts, msg in zip(timestamps, messages):
         print(f'{ts}: {msg}')
 
-# NIRISS SOSS order 0 contaminant scaling value was derived from 6 NIR_SUBSTRIP256 observations that contained
-# order 0 contaminants. For each observation, the total counts from the background-subtracted RATE image were summed
-# in a 50px box centered on the order 0 contaminant trace. Each source's mean_phot_g_flux value in the Gaia DR3 catalog
-# was divided by its total 50x50 counts to get the flux/counts. The mean scaling value across the 6 observations was
-# 0.0055. The files used include:
+# The NIRISS/SOSS Order 0 contaminant scaling was estimated from six
+# NIR_SUBSTRIP256 observations containing Order 0 contaminants. For each
+# observation, background-subtracted counts were summed within a 50-pixel box
+# centered on the contaminant. These measurements were compared with the
+# source's Gaia DR3 phot_g_mean_flux to derive an empirical multiplier for
+# Order 0 templates scaled by relative Gaia G-band flux. The mean multiplier
+# across the six observations was 0.0055. The files used were:
 # 'jw01541001001_04101_00001-seg001_nis_rate.fits'
 # 'jw01539062001_03101_00001-seg001_nis_rate.fits'
 # 'jw01539027001_03101_00001-seg001_nis_rate.fits'
