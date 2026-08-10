@@ -67,6 +67,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from tabulate import tabulate
 
@@ -182,6 +183,13 @@ def run_action(driver, action, wait_time=1.0, timeout=10.0):
         element.clear()
         element.send_keys(action["value"])
         log(f"Element {action['find_value']} value is {element.get_attribute('value')}")
+    elif action["type"] == "set_option":
+        # Set the value of a dropdown select list
+        element = driver.find_element(action["find_by"], action["find_value"])
+        select_element = Select(element)
+        log(f"Set {action['find_value']} from {select_element.all_selected_options} to {action['value']}")
+        select_element.select_by_value(action['value'])
+        log(f"Element {action['find_value']} value is {select_element.all_selected_options}")
     elif action["type"] == "resolve_target":
         # Set the target of observation to the provided value, trigger it.
         # Print out the provided check element before and after to make sure it took.
@@ -360,6 +368,12 @@ if __name__ == "__main__":
                 'target_id': "targname",
                 'target': "Wasp 18 b",
                 'target_check': "teff",
+            },
+            {
+                "type": "set_option",
+                "find_by": By.ID,
+                "find_value": "filterselect",
+                "value": "NIRCam.F070W.CLEARP.SW"
             },
         ],
         # The main thing that distinguishes the output page from the form submit page is
