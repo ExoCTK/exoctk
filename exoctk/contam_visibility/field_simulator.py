@@ -148,12 +148,24 @@ def parse_log():
     for ts, msg in zip(timestamps, messages):
         print(f'{ts}: {msg}')
 
-
+# The NIRISS/SOSS Order 0 contaminant scaling was estimated from six
+# NIR_SUBSTRIP256 observations containing Order 0 contaminants. For each
+# observation, background-subtracted counts were summed within a 50-pixel box
+# centered on the contaminant. These measurements were compared with the
+# source's Gaia DR3 phot_g_mean_flux to derive an empirical multiplier for
+# Order 0 templates scaled by relative Gaia G-band flux. The mean multiplier
+# across the six observations was 0.0055. The files used were:
+# 'jw01541001001_04101_00001-seg001_nis_rate.fits'
+# 'jw01539062001_03101_00001-seg001_nis_rate.fits'
+# 'jw01539027001_03101_00001-seg001_nis_rate.fits'
+# 'jw04499011001_03101_00001-seg001_nis_rate.fits'
+# 'jw01536072001_03101_00001-seg001_nis_rate.fits'
+# 'jw02734001001_04101_00001-seg002_nis_rate.fits'
 APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.066, 'rad': 2.5, 'lam': [0.8, 2.8],
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [1, 1.5, 1.5, 1.5],
+                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1.5, 1.5, 1.5],
                               'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4], 'target_traces': [0, 1, 2],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -163,17 +175,17 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
+                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1],
                                 'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 0, 4, 0], 'target_traces': [0],
                                 'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
                                            [3.95721278e-11, -7.40683643e-08, 6.88340922e-05, -3.68009540e-02, 1.06704335e+02],
                                            [1.06699517e-11, 3.36931077e-08, 1.45570667e-05, 1.69277607e-02, 1.45254339e+02]]},
              'NIS_SUBSTRIP256': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale': 0.066, 'rad': 2.5, 'lam': [0.8, 2.8],
-                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
+                                 'c0x0': 890, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.001, 1, 1, 1],
+                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1],
                                  'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 0], 'target_traces': [0, 1, 2],
                                  'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
