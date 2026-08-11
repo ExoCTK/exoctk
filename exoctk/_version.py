@@ -1,2 +1,2 @@
 # Explicit version number
-__version__ = '1.2.6.4'
+__version__ = 'v2026.7'
