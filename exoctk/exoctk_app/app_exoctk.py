@@ -38,6 +38,7 @@ from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overl
 from exoctk.pkgdata import resource_filename
 from exoctk.throughputs import Throughput
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
+from exoctk._version import __version__ as exoctk_version
 
 # FLASK SET UP
 app_exoctk = Flask(__name__)
@@ -147,7 +148,8 @@ def fortney():
                                  js_resources=js_resources,
                                  css_resources=css_resources,
                                  temp=sorted(temp_out, key=float),
-                                 table_string=json.dumps(input_args)
+                                 table_string=json.dumps(input_args),
+                                 version=exoctk_version
                                  )
 
     # Log the form inputs
@@ -198,6 +200,7 @@ def generic():
                                  plot_div=div,
                                  js_resources=js_resources,
                                  css_resources=css_resources,
+                                 version=exoctk_version
                                  )
 
     # Log the form inputs
@@ -272,7 +275,7 @@ def groups_integrations():
                 form.targname.errors = ["Sorry, could not resolve '{}' in exoMAST.".format(form.targname.data)]
 
         # Send it back to the main page
-        return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+        return render_template('groups_integrations.html', form=form, sat_data=sat_data, version=exoctk_version)
 
     if form.validate_on_submit() and form.calculate_submit.data:
 
@@ -358,13 +361,14 @@ def groups_integrations():
             return render_template('groups_integrations_results.html',
                                    results_dict=results_dict,
                                    one_group_error=one_group_error,
-                                   zero_group_error=zero_group_error)
+                                   zero_group_error=zero_group_error,
+                                   version=exoctk_version)
 
         else:
             err = results
-            return render_template('groups_integrations_error.html', err=err)
+            return render_template('groups_integrations_error.html', err=err, version=exoctk_version)
 
-    return render_template('groups_integrations.html', form=form, sat_data=sat_data)
+    return render_template('groups_integrations.html', form=form, sat_data=sat_data, version=exoctk_version)
 
 
 @app_exoctk.route('/pa_contam', methods=['GET', 'POST'])
@@ -377,7 +381,7 @@ def pa_contam():
         The rendered template for the contamination and visibility page.
 
     """
-    return render_template('pa_contam.html')
+    return render_template('pa_contam.html', version=exoctk_version)
 
 
 @celery.task(bind=True)
@@ -521,7 +525,7 @@ def contam_visibility():
         dec = request.args.get('dec')
         form.dec.data = dec
 
-        return render_template('contam_visibility.html', form=form)
+        return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
     # Resolve coordinates through SIMBAD while retaining the ExoMAST link and
     # canonical exoplanet name used elsewhere in the application.
@@ -549,7 +553,7 @@ def contam_visibility():
                         form.targname.data)]
 
         # Send it back to the main page
-        return render_template('contam_visibility.html', form=form)
+        return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
     # Reload page with appropriate mode data
     if form.mode_submit.data:
@@ -559,7 +563,7 @@ def contam_visibility():
             form.inst.data)
 
         # Send it back to the main page
-        return render_template('contam_visibility.html', form=form)
+        return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
     if form.validate_on_submit() and (form.calculate_submit.data or form.calculate_contam_submit.data):
 
@@ -568,7 +572,7 @@ def contam_visibility():
             form.calculate_contam_submit.disabled = True
             form.inst.errors.append(
                 'Contamination calculations are available only for NIRISS/SOSS, NIRCam/DHS, and MIRI/LRS modes.')
-            return render_template('contam_visibility.html', form=form)
+            return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
         if form.inst.data == "NIRSpec":
             instrument = form.inst.data
@@ -642,7 +646,7 @@ def contam_visibility():
                 print(f"Dispatched task {task_result} with id {task_result.id}")
                 form.task_id.data = task_result.id
 
-                return render_template('contam_visibility.html', form=form)
+                return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
             else:
 
@@ -660,7 +664,7 @@ def contam_visibility():
                 print(f"Dispatched task {task_result} with id {task_result.id}")
                 form.task_id.data = task_result.id
 
-                return render_template('contam_visibility.html', form=form)
+                return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
             # Get scripts
             contam_js = INLINE.render_js()
@@ -678,7 +682,8 @@ def contam_visibility():
                                vis_css=vis_css, contam_plot=contam_div,
                                contam_script=contam_script,
                                contam_js=contam_js,
-                               contam_css=contam_css, pa_val=pa_val, epoch=form.epoch.data)
+                               contam_css=contam_css, pa_val=pa_val,
+                               epoch=form.epoch.data, version=exoctk_version)
 
     if form.task_submit.data:
 
@@ -850,10 +855,11 @@ def contam_visibility():
             contam_js=contam_js,
             contam_css=contam_css,
             pa_val=pa_val,
-            epoch=form.epoch.data
+            epoch=form.epoch.data,
+            version=exoctk_version
         )
 
-    return render_template('contam_visibility.html', form=form)
+    return render_template('contam_visibility.html', form=form, version=exoctk_version)
 
 
 # Redirect to the index
@@ -867,7 +873,7 @@ def index():
     ``flask.render_template`` obj
         The rendered template for the index page.
     """
-    return render_template('index.html')
+    return render_template('index.html', version=exoctk_version)
 
 
 @app_exoctk.route('/limb_darkening', methods=['GET', 'POST'])
@@ -930,7 +936,7 @@ def limb_darkening():
         form = empty_fields(form)
 
         # Send it back to the main page
-        return render_template('limb_darkening.html', form=form)
+        return render_template('limb_darkening.html', form=form, version=exoctk_version)
 
     # Reload page with appropriate filter data
     if form.filter_submit.data:
@@ -953,7 +959,7 @@ def limb_darkening():
         form = empty_fields(form)
 
         # Send it back to the main page
-        return render_template('limb_darkening.html', form=form)
+        return render_template('limb_darkening.html', form=form, version=exoctk_version)
 
     # Update validation values after a model grid is selected
     if form.modelgrid_submit.data:
@@ -979,7 +985,7 @@ def limb_darkening():
         form = empty_fields(form)
 
         # Send it back to the main page
-        return render_template('limb_darkening.html', form=form)
+        return render_template('limb_darkening.html', form=form, version=exoctk_version)
 
     # Validate form and submit for results
     if form.validate_on_submit() and form.calculate_submit.data:
@@ -1151,9 +1157,10 @@ def limb_darkening():
         print("Rendering")
         return render_template('limb_darkening_results.html', form=form, table=profile_tables,
                                spam_table=profile_spam_tables, script=script, plot=div, filt_plot=filt_plot,
-                               filt_script=filt_script, js=js_resources, css=css_resources)
+                               filt_script=filt_script, js=js_resources, css=css_resources,
+                               version=exoctk_version)
 
-    return render_template('limb_darkening.html', form=form)
+    return render_template('limb_darkening.html', form=form, version=exoctk_version)
 
 
 @app_exoctk.route('/limb_darkening_error', methods=['GET', 'POST'])
@@ -1166,7 +1173,7 @@ def limb_darkening_error():
         The rendered template for the limb-darkening error page.
     """
 
-    return render_template('limb_darkening_error.html')
+    return render_template('limb_darkening_error.html', version=exoctk_version)
 
 
 @app_exoctk.route('/phase_constraint', methods=['GET', 'POST'])
@@ -1212,7 +1219,7 @@ def phase_constraint(transit_type='primary'):
 
                 form.target_url.data = str(target_url)
 
-                return render_template('phase_constraint.html', form=form)
+                return render_template('phase_constraint.html', form=form, version=exoctk_version)
 
             except Exception:
                 form.target_url.data = ''
@@ -1248,7 +1255,7 @@ def phase_constraint(transit_type='primary'):
         form.maximum_phase.data = maxphase
 
     # Send it back to the main page
-    return render_template('phase_constraint.html', form=form)
+    return render_template('phase_constraint.html', form=form, version=exoctk_version)
 
 
 @app_exoctk.route('/contam_verify', methods=['GET', 'POST'])
@@ -1266,7 +1273,7 @@ def save_contam_pdf():
     contam_pdf = contamVerify(RA, DEC, 'NIRISS', [1, 2], binComp=[], PDF='', web=True)
     filename = contam_pdf.split('/')[-1]
 
-    return render_template(contam_pdf, filename, as_attachment=True)
+    return render_template(contam_pdf, filename, as_attachment=True, version=exoctk_version)
 
 
 @app_exoctk.route('/fortney_result', methods=['POST'])
