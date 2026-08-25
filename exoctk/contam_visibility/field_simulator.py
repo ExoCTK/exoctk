@@ -263,6 +263,20 @@ def contamination_supported(aperture):
     return aperture in WEB_CONTAMINATION_APERTURES
 
 
+def normalize_optional_target_name(target):
+    """Return ``None`` for an omitted target name.
+
+    WTForms supplies an empty string when users enter coordinates without a
+    target name.  Passing that value to ``get_canonical_name`` selects the
+    first entry in the exoplanet catalog (currently 11 Com b), which then
+    replaces the manually entered coordinates in contamination calculations.
+    """
+
+    if isinstance(target, str):
+        target = target.strip()
+    return target or None
+
+
 def source_query_width(aperture):
     """Return the Gaia query width needed to cover an aperture's sources.
 
@@ -590,6 +604,8 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     astropy.table.Table
         The table of stars
     """
+    target = normalize_optional_target_name(target)
+
     # Use ExoMAST for canonical exoplanet naming and SIMBAD for coordinates.
     # SIMBAD's basic identifier coordinates have an explicit J2000 contract,
     # unlike the coordinate values returned by ExoMAST.
@@ -1469,6 +1485,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
 
     # Preserve ExoMAST's canonical exoplanet name for cache compatibility,
     # while using SIMBAD's explicitly J2000 coordinates for Gaia matching.
+    targname = normalize_optional_target_name(targname)
     if targname is not None:
         targname = get_canonical_name(targname)
         ra, dec = resolve_target(targname)

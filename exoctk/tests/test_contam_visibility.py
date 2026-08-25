@@ -80,6 +80,20 @@ def classification_row(mask_dsc=False, mask_columns=(), **values):
     return table[0]
 
 
+@pytest.mark.parametrize('target', [None, '', '   '])
+def test_blank_optional_target_name_is_absent(target):
+    """Manual-coordinate submissions must not resolve a catalog target."""
+
+    assert field_simulator.normalize_optional_target_name(target) is None
+
+
+def test_optional_target_name_is_stripped():
+    """Non-empty target names retain their normal resolution path."""
+
+    assert (field_simulator.normalize_optional_target_name('  WASP-39 b  ')
+            == 'WASP-39 b')
+
+
 def gaia_source_table(source_ids, excess_noise=0.):
     """Build a minimal Gaia result table for find_sources tests."""
 
