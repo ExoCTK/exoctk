@@ -634,7 +634,8 @@ def contam_visibility():
                     'ra': ra_deg,
                     'dec': dec_deg,
                     'aperture': form.inst.data,
-                    'targname': form.targname.data,
+                    'targname': fs.normalize_optional_target_name(
+                        form.targname.data),
                     'target_date': form.epoch.data,
                     'coordinate_epoch': float(form.coordinate_epoch.data),
                 }
@@ -652,7 +653,8 @@ def contam_visibility():
                     'ra': ra_deg,
                     'dec': dec_deg,
                     'aperture': form.inst.data,
-                    'targname': form.targname.data,
+                    'targname': fs.normalize_optional_target_name(
+                        form.targname.data),
                     'target_date': form.epoch.data,
                     'coordinate_epoch': float(form.coordinate_epoch.data),
                 }
