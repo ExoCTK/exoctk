@@ -4,6 +4,7 @@ import re
 import warnings
 
 from astropy.time import Time
+from erfa import ErfaWarning
 
 from bokeh.models import Band, ColumnDataSource, HoverTool
 from bokeh.plotting import figure, show
@@ -145,7 +146,17 @@ def get_exoplanet_positions(ra, dec, in_FOR=None):
     while dec[-1] not in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.']:
         dec = dec[:-1]
 
-    eph = BoundedEphemeris()
+    # jwst_gtvt validates its future maximum date during construction, which
+    # can emit ERFA's expected "dubious year" warning. Keep this suppression
+    # local so other ERFA warnings remain visible to callers.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=(r'ERFA function "dtf2d" yielded .*'
+                     r'"dubious year \(Note 6\)"'),
+            category=ErfaWarning,
+        )
+        eph = BoundedEphemeris()
     exoplanet_data = eph.get_fixed_target_positions(ra, dec)
 
     if in_FOR is None:
