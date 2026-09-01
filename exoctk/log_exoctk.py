@@ -28,11 +28,24 @@ Dependencies
 
 import datetime
 import os
+import re
 
 import astropy.table as at
 import numpy as np
 from pathlib import Path
 import sqlite3
+
+
+SQL_IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _validate_sql_identifier(identifier):
+    """Return a safe SQL identifier or raise ``ValueError``."""
+
+    if (not isinstance(identifier, str) or
+            SQL_IDENTIFIER.fullmatch(identifier) is None):
+        raise ValueError(f'Invalid SQL identifier: {identifier!r}')
+    return identifier
 
 
 def create_db(dbpath, overwrite=True):
@@ -137,13 +150,16 @@ def log_form_input(form_dict, table, database):
         The dictionary of form inputs
     table : str
         The table name to INSERT on
-    database : ``sqlite.connection.cursor`` obj
-        The database cursor object
+    database : ``sqlite3.Connection`` or ``sqlite3.Cursor``
+        The database connection or cursor used to insert the record.
     """
+    table = _validate_sql_identifier(table)
+
     try:
 
         # Get the column names
-        colnames = np.array(database.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
+        query = f'PRAGMA table_info("{table}")'
+        colnames = np.array(database.execute(query).fetchall()).T[1]
 
         # Convert hyphens to underscores and leading numerics to letters for db column names
         inpt = {k.replace('-', '_').replace('3', 'three').replace('4', 'four'): v for k, v in form_dict.items()}
@@ -152,9 +168,14 @@ def log_form_input(form_dict, table, database):
         inpt['date'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
         # Insert the form values that are valid column names
-        cols = [col for col in inpt.keys() if col in colnames]
+        cols = [_validate_sql_identifier(col)
+                for col in inpt.keys() if col in colnames]
         vals = [str(inpt.get(col, 'none')) for col in cols]
-        qry = "Insert Into {} ({}) Values ({})".format(table, ', '.join(cols), ', '.join('?' * len(cols)))
+        quoted_cols = ', '.join(f'"{col}"' for col in cols)
+        placeholders = ', '.join('?' * len(cols))
+        # Table and column identifiers have passed strict validation.
+        qry = (f'INSERT INTO "{table}" ({quoted_cols}) '  # nosec B608
+               f'VALUES ({placeholders})')
         database.execute(qry, vals)
 
     except Exception as e:
@@ -172,8 +193,8 @@ def view_log(database, table, limit=50):
 
     Parameters
     ----------
-    database : str or ``sqlite3.connection.cursor`` obj
-        The database cursor object
+    database : str, ``sqlite3.Connection``, or ``sqlite3.Cursor``
+        The database path, connection, or cursor used to read the records.
     table : str
         The table name
     limit : int
@@ -186,16 +207,30 @@ def view_log(database, table, limit=50):
 
     """
 
+    table = _validate_sql_identifier(table)
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError) as exc:
+        raise ValueError('limit must be a nonnegative integer') from exc
+    if limit < 0:
+        raise ValueError('limit must be a nonnegative integer')
+
     if isinstance(database, str):
         DB = load_db(database)
+    elif isinstance(database, sqlite3.Connection):
+        DB = database.cursor()
     elif isinstance(database, sqlite3.Cursor):
         DB = database
     else:
-        print("Please enter the path to a .db file or a sqlite.Cursor object.")
+        raise TypeError(
+            'database must be a path, sqlite3.Connection, or sqlite3.Cursor')
 
     # Query the database
-    colnames = np.array(DB.execute("PRAGMA table_info('{}')".format(table)).fetchall()).T[1]
-    results = DB.execute("SELECT * FROM {} LIMIT {}".format(table, limit)).fetchall()
+    query = f'PRAGMA table_info("{table}")'
+    colnames = np.array(DB.execute(query).fetchall()).T[1]
+    # The table is a validated identifier and the row limit remains bound.
+    query = f'SELECT * FROM "{table}" LIMIT ?'  # nosec B608
+    results = DB.execute(query, (limit,)).fetchall()
 
     # Empty table
     table = at.Table(names=colnames, dtype=['O'] * len(colnames))

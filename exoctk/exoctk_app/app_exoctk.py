@@ -429,7 +429,9 @@ def _load_and_remove_pickle(filename):
     """Load a complete worker artifact, then remove it after a safe read."""
 
     with open(filename, "rb") as f:
-        value = pickle.load(f)
+        # The paired Celery task creates this server-named artifact in the
+        # private worker volume; website users cannot supply its path or data.
+        value = pickle.load(f)  # nosec B301
     os.remove(filename)
     return value
 
@@ -809,10 +811,8 @@ def contam_visibility():
                 os.environ['SHARED_DATA_DIR'], f'{task_uuid}_stars.pickle'
             )
             print(f"Loading {stars_file}")
-            with open(stars_file, "rb") as f:
-                stars = pickle.load(f)
+            stars = _load_and_remove_pickle(stars_file)
             print("Loaded stars")
-            os.remove(stars_file)
 
             # Add companion
             try:
@@ -1359,4 +1359,6 @@ if __name__ == '__main__':
     app_exoctk.logger.handlers = gunicorn_logger.handlers
     app_exoctk.logger.setLevel(gunicorn_logger.level)
     port = int(os.environ.get('PORT', 5000))
-    app_exoctk.run(host='0.0.0.0', port=port)
+    # The container must listen on every container interface so Docker can
+    # publish this service through its explicitly configured host port.
+    app_exoctk.run(host='0.0.0.0', port=port)  # nosec B104
