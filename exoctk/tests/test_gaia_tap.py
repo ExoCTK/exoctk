@@ -40,6 +40,7 @@ def _native_table(endpoint, source_ids=(30, 10, 20), masked=False):
         'phot_g_mean_flux': np.full(count, 100.),
         'phot_g_mean_mag': np.full(count, 12.),
         'bp_rp': np.full(count, 1.),
+        'teff_gspphot': np.full(count, 5000.),
         'phot_bp_rp_excess_factor': np.full(count, 1.),
         'classprob_dsc_combmod_star': np.asarray(source_ids) / 100.,
         'classprob_dsc_combmod_galaxy': np.asarray(source_ids) / 1000.,

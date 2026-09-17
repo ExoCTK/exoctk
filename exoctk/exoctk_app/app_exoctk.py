@@ -441,7 +441,8 @@ def run_contam_visibility_task(self, params):
     task_uuid = f"{self.request.id}"
     params["task"] = self
     params["plot"] = False
-    targframe, contamination, pa_results = fs.field_simulation(**params)
+    params["return_sources"] = True
+    targframe, contamination, pa_results, stars = fs.field_simulation(**params)
 
     if isinstance(contamination, fs.DHSContaminationResult):
         # The DHS result page consumes the compact order fractions, not the
@@ -475,6 +476,12 @@ def run_contam_visibility_task(self, params):
         os.environ['SHARED_DATA_DIR'], f'{task_uuid}_results.pickle')
     _atomic_pickle_dump(pa_results, results_file)
     print(f"Wrote PA list to {results_file}")
+
+    print("Serializing source normalization table")
+    sources_file = os.path.join(
+        os.environ['SHARED_DATA_DIR'], f'{task_uuid}_sources.pickle')
+    _atomic_pickle_dump(stars, sources_file)
+    print(f"Wrote source normalization table to {sources_file}")
 
     print(f"Processed with params: {params}, uuid {task_uuid}")
 
@@ -683,7 +690,10 @@ def contam_visibility():
                                contam_script=contam_script,
                                contam_js=contam_js,
                                contam_css=contam_css, pa_val=pa_val,
-                               epoch=form.epoch.data, version=exoctk_version)
+                               epoch=form.epoch.data,
+                               source_normalizations=[],
+                               source_normalizations_have_fallback=False,
+                               version=exoctk_version)
 
     if form.task_submit.data:
 
@@ -710,6 +720,7 @@ def contam_visibility():
         vis_script, vis_div = components(vis_plot)
 
         pa_val = float(form.v3pa.data)
+        source_normalizations = []
         print(f"PA is {pa_val}")
         if pa_val == -1:
             # Get task output
@@ -746,6 +757,15 @@ def contam_visibility():
             print(f"Loading {results_file}")
             results = _load_and_remove_pickle(results_file)
             print("Loaded results")
+
+            sources_file = os.path.join(
+                os.environ['SHARED_DATA_DIR'],
+                f'{task_uuid}_sources.pickle')
+            print(f"Loading {sources_file}")
+            stars = _load_and_remove_pickle(sources_file)
+            print("Loaded source normalization table")
+            source_normalizations = fs.source_normalization_rows(
+                stars, target_name=form.targname.data)
 
             # MIRI calculates every orientation, so observability must come
             # from its explicit year-specific metadata rather than missing
@@ -838,6 +858,8 @@ def contam_visibility():
 
             # Calculate contam
             result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+            source_normalizations = fs.source_normalization_rows(
+                stars, target_name=form.targname.data)
 
             # Get scripts
             contam_js = INLINE.render_js()
@@ -858,6 +880,9 @@ def contam_visibility():
             contam_css=contam_css,
             pa_val=pa_val,
             epoch=form.epoch.data,
+            source_normalizations=source_normalizations,
+            source_normalizations_have_fallback=any(
+                row['uses_fallback'] for row in source_normalizations),
             version=exoctk_version
         )
 

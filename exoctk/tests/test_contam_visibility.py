@@ -106,14 +106,119 @@ def gaia_source_table(source_ids, excess_noise=0.):
         'pmdec': np.zeros(count),
         'ref_epoch': np.full(count, 2016.),
         'phot_g_mean_flux': np.full(count, 100.),
+        'phot_g_mean_mag': np.full(count, 12.),
         'bp_rp': np.ones(count),
         'parallax': np.full(count, 0.1),
+        'teff_gspphot': np.full(count, np.nan),
         'astrometric_excess_noise': np.full(count, excess_noise),
         'phot_bp_rp_excess_factor': np.ones(count),
         'classprob_dsc_combmod_star': np.full(count, np.nan),
         'classprob_dsc_combmod_galaxy': np.full(count, np.nan),
         'classprob_dsc_combmod_quasar': np.full(count, np.nan),
     })
+
+
+def temperature_row(**values):
+    """Build one masked Gaia row for temperature-cascade tests."""
+
+    defaults = {
+        'source_id': 1,
+        'teff_gspphot': np.nan,
+        'bp_rp': np.nan,
+    }
+    defaults.update(values)
+    return Table(
+        {name: [value] for name, value in defaults.items()}, masked=True)[0]
+
+
+def test_temperature_prefers_valid_gaia_temperature():
+    """GSP-Phot takes precedence over color."""
+
+    row = temperature_row(teff_gspphot=6230., bp_rp=4.)
+
+    estimate = field_simulator.estimate_gaia_temperature(row)
+
+    assert estimate.temperature == 6200.
+    assert estimate.method == 'gaia_gspphot'
+
+
+def test_temperature_uses_valid_bp_rp_when_gaia_temperature_is_missing():
+    """A missing GSP-Phot value falls through to the BP-RP relation."""
+
+    row = temperature_row(bp_rp=1.0959163)
+
+    estimate = field_simulator.estimate_gaia_temperature(row)
+
+    expected = field_simulator.GAIA_TEFFS[0][np.abs(
+        field_simulator.GAIA_TEFFS[1] - row['bp_rp']).argmin()]
+    assert estimate.temperature == expected
+    assert estimate.method == 'gaia_bp_rp'
+
+
+def test_temperature_uses_explicit_fallback_without_temperature_or_color(
+        caplog):
+    """Parallax and G magnitude do not masquerade as a temperature."""
+
+    row = temperature_row(
+        parallax=10., parallax_error=0.1, phot_g_mean_mag=12.)
+
+    estimate = field_simulator.estimate_gaia_temperature(row)
+
+    assert estimate.temperature == 4000.
+    assert estimate.method == 'default_temperature'
+    assert 'No usable Gaia temperature' in caplog.text
+
+
+def test_temperature_masked_values_do_not_select_coldest_grid_entry():
+    """Masked Gaia values must not accidentally become the 2300 K model."""
+
+    table = Table({
+        'source_id': [1],
+        'teff_gspphot': [5000.],
+        'bp_rp': [1.],
+    }, masked=True)
+    for column in table.colnames[1:]:
+        table[column].mask[0] = True
+
+    estimate = field_simulator.estimate_gaia_temperature(table[0])
+
+    assert estimate.temperature == 4000.
+    assert estimate.method == 'default_temperature'
+
+
+def test_source_normalization_rows_expose_target_and_fallback():
+    """The display summary reports both flux and temperature provenance."""
+
+    stars = Table({
+        'source_id': [11, 22],
+        'name': ['11', '22'],
+        'type': ['STAR', 'STAR'],
+        'ra': [0., 1. / 3600.],
+        'dec': [0., 0.],
+        'distance': [0., 1.5],
+        'phot_g_mean_mag': [10., 12.5],
+        'fluxscale': [1., 0.1],
+        'Teff': [6200., 4000.],
+        'Teff_source': ['gaia_gspphot', 'default_temperature'],
+        'normalization_band': ['Gaia G', 'Gaia G'],
+        'normalization_source': [
+            'Gaia DR3 phot_g_mean_flux',
+            'Gaia DR3 phot_g_mean_flux'],
+    })
+
+    rows = field_simulator.source_normalization_rows(
+        stars, target_name='Synthetic b')
+
+    assert rows[0]['role'] == 'Science target (Synthetic b)'
+    assert rows[0]['name'] == 'Synthetic b'
+    assert rows[0]['position_angle'] == '---'
+    assert rows[0]['relative_flux'] == '1'
+    assert rows[0]['temperature_source'] == 'Gaia DR3 GSP-Phot'
+    assert rows[1]['role'] == 'Contaminant'
+    assert rows[1]['distance'] == '1.500'
+    assert rows[1]['position_angle'] == '90.000'
+    assert rows[1]['uses_fallback']
+    assert rows[1]['temperature_source'] == 'Default temperature (4000 K)'
 
 
 def test_new_vis_plot():
@@ -1708,9 +1813,13 @@ def test_miri_precompute_can_add_target_to_existing_database(
     contamination[240] = 0.5
     pa_results = miri_lrs.PositionAngleResults(
         successful=[240], inaccessible=[0, 1])
+    sources = Table({
+        'name': ['target'], 'fluxscale': [1.], 'Teff': [6000.],
+        'Teff_source': ['gaia_gspphot']})
     precompute.save_exoplanet_data(
         filename, 'HD 189733 b', miri_lrs.APERTURE, 300.182, 22.711,
-        trace[None], contamination, goodPA_list=pa_results)
+        trace[None], contamination, goodPA_list=pa_results,
+        source_table=sources)
 
     with precompute.h5py.File(filename, 'r') as handle:
         group = handle['HD 189733 b']
@@ -1719,6 +1828,7 @@ def test_miri_precompute_can_add_target_to_existing_database(
         assert list(group.attrs['inaccessiblePA_list']) == [0, 1]
         np.testing.assert_array_equal(group['wavelength'][:], wavelength)
         np.testing.assert_array_equal(group['extraction_mask'][:], mask)
+        assert 'source_table' in group
 
 
 @pytest.mark.parametrize("aperture", [
@@ -1738,6 +1848,12 @@ def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
     fractions[0][1, 3] = np.nan
     compact = field_simulator.DHSContaminationResult(
         tuple(fractions), np.array([0, 12, 180, 359]))
+    sources = Table({
+        'name': ['target', 'field'],
+        'fluxscale': [1., 0.1],
+        'Teff': [6000., 4000.],
+        'Teff_source': ['gaia_gspphot', 'default_temperature'],
+    })
 
     # Simulate a legacy group: saving a compact result must replace, rather
     # than reuse, its dense contamination placeholders.
@@ -1749,10 +1865,10 @@ def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
 
     precompute.save_exoplanet_data(
         filename, "Synthetic b", aperture, 10., 20., target, compact,
-        goodPA_list=np.array([0, 12, 180, 359]))
+        goodPA_list=np.array([0, 12, 180, 359]), source_table=sources)
     monkeypatch.setattr(
         field_simulator, "get_canonical_name", lambda name: name)
-    restored_target, restored, _ = (
+    restored_target, restored, attrs = (
         field_simulator.fetch_contam_results("Synthetic b", filename))
 
     np.testing.assert_array_equal(restored_target, np.asarray(target))
@@ -1762,12 +1878,15 @@ def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
     for actual, expected in zip(restored, compact):
         np.testing.assert_array_equal(actual, expected)
         assert not actual.flags.writeable
+    assert list(attrs['source_table']['name']) == ['target', 'field']
     assert not restored.position_angles.flags.writeable
     with precompute.h5py.File(filename, "r") as handle:
         group = handle["Synthetic b"]
         assert "contamination" not in group
         assert "plane_index" not in group
         assert group["dhs_order_fractions"].shape == (2, 4, 7)
+        assert field_simulator._cached_contam_result_available(
+            group, compact_dhs=True, require_sources=True)
 
 
 def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
@@ -1779,9 +1898,12 @@ def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
     compact = field_simulator.DHSContaminationResult(
         (np.arange(15, dtype=float).reshape(3, 5),),
         np.array([0, 45, 359]))
+    sources = Table({
+        'name': ['target'], 'fluxscale': [1.], 'Teff': [6000.],
+        'Teff_source': ['gaia_gspphot']})
     precompute.save_exoplanet_data(
         filename, "Synthetic b", aperture, 10., 20., target, compact,
-        goodPA_list=np.array([0, 45, 359]))
+        goodPA_list=np.array([0, 45, 359]), source_table=sources)
 
     monkeypatch.setattr(field_simulator, "check_for_data", lambda *_: None)
     monkeypatch.setattr(
@@ -1792,12 +1914,15 @@ def test_dhs_field_simulation_uses_compact_cache(tmp_path, monkeypatch):
         field_simulator.pysiaf, "Siaf",
         lambda *_: pytest.fail("cache hit unexpectedly rendered DHS"))
 
-    restored_target, restored, good_pas = field_simulator.field_simulation(
-        targname="Synthetic b", aperture=aperture, target_db=filename)
+    restored_target, restored, good_pas, restored_sources = (
+        field_simulator.field_simulation(
+            targname="Synthetic b", aperture=aperture, target_db=filename,
+            return_sources=True))
 
     np.testing.assert_array_equal(restored_target, np.asarray(target))
     np.testing.assert_array_equal(restored[0], compact[0])
     np.testing.assert_array_equal(good_pas, [0, 45, 359])
+    assert list(restored_sources['name']) == ['target']
 
 
 def test_legacy_dhs_cache_is_not_accepted(tmp_path):
@@ -1817,6 +1942,8 @@ def test_legacy_dhs_cache_is_not_accepted(tmp_path):
             group, compact_dhs=True)
         assert field_simulator._cached_contam_result_available(
             group, compact_dhs=False)
+        assert not field_simulator._cached_contam_result_available(
+            group, compact_dhs=False, require_sources=True)
 
 
 def test_miri_pa_rotation_uses_siaf_coordinates():
