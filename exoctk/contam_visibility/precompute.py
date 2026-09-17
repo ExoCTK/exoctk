@@ -16,6 +16,7 @@ p.generate_database(['TRAPPIST-1', 'WASP-18'], filename='NIS_SUBSTRIP256_test_db
 
 import h5py
 import numpy as np
+import pickle
 import requests
 import logging
 import sys
@@ -67,8 +68,18 @@ def precomputed_target_list():
     return target_list
 
 
+def _save_source_table(group, source_table):
+    """Persist the exact source catalog used by a cached calculation."""
+
+    if "source_table" in group:
+        del group["source_table"]
+    if source_table is not None:
+        group.create_dataset(
+            "source_table", data=np.void(pickle.dumps(source_table)))
+
+
 def _save_compact_dhs(filename, exoplanet_name, ra, dec, target_trace,
-                      contamination, goodPA_list):
+                      contamination, goodPA_list, source_table=None):
     """Save a compact DHS result without assembling large intermediate arrays."""
     if len(target_trace) == 0:
         raise ValueError("target_trace must contain at least one spectral order")
@@ -136,6 +147,7 @@ def _save_compact_dhs(filename, exoplanet_name, ra, dec, target_trace,
             "dhs_position_angles",
             data=contamination.position_angles,
             dtype="int16")
+        _save_source_table(grp, source_table)
         grp.attrs["filled"] = True
 
     logging.info(
@@ -143,14 +155,16 @@ def _save_compact_dhs(filename, exoplanet_name, ra, dec, target_trace,
         f"({len(contamination.position_angles)} contamination planes)")
 
 
-def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trace, contamination, goodPA_list=np.arange(360)):
+def save_exoplanet_data(
+        filename, exoplanet_name, aperture, ra, dec, target_trace,
+        contamination, goodPA_list=np.arange(360), source_table=None):
     """
     Save target trace and contamination (only non-zero planes) to HDF5 file.
     """
     if isinstance(contamination, fs.DHSContaminationResult):
         _save_compact_dhs(
             filename, exoplanet_name, ra, dec, target_trace, contamination,
-            goodPA_list)
+            goodPA_list, source_table=source_table)
         return
 
     n_traces, nrows, ncols = _get_shape(aperture)
@@ -242,6 +256,7 @@ def save_exoplanet_data(filename, exoplanet_name, aperture, ra, dec, target_trac
             grp["plane_index"].resize(plane_index.shape)
             grp["plane_index"][:] = plane_index
 
+        _save_source_table(grp, source_table)
         grp.attrs["filled"] = True
 
     logging.info(f"{exoplanet_name} saved ({len(plane_index)} contamination planes)")
@@ -335,7 +350,10 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                 try:
                     print(f"\tProcessing {targname} at {time.time()}")
                     # Run contamination tool
-                    target_traces, contamination, goodPA_list = fs.field_simulation(lookup[targname]['ra'], lookup[targname]['dec'], aperture, plot=False)
+                    target_traces, contamination, goodPA_list, sources = (
+                        fs.field_simulation(
+                            lookup[targname]['ra'], lookup[targname]['dec'],
+                            aperture, plot=False, return_sources=True))
 
                     # Save data to file with mask and plane index
                     save_exoplanet_data(
@@ -346,7 +364,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                         lookup[targname]['dec'],
                         target_traces,
                         contamination,
-                        goodPA_list=goodPA_list)
+                        goodPA_list=goodPA_list,
+                        source_table=sources)
 
                     logging.info(f"Saved '{targname}' contamination results to {filename}")
 
@@ -367,7 +386,10 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                 data, _ = get_target_data(name)
                 ra_deg = data.get('RA')
                 dec_deg = data.get('DEC')
-                target_traces, contamination, goodPA_list = fs.field_simulation(ra_deg, dec_deg, aperture, plot=False)
+                target_traces, contamination, goodPA_list, sources = (
+                    fs.field_simulation(
+                        ra_deg, dec_deg, aperture, plot=False,
+                        return_sources=True))
                 # Save data to file with mask and plane index
                 save_exoplanet_data(
                     filename,
@@ -377,7 +399,8 @@ def generate_database(target_names, filename='NIS_SUBSTRIP256_db.h5', aperture='
                     dec_deg,
                     target_traces,
                     contamination,
-                    goodPA_list=goodPA_list)
+                    goodPA_list=goodPA_list,
+                    source_table=sources)
 
                 logging.info(f"Saved '{targname}' contamination results to {filename}")
 

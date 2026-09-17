@@ -117,8 +117,11 @@ class DHSContaminationResult(Sequence):
         return len(self.order_fractions)
 
 
-def _cached_contam_result_available(group, compact_dhs=False):
+def _cached_contam_result_available(
+        group, compact_dhs=False, require_sources=False):
     """Return whether an HDF5 target group has a complete compatible result."""
+    if require_sources and "source_table" not in group:
+        return False
     if compact_dhs:
         return (
             "goodPA_list" in group.attrs
@@ -344,6 +347,22 @@ def unobservable_v3pas(pa_results):
 
 # Gaia color-Teff relation
 GAIA_TEFFS = np.asarray(np.genfromtxt(resource_filename('exoctk', 'data/contam_visibility/predicted_gaia_colour.txt'), unpack=True))
+
+DEFAULT_TEMPERATURE = 4000.
+DEFAULT_TEMPERATURE_METHODS = frozenset({
+    'default_temperature',
+    # Retain display compatibility with caches written by earlier revisions
+    # of this branch.
+    'compatibility_fallback',
+})
+
+TEMPERATURE_SOURCE_LABELS = {
+    'gaia_gspphot': 'Gaia DR3 GSP-Phot',
+    'gaia_bp_rp': 'Gaia DR3 BP-RP',
+    'default_temperature': 'Default temperature (4000 K)',
+    'compatibility_fallback': 'Default temperature (4000 K)',
+    'manual': 'User supplied',
+}
 
 # Gaia TAP instance
 GAIA_TAP = GaiaFailoverTAP()
@@ -657,11 +676,14 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     # Or infer galaxy from parallax
     stars['type'] = [classify_source(row) for row in stars]
 
-    # Derived from K. Volk
-    stars['Teff'] = [GAIA_TEFFS[0][(np.abs(GAIA_TEFFS[1] - row['bp_rp'])).argmin()] for row in stars]
+    temperature_estimates = [estimate_gaia_temperature(row) for row in stars]
+    stars['Teff'] = [estimate.temperature for estimate in temperature_estimates]
+    stars['Teff_source'] = [estimate.method for estimate in temperature_estimates]
 
     # Calculate relative flux in Gband
     stars['fluxscale'] = stars['phot_g_mean_flux'] / stars['phot_g_mean_flux'][0]
+    stars['normalization_band'] = 'Gaia G'
+    stars['normalization_source'] = 'Gaia DR3 phot_g_mean_flux'
 
     # Star names
     stars['name'] = [str(i) for i in stars['source_id']]
@@ -834,7 +856,16 @@ def add_source(startable, name, ra, dec, teff=None, fluxscale=None, delta_mag=No
         dec = newcoord.dec.degree
 
     # Add the row to the table
-    startable.add_row({'name': name, 'designation': name, 'ra': ra, 'dec': dec, 'obs_ra': ra, 'obs_dec': dec, 'Teff': teff, 'fluxscale': fluxscale, 'type': type, 'distance': dist})
+    row = {'name': name, 'designation': name, 'ra': ra, 'dec': dec,
+           'obs_ra': ra, 'obs_dec': dec, 'Teff': teff,
+           'fluxscale': fluxscale, 'type': type, 'distance': dist}
+    if 'Teff_source' in startable.colnames:
+        row['Teff_source'] = 'manual'
+    if 'normalization_band' in startable.colnames:
+        row['normalization_band'] = 'Gaia G'
+    if 'normalization_source' in startable.colnames:
+        row['normalization_source'] = 'User-supplied delta magnitude'
+    startable.add_row(row)
     startable.sort('distance')
 
     return startable
@@ -853,6 +884,142 @@ def _finite_float(row, column_name):
         return np.nan
 
     return value if np.isfinite(value) else np.nan
+
+
+@dataclass(frozen=True)
+class TemperatureEstimate:
+    """A model-grid temperature and the Gaia quantity used to infer it."""
+
+    temperature: float
+    method: str
+
+
+def _nearest_model_temperature(temperature):
+    """Return the closest temperature supported by ExoCTK's model grid."""
+
+    index = np.abs(GAIA_TEFFS[0] - float(temperature)).argmin()
+    return float(GAIA_TEFFS[0][index])
+
+
+def estimate_gaia_temperature(row):
+    """Estimate a supported stellar temperature from Gaia DR3 data.
+
+    The ordered cascade prefers Gaia's GSP-Phot temperature and then the
+    established BP-RP relation. If neither is available, retain the historic
+    default temperature of 4000 K explicitly as a fallback rather than
+    inferring a precise-looking temperature from luminosity alone.
+    """
+
+    gaia_temperature = _finite_float(row, 'teff_gspphot')
+    if gaia_temperature > 0:
+        estimate = TemperatureEstimate(
+            _nearest_model_temperature(gaia_temperature), 'gaia_gspphot')
+    else:
+        color = _finite_float(row, 'bp_rp')
+        if np.isfinite(color):
+            index = np.abs(GAIA_TEFFS[1] - color).argmin()
+            estimate = TemperatureEstimate(
+                float(GAIA_TEFFS[0][index]), 'gaia_bp_rp')
+        else:
+            logging.warning(
+                'No usable Gaia temperature or BP-RP color for source %s; '
+                'using the default temperature of %d K.',
+                row['source_id'] if 'source_id' in row.colnames else '?',
+                int(DEFAULT_TEMPERATURE))
+            estimate = TemperatureEstimate(
+                DEFAULT_TEMPERATURE, 'default_temperature')
+
+            # Future idea: when neither Gaia estimate is available,
+            # calculate contamination over a plausible temperature range
+            # instead of selecting a single default temperature.
+
+    return estimate
+
+
+def _display_table_value(row, column_name, default='---'):
+    """Return a source-table scalar suitable for an HTML results table."""
+
+    if column_name not in row.colnames or np.ma.is_masked(row[column_name]):
+        return default
+    value = row[column_name]
+    return default if value is None else value
+
+
+def source_normalization_rows(stars, target_name=None):
+    """Summarize model and flux normalization choices for display.
+
+    The first source is the science target. All catalog source templates are
+    normalized by their Gaia G-band flux relative to that row; manually added
+    sources use their user-supplied delta magnitude on the same relative
+    scale. Contaminant position angles are measured east of north from the
+    science target using the same observation-epoch coordinates as the
+    displayed separations.
+    """
+
+    rows = []
+    target_g_mag = None
+    target_coordinate = None
+    if len(stars):
+        target_g_mag = _finite_float(stars[0], 'phot_g_mean_mag')
+        target_ra = _finite_float(stars[0], 'ra')
+        target_dec = _finite_float(stars[0], 'dec')
+        if np.isfinite(target_ra) and np.isfinite(target_dec):
+            target_coordinate = SkyCoord(
+                ra=target_ra * u.deg, dec=target_dec * u.deg,
+                frame='icrs')
+
+    for index, source in enumerate(stars):
+        source_id = _display_table_value(source, 'source_id')
+        name = _display_table_value(source, 'name', str(source_id))
+        if index == 0 and target_name:
+            name = target_name
+
+        fluxscale = _finite_float(source, 'fluxscale')
+        g_mag = _finite_float(source, 'phot_g_mean_mag')
+        temperature = _finite_float(source, 'Teff')
+        method = str(_display_table_value(
+            source, 'Teff_source', 'default_temperature'))
+        normalization = str(_display_table_value(
+            source, 'normalization_source', 'Gaia G relative flux'))
+
+        if (not np.isfinite(g_mag) and index > 0
+                and np.isfinite(target_g_mag) and fluxscale > 0):
+            g_mag = target_g_mag - 2.5 * np.log10(fluxscale)
+
+        distance = _finite_float(source, 'distance')
+        position_angle = np.nan
+        if index > 0 and target_coordinate is not None:
+            source_ra = _finite_float(source, 'ra')
+            source_dec = _finite_float(source, 'dec')
+            if np.isfinite(source_ra) and np.isfinite(source_dec):
+                source_coordinate = SkyCoord(
+                    ra=source_ra * u.deg, dec=source_dec * u.deg,
+                    frame='icrs')
+                position_angle = target_coordinate.position_angle(
+                    source_coordinate).to_value(u.deg) % 360
+        rows.append({
+            'role': (f'Science target ({name})'
+                     if index == 0 else 'Contaminant'),
+            'name': str(name),
+            'source_id': str(source_id),
+            'source_type': str(_display_table_value(source, 'type')),
+            'distance': (f'{distance:.3f}'
+                         if np.isfinite(distance) else '---'),
+            'position_angle': (f'{position_angle:.3f}'
+                               if np.isfinite(position_angle) else '---'),
+            'g_mag': f'{g_mag:.3f}' if np.isfinite(g_mag) else '---',
+            'relative_flux': (f'{fluxscale:.6g}'
+                              if np.isfinite(fluxscale) else '---'),
+            'temperature': (f'{temperature:.0f}'
+                            if np.isfinite(temperature) else '---'),
+            'temperature_source': TEMPERATURE_SOURCE_LABELS.get(
+                method, method),
+            'normalization_band': str(_display_table_value(
+                source, 'normalization_band', 'Gaia G')),
+            'normalization_source': normalization,
+            'uses_fallback': method in DEFAULT_TEMPERATURE_METHODS,
+        })
+    return rows
 
 
 def classify_source(row):
@@ -1427,7 +1594,7 @@ def _compact_dhs_results(aperture, pa_results):
 def field_simulation(ra=None, dec=None, aperture=None, targname=None,
                      binComp=None, target_date=None, plot=False, task=None,
                      title='My Target', target_db=None, slider=False,
-                     coordinate_epoch=2000):
+                     coordinate_epoch=2000, return_sources=False):
     """Produce a contamination field simulation at the given sky coordinates
 
     Parameters
@@ -1455,6 +1622,10 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     coordinate_epoch : int or float, optional
         Epoch of the supplied target coordinates. SIMBAD-resolved coordinates
         use J2000.
+    return_sources : bool, optional
+        Also return the source table used for normalization. For precomputed
+        contamination results, cache entries without their original source
+        table are treated as incomplete and recalculated.
     Returns
     -------
     targframes : list of numpy.ndarray
@@ -1465,6 +1636,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         by :class:`DHSContaminationResult`.
     position_angles : object
         Observable position-angle metadata, or a plot when ``plot=True``.
+    stars : astropy.table.Table, optional
+        Source and normalization metadata, returned only when
+        ``return_sources=True``.
 
     Example
     -------
@@ -1510,6 +1684,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     # Require None for binComp and target_date, since these change the results
     cache_logger.info(f"Searching for target {targname} with aperture {aperture}")
     precomputed = False
+    stars = None
     bounded_dhs = 'DHS' in aperture
     if target_db is not None:
         logging.info(f"Found target DB {target_db}")
@@ -1524,7 +1699,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
                         if grp_name in f:
                             cache_logger.info(f"Cache hit for {targname} with {aperture}")
                             precomputed = _cached_contam_result_available(
-                                f[grp_name], compact_dhs=bounded_dhs)
+                                f[grp_name], compact_dhs=bounded_dhs,
+                                require_sources=return_sources)
                 else:
                     logging.info("Can't precompute with non-current epoch")
             else:
@@ -1537,6 +1713,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     # Grab data from DB if precomputed
     if precomputed:
         targframes, starcube, attrs = fetch_contam_results(targname, target_db)
+        if return_sources:
+            stars = attrs.get('source_table')
         if aperture == miri_lrs.APERTURE:
             goodPA_list = miri_lrs.PositionAngleResults(
                 successful=attrs['goodPA_list'],
@@ -1656,7 +1834,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             logging.info(f"Saving {targname} to cache {target_db}")
             save_exoplanet_data(
                 target_db, targname, aperture, ra, dec, targframes, starcube,
-                goodPA_list=goodPA_list)
+                goodPA_list=goodPA_list, source_table=stars)
 
         # We don't need this anymore
         del results
@@ -1699,9 +1877,11 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             starcube_targ[2:, :, :] = starcube.swapaxes(1, 2)[:, ::-1, ::-1]
             contam_plot = cf.contam(starcube_targ, aperture, targetName=title, badPAs=badPAs)
 
-        return targframes, starcube, contam_plot
+        result = (targframes, starcube, contam_plot)
+        return result + (stars,) if return_sources else result
 
-    return targframes, starcube, goodPA_list
+    result = (targframes, starcube, goodPA_list)
+    return result + (stars,) if return_sources else result
 
 
 def fetch_contam_results(exoplanet_name, db_filename):
@@ -1747,6 +1927,9 @@ def fetch_contam_results(exoplanet_name, db_filename):
         for key in ('wavelength', 'valid_wavelength', 'extraction_mask'):
             if key in grp:
                 attrs[key] = grp[key][:]
+        if 'source_table' in grp:
+            attrs['source_table'] = pickle.loads(
+                bytes(grp['source_table'][()]))
 
     return target_trace, contamination, attrs
 
