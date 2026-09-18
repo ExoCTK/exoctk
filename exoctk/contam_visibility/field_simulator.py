@@ -117,11 +117,17 @@ class DHSContaminationResult(Sequence):
         return len(self.order_fractions)
 
 
+SOURCE_TABLE_SCOPE = "simulated_sources_v1"
+
+
 def _cached_contam_result_available(
         group, compact_dhs=False, require_sources=False):
     """Return whether an HDF5 target group has a complete compatible result."""
-    if require_sources and "source_table" not in group:
-        return False
+    if require_sources:
+        if "source_table" not in group:
+            return False
+        if group.attrs.get("source_table_scope") != SOURCE_TABLE_SCOPE:
+            return False
     if compact_dhs:
         return (
             "goodPA_list" in group.attrs
@@ -945,6 +951,17 @@ def _display_table_value(row, column_name, default='---'):
     return default if value is None else value
 
 
+def _source_separation_sort_key(stars, index):
+    """Sort a source after finite, smaller angular separations."""
+
+    distance = _finite_float(stars[index], 'distance')
+    return (
+        not np.isfinite(distance),
+        distance if np.isfinite(distance) else np.inf,
+        index,
+    )
+
+
 def source_normalization_rows(stars, target_name=None):
     """Summarize model and flux normalization choices for display.
 
@@ -968,7 +985,14 @@ def source_normalization_rows(stars, target_name=None):
                 ra=target_ra * u.deg, dec=target_dec * u.deg,
                 frame='icrs')
 
-    for index, source in enumerate(stars):
+    source_order = [0] if len(stars) else []
+    source_order.extend(sorted(
+        range(1, len(stars)),
+        key=lambda index: _source_separation_sort_key(stars, index),
+    ))
+
+    for index in source_order:
+        source = stars[index]
         source_id = _display_table_value(source, 'source_id')
         name = _display_table_value(source, 'name', str(source_id))
         if index == 0 and target_name:
@@ -1020,6 +1044,30 @@ def source_normalization_rows(stars, target_name=None):
             'uses_fallback': method in DEFAULT_TEMPERATURE_METHODS,
         })
     return rows
+
+
+def relevant_source_table(stars, included_source_indices):
+    """Return the target and sources rendered in at least one simulation.
+
+    The renderer reports row indices into its original source table. Row zero
+    is always retained as the science target, and the selected contaminants
+    are ordered by angular separation for deterministic display and caching.
+    """
+
+    if len(stars) == 0:
+        return stars.copy()
+
+    selected = {0}
+    selected.update(int(index) for index in included_source_indices)
+    if min(selected) < 0 or max(selected) >= len(stars):
+        raise IndexError('Included source index is outside the source table.')
+
+    ordered = [0]
+    ordered.extend(sorted(
+        selected - {0},
+        key=lambda index: _source_separation_sort_key(stars, index),
+    ))
+    return stars[ordered].copy()
 
 
 def classify_source(row):
@@ -1305,12 +1353,20 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
 
     # Just sources in FOV (Should always have at least 1, the target)
     lft, rgt, top, bot = aper['lft'], aper['rgt'], aper['top'], aper['bot']
-    FOVstars = stars[(lft < stars['xord0']) & (stars['xord0'] < rgt) & (bot < stars['yord0']) & (stars['yord0'] < top)]
+    in_fov = ((lft < stars['xord0']) & (stars['xord0'] < rgt)
+              & (bot < stars['yord0']) & (stars['yord0'] < top))
+    included_source_indices = np.flatnonzero(in_fov)
+    FOVstars = stars[in_fov]
 
     # ``find_sources`` filters Gaia results, but callers may pass a custom
     # table straight to this renderer. Apply the same validation at this
     # boundary before multiplying detector traces by ``fluxscale``.
+    valid_flux = np.array([
+        _finite_positive_scalar(value) is not None
+        for value in FOVstars['fluxscale']
+    ])
     FOVstars = _filter_valid_flux_sources(FOVstars, 'fluxscale', 'flux scale')
+    included_source_indices = included_source_indices[valid_flux]
 
     # Remove Teff value for GALAXY type
     FOVstars['Teff'] = [np.nan if t == 'GALAXY' else i for i, t in zip(FOVstars['Teff'], FOVstars['type'])]
@@ -1393,6 +1449,12 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
                    if include_target else None),
         'target_traces': targframes if include_target else None,
         'contaminants': starframe,
+        'included_sources': [
+            int(index) for index in included_source_indices if index != 0],
+        # For legacy SOSS/DHS rendering, the detector-FOV selection is the
+        # established conservative definition of a potential contaminant.
+        'contaminating_sources': [
+            int(index) for index in included_source_indices if index != 0],
     }
     logging.info('Compiled final results.')
 
@@ -1561,12 +1623,15 @@ def _compact_dhs_results(aperture, pa_results):
     Returns
     -------
     tuple
-        Target-order detector images and a :class:`DHSContaminationResult`.
+        Target-order detector images, a :class:`DHSContaminationResult`, and
+        the sorted union of contaminant-source indices rendered at any PA.
     """
 
     targframes = None
     compact_pctlines = None
+    included_source_indices = set()
     for result in pa_results:
+        included_source_indices.update(result['contaminating_sources'])
         if targframes is None:
             if result['target_traces'] is None:
                 raise ValueError(
@@ -1586,9 +1651,13 @@ def _compact_dhs_results(aperture, pa_results):
     if targframes is None:
         raise ValueError("At least one DHS PA result is required")
 
-    return targframes, DHSContaminationResult(
-        order_fractions=tuple(compact_pctlines),
-        position_angles=np.arange(360, dtype=int))
+    return (
+        targframes,
+        DHSContaminationResult(
+            order_fractions=tuple(compact_pctlines),
+            position_angles=np.arange(360, dtype=int)),
+        sorted(included_source_indices),
+    )
 
 
 def field_simulation(ra=None, dec=None, aperture=None, targname=None,
@@ -1623,9 +1692,10 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         Epoch of the supplied target coordinates. SIMBAD-resolved coordinates
         use J2000.
     return_sources : bool, optional
-        Also return the source table used for normalization. For precomputed
-        contamination results, cache entries without their original source
-        table are treated as incomplete and recalculated.
+        Also return the science target and the potential contaminants retained
+        by at least one simulated position angle. For precomputed results,
+        cache entries without a source table at the current filtering scope are
+        treated as incomplete and recalculated.
     Returns
     -------
     targframes : list of numpy.ndarray
@@ -1800,10 +1870,15 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
 
         results = []
         if bounded_dhs:
-            targframes, starcube = _compact_dhs_results(
-                aperture, calculate_pa_results())
+            targframes, starcube, included_source_indices = (
+                _compact_dhs_results(aperture, calculate_pa_results()))
         else:
             results = list(calculate_pa_results())
+            included_source_indices = sorted({
+                index
+                for result in results
+                for index in result['contaminating_sources']
+            })
 
         if aperture == miri_lrs.APERTURE:
             observable = set(map(int, observable_pa_list))
@@ -1828,6 +1903,8 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
             # Copy good PA results into completed starcube
             for result in results:
                 starcube[result['pa'], :, :] = result['contaminants']
+
+        stars = relevant_source_table(stars, included_source_indices)
 
         should_cache = all((targname is not None, target_db is not None))
         if should_cache:

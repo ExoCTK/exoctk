@@ -190,18 +190,20 @@ def test_source_normalization_rows_expose_target_and_fallback():
     """The display summary reports both flux and temperature provenance."""
 
     stars = Table({
-        'source_id': [11, 22],
-        'name': ['11', '22'],
-        'type': ['STAR', 'STAR'],
-        'ra': [0., 1. / 3600.],
-        'dec': [0., 0.],
-        'distance': [0., 1.5],
-        'phot_g_mean_mag': [10., 12.5],
-        'fluxscale': [1., 0.1],
-        'Teff': [6200., 4000.],
-        'Teff_source': ['gaia_gspphot', 'default_temperature'],
-        'normalization_band': ['Gaia G', 'Gaia G'],
+        'source_id': [11, 33, 22],
+        'name': ['11', '33', '22'],
+        'type': ['STAR', 'STAR', 'STAR'],
+        'ra': [10., 10., 10. + 1. / 3600.],
+        'dec': [0., 3. / 3600., 0.],
+        'distance': [0., 3., 1.],
+        'phot_g_mean_mag': [10., 13., 12.5],
+        'fluxscale': [1., 0.05, 0.1],
+        'Teff': [6200., 5000., 4000.],
+        'Teff_source': [
+            'gaia_gspphot', 'gaia_gspphot', 'default_temperature'],
+        'normalization_band': ['Gaia G', 'Gaia G', 'Gaia G'],
         'normalization_source': [
+            'Gaia DR3 phot_g_mean_flux',
             'Gaia DR3 phot_g_mean_flux',
             'Gaia DR3 phot_g_mean_flux'],
     })
@@ -214,11 +216,26 @@ def test_source_normalization_rows_expose_target_and_fallback():
     assert rows[0]['position_angle'] == '---'
     assert rows[0]['relative_flux'] == '1'
     assert rows[0]['temperature_source'] == 'Gaia DR3 GSP-Phot'
+    assert [row['source_id'] for row in rows] == ['11', '22', '33']
     assert rows[1]['role'] == 'Contaminant'
-    assert rows[1]['distance'] == '1.500'
+    assert rows[1]['distance'] == '1.000'
     assert rows[1]['position_angle'] == '90.000'
     assert rows[1]['uses_fallback']
     assert rows[1]['temperature_source'] == 'Default temperature (4000 K)'
+
+
+def test_relevant_source_table_filters_and_sorts_contaminants():
+    """Only rendered sources remain, ordered by separation after the target."""
+
+    stars = Table({
+        'name': ['target', 'far', 'excluded', 'near'],
+        'distance': [0., 12., 2., 4.],
+    })
+
+    filtered = field_simulator.relevant_source_table(stars, [1, 3, 1])
+
+    assert list(filtered['name']) == ['target', 'near', 'far']
+    assert list(stars['name']) == ['target', 'far', 'excluded', 'near']
 
 
 def test_new_vis_plot():
@@ -1217,15 +1234,18 @@ def test_streamed_dhs_reconstituted_starcube_matches_legacy(
                 'pa': pa,
                 'target_traces': target_traces if index == 0 else None,
                 'contaminants': frame,
+                'contaminating_sources': ([4] if pa == 0 else
+                                          [2, 4] if pa == 1 else [3]),
             }
 
-    returned_targets, compact = field_simulator._compact_dhs_results(
-        aperture, pa_results())
+    returned_targets, compact, included_sources = (
+        field_simulator._compact_dhs_results(aperture, pa_results()))
     np.testing.assert_array_equal(reconstituted_cube, legacy_cube)
     expected = field_simulator.fraction_contaminated(
         aperture, target_traces, legacy_cube, trace_masks=trace_masks)
 
     assert isinstance(compact, field_simulator.DHSContaminationResult)
+    assert included_sources == [2, 3, 4]
     assert len(compact) == 8
     np.testing.assert_array_equal(compact.position_angles, np.arange(360))
     for before, after in zip(target_traces, returned_targets):
@@ -1885,6 +1905,8 @@ def test_dhs_compact_precompute_round_trip(tmp_path, monkeypatch, aperture):
         assert "contamination" not in group
         assert "plane_index" not in group
         assert group["dhs_order_fractions"].shape == (2, 4, 7)
+        assert (group.attrs['source_table_scope']
+                == field_simulator.SOURCE_TABLE_SCOPE)
         assert field_simulator._cached_contam_result_available(
             group, compact_dhs=True, require_sources=True)
 
@@ -1938,6 +1960,8 @@ def test_legacy_dhs_cache_is_not_accepted(tmp_path):
         group.create_dataset(
             "contamination", shape=(1, 2, 3), dtype="float32")
         group.create_dataset("plane_index", data=[0])
+        group.create_dataset(
+            'source_table', data=np.void(pickle.dumps(Table({'name': ['target']}))))
         assert not field_simulator._cached_contam_result_available(
             group, compact_dhs=True)
         assert field_simulator._cached_contam_result_available(
@@ -2027,6 +2051,7 @@ def test_miri_v3pa_has_no_additional_aperture_angle(monkeypatch):
     source = result['intersecting_sources'][0]
 
     assert (source['y_shift'], source['x_shift']) == expected
+    assert result['contaminating_sources'] == [1]
 
 
 def test_miri_nearby_source_pruning_is_conservative():

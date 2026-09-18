@@ -83,7 +83,9 @@
             <p>
                 Source templates are normalized using Gaia G-band flux relative
                 to the science target. A relative flux of 1 identifies the
-                reference normalization used for the target spectrum.
+                reference normalization used for the target spectrum. Only
+                sources retained by the instrument simulation as potential
+                contaminants at one or more evaluated position angles are shown.
             </p>
             {% if source_normalizations_have_fallback %}
                 <div class="alert alert-warning" role="alert">

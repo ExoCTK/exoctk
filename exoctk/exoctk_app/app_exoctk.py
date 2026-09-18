@@ -858,6 +858,8 @@ def contam_visibility():
 
             # Calculate contam
             result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
+            stars = fs.relevant_source_table(
+                stars, result['contaminating_sources'])
             source_normalizations = fs.source_normalization_rows(
                 stars, target_name=form.targname.data)
 

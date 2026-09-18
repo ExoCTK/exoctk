@@ -153,6 +153,7 @@ def test_results_page_renders_normalization_table_and_warning():
             version="test")
 
     assert "Source Models and Normalization" in rendered
+    assert "sources retained by the instrument simulation" in rendered
     assert "<th>Source</th>" not in rendered
     assert "Science target (Synthetic b)" in rendered
     assert "Position angle (&deg; E of N)" in rendered
