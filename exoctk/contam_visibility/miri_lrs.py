@@ -490,6 +490,8 @@ def calc_v3pa(v3pa, stars, aperture,
         'extraction_mask': target_asset.extraction_mask,
         'included_sources': included,
         'intersecting_sources': intersecting,
+        'contaminating_sources': [
+            source['index'] for source in intersecting],
     }
 
 

@@ -69,13 +69,16 @@ def precomputed_target_list():
 
 
 def _save_source_table(group, source_table):
-    """Persist the exact source catalog used by a cached calculation."""
+    """Persist the filtered source catalog used by a cached calculation."""
 
     if "source_table" in group:
         del group["source_table"]
+    if "source_table_scope" in group.attrs:
+        del group.attrs["source_table_scope"]
     if source_table is not None:
         group.create_dataset(
             "source_table", data=np.void(pickle.dumps(source_table)))
+        group.attrs["source_table_scope"] = fs.SOURCE_TABLE_SCOPE
 
 
 def _save_compact_dhs(filename, exoplanet_name, ra, dec, target_trace,
