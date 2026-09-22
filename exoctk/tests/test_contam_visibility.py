@@ -1510,6 +1510,29 @@ def test_substrip96_contamination_plot_omits_order2(monkeypatch):
     assert len(plot.children) == 2
 
 
+@pytest.mark.parametrize(('aperture', 'heatmap_indices'), [
+    ('NIS_SUBSTRIP96', [0]),
+    ('NIS_SUBSTRIP256', [0, 2]),
+])
+def test_soss_contamination_heatmaps_use_v3pa_axis(
+        monkeypatch, aperture, heatmap_indices):
+    """Legacy SOSS heatmaps identify their V3PA-indexed cube correctly."""
+
+    class Cube:
+        shape = (362, 2048, 256)
+
+    monkeypatch.setattr(
+        contamination_figure, 'nirissContam',
+        lambda cube, lam_file: (
+            np.zeros((2048, 360)), np.zeros((2048, 360))))
+
+    plot = contamination_figure.contam(Cube(), aperture)
+
+    for index in heatmap_indices:
+        assert (plot.children[index][0].yaxis.axis_label
+                == 'V3 Position Angle (degrees)')
+
+
 def test_niriss_contamination_clips_edge_extraction(tmp_path):
     """SOSS extraction windows must not wrap at a subarray edge."""
 
