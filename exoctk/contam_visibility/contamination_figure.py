@@ -328,6 +328,10 @@ def miri_single_pa_plot(result):
 def nirissContam(cube, paRange=[0, 360], lam_file=LAM_FILE):
     """ Generates the contamination figure that will be plotted on the website
     for NIRISS SOSS.
+
+    The contamination planes are indexed by V3 position angle. The renderer
+    converts each V3PA to the corresponding aperture angle when placing
+    sources on the detector.
     """
     # Get data from FITS file
     if isinstance(cube, str):
@@ -566,7 +570,10 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
 
     s2.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
     s2.xaxis.axis_label = 'Wavelength (um)'
-    s2.yaxis.axis_label = 'Aperture Position Angle (degrees)'
+    angle_axis_label = ('V3 Position Angle (degrees)'
+                        if instrument.startswith('NIS')
+                        else 'Aperture Position Angle (degrees)')
+    s2.yaxis.axis_label = angle_axis_label
 
     print("Contam plot started")
 
@@ -628,7 +635,7 @@ def contam(cube, instrument, targetName='noName', paRange=[0, 360], badPAs=[]):
         fig_data = np.log10(np.clip(contamO2.T, 1.e-10, 1.))[:, 300:]
         s5.image([fig_data], x=xlim0, y=ylim0, dw=xlim1 - xlim0, dh=ylim1 - ylim0, color_mapper=color_mapper)
         s5.xaxis.axis_label = 'Wavelength (um)'
-        s5.yaxis.axis_label = 'Aperture Position Angle (degrees)'
+        s5.yaxis.axis_label = angle_axis_label
         o2_crosshair = CrosshairTool(overlay=[width, height])
         s5.add_tools(o2_crosshair)
 
