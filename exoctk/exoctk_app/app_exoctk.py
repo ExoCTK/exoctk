@@ -855,7 +855,8 @@ def contam_visibility():
 
             # Add companion
             if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
+                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                stars = fs.add_source(stars, 'Companion', ra_deg, dec_deg, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
 
             # Calculate contam
             result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
