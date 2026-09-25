@@ -373,7 +373,11 @@ TEMPERATURE_SOURCE_LABELS = {
 
 # Gaia TAP instance
 GAIA_TAP = GaiaFailoverTAP()
-GAIA_CACHE = GaiaCache(os.environ["GAIA_CACHE"])
+
+# Gaia cached results
+GAIA_CACHE = None
+if "GAIA_CACHE" in os.environ:
+    GAIA_CACHE = GaiaCache(os.environ["GAIA_CACHE"])
 
 
 @lru_cache(maxsize=1)
@@ -652,17 +656,21 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     logging.info('Searching Gaia DR3 to find all stars within {} of RA={}, Dec={}...'.format(width, ra, dec))
 
     # Check for cached Gaia query
-    if targname is not None and GAIA_CACHE.contains(targname):
-        stars = GAIA_CACHE.get(targname)
+    if targname is not None and GAIA_CACHE is not None:
+        logging.info(f"Checking GAIA_CACHE at {GAIA_CACHE.path} for {targname} record...")
 
-    # Query Gaia and save the result otherwise
+        if GAIA_CACHE.contains(targname):
+            stars = GAIA_CACHE.get(targname)
+
+    # Query Gaia and save the result if possible
     else:
 
         # Query Gaia from several potential endpoints
         stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
 
-        # Save results to the Gaia Cache
-        GAIA_CACHE.save(targname, stars)
+        # Save results to the Gaia Cache if possible
+        if targname is not None and GAIA_CACHE is not None:
+            GAIA_CACHE.save(targname, stars)
 
     # Preserve the intended target as row zero throughout flux normalization,
     # proper-motion correction, and detector rendering. Gaia query order alone

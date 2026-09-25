@@ -21,6 +21,7 @@ class GaiaCache:
 
     def __init__(self, filename="gaia_cache.h5"):
         self.filename = Path(filename)
+        self.path = str(self.filename)
 
     def contains(self, target):
         """Return True if a result for `target` is cached."""
@@ -64,7 +65,7 @@ class GaiaCache:
             overwrite=overwrite,
         )
 
-        print(f"Saved Gaia results for '{target}' to cache.")
+        logging.info(f"Saved Gaia results for '{target}' to cache at {str(self.filename)}")
 
     def load(self, target):
         """
@@ -82,10 +83,10 @@ class GaiaCache:
         target = str(target)
 
         if not self.filename.exists():
-            raise KeyError(f"No cached Gaia result for '{target}'")
+            raise KeyError(f"No cached Gaia result for '{target}' in {str(self.filename)}")
 
         if not self.contains(target):
-            raise KeyError(f"No cached Gaia result for '{target}'")
+            raise KeyError(f"No cached Gaia result for '{target}' in {str(self.filename)}")
 
         return Table.read(
             self.filename,
@@ -112,7 +113,7 @@ class GaiaCache:
             Cached or newly queried result.
         """
         if self.contains(target):
-            print(f"Loading Gaia results for '{target}' from cache.")
+            logging.info(f"Loading Gaia results for '{target}' from cache at{str(self.filename)}.")
             return self.load(target)
 
         else:
@@ -134,6 +135,7 @@ class GaiaCache:
         if self.filename.exists():
             self.filename.unlink()
 
+    @property
     def targets(self):
         """Return a list of all targets currently in the cache."""
         if not self.filename.exists():
