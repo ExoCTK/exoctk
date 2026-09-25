@@ -1906,7 +1906,11 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
 
         stars = relevant_source_table(stars, included_source_indices)
 
-        should_cache = all((targname is not None, target_db is not None))
+        # The cache is keyed only by target name and aperture, so a run with a
+        # binary companion must not be written or it would poison later
+        # companion-free lookups.
+        should_cache = all(
+            (targname is not None, target_db is not None, binComp is None))
         if should_cache:
             logging.info(f"Saving {targname} to cache {target_db}")
             save_exoplanet_data(
