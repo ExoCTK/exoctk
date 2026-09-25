@@ -10,6 +10,7 @@ import pickle
 import sys
 import tempfile
 import time
+import urllib.parse
 import uuid
 
 from astropy.coordinates import SkyCoord
@@ -1379,6 +1380,13 @@ def save_visib_result():
     resp.headers["Content-Type"] = "text/csv"
 
     return resp
+
+
+@app_exoctk.route('/error/<error_type>/<error_message>')
+def error_page(error_type, error_message):
+    decoded_type = urllib.parse.unquote(error_type)
+    decoded_msg = urllib.parse.unquote(error_message)
+    return render_template(error, error_type=decoded_type, error_message=decoded_msg)
 
 
 if __name__ == '__main__':
