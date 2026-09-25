@@ -7,20 +7,46 @@
     function task_check(task_value) {
           const poll = () => {
             fetch(`/status/${task_value}`)
-              .then(response => response.json())
-              .then(data => {
-                if (!data["ready"]) {
-                  if (data["state"] === "PENDING") {
-                    document.getElementById("task-status").innerHTML = data["state"];
-                  } else {
-                    document.getElementById("task-status").innerHTML = data["state"];
-                  }
-                  setTimeout(poll, 2500)
-                } else {
-                  console.log(data);
-                  document.getElementById("task-status").innerHTML = data["state"];
-                  $('#tasksubmit').click();
-                }
+                .then(response => {
+                    // If the server returns a 500 status code
+                    if (response.status === 500) {
+                        var error_msg = "The task failed during the operation '";
+                        error_msg += document.getElementById("task-status").innerHTML;
+                        error_msg += "'. The task was terminated between status checks.";
+                        var error_uri = encodeURIComponent(error_msg);
+                        var error_type = "Contamination/Visibility Error 500";
+                        var error_type_uri = encodeURIComponent(error_type);
+                        var location = "/error/" + error_type_uri + "/" + error_uri;
+                        window.location.href = location; 
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        var error_msg = "The task failed during the operation '";
+                        error_msg += document.getElementById("task-status").innerHTML;
+                        error_msg += "'.";
+                        var error_uri = encodeURIComponent(error_msg);
+                        var error_type = "Contamination/Visibility Unknown Error";
+                        var error_type_uri = encodeURIComponent(error_type);
+                        var location = "/error/" + error_type_uri + "/" + error_uri;
+                        window.location.href = location; 
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data["ready"]) {
+                        if (data["state"] === "PENDING") {
+                            document.getElementById("task-status").innerHTML = data["state"];
+                        } else {
+                            document.getElementById("task-status").innerHTML = data["state"];
+                        }
+                        setTimeout(poll, 2500);
+                    } else {
+                        console.log(data);
+                        document.getElementById("task-status").innerHTML = data["state"];
+                        $('#tasksubmit').click();
+                    }
               })
           }
 
