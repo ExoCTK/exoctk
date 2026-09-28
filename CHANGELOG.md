@@ -5,6 +5,16 @@ This file tracks all major changes in each `exoctk` release.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026.7.3] - 2026-09-28
+
+- Move to versioning based on internal Pandeia release version
+- Improve Gaia temperature fallbacks and expose contamination provenance by @taylorbell57 in https://github.com/ExoCTK/exoctk/pull/763
+- Filter and sort contamination source normalization tables by @taylorbell57 in https://github.com/ExoCTK/exoctk/pull/764
+- Correct SOSS contamination position-angle labels by @taylorbell57 in https://github.com/ExoCTK/exoctk/pull/765
+- Add support for a new HTML error page by @york-stsci in https://github.com/ExoCTK/exoctk/pull/768
+- Fix single-PA contamination plot not rendering when a companion is added by @taylorbell57 in https://github.com/ExoCTK/exoctk/pull/766
+- Don't cache contamination runs that include a companion by @taylorbell57 in https://github.com/ExoCTK/exoctk/pull/769
+
 ## [1.2.3] - 2022-02-01
 
 ### Fixed
