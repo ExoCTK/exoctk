@@ -1,6 +1,7 @@
 # gaia_cache.py
 
 from pathlib import Path
+import logging
 
 import h5py
 from astropy.table import Table
