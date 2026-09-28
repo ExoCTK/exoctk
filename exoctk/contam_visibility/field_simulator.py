@@ -1961,7 +1961,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         # Make slider contam plot
         elif slider or bounded_dhs:
             pctlines = (starcube if bounded_dhs else fraction_contaminated(aperture, targframes, starcube))
-            contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture)
+            contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture, trace_names=inst['trace_names'])
 
         # Make old contam plot
         else:
