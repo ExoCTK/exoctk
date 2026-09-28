@@ -2,6 +2,7 @@ import numpy as np
 import os
 from exoctk.utils import add_array_at_position
 from scipy.interpolate import interp1d
+from scipy.ndimage import gaussian_filter1d
 import stpsf
 from jwst.extract_1d.soss_extract.pastasoss import get_soss_traces
 from astropy.io import fits
@@ -95,7 +96,7 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
     # Make a cube of PSFs to interpolate
     nwave = 100
     wavelengths_um = np.linspace(0.9, 2.3, nwave)
-    fov_pixels = 65
+    fov_pixels = 10
     oversample = 1
     for order, pupil in enumerate(pupils):
         nircam.pupil_mask = pupil
@@ -120,6 +121,9 @@ def make_DHS_trace_template(aperture='NRCA5_41STRIPE1_DHS_F322W2'):
         for i, (xv, yv, wv, dv, tv) in enumerate(zip(x, y, w, dw, thru)):
             psf = psf_interp(wv) * tv * dv
             frame = add_array_at_position(frame, psf, int(xv), round(yv), centered=True)
+
+        # Smooth trace in xdsp direction
+        frame = gaussian_filter1d(frame, sigma=1.0, axis=0)
 
         # Add frame to cube
         dhs_traces[order, :, :] = frame
