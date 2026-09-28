@@ -656,6 +656,7 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     logging.info('Searching Gaia DR3 to find all stars within {} of RA={}, Dec={}...'.format(width, ra, dec))
 
     # Check for cached Gaia query
+    stars = None
     if targname is not None and GAIA_CACHE is not None:
         logging.info(f"Checking GAIA_CACHE at {GAIA_CACHE.path} for {targname} record...")
 
@@ -663,7 +664,7 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
             stars = GAIA_CACHE.get(targname)
 
     # Query Gaia and save the result if possible
-    else:
+    if stars is None:
 
         # Query Gaia from several potential endpoints
         stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
