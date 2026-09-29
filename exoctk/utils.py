@@ -40,7 +40,7 @@ PROFILES = ['linear', 'quadratic', 'square-root', 'logarithmic', 'exponential', 
 
 # The ExoCTK data packages are distributed as versioned tar archives.  These
 # links are also used by the website test workflow.
-DATA_URL_BASE = 'https://data.science.stsci.edu/redirect/JWST/ExoCTK/exoctk_data_v2026p7/compressed/'
+DATA_URL_BASE = 'https://data.science.stsci.edu/redirect/JWST/ExoCTK/exoctk_data_v2026p7p4/compressed/'
 DATA_URLS = {
     'exoctk_contam': [DATA_URL_BASE + 'exoctk_contam.tar.gz'],
     'groups_integrations': [DATA_URL_BASE + 'groups_integrations.tar.gz'],
