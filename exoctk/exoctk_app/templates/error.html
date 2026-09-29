@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Error – {{ error_type }}</h1>
+
+<p>This calculation produced an error. In the case of contamination/visibility calculations,
+this might mean that the worker exceeded a resource limit and was halted. There might also
+be a transient error. If your calculation continues to fail at the same point, please
+contact the help desk.</p>
+
+<h2>Additional Error Information</h2>
+
+<p>{{ error_message }}</p>
+
+{% endblock%}

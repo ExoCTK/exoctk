@@ -30,7 +30,10 @@ dependencies = [
   'astroquery>=0.4.10,<1',
   'batman-package>=2.5.3,<3',
   'bibtexparser>=1.2.0,<2',
-  'bokeh>=3.0,<4',
+  # Bokeh 3.8 gzip-compresses serialized ndarray buffers, which the static
+  # embed (components/file_html) BokehJS fails to decompress, breaking plots
+  # with large arrays (e.g. single-PA contamination). Pin below 3.8 until fixed.
+  'bokeh>=3.0,<3.8',
   'docopt>=0.6.2,<1',
   'flask>=1.1.2,<4',
   'flask_wtf>=0.14.3,<2',

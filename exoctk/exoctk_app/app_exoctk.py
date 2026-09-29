@@ -10,6 +10,7 @@ import pickle
 import sys
 import tempfile
 import time
+import urllib.parse
 import uuid
 
 from astropy.coordinates import SkyCoord
@@ -854,7 +855,8 @@ def contam_visibility():
 
             # Add companion
             if comp_teff is not None and comp_mag is not None and comp_dist is not None and comp_pa is not None:
-                stars = fs.add_source(stars, 'Companion', ra, dec, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
+                ra_deg, dec_deg = float(form.ra.data), float(form.dec.data)
+                stars = fs.add_source(stars, 'Companion', ra_deg, dec_deg, teff=comp_teff, delta_mag=comp_mag, dist=comp_dist, pa=comp_pa, type='STAR')
 
             # Calculate contam
             result, contam_plot = fs.calc_v3pa(pa_val, stars, form.inst.data, plot=True)
@@ -1379,6 +1381,13 @@ def save_visib_result():
     resp.headers["Content-Type"] = "text/csv"
 
     return resp
+
+
+@app_exoctk.route('/error/<error_type>/<error_message>')
+def error_page(error_type, error_message):
+    decoded_type = urllib.parse.unquote(error_type)
+    decoded_msg = urllib.parse.unquote(error_message)
+    return render_template(error, error_type=decoded_type, error_message=decoded_msg)
 
 
 if __name__ == '__main__':
