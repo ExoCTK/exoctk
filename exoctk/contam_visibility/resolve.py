@@ -22,9 +22,21 @@ def resolve_target(target_name):
     """
 
     result = Simbad.query_object(target_name)
+
     if result is None or len(result) == 0:
         raise ValueError(f"SIMBAD could not resolve '{target_name}'.")
-    coordinate = SkyCoord.guess_from_table(result)
+
+    try:
+        coordinate = SkyCoord.guess_from_table(result)
+
+    # SkyCoord getting tripped up on "DEC" and "DEC_PREC"
+    except ValueError:
+        coordinate = SkyCoord(
+            ra=result["RA"][0],
+            dec=result["DEC"][0],
+            unit=("hourangle", "deg"),
+        )
+
     if not coordinate.isscalar:
         coordinate = coordinate[0]
 

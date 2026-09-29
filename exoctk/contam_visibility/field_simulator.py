@@ -174,7 +174,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                               'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                               'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[0, 0, 2048, 2048], 'trim': [127, 126, 252, 1],
                               'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1.5, 1.5, 1.5],
+                              'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1.5, 1.5, 1.5], 'mask_radius': 15,
                               'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 4], 'target_traces': [0, 1, 2],
                               'cutoffs': [2048, 1820, 1130], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                               'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -184,7 +184,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                 'c0x0': 905, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                 'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 1888, 1888], 'trim': [47, 46, 0, 1],
                                 'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1],
+                                'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1], 'mask_radius': 15,
                                 'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 0, 4, 0], 'target_traces': [0],
                                 'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                 'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -194,7 +194,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                  'c0x0': 890, 'c0y0': 1467, 'c1x0': -0.013, 'c1y0': -0.1, 'c1y1': 0.12, 'c1x1': -0.03, 'c2y1': -0.011,
                                  'subarr_x': [0, 2048, 2048, 0], 'subarr_y':[1792, 1792, 2048, 2048], 'trim': [127, 126, 0, 1],
                                  'lft': 700, 'rgt': 3022, 'top': 2050, 'bot': 1400, 'blue_ext': -150, 'red_ext': 200,
-                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1],
+                                 'xord0to1': -2886, 'yord0to1': 68, 'empirical_scale': [0.0055, 1, 1, 1], 'mask_radius': 15,
                                  'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [4, 4, 4, 0], 'target_traces': [0, 1, 2],
                                  'cutoffs': [2048, 1820, 1013], 'trace_names': ['Order 1', 'Order 2', 'Order 3'],
                                  'coeffs': [[1.68975801e-11, -4.60822060e-08, 4.94623886e-05, -5.93935390e-02, 8.67263818e+01],
@@ -204,7 +204,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                             'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                             'c0x0': 1800, 'c0y0': 2106, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                             'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                            'xord0to1': -3384, 'yord0to1': -613, 'empirical_scale': [1] * 11,
+                                            'xord0to1': -3384, 'yord0to1': -613, 'empirical_scale': [1] * 11, 'mask_radius': 5,
                                             'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [11, 11, 11, 11], 'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
                                             'cutoffs': [4257]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                             'coeffs': [[ 2.81442298e-06,  1.48386268e-04,  1.14039356e+03],
@@ -221,7 +221,7 @@ APERTURES = {'NIS_SOSSFULL': {'inst': 'NIRISS', 'full': 'NIS_SOSSFULL', 'scale':
                                            'subarr_x': [0, 4257, 4257, 0], 'subarr_y': [1512, 1512, 2744, 2744], 'trim': [0, 1, 0, 1],
                                            'c0x0': 900, 'c0y0': 2116, 'c1x0': 0, 'c1y0': 0, 'c1y1': 0, 'c1x1': 0, 'c2y1': 0,
                                            'lft': 0, 'rgt': 4300, 'top': 4000, 'bot': 0, 'blue_ext': 0, 'red_ext': 0,
-                                           'xord0to1': -1761, 'yord0to1': -625, 'empirical_scale': [1] * 11,
+                                           'xord0to1': -1761, 'yord0to1': -625, 'empirical_scale': [1] * 11, 'mask_radius': 5,
                                            'tracex_offset': 0, 'tracey_offset': 0, 'refpix': [11, 11, 11, 11], 'target_traces': [0, 1, 2, 3, 6, 7, 8, 9],
                                            'cutoffs': [3078]*10, 'trace_names': ['DHS5', 'DHS4', 'DHS3', 'DHS2', 'DHS1', 'DHS6', 'DHS7', 'DHS8', 'DHS9', 'DHS10'],
                                            'coeffs': [[3.52279496e-06, -1.22488543e-03,  1.15263106e+03],
@@ -414,6 +414,7 @@ def get_trace_mask(aperture, radius=20, plot=False):
     coeffs = aper['coeffs']
     cutoffs = aper['cutoffs']
     refpix = aper['refpix']
+    radius = aper.get('mask_radius', radius)
 
     x = np.arange(xdim)
     traces = np.array([np.polyval(coeff, x) for coeff in coeffs]).astype(int)
@@ -634,6 +635,7 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     # Use ExoMAST for canonical exoplanet naming and SIMBAD for coordinates.
     # SIMBAD's basic identifier coordinates have an explicit J2000 contract,
     # unlike the coordinate values returned by ExoMAST.
+    targname = None
     if target is not None:
         targname = get_canonical_name(target)
         ra, dec = resolve_target(targname)
@@ -1166,7 +1168,7 @@ def fraction_contaminated(aperture, targframes, starcube, trace_masks=None,
         if aperture == miri_lrs.APERTURE:
             trace_masks = miri_lrs.load_reference_trace().extraction_mask
         else:
-            trace_masks = get_trace_mask(aperture, radius=20, plot=False)
+            trace_masks = get_trace_mask(aperture, plot=False)
         if np.asarray(trace_masks).ndim == 2:
             trace_masks = [trace_masks]
         trace_idx = APERTURES[aperture]['target_traces']
@@ -1719,6 +1721,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
     # Aperture names
     if aperture not in APERTURES:
         raise ValueError("Aperture '{}' not supported. Try {}".format(aperture, list(APERTURES.keys())))
+    inst = APERTURES[aperture]
 
     # Check for contam tool data
     check_for_data('exoctk_contam')
@@ -1911,6 +1914,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         # companion-free lookups.
         should_cache = all(
             (targname is not None, target_db is not None, binComp is None))
+
         if should_cache:
             logging.info(f"Saving {targname} to cache {target_db}")
             save_exoplanet_data(
@@ -1944,7 +1948,9 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         # Make slider contam plot
         elif slider or bounded_dhs:
             pctlines = (starcube if bounded_dhs else fraction_contaminated(aperture, targframes, starcube))
-            contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture)
+            trace_idx = np.array(APERTURES[aperture]['target_traces'])
+            trace_names = list(np.array(inst['trace_names'])[trace_idx])
+            contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture, trace_names=trace_names)
 
         # Make old contam plot
         else:
