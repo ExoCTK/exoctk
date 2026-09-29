@@ -5,6 +5,10 @@ This file tracks all major changes in each `exoctk` release.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2026.7.4] - 2026-09-29
+
+- Fix overly wide NIRCam DHS trace mask in contamination tool by @hover2pi in https://github.com/ExoCTK/exoctk/pull/771
+
 ## [2026.7.3] - 2026-09-28
 
 - Move to versioning based on internal Pandeia release version
