@@ -129,7 +129,7 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
         threshold_labels = (contamination_labels or
                             [f'Ord {order}' for order in orders])
     if len(labels) != len(orders) or len(threshold_labels) != len(orders):
-        raise ValueError(f'Plot labels ({len(labels)}) must match the number of traces ({len(orders)})')
+        raise ValueError(f'Plot labels must match the number of traces')
     for order, label in zip(orders, labels):
         plt.line('col', f'contam{order}', source=source_visible, color=colors[order - 1], line_width=2, line_alpha=0.6, legend_label=label)
         glyph = VArea(x="col", y1=f"baseline{order}",
