@@ -122,7 +122,7 @@ def contam_slider_plot(pctlines, badPA_list, threshold=0.05, y_max=0.1,
     # Contamination fraction plot
     plt = figure(width=900, height=300, tools=['reset', 'save'])
     colors = ['blue', 'red', 'green', 'cyan', 'dodgerblue', 'purple', 'orange', 'lime', 'yellow', 'magenta']
-    labels = trace_names or [f'Ord {order}' for order in orders]
+    labels = [f'Ord {order}' for order in orders] if trace_names is None else list(trace_names)
     if contamination_labels is None and wavelength is not None and len(orders) == 1:
         threshold_labels = ['Spectrum']
     else:

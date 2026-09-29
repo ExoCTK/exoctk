@@ -1949,7 +1949,7 @@ def field_simulation(ra=None, dec=None, aperture=None, targname=None,
         elif slider or bounded_dhs:
             pctlines = (starcube if bounded_dhs else fraction_contaminated(aperture, targframes, starcube))
             trace_idx = np.array(APERTURES[aperture]['target_traces'])
-            trace_names = np.array(inst['trace_names'])[trace_idx]
+            trace_names = list(np.array(inst['trace_names'])[trace_idx])
             contam_plot = cf.contam_slider_plot(pctlines, badPAs, instrument=aperture, trace_names=trace_names)
 
         # Make old contam plot
