@@ -64,6 +64,8 @@ class GaiaCache:
             overwrite=overwrite,
         )
 
+        print(f"Saved Gaia results for '{target}' to cache.")
+
     def load(self, target):
         """
         Load a cached Gaia result.
@@ -91,7 +93,7 @@ class GaiaCache:
             format="hdf5",
         )
 
-    def get(self, target, query_function=None):
+    def get(self, target):
         """
         Return a cached result if available; otherwise run the query.
 
@@ -113,21 +115,8 @@ class GaiaCache:
             print(f"Loading Gaia results for '{target}' from cache.")
             return self.load(target)
 
-        if query_function is None:
-            raise KeyError(
-                f"No cached Gaia result for '{target}', "
-                "and no query_function was provided."
-            )
-
-        print(f"'{target}' not found in cache. Querying Gaia...")
-
-        table = query_function(target)
-
-        self.save(target, table)
-
-        print(f"Saved Gaia results for '{target}' to cache.")
-
-        return table
+        else:
+            return None
 
     def remove(self, target):
         """Remove a cached target."""
