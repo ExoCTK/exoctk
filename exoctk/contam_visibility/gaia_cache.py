@@ -104,10 +104,6 @@ class GaiaCache:
         target : str
             Target name used as the cache key.
 
-        query_function : callable
-            Function that performs the Gaia query and returns an
-            Astropy Table. It should take `target` as its only argument.
-
         Returns
         -------
         astropy.table.Table
