@@ -1400,40 +1400,42 @@ def calc_v3pa(V3PA, stars, aperture, data=None, tilt=0, plot=False, POM=False,
     for idx, star in enumerate(FOVstars):
         fluxscale = float(star['fluxscale'])
         if dhs_mode:
-            traces = _iter_scaled_dhs_traces(
+            traces = _iter_cropped_dhs_traces(
                 aperture.AperName, star['Teff'], star['type'])
         else:
-            traces = ((trace, None) for trace in star['traces'])
+            traces = ((trace, None, 0, 0) for trace in star['traces'])
 
         # Add each target trace to it's own frame
         if idx == 0:
             if include_target:
-                for n, (trace, spectral_scale) in enumerate(traces):
+                for n, (trace, spectral_scale, row0, col0) in enumerate(traces):
 
                     # Only add target traces of interest
                     if n in target_idx:
                         add_scaled_array_inplace(
-                            targframes[n], trace, 0, 0,
+                            targframes[n], trace, col0, row0,
                             fluxscale=fluxscale,
                             spectral_scale=spectral_scale)
 
         # Add all orders of all contaminants to the same frame (if it is a STAR)
         else:
 
-            # Get correct order 0
-            order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'])  # Scaling factor based on observations
+            # DHS order-0 templates are all zeros, so skip the full-frame copy.
+            if not dhs_mode:
+                order0 = get_order0(aperture.AperName, star['Teff'], stype=star['type'])  # Scaling factor based on observations
 
-            # Scale the order 0 image and add it to the starframe
-            scale0 = copy(order0) * fluxscale * aper['empirical_scale'][0]
-            starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
+                # Scale the order 0 image and add it to the starframe
+                scale0 = copy(order0) * fluxscale * aper['empirical_scale'][0]
+                starframe = add_array_at_position(starframe, scale0, int(star['xord0'] - aper['subarr_x'][0]), int(star['yord0'] - aper['subarr_y'][1]), centered=True)
 
             # NOTE: Take this conditional out if you want to see galaxy traces!
             if star['type'] == 'STAR':
-                for trace, spectral_scale in traces:
+                x_offset = int(star['xord1'] - stars['xord1'][0])
+                y_offset = int(star['yord1'] - stars['yord1'][0])
+                for trace, spectral_scale, row0, col0 in traces:
                     add_scaled_array_inplace(
                         starframe, trace,
-                        int(star['xord1'] - stars['xord1'][0]),
-                        int(star['yord1'] - stars['yord1'][0]),
+                        x_offset + col0, y_offset + row0,
                         fluxscale=fluxscale,
                         spectral_scale=spectral_scale)
 
@@ -1632,6 +1634,9 @@ def _compact_dhs_results(aperture, pa_results):
     targframes = None
     compact_pctlines = None
     included_source_indices = set()
+    all_masks = get_trace_mask(aperture)
+    trace_masks = [
+        all_masks[idx] for idx in APERTURES[aperture]['target_traces']]
     for result in pa_results:
         included_source_indices.update(result['contaminating_sources'])
         if targframes is None:
@@ -1641,12 +1646,14 @@ def _compact_dhs_results(aperture, pa_results):
             targframes = [
                 np.asarray(trace) for trace in result['target_traces']]
             empty_lines = fraction_contaminated(
-                aperture, targframes, np.zeros_like(targframes[0]))
+                aperture, targframes, np.zeros_like(targframes[0]),
+                trace_masks=trace_masks)
             compact_pctlines = [
                 np.repeat(line, 360, axis=0) for line in empty_lines]
 
         pa_lines = fraction_contaminated(
-            aperture, targframes, result['contaminants'])
+            aperture, targframes, result['contaminants'],
+            trace_masks=trace_masks)
         for order_lines, line in zip(compact_pctlines, pa_lines):
             order_lines[int(result['pa'])] = line[0]
 
@@ -2197,6 +2204,49 @@ def _iter_scaled_dhs_traces(aperture, teff, stype):
     scales = _get_dhs_spectral_scales_cached(
         aperture, _trace_cache_temperature(teff, stype))
     yield from zip(traces, scales)
+
+
+@lru_cache(maxsize=4)
+def _get_dhs_trace_crops_cached(aperture):
+    """Crop each DHS trace template to its non-zero bounding box.
+
+    Returns
+    -------
+    tuple
+        ``(crop, row0, col0)`` per trace, where ``row0``/``col0`` locate the
+        crop within the full template.
+    """
+    _, traces = _get_trace_template_cached(aperture)
+    crops = []
+    for trace in traces:
+        rows = np.flatnonzero(np.any(trace != 0, axis=1))
+        cols = np.flatnonzero(np.any(trace != 0, axis=0))
+        if len(rows) == 0:
+            crop, row0, col0 = np.zeros((0, 0)), 0, 0
+        else:
+            row0, col0 = int(rows[0]), int(cols[0])
+            crop = np.array(trace[row0:rows[-1] + 1, col0:cols[-1] + 1])
+        crop.setflags(write=False)
+        crops.append((crop, row0, col0))
+    return tuple(crops)
+
+
+def _iter_cropped_dhs_traces(aperture, teff, stype):
+    """Yield ``(trace, spectral_scale, row0, col0)`` for one DHS source.
+
+    Adding only the non-zero region of each template gives the same detector
+    image as adding the full template at offset ``(0, 0)``.
+    """
+    if stype == 'GALAXY':
+        for trace in get_trace_mask(aperture):
+            yield trace, None, 0, 0
+        return
+
+    scales = _get_dhs_spectral_scales_cached(
+        aperture, _trace_cache_temperature(teff, stype))
+    for (crop, row0, col0), scale in zip(
+            _get_dhs_trace_crops_cached(aperture), scales):
+        yield crop, scale[col0:col0 + crop.shape[1]], row0, col0
 
 
 @lru_cache(maxsize=128)
