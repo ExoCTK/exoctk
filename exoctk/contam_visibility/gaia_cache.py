@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import logging
+from filelock import FileLock
 
 import h5py
 from astropy.table import Table
@@ -23,6 +24,7 @@ class GaiaCache:
     def __init__(self, filename="gaia_cache.h5"):
         self.filename = Path(filename)
         self.path = str(self.filename)
+        self.lock = FileLock(str(self.filename) + ".lock")
 
     def contains(self, target):
         """Return True if a result for `target` is cached."""
@@ -35,38 +37,22 @@ class GaiaCache:
             return target in f
 
     def save(self, target, table, overwrite=True):
-        """
-        Save an Astropy Table to the cache.
-
-        Parameters
-        ----------
-        target : str
-            Target name used as the cache key.
-        table : astropy.table.Table
-            Gaia query results.
-        overwrite : bool
-            Replace an existing cached result.
-        """
         target = str(target)
 
         self.filename.parent.mkdir(parents=True, exist_ok=True)
 
-        # Remove an existing entry if requested
-        if overwrite and self.filename.exists():
-            with h5py.File(self.filename, "a") as f:
-                if target in f:
-                    del f[target]
+        with self.lock:
+            table.write(
+                self.filename,
+                path=target,
+                format="hdf5",
+                append=self.filename.exists(),
+                overwrite=overwrite,
+            )
 
-        # Astropy handles the conversion of the Table to HDF5
-        table.write(
-            self.filename,
-            path=target,
-            format="hdf5",
-            append=self.filename.exists(),
-            overwrite=overwrite,
+        logging.info(
+            f"Saved Gaia results for '{target}' to cache at {self.filename}"
         )
-
-        logging.info(f"Saved Gaia results for '{target}' to cache at {str(self.filename)}")
 
     def load(self, target):
         """
@@ -110,27 +96,30 @@ class GaiaCache:
             Cached or newly queried result.
         """
         if self.contains(target):
-            logging.info(f"Loading Gaia results for '{target}' from cache at{str(self.filename)}.")
+            logging.info(f"Loading Gaia results for '{target}' from cache at {str(self.filename)}.")
             return self.load(target)
 
         else:
             return None
 
     def remove(self, target):
-        """Remove a cached target."""
         target = str(target)
 
         if not self.filename.exists():
             return
 
-        with h5py.File(self.filename, "a") as f:
-            if target in f:
-                del f[target]
+        with self.lock:
+            if not self.filename.exists():
+                return
+
+            with h5py.File(self.filename, "a") as f:
+                if target in f:
+                    del f[target]
 
     def clear(self):
-        """Delete the entire cache file."""
-        if self.filename.exists():
-            self.filename.unlink()
+        with self.lock:
+            if self.filename.exists():
+                self.filename.unlink()
 
     @property
     def targets(self):
