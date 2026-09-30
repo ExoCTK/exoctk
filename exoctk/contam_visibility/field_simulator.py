@@ -51,6 +51,7 @@ from .new_vis_plot import build_visibility_plot, get_exoplanet_positions
 from . import contamination_figure as cf
 from . import miri_lrs
 from .gaia_tap import GaiaFailoverTAP
+from .gaia_cache import GaiaCache
 from .precompute import save_exoplanet_data
 from .resolve import resolve_target
 
@@ -373,6 +374,11 @@ TEMPERATURE_SOURCE_LABELS = {
 # Gaia TAP instance
 GAIA_TAP = GaiaFailoverTAP()
 
+# Gaia cached results
+GAIA_CACHE = None
+if "GAIA_CACHE" in os.environ:
+    GAIA_CACHE = GaiaCache(os.environ["GAIA_CACHE"])
+
 
 @lru_cache(maxsize=1)
 def _get_aces_grid():
@@ -650,8 +656,23 @@ def find_sources(ra=None, dec=None, target=None, width=5*u.arcmin,
     # Search Gaia for stars
     logging.info('Searching Gaia DR3 to find all stars within {} of RA={}, Dec={}...'.format(width, ra, dec))
 
-    # Query Gaia from several potential endpoints
-    stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
+    # Check for cached Gaia query
+    stars = None
+    if targname is not None and GAIA_CACHE is not None:
+        logging.info(f"Checking GAIA_CACHE at {GAIA_CACHE.path} for {targname} record...")
+
+        if GAIA_CACHE.contains(targname):
+            stars = GAIA_CACHE.get(targname)
+
+    # Query Gaia and save the result if possible
+    if stars is None:
+
+        # Query Gaia from several potential endpoints
+        stars = GAIA_TAP.query_region(targetcrd, width=width, height=width)
+
+        # Save results to the Gaia Cache if possible
+        if targname is not None and GAIA_CACHE is not None:
+            GAIA_CACHE.save(targname, stars)
 
     # Preserve the intended target as row zero throughout flux normalization,
     # proper-motion correction, and detector rendering. Gaia query order alone
