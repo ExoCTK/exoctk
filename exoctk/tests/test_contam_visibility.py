@@ -1094,9 +1094,9 @@ def test_calc_v3pa_dhs_include_target_false_omits_target_frames(monkeypatch):
         field_simulator, '_get_trace_template_cached',
         lambda aperture: (waves, template))
     monkeypatch.setattr(
-        field_simulator, '_iter_scaled_dhs_traces',
+        field_simulator, '_iter_cropped_dhs_traces',
         lambda aperture, teff, stype: iter([
-            (np.ones((4, 5)), np.ones(5)) for _ in range(n_traces)]))
+            (np.ones((4, 5)), np.ones(5), 0, 0) for _ in range(n_traces)]))
     monkeypatch.setattr(
         field_simulator, 'get_order0',
         lambda aperture, teff, stype='STAR': np.zeros((3, 3)))
@@ -1161,6 +1161,44 @@ def test_dhs_cache_retains_only_compact_spectral_scales(monkeypatch):
     assert len(scales) == traces.shape[0]
     assert all(scale.shape == (traces.shape[-1],) for scale in scales)
     assert sum(scale.nbytes for scale in scales) < traces.nbytes
+
+
+def test_cropped_dhs_traces_render_like_full_templates(monkeypatch):
+    """Rendering cropped DHS templates matches rendering the full templates."""
+
+    rng = np.random.default_rng(2206)
+    traces = np.zeros((3, 20, 30))
+    traces[0, 2:6, 3:28] = rng.random((4, 25))
+    traces[1, 10:13, 0:30] = rng.random((3, 30))
+    traces[2, 17:20, 5:9] = rng.random((3, 4))
+    waves = np.tile(np.linspace(1., 2., 30), (3, 1))
+    scales = tuple(rng.random(30) for _ in range(3))
+    monkeypatch.setattr(
+        field_simulator, '_get_trace_template_cached',
+        lambda aperture: (waves, traces))
+    monkeypatch.setattr(
+        field_simulator, '_get_dhs_spectral_scales_cached',
+        lambda aperture, teff: scales)
+    field_simulator._get_dhs_trace_crops_cached.cache_clear()
+    try:
+        crops = field_simulator._get_dhs_trace_crops_cached('SYNTHETIC_DHS')
+        cropped = list(field_simulator._iter_cropped_dhs_traces(
+            'SYNTHETIC_DHS', 5000., 'STAR'))
+    finally:
+        field_simulator._get_dhs_trace_crops_cached.cache_clear()
+
+    assert [crop.shape for crop, _, _ in crops] == [(4, 25), (3, 30), (3, 4)]
+    for x, y in [(0, 0), (4, -3), (-7, 5), (-25, -15), (29, 19), (40, 0)]:
+        full = np.zeros((20, 30))
+        fast = np.zeros((20, 30))
+        for trace, scale in zip(traces, scales):
+            field_simulator.add_scaled_array_inplace(
+                full, trace, x, y, fluxscale=1.7, spectral_scale=scale)
+        for crop, scale, row0, col0 in cropped:
+            field_simulator.add_scaled_array_inplace(
+                fast, crop, x + col0, y + row0, fluxscale=1.7,
+                spectral_scale=scale)
+        np.testing.assert_array_equal(fast, full)
 
 
 def test_package_import_does_not_require_exoctk_data():
