@@ -450,7 +450,7 @@ def test_resolve_target():
     """Tests the ``resolve_target`` function in the ``resolve`` module"""
 
     from astroquery.simbad import conf
-    conf.server 'simbad.harvard.edu'
+    conf.server = 'simbad.harvard.edu'
 
     ra, dec = resolve.resolve_target('Wasp-18 b')
 
