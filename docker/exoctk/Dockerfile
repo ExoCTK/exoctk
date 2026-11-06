@@ -33,6 +33,10 @@ RUN echo "http://dl-8.alpinelinux.org/alpine/edge/community" >> /etc/apk/reposit
 RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev libpng-dev openblas-dev git hdf5-dev
 RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 
+# Configure SIMBAD to use the US mirror
+WORKDIR ~/.astropy/config
+COPY ./docker/exoctk/astroquery.cfg astroquery.cfg
+
 WORKDIR /exoctk
 
 RUN pip install 'batman-package@git+https://github.com/lkreidberg/batman.git@3c69c43'
