@@ -34,8 +34,8 @@ RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev 
 RUN apk --no-cache --update-cache add nano curl firefox geckodriver firefox-esr
 
 # Configure SIMBAD to use the US mirror
-WORKDIR /.astropy/config
-COPY ./docker/exoctk/astroquery.cfg /.astropy/config/astroquery.cfg
+WORKDIR /root/.astropy/config
+COPY ./docker/exoctk/astroquery.cfg /root/.astropy/config/astroquery.cfg
 
 WORKDIR /exoctk
 
