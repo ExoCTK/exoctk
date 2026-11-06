@@ -451,6 +451,7 @@ def test_resolve_target():
 
     from astroquery.simbad import conf
     conf.server = 'simbad.harvard.edu'
+    conf.save()
 
     ra, dec = resolve.resolve_target('Wasp-18 b')
 
