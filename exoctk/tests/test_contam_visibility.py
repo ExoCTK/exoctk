@@ -449,6 +449,9 @@ def test_miri_position_angle_failure_is_raised(monkeypatch):
 def test_resolve_target():
     """Tests the ``resolve_target`` function in the ``resolve`` module"""
 
+    from astroquery.simbad import conf
+    conf.server 'simbad.harvard.edu'
+
     ra, dec = resolve.resolve_target('Wasp-18 b')
 
     assert ra == pytest.approx(24.35430533279)
