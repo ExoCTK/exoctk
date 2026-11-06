@@ -2,7 +2,7 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 
-def resolve_target(target_name):
+def resolve_target(target_name, server="simbad.harvard.edu"):
     """Resolve a target to its SIMBAD ICRS/J2000 coordinates.
 
     Parameters
@@ -21,6 +21,7 @@ def resolve_target(target_name):
         If SIMBAD cannot resolve ``target_name``.
     """
 
+    Simbad.server = 'simbad.harvard.edu'
     result = Simbad.query_object(target_name)
 
     if result is None or len(result) == 0:
