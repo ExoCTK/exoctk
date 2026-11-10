@@ -9,6 +9,10 @@ def resolve_target(target_name, server="simbad.harvard.edu"):
     ----------
     target_name : str
         Target identifier accepted by SIMBAD's basic identifier query.
+    server : str, default 'simbad.harvard.edu'
+        Which SIMBAD server to use. The current valid options are 'simbad.harvard.edu'
+        for the US mirror, or 'cds.unistra.fr/data-access/services/simbad/' for the
+        original French website.
 
     Returns
     -------
