@@ -552,7 +552,8 @@ def contam_visibility():
                 form.coordinate_epoch.data = 2000
                 form.target_url.data = url
 
-            except Exception:
+            except Exception as e:
+                print(e)
                 form.target_url.data = ''
                 form.targname.errors = [
                     "Sorry, could not resolve '{}'.".format(

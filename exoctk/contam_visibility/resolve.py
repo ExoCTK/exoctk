@@ -2,13 +2,17 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 
-def resolve_target(target_name):
+def resolve_target(target_name, server="simbad.harvard.edu"):
     """Resolve a target to its SIMBAD ICRS/J2000 coordinates.
 
     Parameters
     ----------
     target_name : str
         Target identifier accepted by SIMBAD's basic identifier query.
+    server : str, default 'simbad.harvard.edu'
+        Which SIMBAD server to use. The current valid options are 'simbad.harvard.edu'
+        for the US mirror, or 'cds.unistra.fr/data-access/services/simbad/' for the
+        original French website.
 
     Returns
     -------
@@ -21,6 +25,7 @@ def resolve_target(target_name):
         If SIMBAD cannot resolve ``target_name``.
     """
 
+    Simbad.server = server
     result = Simbad.query_object(target_name)
 
     if result is None or len(result) == 0:
