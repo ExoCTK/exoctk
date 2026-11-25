@@ -17,6 +17,7 @@ Use
         pytest -s test_limb_darkening.py
 """
 
+import pytest
 from svo_filters import Filter
 
 from exoctk import modelgrid as mg
@@ -26,6 +27,65 @@ from exoctk.pkgdata import resource_filename
 
 # Load local modelgrid
 MODELGRID = mg.ModelGrid(resource_filename('exoctk', 'data/core/modelgrid/'))
+
+
+@pytest.fixture
+def limb_darkening_client(monkeypatch):
+    web = pytest.importorskip(
+        "exoctk.exoctk_app.app_exoctk",
+        reason="Form tests require the optional web stack")
+    monkeypatch.setitem(web.app_exoctk.config, "TESTING", True)
+    monkeypatch.setitem(web.app_exoctk.config, "WTF_CSRF_ENABLED", False)
+    monkeypatch.setattr(
+        web, "render_template",
+        lambda template, **context: {
+            "template": template,
+            "n_bins": context["form"].n_bins.data,
+        })
+    with web.app_exoctk.test_client() as client:
+        yield client
+
+
+@pytest.mark.parametrize("bandpass, expected_bins", [
+    ("MIRI.F1500W.CLEARP.IMAGER", 1),
+    ("2MASS.H", 1),
+    ("TESS_TESS.Red", 1),
+    ("tophat", 1),
+    ("MIRI.CLEAR.P750L.LRSSLITLESS", 30),
+    ("MIRI.CLEAR.SHORT.CH1", 30),
+    ("WFC3_IR.G141", 30),
+])
+def test_limb_darkening_bandpass_channel_defaults(
+        limb_darkening_client, bandpass, expected_bins):
+    """Selecting a bandpass replaces the previous channel count."""
+    response = limb_darkening_client.post("/limb_darkening", data={
+        "filter_submit": "Filter Selected",
+        "bandpass": bandpass,
+        "n_bins": "7",
+    })
+    assert response.status_code == 200
+    assert response.get_json()["n_bins"] == expected_bins
+
+
+def test_limb_darkening_imaging_channel_override(limb_darkening_client):
+    """An explicit channel count survives a calculation validation error."""
+    selected = limb_darkening_client.post("/limb_darkening", data={
+        "filter_submit": "Filter Selected",
+        "bandpass": "MIRI.F1500W.CLEARP.IMAGER",
+        "n_bins": "30",
+    })
+    assert selected.get_json()["n_bins"] == 1
+
+    response = limb_darkening_client.post("/limb_darkening", data={
+        "calculate_submit": "Calculate Coefficients",
+        "bandpass": "MIRI.F1500W.CLEARP.IMAGER",
+        "n_bins": "4",
+    })
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "template": "limb_darkening.html",
+        "n_bins": 4,
+    }
 
 
 def test_ldc_calculation_filter():

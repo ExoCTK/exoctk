@@ -37,7 +37,7 @@ from exoctk.limb_darkening import spam
 from exoctk.modelgrid import ModelGrid
 from exoctk.phase_constraint_overlap.phase_constraint_overlap import phase_overlap_constraint, calculate_pre_duration
 from exoctk.pkgdata import resource_filename
-from exoctk.throughputs import Throughput
+from exoctk.throughputs import Throughput, JWST_THROUGHPUTS
 from exoctk.utils import filter_table, get_env_variables, get_target_data, get_canonical_name
 from exoctk._version import __version__ as exoctk_version
 
@@ -986,6 +986,13 @@ def limb_darkening():
         # Update the form data
         form.wave_min.data = bandpass.wave_min.value
         form.wave_max.data = bandpass.wave_max.value
+        bandpass_parts = form.bandpass.data.split('.')
+        is_jwst_spectrum = (
+            form.bandpass.data in JWST_THROUGHPUTS
+            and len(bandpass_parts) == 4
+            and bandpass_parts[2] != 'CLEARP')
+        is_hst_spectrum = form.bandpass.data.startswith(('STIS.G', 'WFC3_IR.G'))
+        form.n_bins.data = 30 if is_jwst_spectrum or is_hst_spectrum else 1
 
         # Ensure planet fields are not None
         form = empty_fields(form)
