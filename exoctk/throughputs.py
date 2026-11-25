@@ -15,6 +15,8 @@ from svo_filters.svo import Filter
 from .pkgdata import resource_filename
 
 try:
+    from pandeia.engine.calc_utils import build_default_calc
+    from pandeia.engine.custom_exceptions import EngineInputError
     from pandeia.engine.instrument_factory import InstrumentFactory
 except ImportError:
     print("pandeia not installed. Functionality limited.")
@@ -50,7 +52,7 @@ class Throughput(Filter):
             super().__init__(name, **kwargs)
 
 
-def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd', aperture='soss', detector=None):
+def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd', aperture='soss', detector=None, order=None):
     """
     Use pandeia to generate the JWST throughputs
 
@@ -66,25 +68,87 @@ def get_pce(instrument='niriss', mode='soss', filter='clear', disperser='gr700xd
         The dispersion element to use
     aperture: str
         The aperture to use
+    detector: dict (optional)
+        The detector configuration to use. Defaults to the pandeia default
+        detector configuration for the given instrument and mode.
+    order: int (optional)
+        The spectral order to use for multi-order dispersers (e.g. NIRISS SOSS)
 
     Returns
     -------
     wave, pce
         The wavelength and throughput
     """
-    # Get optical element configuration
-    obsmode = {'instrument': instrument, 'mode': mode, 'filter': filter, 'aperture': aperture, 'disperser': disperser}
-    conf = {'instrument': obsmode, 'detector': detector}
+    # Start from the pandeia default configuration so mode-specific settings
+    # (e.g. a valid detector configuration) are populated
+    conf = build_default_calc('jwst', instrument, mode)['configuration']
+    conf['instrument'].update({'filter': filter, 'aperture': aperture, 'disperser': disperser})
+    if detector is not None:
+        conf['detector'] = detector
+
+    # NIRCam coronagraphic apertures encode the detector channel (e.g. 'mask335rlw')
+    if 'detector' in conf['instrument'] and aperture[-2:] in ('sw', 'lw'):
+        conf['instrument']['detector'] = aperture[-2:]
+
     i = InstrumentFactory(config=conf)
+    i.order = order
 
     # Determine wavelength range
     wr = i.get_wave_range()
     wave = np.linspace(wr['wmin'], wr['wmax'], num=500)
 
-    # Evaluate the throughput
-    pce = i.get_total_eff(wave)
+    # Evaluate the throughput, clipping small negative interpolation artifacts
+    pce = np.clip(i.get_total_eff(wave), 0, None)
 
     return wave, pce
+
+
+def _skip_combination(instrument, mode, aperture, filt, disperser=None):
+    """
+    Determine whether a pandeia configuration should be excluded from the
+    generated throughput files
+
+    Parameters
+    ----------
+    instrument: str
+        The JWST instrument
+    mode: str
+        The observing mode
+    aperture: str
+        The aperture
+    filt: str
+        The filter
+    disperser: str
+        The disperser
+
+    Returns
+    -------
+    bool
+        True if the combination should be skipped
+    """
+    # Only keep NIRCam coronagraphic masks on their native detector channel
+    if instrument == 'nircam' and mode == 'coronagraphy':
+        native = 'sw' if aperture[:-2] in ('mask210r', 'maskswb') else 'lw'
+        if aperture[-2:] != native:
+            return True
+
+        # Pandeia allows F277W with the round LW occulters, but JDox does not
+        # (F277W is bar-only and F322W2 is round-only)
+        return filt == 'f277w' and aperture[:-2] in ('mask335r', 'mask430r')
+
+    # GRISMC has the same throughput as GRISMR and is not used for time series
+    if instrument == 'nircam' and disperser == 'grismc':
+        return True
+
+    # MIRI WFSS uses the same P750L + imager configuration as LRS slitless
+    if instrument == 'miri' and mode == 'wfss':
+        return True
+
+    # MIRI coronagraphic filters are only used with their coronagraphic masks
+    if instrument == 'miri' and mode != 'coronagraphy' and filt is not None and filt.endswith('c'):
+        return True
+
+    return False
 
 
 def generate_JWST_throughputs(path=None, data_dir=None):
@@ -122,36 +186,36 @@ def generate_JWST_throughputs(path=None, data_dir=None):
 
                     # Get aperture and filter lists
                     aper_list = params['apertures']
-                    filt_list = params['filters'] or ['CLEAR']
+                    filt_list = params['filters'] or [None]
+                    disp_list = params.get('dispersers') or [None]
 
-                    # Split disperser into orders if necessary
-                    disp_list = []
-                    try:
-                        for dis in params['dispersers']:
-                            orders = cfg['disperser_config'][dis].get('orders', [1])
-                            if len(orders) == 1:
-                                disp_list.append(dis)
-                            else:
-                                for order in orders:
-                                    disp_list.append('{}_{}'.format(dis, order))
-                    except KeyError:
-                        disp_list = None
-                    disp_list = disp_list or ['CLEARP']
-
-                    # Make a list of all aperture, dispersion, and filter combinations
-                    combinations = [[[[a, d, f] for f in filt_list] for d in disp_list] for a in aper_list]
-                    combinations = [k for l in [i for j in combinations for i in j] for k in l]
+                    # Make a list of all aperture, disperser, order, and filter combinations,
+                    # splitting dispersers into orders if necessary
+                    combinations = []
+                    for aper in aper_list:
+                        for disp in disp_list:
+                            for filt in filt_list:
+                                orders = cfg['disperser_config'].get(disp, {}).get('orders', [1]) if disp else [1]
+                                if isinstance(orders, dict):
+                                    orders = orders.get(filt, [1])
+                                for order in (orders if len(orders) > 1 else [None]):
+                                    if not _skip_combination(inst, mode, aper, filt, disp):
+                                        combinations.append([aper, disp, order, filt])
 
                     for conf in combinations:
 
                         try:
 
                             # Get the configuration
-                            aper, disp, filt = conf
+                            aper, disp, order, filt = conf
 
                             # Generate throughput
-                            wave, thru = get_pce(inst, mode, filt, disp, aper)
-                            name = '.'.join([inst.upper().replace('CAM', 'Cam').replace('SPEC', 'Spec'), filt.upper(), disp.upper(), aper.upper()])
+                            wave, thru = get_pce(inst, mode, filt, disp, aper, order=order)
+                            disp_name = 'CLEARP' if disp is None else disp if order is None else '{}_{}'.format(disp, order)
+                            aper_name = aper[:-2] if inst == 'nircam' and mode == 'coronagraphy' else aper
+                            if inst == 'miri' and mode == 'lrsslitless':
+                                aper_name = 'lrsslitless'
+                            name = '.'.join([inst.upper().replace('CAM', 'Cam').replace('SPEC', 'Spec'), (filt or 'CLEAR').upper(), disp_name.upper(), aper_name.upper()])
 
                             # Save to txt file
                             data = np.array([wave, thru]).T
@@ -160,8 +224,8 @@ def generate_JWST_throughputs(path=None, data_dir=None):
                                 np.savetxt(datafile_id, data)
                             print("{} file created!".format(datafile_path))
 
-                        except KeyError:
-                            print("Could not produce throughput for {}".format(conf))
+                        except (KeyError, ValueError, EngineInputError) as err:
+                            print("Could not produce throughput for {}: {}".format(conf, err))
 
         # Do NIRSpec separately because pandeia doesn't show them correctly
         nirspec_combos = ['G140M/F070LP', 'G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP', 'G140H/F070LP', 'G140H/F100LP', 'G235H/F170LP', 'G395H/F290LP', 'PRISM/CLEAR']
